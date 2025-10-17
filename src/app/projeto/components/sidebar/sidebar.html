@@ -1,0 +1,49 @@
+<div class="w-64 h-screen bg-blue-900 text-white flex flex-col flex-shrink-0">
+
+  <div class="p-4 flex items-center justify-between">
+    <img src="assets/ipe.png" alt="Projetist Logo" class="h-10" />
+  </div>
+
+  <nav class="flex-1 overflow-y-auto">
+    <a
+      [routerLink]="['/dashboard']"
+      routerLinkActive="active-link"
+      class="flex items-center py-3 px-4 w-full text-blue-300 bg-blue-900 hover:bg-blue-800 hover:text-white cursor-pointer mb-2"
+    >
+      <span class="material-icons mr-3">pie_chart</span>
+      <span class="link-text">Dashboard</span>
+    </a>
+
+    <a
+      [routerLink]="['/projetos']"
+      routerLinkActive="active-link"
+      class="flex items-center py-3 px-4 w-full bg-blue-900 text-blue-300 hover:bg-blue-800 hover:text-white cursor-pointer"
+    >
+      <span class="material-icons mr-3">view_kanban</span>
+      <span class="link-text">Projetos</span>
+    </a>
+  </nav>
+
+  <div class="mt-auto p-4 border-t border-blue-700">
+    <div *ngIf="user" class="mb-2">
+    <p class="text-sm">Bem-vindo</p>
+    <p class="text-sm font-bold">{{ user.Nome }}</p>
+  </div>
+    <div class="flex flex-col space-y-2">
+      <a
+        [routerLink]="['/modulos']"
+        class="w-full flex items-center py-2 px-3 text-blue-300 hover:bg-blue-800 hover:text-white rounded"
+      >
+        <span class="material-icons mr-2">swap_horiz</span>
+        <span>Módulos</span>
+      </a>
+      <button
+        (click)="logout()"
+        class="w-full flex items-center py-2 px-3 text-white hover:bg-red-600 hover:text-white rounded"
+      >
+        <span class="material-icons mr-2">logout</span>
+        <span>Sair</span>
+      </button>
+    </div>
+  </div>
+</div>
