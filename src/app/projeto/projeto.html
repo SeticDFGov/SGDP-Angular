@@ -1,9 +1,17 @@
 <div class="flex justify-between items-center mb-4">
+  <app-projeto-form
+  *ngIf="isModalOpen"
+  (close)="fecharModal()"
+  [esteiras]="listaEsteiras"
+  [unidades]="listaUnidades"
+  [demandantes]="listaDemandantes"
+  (formSubmit)="salvarProjetos($event)"
+  ></app-projeto-form>
   <p class="text-gray-600">
     {{ projetos.length }} Resultados encontrados
   </p>
   <div class="flex space-x-2">
-    <button class="border rounded-lg py-2 px-4 flex items-center bg-blue-800 text-white">
+    <button (click)="abrirModal()" class="border roun  ded-lg py-2 px-4 flex items-center bg-blue-800 text-white">
       <span class="material-icons mr-2">add</span>
       Adicionar Projeto
     </button>

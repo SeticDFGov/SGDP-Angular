@@ -1,7 +1,6 @@
 export interface ProjetoInterfaceForm {
   NM_PROJETO: string;
   GERENTE_PROJETO: string;
-  SITUACAO: string;
   NR_PROCESSO_SEI: string;
   NM_AREA_DEMANDANTE: number;
   ANO: string;
