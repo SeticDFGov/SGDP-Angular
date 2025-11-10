@@ -7,6 +7,7 @@ import { AuthLayoutComponent } from './layouts/auth-layout/auth-layout';
 import path from 'path';
 import { Component } from '@angular/core';
 import { MainLayout } from './layouts/main-layout/main-layout';
+import { EtapaListComponent } from './projeto/etapa/etapa-list/etapa-list.component';
 
 export const routes: Routes = [
   {
@@ -21,6 +22,10 @@ export const routes: Routes = [
       {
         path:'projetos',
         component:Projeto
+      },
+      {
+        path: 'projetos/:id/etapas',
+        component: EtapaListComponent
       }
     ]
 

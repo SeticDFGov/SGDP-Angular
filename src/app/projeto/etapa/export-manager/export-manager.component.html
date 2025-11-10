@@ -1,0 +1,53 @@
+<div class="max-w-4xl mx-auto my-8 p-6 bg-slate-50 rounded-lg shadow-lg font-sans">
+  <h2 class="text-2xl font-bold text-slate-800 border-b-2 border-slate-200 pb-2 mb-6">
+    Reports Gerados
+  </h2>
+
+  <div class="mb-6">
+    <button
+      (click)="handleCreateExport()"
+      [disabled]="isCreating || !reportId"
+      class="py-3 px-6 text-base font-bold text-white bg-blue-600 rounded-md shadow-sm transition-colors duration-200 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+    >
+      {{ isCreating ? 'Criando...' : 'Gerar Report' }}
+    </button>
+    <p *ngIf="reportStatus === 'AUSENTE'" class="text-sm text-yellow-600 mt-2">
+      Relatório não encontrado. A criação de exports está desabilitada.
+    </p>
+  </div>
+
+  <p *ngIf="error" class="p-3 my-4 text-red-700 bg-red-100 border border-red-200 rounded-md">
+    Erro: {{ error }}
+  </p>
+
+  <div *ngIf="isLoading">
+    <p class="text-slate-600">A carregar exports...</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="flex flex-col gap-4">
+    <div *ngIf="exports.length > 0; else noExports">
+      <div *ngFor="let exp of exports" class="flex justify-between items-center p-4 bg-white border border-slate-200 rounded-md shadow-sm">
+        <div class="text-sm">
+          <p class="text-slate-600 my-1">
+            <strong class="font-semibold text-slate-700">ID do Report:</strong> {{ exp.id }}
+          </p>
+          <p class="text-slate-600 my-1">
+            <strong class="font-semibold text-slate-700">Data de Criação:</strong>
+            {{ exp.data_criacao | date:'dd/MM/yyyy HH:mm:ss' }}
+          </p>
+        </div>
+        <button
+          (click)="handleDownloadExport(exp.id)"
+          class="py-2 px-4 font-semibold text-white bg-green-600 rounded-md shadow-sm transition-colors hover:bg-green-700"
+        >
+          Download
+        </button>
+      </div>
+    </div>
+    <ng-template #noExports>
+      <p class="p-4 text-center text-slate-500 bg-slate-100 rounded-md">
+        Nenhum export encontrado para este projeto.
+      </p>
+    </ng-template>
+  </div>
+</div>

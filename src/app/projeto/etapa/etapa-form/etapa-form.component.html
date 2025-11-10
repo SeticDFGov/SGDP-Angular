@@ -1,0 +1,75 @@
+<div *ngIf="isOpen" class="fixed z-50 inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
+  <div class="bg-white p-6 rounded-md w-[1200px] shadow-lg">
+    <h2 class="text-xl font-semibold mb-4">Cadastrar Etapa</h2>
+    <form (ngSubmit)="handleSubmit()" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="mb-4">
+        <label class="block text-sm font-medium">Nome da Etapa</label>
+        <input
+          type="text"
+          name="NM_ETAPA"
+          [(ngModel)]="formData.NM_ETAPA"
+          class="w-full p-2 border border-gray-300 rounded-md"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium">Responsável pela Etapa</label>
+        <input
+          type="text"
+          name="RESPONSAVEL_ETAPA"
+          [(ngModel)]="formData.RESPONSAVEL_ETAPA"
+          class="w-full p-2 border border-gray-300 rounded-md"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium">Data Início Previsto</label>
+        <input
+          type="date"
+          name="DT_INICIO_PREVISTO"
+          [(ngModel)]="formData.DT_INICIO_PREVISTO"
+          class="w-full p-2 border border-gray-300 rounded-md"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium">Data Término Previsto</label>
+        <input
+          type="date"
+          name="DT_TERMINO_PREVISTO"
+          [(ngModel)]="formData.DT_TERMINO_PREVISTO"
+          class="w-full p-2 border border-gray-300 rounded-md"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium">Percentual Total da Etapa</label>
+        <input
+          type="number"
+          name="PERCENT_TOTAL_ETAPA"
+          [(ngModel)]="formData.PERCENT_TOTAL_ETAPA"
+          class="w-full p-2 border border-gray-300 rounded-md"
+          required
+          min="0"
+          max="100"
+        />
+      </div>
+
+      <div class="col-span-3 flex justify-end space-x-2">
+        <button
+          type="button"
+          (click)="closeModal()"
+          class="px-4 py-2 bg-gray-300 rounded-md"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="px-4 py-2 bg-blue-500 text-white rounded-md"
+        >
+          Cadastrar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

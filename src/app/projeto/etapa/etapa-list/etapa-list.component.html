@@ -1,0 +1,80 @@
+<div class="container mx-auto p-4">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Etapas do Projeto</h1>
+    <button (click)="handleToggleView()" class="px-4 py-2 bg-gray-200 rounded-md">
+      {{ mostrarTabela ? 'Ver Kanban' : 'Ver Tabela' }}
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="text-center">
+    <p>Carregando etapas...</p>
+  </div>
+
+  <div *ngIf="!loading">
+    <div *ngIf="mostrarTabela; else kanbanView">
+      <div class="flex justify-end mb-4">
+        <button (click)="openModal()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+          <i class="fas fa-plus mr-2"></i> Inserir Etapa
+        </button>
+      </div>
+
+      <app-etapa-form [isOpen]="isModalOpen" [projetoId]="projetoId" (onClose)="isModalOpen = false" (onSubmit)="handleCadastroEtapa($event)"></app-etapa-form>
+      <app-etapa-inicio-form [isOpen]="showModalInicio" [etapa]="etapaSelecionada" (onClose)="showModalInicio = false" (onEtapaIniciada)="handleEtapaIniciada()"></app-etapa-inicio-form>
+      <app-etapa-desempenho-form [isOpen]="showDesempenho" [etapa]="etapaSelecionada" (onClose)="showDesempenho = false" (onEtapaAtualizada)="handleEtapaAtualizada()"></app-etapa-desempenho-form>
+
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-gray-100 border-b">
+            <th class="text-left text-gray-600 p-3">Nome da etapa</th>
+            <th class="text-left text-gray-600 p-3">Início Planejado</th>
+            <th class="text-left text-gray-600 p-3">Término Planejado</th>
+            <th class="text-left text-gray-600 p-3">Início Real</th>
+            <th class="text-left text-gray-600 p-3">Término Real</th>
+            <th class="text-left text-gray-600 p-3">Situação</th>
+            <th class="text-left text-gray-600 p-3">Planejado</th>
+            <th class="text-left text-gray-600 p-3">Executado</th>
+            <th class="text-left text-gray-600 p-3">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="etapas.length === 0">
+            <td colspan="9" class="text-center p-4 text-gray-500">
+              Este projeto não contém etapas.
+            </td>
+          </tr>
+          <tr *ngFor="let etapa of etapas" class="border-b hover:bg-gray-50">
+            <td class="p-3">{{ etapa.nmEtapa }}</td>
+            <td class="p-3">{{ etapa.dtInicioPrevisto | date:'dd/MM/yyyy' }}</td>
+            <td class="p-3">{{ etapa.dtTerminoPrevisto | date:'dd/MM/yyyy' }}</td>
+            <td class="p-3">{{ etapa.dtInicioReal | date:'dd/MM/yyyy' }}</td>
+            <td class="p-3">{{ etapa.dtTerminoReal | date:'dd/MM/yyyy' }}</td>
+            <td class="p-3">{{ etapa.situacao }}</td>
+            <td class="p-3">{{ etapa.percentPlanejado | number:'1.2-2' }}%</td>
+            <td class="p-3">{{ etapa.percentExecEtapa | number:'1.2-2' }}%</td>
+            <td class="p-3">
+              <button *ngIf="!etapa.dtInicioReal" (click)="openInicioEtapaModal(etapa)"
+                class="px-3 py-1 rounded-md bg-green-500 text-white" title="Iniciar Etapa">
+                <i class="fas fa-play"></i>
+              </button>
+              <button *ngIf="etapa.dtInicioReal && etapa.nmEtapa !== 'Despacho'" (click)="openDesempenhoModal(etapa)"
+                class="px-3 py-1 rounded-md" title="Aferir Etapa">
+                <i class="fas fa-sync"></i>
+              </button>
+              <button *ngIf="etapa.nmEtapa === 'Despacho'"
+                class="px-3 py-1 rounded-md bg-yellow-500 text-white" title="Despacho">
+                <i class="fas fa-gavel"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #kanbanView>
+      <div>
+        <app-kanban-board [projetoId]="projetoId"></app-kanban-board>
+        <app-export-manager [projectId]="projetoId"></app-export-manager>
+      </div>
+    </ng-template>
+  </div>
+</div>
