@@ -28,7 +28,7 @@ export class EtapaInicioFormComponent {
     }
 
     if (this.etapa) {
-      this.etapaService.iniciarEtapa(this.etapa.etapaProjetoId).subscribe({
+      this.etapaService.iniciarEtapa(this.etapa.EtapaProjetoId).subscribe({
         next: () => {
           alert('Etapa iniciada com sucesso!');
           this.onEtapaIniciada.emit();

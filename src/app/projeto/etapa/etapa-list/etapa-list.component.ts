@@ -51,7 +51,7 @@ export class EtapaListComponent implements OnInit {
     this.loading = true;
     this.etapaService.getAllEtapas(this.projetoId).subscribe(
       (data) => {
-        this.etapas = data.sort((a, b) => a.order - b.order);
+        this.etapas = data.sort((a, b) => a.Order - b.Order);
         this.loading = false;
       },
       (error) => {
@@ -96,7 +96,7 @@ export class EtapaListComponent implements OnInit {
 
   iniciarEtapa(etapa: Etapa): void {
     if (confirm('Deseja realmente iniciar esta etapa?')) {
-      this.etapaService.iniciarEtapa(etapa.etapaProjetoId).subscribe(
+      this.etapaService.iniciarEtapa(etapa.EtapaProjetoId).subscribe(
         () => {
           this.loadEtapas();
         },

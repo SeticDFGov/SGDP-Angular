@@ -33,14 +33,14 @@ export class EtapaDesempenhoFormComponent implements OnChanges {
   }
 
   loadEtapaData(): void {
-    if (this.etapa?.etapaProjetoId) {
-      this.etapaService.getItemById(this.etapa.etapaProjetoId).subscribe({
+    if (this.etapa?.EtapaProjetoId) {
+      this.etapaService.getItemById(this.etapa.EtapaProjetoId).subscribe({
         next: (data) => {
           this.formData = {
-            DT_INICIO_REAL: data.dtInicioReal ? new Date(data.dtInicioReal).toISOString().split('T')[0] : '',
-            DT_TERMINO_REAL: data.dtTerminoReal ? new Date(data.dtTerminoReal).toISOString().split('T')[0] : '',
-            PERCENT_EXEC_ETAPA: data.percentExecEtapa || 0.0,
-            ANALISE: data.analise || '',
+            DT_INICIO_REAL: data.DT_INICIO_REAL ? new Date(data.DT_INICIO_REAL).toISOString().split('T')[0] : '',
+            DT_TERMINO_REAL: data.DT_TERMINO_REAL ? new Date(data.DT_TERMINO_REAL).toISOString().split('T')[0] : '',
+            PERCENT_EXEC_ETAPA: data.PERCENT_EXEC_ETAPA || 0.0,
+            ANALISE: data.ANALISE || '',
           };
         },
         error: (error) => {
@@ -51,7 +51,7 @@ export class EtapaDesempenhoFormComponent implements OnChanges {
   }
 
   handleSubmit(): void {
-    if (this.etapa?.etapaProjetoId) {
+  if (this.etapa?.EtapaProjetoId) {
       const itemData = {
         DT_INICIO_REAL: this.emptyToNull(this.formData.DT_INICIO_REAL),
         DT_TERMINO_REAL: this.emptyToNull(this.formData.DT_TERMINO_REAL),
@@ -59,7 +59,7 @@ export class EtapaDesempenhoFormComponent implements OnChanges {
         ANALISE: this.formData.ANALISE,
       };
 
-      this.etapaService.updateItem(this.etapa.etapaProjetoId, itemData).subscribe({
+      this.etapaService.updateItem(this.etapa.EtapaProjetoId, itemData).subscribe({
         next: () => {
           alert('Etapa analisada com sucesso!');
           this.onEtapaAtualizada.emit();

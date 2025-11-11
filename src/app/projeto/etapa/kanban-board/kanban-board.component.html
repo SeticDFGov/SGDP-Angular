@@ -8,10 +8,10 @@
       class="kanban-list"
       (cdkDropListDropped)="drop($event)">
       <div *ngFor="let etapa of column.etapas" cdkDrag class="kanban-card">
-        <div class="card-header">{{ etapa.nmEtapa }}</div>
+        <div class="card-header">{{ etapa.NM_ETAPA }}</div>
         <div class="card-content">
-          <p><strong>Início Previsto:</strong> {{ etapa.dtInicioPrevisto | date:'dd/MM/yyyy' }}</p>
-          <p><strong>Término Previsto:</strong> {{ etapa.dtTerminoPrevisto | date:'dd/MM/yyyy' }}</p>
+          <p><strong>Início Previsto:</strong> {{ etapa.DT_INICIO_PREVISTO | date:'dd/MM/yyyy' }}</p>
+          <p><strong>Término Previsto:</strong> {{ etapa.DT_TERMINO_PREVISTO | date:'dd/MM/yyyy' }}</p>
         </div>
       </div>
     </div>

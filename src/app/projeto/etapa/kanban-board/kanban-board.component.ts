@@ -36,7 +36,7 @@ export class KanbanBoardComponent implements OnInit {
     this.etapaService.getAllEtapas(this.projetoId).subscribe(etapas => {
       this.columns.forEach(col => col.etapas = []); // Limpa as colunas
       etapas.forEach(etapa => {
-        const column = this.columns.find(c => c.id === etapa.situacao);
+        const column = this.columns.find(c => c.id === etapa.SITUACAO);
         if (column) {
           column.etapas.push(etapa);
         }
@@ -51,7 +51,7 @@ export class KanbanBoardComponent implements OnInit {
       const etapa = event.previousContainer.data[event.previousIndex];
       const newStatus = event.container.id;
 
-      this.etapaService.updateStatus(etapa.etapaProjetoId, newStatus).subscribe({
+      this.etapaService.updateStatus(etapa.EtapaProjetoId, newStatus).subscribe({
         next: () => {
           transferArrayItem(
             event.previousContainer.data,
