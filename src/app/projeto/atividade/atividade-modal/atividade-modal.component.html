@@ -1,0 +1,51 @@
+<div *ngIf="isOpen" class="modal-overlay">
+  <div class="modal-content">
+    <h2 class="text-xl font-bold mb-4">{{ atividade ? 'Editar Atividade' : 'Adicionar Atividade' }}</h2>
+    <form (ngSubmit)="handleSave()" class="space-y-4">
+      <div>
+        <label for="categoria" class="block text-sm font-medium text-gray-700">Categoria</label>
+        <input
+          type="text"
+          id="categoria"
+          name="categoria"
+          [(ngModel)]="atividadeForm.categoria"
+          required
+          class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+        />
+      </div>
+      <div>
+        <label for="descricao" class="block text-sm font-medium text-gray-700">Descrição</label>
+        <textarea
+          id="descricao"
+          name="descricao"
+          [(ngModel)]="atividadeForm.descricao"
+          required
+          rows="3"
+          class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+        ></textarea>
+      </div>
+      <div>
+        <label for="situacao" class="block text-sm font-medium text-gray-700">Situação</label>
+        <select
+          id="situacao"
+          name="situacao"
+          [(ngModel)]="atividadeForm.situacao"
+          required
+          class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+        >
+          <option [value]="2">Próximo</option>
+          <option [value]="1">Em Andamento</option>
+          <option [value]="3">Concluído</option>
+        </select>
+      </div>
+      <div class="flex justify-end space-x-2">
+        <button type="button" (click)="handleClose()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+          Cancelar
+        </button>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+          Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
