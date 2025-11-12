@@ -22,8 +22,8 @@ export class AtividadeService {
     return this.http.get<Atividade[]>(`${this.apiUrl}/reports/${reportId}/atividades`, { headers: this.getHeaders() });
   }
 
-  createAtividade(atividade: AtividadeForm): Observable<Atividade> {
-    return this.http.post<Atividade>(`${this.apiUrl}/reports/${atividade.reportId}/atividades`, atividade, { headers: this.getHeaders() });
+  createAtividade(atividade: AtividadeForm, reportId:number): Observable<Atividade> {
+    return this.http.post<Atividade>(`${this.apiUrl}/reports/${reportId}/atividades`, atividade, { headers: this.getHeaders() });
   }
 
   updateAtividade(atividadeId: number, atividade: Atividade): Observable<void> {

@@ -8,7 +8,6 @@ import { Report, ReportForm } from '../../../../api/report/interface';
 import { Subject, takeUntil } from 'rxjs';
 import { FormsModule } from '@angular/forms'; // Import FormsModule for ngModel
 
-// Assuming these components will be created later
 import { AtividadeCardComponent } from '../../atividade/atividade-card/atividade-card.component';
 import { AtividadeModalComponent } from '../../atividade/atividade-modal/atividade-modal.component';
 
@@ -19,7 +18,7 @@ enum ReportStatus {
   CRIANDO = 'CRIANDO'
 }
 
-const STATUS = { PROXIMO: 2, ANDAMENTO: 1, CONCLUIDO: 3 };
+const STATUS = { PROXIMO: 2, ANDAMENTO: 1, CONCLUIDO: 3, FAZER:4 };
 
 interface KanbanColumn {
   id: string;
@@ -49,7 +48,8 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
 
   columns: KanbanColumn[] = [
     { id: 'proximo', name: 'Próximo', atividades: [], statusValue: STATUS.PROXIMO },
-    { id: 'em-andamento', name: 'Em Andamento', atividades: [], statusValue: STATUS.ANDAMENTO },
+    { id: 'a-fazer', name: 'A fazer', atividades: [], statusValue: STATUS.FAZER },
+  { id: 'em-andamento', name: 'Em Andamento', atividades: [], statusValue: STATUS.ANDAMENTO },
     { id: 'concluido', name: 'Concluído', atividades: [], statusValue: STATUS.CONCLUIDO }
   ];
 
@@ -217,7 +217,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const atividadeToSave: AtividadeForm = { ...atividadeData, reportId: this.reportId };
+    const atividadeToSave: AtividadeForm = { ...atividadeData };
 
     if (this.editingAtividade) { // Update
      const updatedAtividade: Atividade = { ...atividadeToSave, AtividadeId: this.editingAtividade.AtividadeId };
@@ -233,7 +233,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
           }
         });
     } else { // Create
-      this.atividadeService.createAtividade(atividadeToSave)
+      this.atividadeService.createAtividade(atividadeToSave,this.reportId)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {

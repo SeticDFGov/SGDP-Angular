@@ -3,12 +3,14 @@ export interface Atividade {
   categoria: string;
   descricao: string;
   situacao: number;
-  // Add other properties as needed from the backend API
+  titulo:string,
+  data_fim:string,
 }
 
 export interface AtividadeForm {
+  titulo:string;
   categoria: string;
   descricao: string;
   situacao: number;
-  reportId: number; // When creating a new activity, it needs to be linked to a report
+  data_fim:string;
 }

@@ -17,10 +17,11 @@ export class AtividadeModalComponent implements OnInit, OnChanges {
   @Output() onSave = new EventEmitter<AtividadeForm>();
 
   atividadeForm: AtividadeForm = {
+    titulo:'',
     categoria: '',
     descricao: '',
-    situacao: 2, // Default to 'Próximo'
-    reportId: 0 // This will be set by the parent component (KanbanBoardComponent)
+    situacao: 2,
+    data_fim:'',
   };
 
   constructor() { }
@@ -41,14 +42,16 @@ export class AtividadeModalComponent implements OnInit, OnChanges {
         categoria: this.atividade.categoria,
         descricao: this.atividade.descricao,
         situacao: this.atividade.situacao,
-        reportId: 0 // Will be overwritten by parent
+        data_fim: this.atividade.data_fim,
+        titulo: this.atividade.titulo,
       };
     } else {
       this.atividadeForm = {
         categoria: '',
         descricao: '',
         situacao: 2, // Default to 'Próximo'
-        reportId: 0 // Will be overwritten by parent
+        titulo:'',
+        data_fim:'',
       };
     }
   }

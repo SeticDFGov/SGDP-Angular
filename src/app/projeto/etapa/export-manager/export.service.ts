@@ -5,8 +5,8 @@ import { Observable } from 'rxjs';
 const API_BASE_URL = 'http://localhost:5148/api';
 
 export interface Export {
-  id: number;
-  data_criacao: string;
+  Id: number;
+  Data_criacao: string;
 }
 
 @Injectable({
