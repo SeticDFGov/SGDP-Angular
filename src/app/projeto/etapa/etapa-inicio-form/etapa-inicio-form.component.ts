@@ -17,7 +17,7 @@ export class EtapaInicioFormComponent {
   @Output() onClose = new EventEmitter<void>();
   @Output() onEtapaIniciada = new EventEmitter<void>();
 
-  dtInicioPrevisto: string = '';
+  dtInicioPrevisto = '';
 
   constructor(private etapaService: EtapaService) { }
 
@@ -28,7 +28,10 @@ export class EtapaInicioFormComponent {
     }
 
     if (this.etapa) {
-      this.etapaService.iniciarEtapa(this.etapa.EtapaProjetoId).subscribe({
+      var dataUTC = new Date(this.dtInicioPrevisto).toISOString();
+      dataUTC = JSON.stringify(dataUTC);
+      this.etapaService.iniciarEtapa(this.etapa.EtapaProjetoId, dataUTC).subscribe({
+
         next: () => {
           alert('Etapa iniciada com sucesso!');
           this.onEtapaIniciada.emit();

@@ -52,18 +52,15 @@
             <td class="p-3">{{ etapa.PERCENT_PLANEJADO | number:'1.2-2' }}%</td>
             <td class="p-3">{{ etapa.PERCENT_EXEC_ETAPA | number:'1.2-2' }}%</td>
             <td class="p-3">
-              <button *ngIf="!etapa.DT_INICIO_REAL" (click)="openInicioEtapaModal(etapa)"
+              <button *ngIf="!etapa.DT_INICIO_PREVISTO" (click)="openInicioEtapaModal(etapa)"
                 class="px-3 py-1 rounded-md bg-green-500 text-white" title="Iniciar Etapa">
                 <i class="fas fa-play"></i>
               </button>
-              <button *ngIf="etapa.DT_INICIO_REAL && etapa.NM_ETAPA !== 'Despacho'" (click)="openDesempenhoModal(etapa)"
-                class="px-3 py-1 rounded-md" title="Aferir Etapa">
+              <button *ngIf="etapa.DT_INICIO_PREVISTO" (click)="openDesempenhoModal(etapa)"
+                class="px-3 py-1 rounded-md bg-blue-300" title="Aferir Etapa">
                 <i class="fas fa-sync"></i>
               </button>
-              <button *ngIf="etapa.NM_ETAPA === 'Despacho'"
-                class="px-3 py-1 rounded-md bg-yellow-500 text-white" title="Despacho">
-                <i class="fas fa-gavel"></i>
-              </button>
+
             </td>
           </tr>
         </tbody>

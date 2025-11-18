@@ -29,11 +29,24 @@ projetoForm = new FormGroup({
     nonNullable: true,
     validators: [Validators.required]
   }),
-  NR_PROCESSO_SEI: new FormControl<string>('', {
-    nonNullable: true
+ NR_PROCESSO_SEI: new FormControl<string>('', {
+    nonNullable: true,
+    validators: [
+      Validators.required,
+      Validators.pattern(/^\d{5}\.\d{6}\/\d{4}-\d{2}$/)
+    ]
   }),
   NM_AREA_DEMANDANTE: new FormControl<number>(0, {
     nonNullable: true,
+    validators: [Validators.required]
+  }),
+  DT_INICIO: new FormControl<string>('', {
+    nonNullable: true,
+    validators: [Validators.required]
+  }),
+
+  DT_TERMINO: new FormControl<string>('', {
+    nonNullable: true, // Use false se o término puder ser nulo/vazio
     validators: [Validators.required]
   }),
   ANO: new FormControl<string>('', {
@@ -61,7 +74,27 @@ projetoForm = new FormGroup({
 });
   message:string|null = null;
 
+formatarProcessoSEI(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  let value = input.value.replace(/\D/g, ''); // Remove tudo que não é número
 
+  // Limita a 17 caracteres numéricos
+  if (value.length > 17) {
+    value = value.slice(0, 17);
+  }
+
+  // Aplica a máscara 00000.000000/0000-00
+  value = value.replace(/^(\d{5})(\d)/, '$1.$2');
+  value = value.replace(/^(\d{5})\.(\d{6})(\d)/, '$1.$2/$3');
+  value = value.replace(/^(\d{5})\.(\d{6})\/(\d{4})(\d)/, '$1.$2/$3-$4');
+
+  // Atualiza o input visualmente
+  input.value = value;
+
+  // Atualiza o valor no FormControl (Typed Form)
+  // O uso de { emitEvent: false } previne loops infinitos
+  this.projetoForm.controls['NR_PROCESSO_SEI'].setValue(value, { emitEvent: false });
+}
   onSubmit(){
      console.log('onSubmit CALLED!');
      console.log('Is form valid?', this.projetoForm.valid);

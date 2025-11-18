@@ -6,6 +6,7 @@ import { AUTH_API_URL, SERVICE_API_URL } from '../../../api/consts';
 import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
+ import { map } from 'rxjs/operators';
 @Injectable({
   providedIn: 'root'
 })
@@ -43,6 +44,19 @@ export class AuthService {
     };
       return true;
   };
+
+
+  isHaveUnidade(): Observable<boolean> {
+  if (!this.isAuthenticate()) {
+    return of(false);
+  }
+
+  return this.getUser().pipe(
+    map((user: UserProfile | null) => {
+      return !!(user && user.Unidade);
+    })
+  );
+}
   getToken():string | null{
     if (!isPlatformBrowser(this.platformId)) {
       return null;
@@ -63,6 +77,20 @@ export class AuthService {
     return of(null);
   }
 }
+
+  updateUserUnidade(unidade: any): void {
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+      try {
+        const user: UserProfile = JSON.parse(userJson);
+        user.Unidade = unidade;
+        localStorage.setItem('user', JSON.stringify(user));
+        this.userSubject.next(user);
+      } catch (error) {
+        console.error('Erro ao atualizar a unidade do usuário', error);
+      }
+    }
+  }
 
 
   isTokenExpired(token:string):boolean{

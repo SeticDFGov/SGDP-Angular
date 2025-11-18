@@ -27,15 +27,42 @@
         />
       </div>
 
-      <div>
-        <label class="block text-sm font-medium mb-1">Número do Processo SEI</label>
+    <div>
+  <label class="block text-sm font-medium mb-1">Número do Processo SEI</label>
+  <input
+    type="text"
+    formControlName="NR_PROCESSO_SEI"
+    placeholder="00000.000000/0000-00"
+    maxlength="20"
+    (input)="formatarProcessoSEI($event)"
+    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
+    [ngClass]="{'border-red-500': projetoForm.get('NR_PROCESSO_SEI')?.invalid && projetoForm.get('NR_PROCESSO_SEI')?.touched}"
+  />
+
+  <div *ngIf="projetoForm.get('NR_PROCESSO_SEI')?.errors?.['pattern'] && projetoForm.get('NR_PROCESSO_SEI')?.touched" class="text-red-500 text-xs mt-1">
+    Formato inválido. Use: 00000.000000/AAAA-DV
+  </div>
+</div>
+<div class="mb-4">
+        <label class="block text-sm font-medium">Data Início Projeto</label>
         <input
-          type="text"
-          formControlName="NR_PROCESSO_SEI"
-          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
+          type="date"
+          name="DT_INICIO"
+          formControlName="DT_INICIO"
+          class="w-full p-2 border border-gray-300 rounded-md"
+          required
         />
       </div>
-
+<div class="mb-4">
+        <label class="block text-sm font-medium">Data Término Projeto</label>
+        <input
+          type="date"
+          name="DT_TERMINO"
+          formControlName="DT_TERMINO"
+          class="w-full p-2 border border-gray-300 rounded-md"
+          required
+        />
+      </div>
       <div>
         <label class="block text-sm font-medium mb-1">Ano</label>
         <input

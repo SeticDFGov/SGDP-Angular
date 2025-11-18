@@ -8,8 +8,13 @@ import path from 'path';
 import { Component } from '@angular/core';
 import { MainLayout } from './layouts/main-layout/main-layout';
 import { EtapaListComponent } from './projeto/etapa/etapa-list/etapa-list.component';
-
+import { SelecionarUnidadeComponent} from './auth/unidade/selecionar-unidade.component';
 export const routes: Routes = [
+{
+    path: 'selecionar-unidade', // A URL será: http://localhost:4200/selecionar-unidade
+    component: SelecionarUnidadeComponent,
+    canActivate: [authGuard]
+  },
   {
     path: 'auth',
     component: AuthLayoutComponent,

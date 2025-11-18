@@ -59,17 +59,22 @@ export class Projeto {
     this.isModalOpen = false;
   }
   carregarProjetos() {
-    const unidadeId = `string`;
-
-    this.getProjetos(unidadeId).subscribe(dadosRecebidos => {
-      this.projetos = dadosRecebidos;
+    this.authService.getUser().subscribe(user => {
+      if (user && user.Unidade && user.Unidade.Nome) {
+        this.getProjetos(user.Unidade.Nome).subscribe(dadosRecebidos => {
+          this.projetos = dadosRecebidos;
+        });
+      } else {
+        console.error('Usuário ou unidade não encontrados.');
+      }
     });
   }
 
   salvarProjetos(request: ProjetoInterfaceForm) {
     const token = this.authService.getToken();
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-
+    request.DT_INICIO = new Date(request.DT_INICIO).toISOString();
+    request.DT_TERMINO = new Date(request.DT_TERMINO).toISOString();
     this.http.post(`${SERVICE_API_URL}/api/projeto`, request, { headers: headers })
       .subscribe({
         next: () => {

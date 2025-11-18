@@ -1,18 +1,25 @@
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth';
 import { inject } from '@angular/core';
+import { map, of } from 'rxjs';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  const isAuth = authService.isAuthenticate();
-
-  if (isAuth) {
-    return true;
-  } else {
+  if (!authService.isAuthenticate()) {
     router.navigate(['/auth']);
-    return false;
+    return of(false);
   }
 
+  return authService.isHaveUnidade().pipe(
+    map(temUnidade => {
+      if (temUnidade) {
+        return true;
+      } else {
+        router.navigate(['/auth/selecionar-unidade']);
+        return false;
+      }
+    })
+  );
 };

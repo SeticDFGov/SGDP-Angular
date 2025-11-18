@@ -27,9 +27,9 @@ export class EtapaService {
     return this.http.get<any>(`${this.apiUrl}/percentual/${projetoId}`, { headers: this.getHeaders() });
   }
 
-  iniciarEtapa(etapaId: number): Observable<any> {
-    return this.http.post(`${this.apiUrl}/iniciar/${etapaId}`, {}, { headers: this.getHeaders() });
-  }
+  iniciarEtapa(etapaId: number, data:string): Observable<any> {
+    const headers = this.getHeaders().set('Content-Type', 'application/json');
+    return this.http.put(`${this.apiUrl}/api/etapa/iniciar/${etapaId}`, data, { headers: headers }); }
 
   cadastrarEtapa(etapa: any): Observable<Etapa> {
     return this.http.post<Etapa>(`${this.apiUrl}/api/etapa`, etapa, { headers: this.getHeaders() });

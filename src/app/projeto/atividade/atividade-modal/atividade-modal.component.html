@@ -13,17 +13,21 @@
           class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
         />
       </div>
-      <div>
-        <label for="categoria" class="block text-sm font-medium text-gray-700">Categoria</label>
-        <input
-          type="text"
-          id="categoria"
-          name="categoria"
-          [(ngModel)]="atividadeForm.categoria"
-          required
-          class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-        />
-      </div>
+    <div>
+  <label for="categoria" class="block text-sm font-medium text-gray-700">Categoria</label>
+  <select
+    id="categoria"
+    name="categoria"
+    [(ngModel)]="atividadeForm.categoria"
+    required
+    class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-white"
+  >
+    <option value="" disabled selected>Selecione uma opção</option>
+    <option value="pessoas">Pessoas</option>
+    <option value="processos">Processos</option>
+    <option value="tecnologias">Tecnologias</option>
+  </select>
+</div>
       <div>
         <label for="descricao" class="block text-sm font-medium text-gray-700">Descrição</label>
         <textarea

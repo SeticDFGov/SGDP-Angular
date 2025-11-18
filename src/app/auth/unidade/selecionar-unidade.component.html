@@ -1,0 +1,18 @@
+<div *ngIf="loading">
+  Carregando unidades...
+</div>
+
+<div *ngIf="!loading" class="p-4">
+  <h1 class="text-xl font-bold mb-4">Selecione sua Unidade</h1>
+
+  <ul class="space-y-2">
+    <li *ngFor="let u of unidades">
+      <button
+        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        (click)="handleSelecionar(u.id)"
+      >
+        {{ u.Nome }}
+      </button>
+    </li>
+  </ul>
+</div>

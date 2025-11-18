@@ -3,6 +3,8 @@ export interface ProjetoInterfaceForm {
   GERENTE_PROJETO: string;
   NR_PROCESSO_SEI: string;
   NM_AREA_DEMANDANTE: number;
+  DT_INICIO:string;
+  DT_TERMINO:string;
   ANO: string;
   TEMPLATE: string;
   PROFISCOII: boolean;
@@ -11,6 +13,7 @@ export interface ProjetoInterfaceForm {
   valorEstimado: number;
   UnidadeId: string;
   EsteiraId: string;
+
 }
 
 export interface ProjetoDetalhado {

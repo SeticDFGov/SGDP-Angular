@@ -96,7 +96,7 @@ export class EtapaListComponent implements OnInit {
 
   iniciarEtapa(etapa: Etapa): void {
     if (confirm('Deseja realmente iniciar esta etapa?')) {
-      this.etapaService.iniciarEtapa(etapa.EtapaProjetoId).subscribe(
+      this.etapaService.iniciarEtapa(etapa.EtapaProjetoId, '').subscribe(
         () => {
           this.loadEtapas();
         },
