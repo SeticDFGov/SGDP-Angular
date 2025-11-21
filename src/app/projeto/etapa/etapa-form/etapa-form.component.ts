@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EtapaService } from '../etapa.service';
 import { Etapa } from '../etapa.model';
+import { Projeto } from '../../projeto';
 
 @Component({
   selector: 'app-etapa-form',
@@ -46,7 +47,6 @@ export class EtapaFormComponent {
       next: (etapaCadastrada) => {
         alert('Etapa cadastrada com sucesso!');
         this.onSubmit.emit(etapaCadastrada);
-        this.closeModal();
       },
       error: (error) => {
         console.error('Erro ao cadastrar etapa:', error);
@@ -56,7 +56,7 @@ export class EtapaFormComponent {
   }
 
   closeModal(): void {
-    this.onClose.emit();
+    this.isOpen = false;
     this.resetForm();
   }
 

@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { EtapaService } from '../etapa.service';
 import { Etapa } from '../etapa.model';
 import { CommonModule } from '@angular/common';
-import { EtapaFormComponent } from  '../etapa-form/etapa-form.component';
+import { EtapaFormComponent } from '../etapa-form/etapa-form.component';
 import { EtapaInicioFormComponent } from '../etapa-inicio-form/etapa-inicio-form.component';
 import { EtapaDesempenhoFormComponent } from '../etapa-desempenho-form/etapa-desempenho-form.component';
 import { KanbanBoardComponent } from '../kanban-board/kanban-board.component';
