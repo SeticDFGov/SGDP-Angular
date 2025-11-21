@@ -1,6 +1,4 @@
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-
-  <div class="bg-white p-8 rounded-lg shadow-xl w-[700px] h-[90vh] overflow-y-auto flex flex-col">
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"> <div class="bg-white p-8 rounded-lg shadow-xl w-[700px] h-[90vh] overflow-y-auto flex flex-col">
     <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Cadastro de Projeto</h2>
 
     <div *ngIf="message" class="text-red-500 mb-4 text-center">{{ message }}</div>
@@ -15,7 +13,20 @@
           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
           required
         />
+        <div class="erro text-red-500"
+            *ngIf="projetoForm.controls['NM_PROJETO'].touched &&
+                    projetoForm.controls['NM_PROJETO'].errors">
+
+          <span *ngIf="projetoForm.controls['NM_PROJETO'].errors?.['required']">
+            O nome do projeto é obrigatório.
+          </span>
+
+          <span *ngIf="projetoForm.controls['NM_PROJETO'].errors?.['minlength']">
+            O nome deve ter pelo menos 5 caracteres.
+          </span>
         </div>
+
+      </div>
 
       <div>
         <label class="block text-sm font-medium mb-1">Gerente do Projeto</label>
@@ -25,6 +36,12 @@
           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
           required
         />
+        <div class="erro text-red-500" *ngIf="projetoForm.controls['GERENTE_PROJETO'].touched &&
+                             projetoForm.controls['GERENTE_PROJETO'].errors">
+      <span *ngIf="projetoForm.controls['GERENTE_PROJETO'].errors?.['required']">
+        O gerente do projeto é obrigatório.
+      </span>
+    </div>
       </div>
 
     <div>
@@ -52,6 +69,12 @@
           class="w-full p-2 border border-gray-300 rounded-md"
           required
         />
+        <div class="erro text-red-500" *ngIf="projetoForm.controls['DT_INICIO'].touched &&
+                             projetoForm.controls['DT_INICIO'].errors">
+      <span *ngIf="projetoForm.controls['DT_INICIO'].errors?.['required']">
+        A data de início é obrigatória.
+      </span>
+    </div>
       </div>
 <div class="mb-4">
         <label class="block text-sm font-medium">Data Término Projeto</label>
@@ -62,6 +85,12 @@
           class="w-full p-2 border border-gray-300 rounded-md"
           required
         />
+        <div class="erro text-red-500 " *ngIf="projetoForm.controls['DT_TERMINO'].touched &&
+                             projetoForm.controls['DT_TERMINO'].errors">
+      <span *ngIf="projetoForm.controls['DT_TERMINO'].errors?.['required']">
+        A data de término é obrigatória.
+      </span>
+    </div>
       </div>
       <div>
         <label class="block text-sm font-medium mb-1">Ano</label>
@@ -71,7 +100,16 @@
           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
           required
         />
+
+            <span class="text-red-500"  *ngIf="projetoForm.controls['ANO'].errors?.['required']">
+          O ano é obrigatório.
+        </span>
+
+        <span *class="text-red-500" ngIf="projetoForm.controls['ANO'].errors?.['pattern']">
+          Digite um ano válido (ex.: 2024).
+        </span>
       </div>
+
 
       <div>
         <label class="block text-sm font-medium mb-1">Área Demandante</label>
@@ -85,6 +123,12 @@
             {{ d.NM_DEMANDANTE }}
           </option>
         </select>
+        <div class="erro text-red-500" *ngIf="projetoForm.controls['NM_AREA_DEMANDANTE'].touched &&
+                             projetoForm.controls['NM_AREA_DEMANDANTE'].errors">
+      <span *ngIf="projetoForm.controls['NM_AREA_DEMANDANTE'].errors?.['required']">
+        A área demandante é obrigatória.
+      </span>
+    </div>
       </div>
 
       <div>
@@ -97,6 +141,12 @@
           <option value="">Selecione uma Unidade</option>
           <option *ngFor="let u of unidades" [value]="u.id">{{ u.Nome }}</option>
         </select>
+        <div class="erro text-red-500" *ngIf="projetoForm.controls['UnidadeId'].touched &&
+                             projetoForm.controls['UnidadeId'].errors">
+      <span *ngIf="projetoForm.controls['UnidadeId'].errors?.['required']">
+        A unidade é obrigatória.
+      </span>
+    </div>
       </div>
 
       <div>
@@ -111,6 +161,12 @@
             {{ e.Nome.trim() }}
           </option>
         </select>
+        <div class="erro text-red-500" *ngIf="projetoForm.controls['EsteiraId'].touched &&
+                             projetoForm.controls['EsteiraId'].errors">
+      <span *ngIf="projetoForm.controls['EsteiraId'].errors?.['required']">
+        A esteira é obrigatória.
+      </span>
+    </div>
       </div>
 
       <div>
@@ -131,6 +187,15 @@
           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
           required
         />
+         <div class="erro" *ngIf="projetoForm.controls['valorEstimado'].touched &&
+                             projetoForm.controls['valorEstimado'].errors">
+      <span *ngIf="projetoForm.controls['valorEstimado'].errors?.['required']">
+        O valor estimado é obrigatório.
+      </span>
+      <span *ngIf="projetoForm.controls['valorEstimado'].errors?.['min']">
+        O valor não pode ser negativo.
+      </span>
+    </div>
       </div>
 
       <div class="flex flex-col space-y-2">

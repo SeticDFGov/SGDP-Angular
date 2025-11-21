@@ -1,0 +1,13 @@
+FROM node:20-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install
+COPY . .
+RUN npm run build -- --configuration=production --output-path=/dist/frontend
+FROM node:20-slim AS runtime
+RUN npm install -g serve
+EXPOSE 4200
+WORKDIR /app
+COPY --from=build /dist/frontend /app/dist/frontend
+RUN mv /app/dist/frontend/browser/index.csr.html /app/dist/frontend/browser/index.html
+CMD ["serve", "-s", "/app/dist/frontend/browser", "-l", "tcp://0.0.0.0:4200"]

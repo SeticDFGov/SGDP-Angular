@@ -30,7 +30,10 @@ export const routes: Routes = [
       },
       {
         path: 'projetos/:id/etapas',
-        component: EtapaListComponent
+        component: EtapaListComponent,
+        data: {
+        prerender: false
+    },
       }
     ]
 

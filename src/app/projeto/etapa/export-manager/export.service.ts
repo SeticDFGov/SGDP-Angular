@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
-const API_BASE_URL = 'http://localhost:5148/api';
-
+import { SERVICE_API_URL } from '../../../../api/consts';
+const API_BASE_URL = SERVICE_API_URL;
 export interface Export {
   Id: number;
   Data_criacao: string;
@@ -17,18 +16,18 @@ export class ExportService {
   constructor(private http: HttpClient) { }
 
   checkReportExists(projectId: number): Observable<any> {
-    return this.http.get(`${API_BASE_URL}/reports/${projectId}`);
+    return this.http.get(`${API_BASE_URL}/api/reports/${projectId}`);
   }
 
   listExports(projectId: number): Observable<Export[]> {
-    return this.http.get<Export[]>(`${API_BASE_URL}/atividades/export/list/${projectId}`);
+    return this.http.get<Export[]>(`${API_BASE_URL}/api/atividades/export/list/${projectId}`);
   }
 
   createExport(projectId: number): Observable<any> {
-    return this.http.post(`${API_BASE_URL}/atividades/export/create/${projectId}`, {});
+    return this.http.post(`${API_BASE_URL}/api/atividades/export/create/${projectId}`, {});
   }
 
   getDownloadUrl(exportId: number): string {
-    return `${API_BASE_URL}/atividades/export/${exportId}`;
+    return `${API_BASE_URL}/api/atividades/export/${exportId}`;
   }
 }
