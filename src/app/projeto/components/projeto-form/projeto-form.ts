@@ -89,10 +89,8 @@ export class ProjetoForm {
     this.projetoForm.controls['NR_PROCESSO_SEI'].setValue(value, { emitEvent: false });
   }
   onSubmit() {
-    console.log('onSubmit CALLED!');
-    console.log('Is form valid?', this.projetoForm.valid);
     if (this.projetoForm.invalid) {
-      this.projetoForm.markAllAsTouched(); // ADICIONE ISSO
+      this.projetoForm.markAllAsTouched();
       this.message = "Preencha os campos corretamente";
       return;
     };

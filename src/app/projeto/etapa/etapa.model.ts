@@ -16,3 +16,12 @@ export interface Etapa {
   PERCENT_EXEC_REAL: number;
   PERCENT_PLANEJADO: number;
 }
+export interface EtapaForm {
+  NM_PROJETO: number;
+  NM_ETAPA: string;
+  DT_INICIO_PREVISTO: string;
+  DT_TERMINO_PREVISTO: string;
+  RESPONSAVEL_ETAPA: string;
+  PERCENT_TOTAL_ETAPA: number;
+}
+

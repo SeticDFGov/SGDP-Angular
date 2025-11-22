@@ -1,13 +1,13 @@
 <div *ngIf="isOpen" class="fixed z-50 inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
   <div class="bg-white p-6 rounded-md w-[1200px] shadow-lg">
     <h2 class="text-xl font-semibold mb-4">Cadastrar Etapa</h2>
-    <form (ngSubmit)="handleSubmit()" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <form [formGroup]="etapaForm" (ngSubmit)="handleSubmit()" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div class="mb-4">
         <label class="block text-sm font-medium">Nome da Etapa</label>
         <input
           type="text"
           name="NM_ETAPA"
-          [(ngModel)]="formData.NM_ETAPA"
+          formControlName="NM_ETAPA"
           class="w-full p-2 border border-gray-300 rounded-md"
           required
         />
@@ -17,7 +17,7 @@
         <input
           type="text"
           name="RESPONSAVEL_ETAPA"
-          [(ngModel)]="formData.RESPONSAVEL_ETAPA"
+          formControlName="RESPONSAVEL_ETAPA"
           class="w-full p-2 border border-gray-300 rounded-md"
           required
         />
@@ -27,7 +27,7 @@
         <input
           type="date"
           name="DT_INICIO_PREVISTO"
-          [(ngModel)]="formData.DT_INICIO_PREVISTO"
+          formControlName="DT_INICIO_PREVISTO"
           class="w-full p-2 border border-gray-300 rounded-md"
           required
         />
@@ -37,7 +37,7 @@
         <input
           type="date"
           name="DT_TERMINO_PREVISTO"
-          [(ngModel)]="formData.DT_TERMINO_PREVISTO"
+          formControlName="DT_TERMINO_PREVISTO"
           class="w-full p-2 border border-gray-300 rounded-md"
           required
         />
@@ -47,7 +47,7 @@
         <input
           type="number"
           name="PERCENT_TOTAL_ETAPA"
-          [(ngModel)]="formData.PERCENT_TOTAL_ETAPA"
+          formControlName="PERCENT_TOTAL_ETAPA"
           class="w-full p-2 border border-gray-300 rounded-md"
           required
           min="0"

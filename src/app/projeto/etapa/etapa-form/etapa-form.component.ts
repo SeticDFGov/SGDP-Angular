@@ -1,14 +1,14 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { EtapaService } from '../etapa.service';
-import { Etapa } from '../etapa.model';
+import { Etapa, EtapaForm } from '../etapa.model';
 import { Projeto } from '../../projeto';
 
 @Component({
   selector: 'app-etapa-form',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './etapa-form.component.html',
   styleUrls: ['./etapa-form.component.css']
 })
@@ -16,57 +16,46 @@ export class EtapaFormComponent {
   @Input() isOpen: boolean = false;
   @Input() projetoId!: number;
   @Output() onClose = new EventEmitter<void>();
-  @Output() onSubmit = new EventEmitter<Etapa>();
+  @Output() onSubmit = new EventEmitter<EtapaForm>();
 
-  formData = {
-    NM_ETAPA: '',
-    DT_INICIO_PREVISTO: '',
-    DT_TERMINO_PREVISTO: '',
-    PERCENT_TOTAL_ETAPA: null,
-    RESPONSAVEL_ETAPA: '',
-  };
-
+  etapaForm = new FormGroup({
+    NM_ETAPA: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.minLength(5)]
+    }),
+    DT_INICIO_PREVISTO: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    DT_TERMINO_PREVISTO: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [
+        Validators.required,
+      ]
+    }),
+    RESPONSAVEL_ETAPA: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    PERCENT_TOTAL_ETAPA: new FormControl<number>(0, {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+  });
   constructor(private etapaService: EtapaService) { }
-
-  handleInputChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.formData = {
-      ...this.formData,
-      [input.name]: input.value
-    };
-  }
-
   async handleSubmit(): Promise<void> {
-    const novaEtapa = {
-      ...this.formData,
-      NM_PROJETO: this.projetoId, // Adiciona o ID do projeto ao objeto
-      PERCENT_PLANEJADO: this.formData.PERCENT_TOTAL_ETAPA, // Assumindo que PERCENT_PLANEJADO é o mesmo que PERCENT_TOTAL_ETAPA no cadastro inicial
+    const payload = {
+      ...this.etapaForm.getRawValue(),
+      NM_PROJETO: this.projetoId
     };
 
-    this.etapaService.cadastrarEtapa(novaEtapa).subscribe({
-      next: (etapaCadastrada) => {
-        alert('Etapa cadastrada com sucesso!');
-        this.onSubmit.emit(etapaCadastrada);
-      },
-      error: (error) => {
-        console.error('Erro ao cadastrar etapa:', error);
-        alert('Erro ao cadastrar etapa.');
-      }
-    });
+    this.onSubmit.emit(payload);
+
+
   }
 
   closeModal(): void {
     this.isOpen = false;
-    this.resetForm();
   }
 
-  resetForm(): void {
-    this.formData = {
-      NM_ETAPA: '',
-      DT_INICIO_PREVISTO: '',
-      DT_TERMINO_PREVISTO: '',
-      PERCENT_TOTAL_ETAPA: null,
-      RESPONSAVEL_ETAPA: '',
-    };
-  }
 }

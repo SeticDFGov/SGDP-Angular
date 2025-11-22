@@ -43,7 +43,7 @@
             </td>
           </tr>
           <tr *ngFor="let etapa of etapas" class="border-b hover:bg-gray-50">
-            <td class="p-3">{{ etapa.NM_ETAPA | ""}}</td>
+            <td class="p-3">{{ etapa.NM_ETAPA}}</td>
             <td class="p-3">{{ etapa.DT_INICIO_PREVISTO | date:'dd/MM/yyyy' }}</td>
             <td class="p-3">{{ etapa.DT_TERMINO_PREVISTO | date:'dd/MM/yyyy' }}</td>
             <td class="p-3">{{ etapa.DT_INICIO_REAL | date:'dd/MM/yyyy' }}</td>

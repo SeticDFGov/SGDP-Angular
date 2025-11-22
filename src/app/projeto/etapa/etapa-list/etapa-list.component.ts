@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { EtapaService } from '../etapa.service';
-import { Etapa } from '../etapa.model';
+import { Etapa, EtapaForm } from '../etapa.model';
 import { CommonModule } from '@angular/common';
 import { EtapaFormComponent } from '../etapa-form/etapa-form.component';
 import { EtapaInicioFormComponent } from '../etapa-inicio-form/etapa-inicio-form.component';
@@ -69,9 +69,19 @@ export class EtapaListComponent implements OnInit {
     this.isModalOpen = true;
   }
 
-  handleCadastroEtapa(novaEtapa: Etapa): void {
-    this.etapas = [...this.etapas, novaEtapa];
-    this.isModalOpen = false;
+  handleCadastroEtapa(novaEtapa: EtapaForm): void {
+    this.etapaService.cadastrarEtapa(novaEtapa).subscribe(
+      {
+        next: () => {
+          this.loadEtapas();
+          this.isModalOpen = false;
+        },
+        error: (err) => {
+          console.log(`error ao cadastrar a etapa ${err}`);
+        }
+      }
+    )
+
   }
 
   openInicioEtapaModal(etapa: Etapa): void {
