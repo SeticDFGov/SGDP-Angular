@@ -22,11 +22,11 @@ export class AtividadeService {
     return this.http.get<Atividade[]>(`${this.apiUrl}/reports/${reportId}/atividades`, { headers: this.getHeaders() });
   }
 
-  createAtividade(atividade: AtividadeForm, reportId:number): Observable<Atividade> {
+  createAtividade(atividade: AtividadeForm, reportId: number): Observable<Atividade> {
     return this.http.post<Atividade>(`${this.apiUrl}/reports/${reportId}/atividades`, atividade, { headers: this.getHeaders() });
   }
 
-  updateAtividade(atividadeId: number, atividade: Atividade): Observable<void> {
+  updateAtividade(atividadeId: number, atividade: AtividadeForm): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/atividades/${atividadeId}`, atividade, { headers: this.getHeaders() });
   }
 

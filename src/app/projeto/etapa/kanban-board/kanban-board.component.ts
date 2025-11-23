@@ -34,7 +34,7 @@ interface KanbanColumn {
   templateUrl: './kanban-board.component.html',
   styleUrls: ['./kanban-board.component.css']
 })
-export class KanbanBoardComponent implements OnDestroy {
+export class KanbanBoardComponent implements OnDestroy, OnInit {
   @Input() projetoId!: number;
 
   reportStatus: ReportStatus = ReportStatus.VERIFICANDO;
@@ -72,18 +72,17 @@ export class KanbanBoardComponent implements OnDestroy {
     private atividadeService: AtividadeService,
     private reportService: ReportService
   ) { }
-
+  ngOnInit(): void {
+    this.loadAtividades();
+  }
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
   loadAtividades(): void {
-    if (!this.reportId) {
-      this.loadingAtividades = false;
-      return;
-    }
+
     this.loadingAtividades = true;
-    this.atividadeService.getAtividadesByReportId(this.reportId)
+    this.atividadeService.getAtividadesByReportId(this.projetoId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
@@ -185,15 +184,14 @@ export class KanbanBoardComponent implements OnDestroy {
   }
 
   handleSaveAtividade(atividadeData: AtividadeForm): void {
-    if (!this.reportId) {
-      console.error('Report ID is not available. Cannot save activity.');
-      return;
-    }
+
 
     const atividadeToSave: AtividadeForm = { ...atividadeData };
-
+    if (atividadeToSave.data_fim) {
+      atividadeToSave.data_fim = new Date(atividadeToSave.data_fim).toISOString();
+    }
     if (this.editingAtividade) { // Update
-      const updatedAtividade: Atividade = { ...atividadeToSave, AtividadeId: this.editingAtividade.AtividadeId };
+      const updatedAtividade: AtividadeForm = { ...atividadeToSave };
       this.atividadeService.updateAtividade(this.editingAtividade.AtividadeId, updatedAtividade)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
@@ -206,7 +204,7 @@ export class KanbanBoardComponent implements OnDestroy {
           }
         });
     } else { // Create
-      this.atividadeService.createAtividade(atividadeToSave, this.reportId)
+      this.atividadeService.createAtividade(atividadeToSave, this.projetoId)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {
