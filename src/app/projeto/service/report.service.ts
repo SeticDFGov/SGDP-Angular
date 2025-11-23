@@ -5,7 +5,7 @@ import { catchError, map } from 'rxjs/operators';
 import { Report, ReportForm } from '../../../api/report/interface';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
-
+import { ReportList } from '../etapa/export-manager/export.service';
 @Injectable({
   providedIn: 'root'
 })
@@ -18,19 +18,19 @@ export class ReportService {
     const token = this.authService.getToken();
     return new HttpHeaders().set('Authorization', `Bearer ${token}`);
   }
-
-  getReportByProjetoId(projetoId: number): Observable<Report | null> {
-    return this.http.get<Report>(`${this.apiUrl}/reports/${projetoId}`, { headers: this.getHeaders() }).pipe(
+  getReportsByProjetoId(projetoId: number): Observable<ReportList[]> {
+    return this.http.get<ReportList[]>(`${this.apiUrl}/reports/${projetoId}`, { headers: this.getHeaders() }).pipe(
       map(report => report),
       catchError(error => {
         if (error.status === 404) {
-          return of(null); // Report not found
         }
         throw error; // Re-throw other errors
       })
     );
   }
 
+
+  //corrt
   createReport(report: ReportForm): Observable<Report> {
     return this.http.post<Report>(`${this.apiUrl}/reports`, report, { headers: this.getHeaders() });
   }

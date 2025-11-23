@@ -2,10 +2,16 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../../api/consts';
+import { Projeto } from '../../projeto';
 const API_BASE_URL = SERVICE_API_URL;
-export interface Export {
-  Id: number;
+export interface ReportList {
+  ReportId: number;
+  NM_PROJETO: null;
+  descricao: string;
+  fase: string;
+  Atividades: null;
   Data_criacao: string;
+  Data_fim: string
 }
 
 @Injectable({
@@ -17,14 +23,6 @@ export class ExportService {
 
   checkReportExists(projectId: number): Observable<any> {
     return this.http.get(`${API_BASE_URL}/api/reports/${projectId}`);
-  }
-
-  listExports(projectId: number): Observable<Export[]> {
-    return this.http.get<Export[]>(`${API_BASE_URL}/api/atividades/export/list/${projectId}`);
-  }
-
-  createExport(projectId: number): Observable<any> {
-    return this.http.post(`${API_BASE_URL}/api/atividades/export/create/${projectId}`, {});
   }
 
   getDownloadUrl(exportId: number): string {

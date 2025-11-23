@@ -6,7 +6,7 @@ import { ReportService } from '../../service/report.service';
 import { Atividade, AtividadeForm } from '../../../../api/atividade/interface';
 import { Report, ReportForm } from '../../../../api/report/interface';
 import { Subject, takeUntil } from 'rxjs';
-import { FormsModule } from '@angular/forms'; // Import FormsModule for ngModel
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'; // Import FormsModule for ngModel
 
 import { AtividadeCardComponent } from '../../atividade/atividade-card/atividade-card.component';
 import { AtividadeModalComponent } from '../../atividade/atividade-modal/atividade-modal.component';
@@ -18,7 +18,7 @@ enum ReportStatus {
   CRIANDO = 'CRIANDO'
 }
 
-const STATUS = { PROXIMO: 2, ANDAMENTO: 1, CONCLUIDO: 3, FAZER:4 };
+const STATUS = { PROXIMO: 2, ANDAMENTO: 1, CONCLUIDO: 3, FAZER: 4 };
 
 interface KanbanColumn {
   id: string;
@@ -30,16 +30,15 @@ interface KanbanColumn {
 @Component({
   selector: 'app-kanban-board',
   standalone: true,
-  imports: [CommonModule, DragDropModule, FormsModule, AtividadeCardComponent, AtividadeModalComponent],
+  imports: [CommonModule, DragDropModule, ReactiveFormsModule, AtividadeCardComponent, AtividadeModalComponent],
   templateUrl: './kanban-board.component.html',
   styleUrls: ['./kanban-board.component.css']
 })
-export class KanbanBoardComponent implements OnInit, OnDestroy {
+export class KanbanBoardComponent implements OnDestroy {
   @Input() projetoId!: number;
 
   reportStatus: ReportStatus = ReportStatus.VERIFICANDO;
   reportId: number | null = null;
-  newReportData: ReportForm = { NM_PROJETO: 0, descricao: '', fase: '', data_fim: '' };
   loadingAtividades = true;
 
   atividades: Atividade[] = [];
@@ -49,9 +48,23 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   columns: KanbanColumn[] = [
     { id: 'proximo', name: 'Próximo', atividades: [], statusValue: STATUS.PROXIMO },
     { id: 'a-fazer', name: 'A fazer', atividades: [], statusValue: STATUS.FAZER },
-  { id: 'em-andamento', name: 'Em Andamento', atividades: [], statusValue: STATUS.ANDAMENTO },
+    { id: 'em-andamento', name: 'Em Andamento', atividades: [], statusValue: STATUS.ANDAMENTO },
     { id: 'concluido', name: 'Concluído', atividades: [], statusValue: STATUS.CONCLUIDO }
   ];
+  reportForm = new FormGroup({
+    descricao: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.minLength(3)],
+    }),
+    fase: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    data_fim: new FormControl<string>(new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(), {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+  });
 
   private destroy$ = new Subject<void>();
 
@@ -60,40 +73,10 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     private reportService: ReportService
   ) { }
 
-  ngOnInit(): void {
-    if (this.projetoId) {
-      this.checkReportExists();
-    }
-  }
-
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
-
-  checkReportExists(): void {
-    this.reportStatus = ReportStatus.VERIFICANDO;
-    this.reportService.getReportByProjetoId(this.projetoId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (report) => {
-          if (report && report.ReportId) {
-            this.reportId = report.ReportId;
-            this.reportStatus = ReportStatus.EXISTENTE;
-            this.loadAtividades();
-          } else {
-            this.reportStatus = ReportStatus.AUSENTE;
-            this.loadingAtividades = false;
-          }
-        },
-        error: (err) => {
-          console.error('Falha ao verificar o report:', err);
-          this.reportStatus = ReportStatus.AUSENTE;
-          this.loadingAtividades = false;
-        }
-      });
-  }
-
   loadAtividades(): void {
     if (!this.reportId) {
       this.loadingAtividades = false;
@@ -127,33 +110,23 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
 
   handleCreateReport(): void {
     this.reportStatus = ReportStatus.CRIANDO;
-    const body: ReportForm = {
-      NM_PROJETO: this.projetoId,
-      descricao: this.newReportData.descricao,
-      fase: this.newReportData.fase,
-      data_fim: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString() // Ex: Data de fim daqui a 1 mês
-    };
+    const payload = {
+      ...this.reportForm.getRawValue(),
+      NM_PROJETO: this.projetoId
+    }
 
-    this.reportService.createReport(body)
+    this.reportService.createReport(payload)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (newReport) => {
           this.reportId = newReport.ReportId;
-          this.reportStatus = ReportStatus.EXISTENTE;
           this.loadAtividades();
         },
         error: (err) => {
           console.error('Falha ao criar o report:', err);
-          this.reportStatus = ReportStatus.AUSENTE;
         }
       });
   }
-
-  handleNewReportChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.newReportData = { ...this.newReportData, [input.name]: input.value };
-  }
-
   drop(event: CdkDragDrop<Atividade[]>): void {
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
@@ -220,7 +193,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     const atividadeToSave: AtividadeForm = { ...atividadeData };
 
     if (this.editingAtividade) { // Update
-     const updatedAtividade: Atividade = { ...atividadeToSave, AtividadeId: this.editingAtividade.AtividadeId };
+      const updatedAtividade: Atividade = { ...atividadeToSave, AtividadeId: this.editingAtividade.AtividadeId };
       this.atividadeService.updateAtividade(this.editingAtividade.AtividadeId, updatedAtividade)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
@@ -233,7 +206,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
           }
         });
     } else { // Create
-      this.atividadeService.createAtividade(atividadeToSave,this.reportId)
+      this.atividadeService.createAtividade(atividadeToSave, this.reportId)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {
