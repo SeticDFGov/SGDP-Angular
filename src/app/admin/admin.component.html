@@ -1,0 +1,245 @@
+<div class="min-h-screen bg-gray-100">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <h1 class="text-2xl font-bold text-gray-900">Painel de Administração</h1>
+        <div class="text-sm text-gray-600" *ngIf="user">
+          Logado como: <span class="font-medium">{{ user.Email }}</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Mensagem de feedback -->
+    <div *ngIf="message" [ngClass]="{
+      'bg-green-50 text-green-800 border border-green-200': messageType === 'success',
+      'bg-red-50 text-red-800 border border-red-200': messageType === 'error'
+    }" class="mb-4 p-4 rounded-md">
+      {{ message }}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Seção de Cadastro de Unidade -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Gerenciar Unidades</h2>
+
+        <!-- Formulário de Cadastro -->
+        <form (ngSubmit)="cadastrarUnidade($event)" class="mb-6">
+          <div class="mb-4">
+            <label for="unitName" class="block text-sm font-medium text-gray-700 mb-2">
+              Nome da Nova Unidade
+            </label>
+            <input
+              type="text"
+              id="unitName"
+              [(ngModel)]="newUnitName"
+              name="newUnitName"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Digite o nome da unidade"
+              [disabled]="loadingUnit"
+            />
+          </div>
+          <button
+            type="submit"
+            [disabled]="loadingUnit"
+            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{ loadingUnit ? 'Cadastrando...' : 'Cadastrar Unidade' }}
+          </button>
+        </form>
+
+        <!-- Lista de Unidades Cadastradas -->
+        <div>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-md font-medium text-gray-900">Unidades Cadastradas</h3>
+            <button
+              (click)="loadUnits()"
+              [disabled]="loadingUnits"
+              class="text-sm bg-gray-600 text-white py-1 px-3 rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+            >
+              {{ loadingUnits ? 'Carregando...' : 'Atualizar' }}
+            </button>
+          </div>
+
+          <div *ngIf="loadingUnits" class="text-center py-4 text-gray-500">Carregando unidades...</div>
+
+          <div *ngIf="!loadingUnits" class="space-y-2 max-h-64 overflow-y-auto">
+            <div *ngIf="units.length > 0; else noUnits">
+              <div *ngFor="let unit of units" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                <div>
+                  <span class="font-medium text-gray-900">{{ unit.Nome }}</span>
+                  <p class="text-xs text-gray-500">ID: {{ unit.id }}</p>
+                </div>
+              </div>
+            </div>
+            <ng-template #noUnits>
+              <div class="text-center py-4 text-gray-500">
+                Nenhuma unidade cadastrada
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção de Gerenciamento de Usuários -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">Gerenciar Usuários</h2>
+          <button
+            (click)="loadUsers()"
+            [disabled]="loadingUsers"
+            class="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
+          >
+            {{ loadingUsers ? 'Carregando...' : 'Atualizar' }}
+          </button>
+        </div>
+
+        <div *ngIf="loadingUsers" class="text-center py-4">Carregando usuários...</div>
+
+        <div *ngIf="!loadingUsers" class="space-y-4 max-h-96 overflow-y-auto">
+          <div *ngIf="users.length > 0; else noUsers">
+            <div *ngFor="let user of users" class="border border-gray-200 rounded-lg p-4">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <h3 class="font-medium text-gray-900">{{ user.Nome }}</h3>
+                  <p class="text-sm text-gray-500">{{ user.Email }}</p>
+                  <p class="text-sm text-gray-500">
+                    Unidade Atual: <span class="font-semibold">{{ user.Unidade?.Nome || 'Não definida' }}</span>
+                  </p>
+                </div>
+                <div class="flex-shrink-0">
+                  <span [ngClass]="{
+                    'bg-red-100 text-red-800': user.Perfil === 'Admin',
+                    'bg-yellow-100 text-yellow-800': user.Perfil === 'Dir',
+                    'bg-green-100 text-green-800': user.Perfil === 'User',
+                    'bg-gray-100 text-gray-800': user.Perfil !== 'Admin' && user.Perfil !== 'Dir' && user.Perfil !== 'User'
+                  }" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                    {{ user.Perfil }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-4 border-t border-gray-200 space-y-4">
+                <!-- Alterar Perfil -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Alterar Perfil</label>
+                  <div class="flex items-center space-x-2">
+                    <select
+                      [(ngModel)]="selectedProfiles[user.Id]"
+                      (ngModelChange)="$event"
+                      class="flex-grow w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="admin">admin</option>
+                      <option value="basico">básico</option>
+                    </select>
+                    <button
+                      (click)="alterarPerfil(user.Email, selectedProfiles[user.Id])"
+                      [disabled]="!selectedProfiles[user.Id] || selectedProfiles[user.Id] === user.Perfil"
+                      class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                    >
+                      Alterar
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Alterar Unidade -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Alterar Unidade</label>
+                  <div class="flex items-center space-x-2">
+                    <select
+                      [(ngModel)]="selectedUnits[user.Id]"
+                      (ngModelChange)="$event"
+                      class="flex-grow w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="" disabled>Selecione uma unidade</option>
+                      <option *ngFor="let unit of units" [value]="unit.id">{{ unit.Nome }}</option>
+                    </select>
+                    <button
+                      (click)="alterarUnidade(user.Email, selectedUnits[user.Id])"
+                      [disabled]="!selectedUnits[user.Id] || +selectedUnits[user.Id] === user.Unidade?.id"
+                      class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                    >
+                      Alterar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ng-template #noUsers>
+            <div class="text-center py-4 text-gray-500">
+              Nenhum usuário encontrado
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="text-2xl font-bold mt-8 mb-4">Templates</h2>
+    <button
+      class="mb-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-800"
+      (click)="handleCreate()"
+    >
+      Criar Novo Template
+    </button>
+
+    <!-- Template Collapse -->
+    <div class="w-full">
+      <div *ngFor="let template of templates | keyvalue" class="mb-4 border rounded">
+        <button
+          class="w-full text-left px-4 py-2 bg-gray-200 font-semibold rounded-t focus:outline-none"
+          (click)="expandedTemplates[template.key] = !expandedTemplates[template.key]"
+        >
+          {{ template.key }}
+        </button>
+        <div *ngIf="expandedTemplates[template.key]" class="bg-white px-4 py-2">
+          <div *ngFor="let etapa of template.value" class="flex justify-between items-center border-b py-2">
+            <div>
+              <span class="font-medium">{{ etapa.NM_ETAPA }}</span>
+              <span class="ml-4 text-gray-500">Dias previstos: {{ etapa.DIAS_PREVISTOS }}</span>
+            </div>
+            <button
+              class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-800"
+              (click)="handleEdit(etapa)"
+            >
+              Editar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Template Modal -->
+    <div *ngIf="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <form (ngSubmit)="handleSave(editEtapa!)" class="bg-white p-6 rounded shadow-md w-full max-w-md">
+        <h2 class="text-xl font-bold mb-4">Editar Etapa</h2>
+        <div class="mb-2">
+          <label class="block text-sm font-medium">Nome do Template</label>
+          <input name="NM_TEMPLATE" [(ngModel)]="editEtapa!.NM_TEMPLATE" class="w-full border p-2 rounded" required />
+        </div>
+        <div class="mb-2">
+          <label class="block text-sm font-medium">Nome da Etapa</label>
+          <input name="NM_ETAPA" [(ngModel)]="editEtapa!.NM_ETAPA" class="w-full border p-2 rounded" required />
+        </div>
+        <div class="mb-2">
+          <label class="block text-sm font-medium">Percentual Total</label>
+          <input name="PERCENT_TOTAL" type="number" [(ngModel)]="editEtapa!.PERCENT_TOTAL" class="w-full border p-2 rounded" required />
+        </div>
+        <div class="mb-2">
+          <label class="block text-sm font-medium">Dias Previstos</label>
+          <input name="DIAS_PREVISTOS" type="number" [(ngModel)]="editEtapa!.DIAS_PREVISTOS" class="w-full border p-2 rounded" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Ordem</label>
+          <input name="ORDER" type="number" [(ngModel)]="editEtapa!.ORDER" class="w-full border p-2 rounded" required />
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" (click)="handleClose()" class="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
