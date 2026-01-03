@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth';
 import { Router } from '@angular/router';
@@ -16,17 +16,22 @@ import { error } from 'console';
 })
 export class Login {
   loginForm = new FormGroup({
-    Email: new FormControl<string>('', {nonNullable:true, validators:[Validators.required, Validators.email]}),
-    Senha: new FormControl<string>('', {nonNullable:true, validators:[Validators.required]})
+    Email: new FormControl<string>('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
+    Senha: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] })
   })
   carregando = false;
   mensagem: string | null = null;
   constructor(
-    private authService:AuthService,
+    private authService: AuthService,
     private router: Router
-  ){}
+  ) { }
+  showPassword = signal(false);
+
+  togglePasswordVisibility() {
+    this.showPassword.update((valorAtual) => !valorAtual);
+  }
   onSubmit() {
-    if(this.loginForm.invalid){
+    if (this.loginForm.invalid) {
       this.mensagem = "Preencha os campos corretamente";
       return;
     };
@@ -36,8 +41,8 @@ export class Login {
 
     const credentials: AuthRequest = this.loginForm.getRawValue();
     this.authService.login(credentials).subscribe({
-      next  : ()=> this.router.navigate(['/projetos']),
-      error : (err)=> this.mensagem = `problemas internos com o servidor cod: ${err.status}`
+      next: () => this.router.navigate(['/projetos']),
+      error: (err) => this.mensagem = `problemas internos com o servidor cod: ${err.status}`
     })
 
   }

@@ -33,7 +33,7 @@ export class ProjetoForm {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.pattern(/^\d{5}\.\d{6}\/\d{4}-\d{2}$/)
+        Validators.pattern(/^\d{5}\-\d{8}\/\d{4}-\d{2}$/)
       ]
     }),
     NM_AREA_DEMANDANTE: new FormControl<number>(0, {
@@ -78,12 +78,12 @@ export class ProjetoForm {
     const input = event.target as HTMLInputElement;
     let value = input.value.replace(/\D/g, ''); // Remove tudo que não é número
 
-    if (value.length > 17) {
-      value = value.slice(0, 17);
+    if (value.length > 22) {
+      value = value.slice(0, 22);
     }
-    value = value.replace(/^(\d{5})(\d)/, '$1.$2');
-    value = value.replace(/^(\d{5})\.(\d{6})(\d)/, '$1.$2/$3');
-    value = value.replace(/^(\d{5})\.(\d{6})\/(\d{4})(\d)/, '$1.$2/$3-$4');
+    value = value.replace(/^(\d{5})(\d)/, '$1-$2');
+    value = value.replace(/^(\d{5})\-(\d{8})(\d)/, '$1-$2/$3');
+    value = value.replace(/^(\d{5})\-(\d{8})\/(\d{4})(\d)/, '$1-$2/$3-$4');
     input.value = value;
 
     this.projetoForm.controls['NR_PROCESSO_SEI'].setValue(value, { emitEvent: false });

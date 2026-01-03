@@ -49,15 +49,15 @@
   <input
     type="text"
     formControlName="NR_PROCESSO_SEI"
-    placeholder="00000.000000/0000-00"
-    maxlength="20"
+    placeholder="00000-00000000/0000-00"
+    maxlength="22"
     (input)="formatarProcessoSEI($event)"
     class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
     [ngClass]="{'border-red-500': projetoForm.get('NR_PROCESSO_SEI')?.invalid && projetoForm.get('NR_PROCESSO_SEI')?.touched}"
   />
 
   <div *ngIf="projetoForm.get('NR_PROCESSO_SEI')?.errors?.['pattern'] && projetoForm.get('NR_PROCESSO_SEI')?.touched" class="text-red-500 text-xs mt-1">
-    Formato inválido. Use: 00000.000000/AAAA-DV
+    Formato inválido. Use: 00000-00000000/AAAA-DV
   </div>
 </div>
 <div class="mb-4">
