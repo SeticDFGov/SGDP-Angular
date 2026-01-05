@@ -41,7 +41,7 @@ export class Projeto {
   isModalOpen = false;
   getProjetos(unidade:string): Observable<ProjetoDetalhado[]> {
     const params = new HttpParams().set('unidade', unidade);
-  const token = this.authService.getToken();
+    const token = this.authService.getToken();
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`)
     return this.http.get<ProjetoDetalhado[]>(`${SERVICE_API_URL}/api/projeto`, {params:params, headers:headers});
   };

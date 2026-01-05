@@ -1,126 +1,101 @@
-<div class="max-w-4xl mx-auto my-8 p-6 bg-slate-50 rounded-lg shadow-lg font-sans">
-  <h2 class="text-2xl font-bold text-slate-800 border-b-2 border-slate-200 pb-2 mb-6">
-    Reports Gerados
-  </h2>
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden font-sans w-full">
 
-  <div class="mb-6">
+  <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+    <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+      <span class="material-icons text-blue-500 text-base">description</span>
+      Reports Gerados
+    </h2>
+
     <button
       (click)="handleOpenModal()"
-      class="py-3 px-6 text-base font-bold text-white bg-blue-600 rounded-md shadow-sm transition-colors duration-200 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+      [disabled]="isCreating"
+      class="text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 py-1.5 px-3 rounded shadow-sm transition-all flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {{ isCreating ? 'Criando...' : 'Gerar Report' }}
+      <span class="material-icons text-xs" *ngIf="!isCreating">add</span>
+      {{ isCreating ? '...' : 'Novo' }}
     </button>
   </div>
 
-  <p *ngIf="error" class="p-3 my-4 text-red-700 bg-red-100 border border-red-200 rounded-md">
-    Erro: {{ error }}
-  </p>
-
-  <div *ngIf="isLoading">
-    <p class="text-slate-600">A carregar exports...</p>
+  <div *ngIf="error" class="bg-red-50 p-2 border-b border-red-100">
+    <p class="text-xs text-red-600 text-center">{{ error }}</p>
   </div>
 
-  <div *ngIf="!isLoading" class="flex flex-col gap-4">
-    <div *ngIf="reports.length > 0; else noExports">
-      <div *ngFor="let exp of reports" class="flex justify-between items-center p-4 bg-white border border-slate-200 rounded-md shadow-sm">
-        <div class="text-sm">
-          <p class="text-slate-600 my-1">
-            <strong class="font-semibold text-slate-700">ID do Report:</strong> {{ exp.ReportId }}
-          </p>
-          <p class="text-slate-600 my-1">
-            <strong class="font-semibold text-slate-700">Data de Criação:</strong>
-            {{ exp.Data_criacao | date:'dd/MM/yyyy HH:mm:ss' }}
-          </p>
-        </div>
-      <button
-        (click)="handleDownloadExport(exp.ReportId)"
-        class="py-2 px-4 font-semibold text-white bg-green-600 rounded-md shadow-sm transition-colors hover:bg-green-700"
-      >
-        Download
-      </button>
+  <div class="max-h-60 overflow-y-auto custom-scrollbar relative">
+
+    <div *ngIf="isLoading" class="p-4 text-center">
+      <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mx-auto"></div>
     </div>
+
+    <div *ngIf="!isLoading">
+      <div *ngIf="reports.length > 0; else noExports" class="divide-y divide-gray-100">
+
+        <div *ngFor="let exp of reports" class="flex justify-between items-center p-3 hover:bg-blue-50/50 transition-colors group">
+          <div class="flex flex-col">
+            <span class="text-xs font-bold text-gray-700">ID: {{ exp.ReportId }}</span>
+            <span class="text-[10px] text-gray-400">
+              {{ exp.Data_criacao | date:'dd/MM/yyyy HH:mm' }}
+            </span>
+          </div>
+
+          <button
+            (click)="handleDownloadExport(exp.ReportId)"
+            class="text-gray-400 hover:text-green-600 p-1 rounded hover:bg-green-50 transition-colors"
+            title="Baixar Report"
+          >
+            <span class="material-icons text-lg">download</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <ng-template #noExports>
+      <div class="py-6 text-center">
+        <span class="material-icons text-gray-300 text-3xl mb-1">folder_off</span>
+        <p class="text-xs text-gray-400">Nenhum report disponível.</p>
+      </div>
+    </ng-template>
   </div>
-  <ng-template #noExports>
-    <p class="p-4 text-center text-slate-500 bg-slate-100 rounded-md">
-      Nenhum export encontrado para este projeto.
-    </p>
-  </ng-template>
 </div>
-<div *ngIf="openModal" class="fixed z-50 inset-0 bg-gray-900 bg-opacity-60 flex justify-center items-center">
 
-  <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
+<div *ngIf="openModal" class="fixed z-[999] inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center p-4">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all animate-fade-in-up">
 
-    <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-      <h2 class="text-xl font-bold text-gray-800">Gerar Novo Report de Projeto</h2>
-      <button
-        (click)="handlCloseModal()"
-        class="text-gray-400 hover:text-gray-600 transition-colors"
-        aria-label="Fechar"
-      >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
+    <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+      <h3 class="text-lg font-bold text-gray-800">Novo Report</h3>
+      <button (click)="handlCloseModal()" class="text-gray-400 hover:text-red-500 transition-colors">
+        <span class="material-icons">close</span>
       </button>
     </div>
 
-    <form [formGroup]="reportForm" (ngSubmit)="handleCreateReport()" class="p-6 space-y-6">
+    <form [formGroup]="reportForm" (ngSubmit)="handleCreateReport()" class="p-5 space-y-4">
 
-      <div class="form-group">
-        <label for="descricao" class="block text-sm font-semibold text-gray-700 mb-1">Descrição do Report</label>
-        <input
-          id="descricao"
-          type="text"
-          formControlName="descricao"
-          placeholder="Ex: Análise da Etapa 2"
-          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-        />
-        <div *ngIf="reportForm.get('descricao')?.invalid && reportForm.get('descricao')?.touched"
-          class="text-red-600 text-xs mt-1 font-medium">
-          A descrição é obrigatória.
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label>
+        <input type="text" formControlName="descricao" placeholder="Ex: Relatório Final" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Fase</label>
+          <select formControlName="fase" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="" disabled selected>Selecione</option>
+            <option value="Planejamento">Planejamento</option>
+            <option value="Execução">Execução</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Data Prevista</label>
+          <input type="date" formControlName="data_fim" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="fase" class="block text-sm font-semibold text-gray-700 mb-1">Fase do Projeto</label>
-        <select
-          id="fase"
-          formControlName="fase"
-          class="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-        >
-          <option value="" disabled>Selecione a Fase Inicial</option>
-          <option value="Planejamento">Planejamento</option>
-          <option value="Execução">Execução</option>
-        </select>
-        <div *ngIf="reportForm.get('fase')?.invalid && reportForm.get('fase')?.touched"
-          class="text-red-600 text-xs mt-1 font-medium">
-          A fase é obrigatória.
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="data_fim" class="block text-sm font-semibold text-gray-700 mb-1">Data Final Prevista</label>
-        <input
-          id="data_fim"
-          type="date"
-          formControlName="data_fim"
-          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-        />
-        <div *ngIf="reportForm.get('data_fim')?.invalid && reportForm.get('data_fim')?.touched"
-          class="text-red-600 text-xs mt-1 font-medium">
-          A data é obrigatória.
-        </div>
-      </div>
-
-      <div class="pt-4 border-t border-gray-100 flex justify-end">
-        <button
-          type="submit"
-          [disabled]="reportForm.invalid"
-          class="bg-blue-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        >
-          Gerar Report
+      <div class="pt-2">
+        <button type="submit" [disabled]="reportForm.invalid" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all text-sm">
+          Confirmar Geração
         </button>
       </div>
+
     </form>
   </div>
-</div>
 </div>

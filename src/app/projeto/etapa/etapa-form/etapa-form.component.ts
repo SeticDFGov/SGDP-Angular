@@ -55,7 +55,7 @@ export class EtapaFormComponent {
   }
 
   closeModal(): void {
-    this.isOpen = false;
+    this.onClose.emit()
   }
 
 }

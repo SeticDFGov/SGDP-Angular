@@ -1,10 +1,64 @@
 <div class="container mx-auto p-4">
   <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold">Etapas do Projeto</h1>
-    <button (click)="handleToggleView()" class="px-4 py-2 bg-gray-200 rounded-md">
-      {{ mostrarTabela ? 'Ver Kanban' : 'Ver Tabela' }}
-    </button>
+<div class="flex items-center gap-4">
+  <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+    <span class="material-icons text-2xl">folder_open</span>
   </div>
+
+  <div class="flex flex-col">
+    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+      Projeto Atual
+    </span>
+    <h1 class="text-2xl font-bold text-gray-800 leading-none truncate max-w-md" title="{{ projetoName?.NM_PROJETO }}">
+      {{ projetoName?.NM_PROJETO || 'Carregando...' }}
+    </h1>
+  </div>
+</div>
+  <div>
+    </div>
+
+  <div class="flex flex-col items-end space-y-2">
+
+    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+      Nível de Visualização
+    </span>
+
+    <div
+      class="flex items-center cursor-pointer p-1 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"
+      (click)="handleToggleView($event)"
+    >
+
+      <span
+        class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200"
+        [class.bg-blue-100]="!mostrarTabela"
+        [class.text-blue-700]="!mostrarTabela"
+        [class.text-gray-400]="mostrarTabela"
+      >
+        Atividades
+      </span>
+
+      <div class="mx-2 relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+           [class.bg-blue-600]="mostrarTabela"
+           [class.bg-gray-300]="!mostrarTabela">
+        <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+              [class.translate-x-4]="mostrarTabela"
+              [class.translate-x-0]="!mostrarTabela">
+        </span>
+      </div>
+
+      <span
+        class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200"
+        [class.bg-blue-100]="mostrarTabela"
+        [class.text-blue-700]="mostrarTabela"
+        [class.text-gray-400]="!mostrarTabela"
+      >
+        Etapas
+      </span>
+
+    </div>
+  </div>
+
+</div>
 
   <div *ngIf="loading" class="text-center">
     <p>Carregando etapas...</p>
@@ -13,7 +67,7 @@
   <div *ngIf="!loading">
     <div *ngIf="mostrarTabela; else kanbanView">
       <div class="flex justify-end mb-4">
-        <button (click)="openModal()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <button (click)="openModal()" class=" rounded-xl bg-gray-800 text-white font-bold py-2 px-4 hover:bg-gray-400">
           <i class="fas fa-plus mr-2"></i> Inserir Etapa
         </button>
       </div>

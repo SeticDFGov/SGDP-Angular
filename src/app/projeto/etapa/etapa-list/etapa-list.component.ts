@@ -8,7 +8,11 @@ import { EtapaInicioFormComponent } from '../etapa-inicio-form/etapa-inicio-form
 import { EtapaDesempenhoFormComponent } from '../etapa-desempenho-form/etapa-desempenho-form.component';
 import { KanbanBoardComponent } from '../kanban-board/kanban-board.component';
 import { ExportManagerComponent } from '../export-manager/export-manager.component';
-
+import { AuthService } from '../../../auth/services/auth';
+import { Observable } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { SERVICE_API_URL } from '../../../../api/consts';
+import { ProjetoDetalhado } from '../../../../api/projeto/inteface';
 @Component({
   selector: 'app-etapa-list',
   standalone: true,
@@ -24,7 +28,7 @@ import { ExportManagerComponent } from '../export-manager/export-manager.compone
   styleUrls: ['./etapa-list.component.css']
 })
 export class EtapaListComponent implements OnInit {
-
+  projetoName: ProjetoDetalhado | null = null;
   projetoId!: number;
   etapas: Etapa[] = [];
   loading = true;
@@ -36,7 +40,9 @@ export class EtapaListComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private etapaService: EtapaService
+    private etapaService: EtapaService,
+    private authService: AuthService,
+    private http: HttpClient
   ) { }
 
   ngOnInit(): void {
@@ -44,9 +50,25 @@ export class EtapaListComponent implements OnInit {
     if (idParam) {
       this.projetoId = +idParam;
       this.loadEtapas();
+      this.loadProjeto()
     }
   }
+  getProjeto(idProjeto: number): Observable<ProjetoDetalhado> {
+    const token = this.authService.getToken();
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`)
+    return this.http.get<ProjetoDetalhado>(`${SERVICE_API_URL}/api/projeto/${idProjeto}`, { headers: headers })
+      ;
+  };
 
+  loadProjeto(): void {
+    this.loading = true;
+    this.getProjeto(this.projetoId).subscribe(
+      (data) => {
+        this.projetoName = data;
+        this.loading = false;
+      }
+    )
+  }
   loadEtapas(): void {
     this.loading = true;
     this.etapaService.getAllEtapas(this.projetoId).subscribe(
@@ -61,8 +83,13 @@ export class EtapaListComponent implements OnInit {
     );
   }
 
-  handleToggleView(): void {
+  handleToggleView(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
     this.mostrarTabela = !this.mostrarTabela;
+    this.isModalOpen = false;
   }
 
   openModal(): void {

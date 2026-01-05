@@ -1,48 +1,66 @@
-<div class="w-64 h-screen bg-blue-900 text-white flex flex-col flex-shrink-0">
+<div class="w-72 h-screen bg-slate-900 text-white flex flex-col flex-shrink-0 shadow-2xl font-sans transition-all duration-300">
 
-  <div class="p-4 flex items-center justify-between">
-    <img src="assets/ipe.png" alt="Projetist Logo" class="h-10" />
+  <div class="h-24 flex items-center px-6 border-b border-gray-800">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/20 transform transition hover:scale-105">
+        <img src="assets/ipe.png" alt="Logo" class="h-8 w-auto object-contain" />
+      </div>
+      <span class="text-xl font-bold tracking-wide text-gray-100">SGDP</span>
+    </div>
   </div>
 
-  <nav class="flex-1 overflow-y-auto">
+  <nav class="flex-1 overflow-y-auto py-6 space-y-1">
+
+    <p class="px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu Principal</p>
+
     <a
       [routerLink]="['/dashboard']"
-      routerLinkActive="active-link"
-      class="flex items-center py-3 px-4 w-full text-blue-300 bg-blue-900 hover:bg-blue-800 hover:text-white cursor-pointer mb-2"
+      routerLinkActive="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="flex items-center py-3 px-4 mx-4 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 group cursor-pointer"
     >
-      <span class="material-icons mr-3">pie_chart</span>
-      <span class="link-text">Dashboard</span>
+      <span class="material-icons mr-3 text-xl group-hover:animate-pulse">pie_chart</span>
+      <span class="font-medium">Dashboard</span>
     </a>
 
     <a
       [routerLink]="['/projetos']"
-      routerLinkActive="active-link"
-      class="flex items-center py-3 px-4 w-full bg-blue-900 text-blue-300 hover:bg-blue-800 hover:text-white cursor-pointer"
+      routerLinkActive="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30"
+      class="flex items-center py-3 px-4 mx-4 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 group cursor-pointer"
     >
-      <span class="material-icons mr-3">view_kanban</span>
-      <span class="link-text">Projetos</span>
+      <span class="material-icons mr-3 text-xl">view_kanban</span>
+      <span class="font-medium">Projetos</span>
     </a>
   </nav>
 
-  <div class="mt-auto p-4 border-t border-blue-700">
-    <div *ngIf="user" class="mb-2">
-    <p class="text-sm">Bem-vindo</p>
-    <p class="text-sm font-bold">{{ user.Nome }}</p>
-  </div>
-    <div class="flex flex-col space-y-2">
+  <div class="mt-auto m-4 p-4 rounded-2xl bg-slate-800/50 border border-gray-700/50 relative overflow-hidden">
+    <div class="absolute -right-6 -top-6 w-20 h-20 bg-blue-500 rounded-full opacity-10 blur-xl"></div>
+
+    <div *ngIf="user" class="flex items-center mb-4 relative z-10">
+      <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-purple-500 flex items-center justify-center text-sm font-bold shadow-md">
+        {{ user.Nome.charAt(0) }}
+      </div>
+      <div class="ml-3 overflow-hidden">
+        <p class="text-xs text-gray-400">Bem-vindo,</p>
+        <p class="text-sm font-bold text-white truncate">{{ user.Nome }}</p>
+      </div>
+    </div>
+
+    <div class="space-y-2 relative z-10">
       <a
         [routerLink]="['/modulos']"
-        class="w-full flex items-center py-2 px-3 text-blue-300 hover:bg-blue-800 hover:text-white rounded"
+        class="flex items-center py-2 px-3 text-sm text-gray-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
       >
-        <span class="material-icons mr-2">swap_horiz</span>
-        <span>Módulos</span>
+        <span class="material-icons text-sm mr-2">swap_horiz</span>
+        Módulos
       </a>
+
       <button
         (click)="logout()"
-        class="w-full flex items-center py-2 px-3 text-white hover:bg-red-600 hover:text-white rounded"
+        class="w-full flex items-center py-2 px-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors text-left"
       >
-        <span class="material-icons mr-2">logout</span>
-        <span>Sair</span>
+        <span class="material-icons text-sm mr-2">logout</span>
+        Sair
       </button>
     </div>
   </div>
