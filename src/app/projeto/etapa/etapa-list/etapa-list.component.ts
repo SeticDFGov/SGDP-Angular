@@ -8,6 +8,7 @@ import { EtapaInicioFormComponent } from '../etapa-inicio-form/etapa-inicio-form
 import { EtapaDesempenhoFormComponent } from '../etapa-desempenho-form/etapa-desempenho-form.component';
 import { KanbanBoardComponent } from '../kanban-board/kanban-board.component';
 import { ExportManagerComponent } from '../export-manager/export-manager.component';
+import { EtapaAtividadesListComponent } from '../etapa-atividades-list/etapa-atividades-list.component';
 import { AuthService } from '../../../auth/services/auth';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -22,7 +23,8 @@ import { ProjetoDetalhado } from '../../../../api/projeto/inteface';
     EtapaInicioFormComponent,
     EtapaDesempenhoFormComponent,
     KanbanBoardComponent,
-    ExportManagerComponent
+    ExportManagerComponent,
+    EtapaAtividadesListComponent
   ],
   templateUrl: './etapa-list.component.html',
   styleUrls: ['./etapa-list.component.css']
@@ -37,6 +39,7 @@ export class EtapaListComponent implements OnInit {
   showDesempenho = false;
   etapaSelecionada: Etapa | null = null;
   mostrarTabela = true;
+  expandedEtapas: Set<number> = new Set();
 
   constructor(
     private route: ActivatedRoute,
@@ -143,5 +146,17 @@ export class EtapaListComponent implements OnInit {
         }
       );
     }
+  }
+
+  toggleEtapaAtividades(etapaId: number): void {
+    if (this.expandedEtapas.has(etapaId)) {
+      this.expandedEtapas.delete(etapaId);
+    } else {
+      this.expandedEtapas.add(etapaId);
+    }
+  }
+
+  isEtapaExpanded(etapaId: number): boolean {
+    return this.expandedEtapas.has(etapaId);
   }
 }

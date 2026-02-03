@@ -84,6 +84,7 @@
       <table class="w-full border-collapse">
         <thead>
           <tr class="bg-gray-100 border-b">
+            <th class="text-left text-gray-600 p-3 w-8"></th>
             <th class="text-left text-gray-600 p-3">Nome da etapa</th>
             <th class="text-left text-gray-600 p-3">Início Planejado</th>
             <th class="text-left text-gray-600 p-3">Término Planejado</th>
@@ -97,31 +98,50 @@
         </thead>
         <tbody>
           <tr *ngIf="etapas.length === 0">
-            <td colspan="9" class="text-center p-4 text-gray-500">
+            <td colspan="10" class="text-center p-4 text-gray-500">
               Este projeto não contém etapas.
             </td>
           </tr>
-          <tr *ngFor="let etapa of etapas" class="border-b hover:bg-gray-50">
-            <td class="p-3">{{ etapa.NM_ETAPA}}</td>
-            <td class="p-3">{{ etapa.DT_INICIO_PREVISTO | date:'dd/MM/yyyy' }}</td>
-            <td class="p-3">{{ etapa.DT_TERMINO_PREVISTO | date:'dd/MM/yyyy' }}</td>
-            <td class="p-3">{{ etapa.DT_INICIO_REAL | date:'dd/MM/yyyy' }}</td>
-            <td class="p-3">{{ etapa.DT_TERMINO_REAL | date:'dd/MM/yyyy' }}</td>
-            <td class="p-3">{{ etapa.SITUACAO }}</td>
-            <td class="p-3">{{ etapa.PERCENT_PLANEJADO | number:'1.2-2' }}%</td>
-            <td class="p-3">{{ etapa.PERCENT_EXEC_ETAPA | number:'1.2-2' }}%</td>
-            <td class="p-3">
-              <button *ngIf="!etapa.DT_INICIO_PREVISTO" (click)="openInicioEtapaModal(etapa)"
-                class="px-3 py-1 rounded-md bg-green-500 text-white" title="Iniciar Etapa">
-                <i class="fas fa-play"></i>
-              </button>
-              <button *ngIf="etapa.DT_INICIO_PREVISTO" (click)="openDesempenhoModal(etapa)"
-                class="px-3 py-1 rounded-md bg-blue-300" title="Aferir Etapa">
-                <i class="fas fa-sync"></i>
-              </button>
+          <ng-container *ngFor="let etapa of etapas">
+            <tr class="border-b hover:bg-gray-50">
+              <td class="p-3">
+                <button
+                  (click)="toggleEtapaAtividades(etapa.EtapaProjetoId)"
+                  class="text-gray-500 hover:text-gray-700 focus:outline-none"
+                  title="Ver atividades"
+                >
+                  <i class="fas" [class.fa-chevron-down]="!isEtapaExpanded(etapa.EtapaProjetoId)" [class.fa-chevron-up]="isEtapaExpanded(etapa.EtapaProjetoId)"></i>
+                </button>
+              </td>
+              <td class="p-3">{{ etapa.NM_ETAPA}}</td>
+              <td class="p-3">{{ etapa.DT_INICIO_PREVISTO | date:'dd/MM/yyyy' }}</td>
+              <td class="p-3">{{ etapa.DT_TERMINO_PREVISTO | date:'dd/MM/yyyy' }}</td>
+              <td class="p-3">{{ etapa.DT_INICIO_REAL | date:'dd/MM/yyyy' }}</td>
+              <td class="p-3">{{ etapa.DT_TERMINO_REAL | date:'dd/MM/yyyy' }}</td>
+              <td class="p-3">{{ etapa.SITUACAO }}</td>
+              <td class="p-3">{{ etapa.PERCENT_PLANEJADO | number:'1.2-2' }}%</td>
+              <td class="p-3">{{ etapa.PERCENT_EXEC_ETAPA | number:'1.2-2' }}%</td>
+              <td class="p-3">
+                <button *ngIf="!etapa.DT_INICIO_PREVISTO" (click)="openInicioEtapaModal(etapa)"
+                  class="px-3 py-1 rounded-md bg-green-500 text-white" title="Iniciar Etapa">
+                  <i class="fas fa-play"></i>
+                </button>
+                <button *ngIf="etapa.DT_INICIO_PREVISTO" (click)="openDesempenhoModal(etapa)"
+                  class="px-3 py-1 rounded-md bg-blue-300" title="Aferir Etapa">
+                  <i class="fas fa-sync"></i>
+                </button>
 
-            </td>
-          </tr>
+              </td>
+            </tr>
+            <tr *ngIf="isEtapaExpanded(etapa.EtapaProjetoId)" class="bg-gray-50">
+              <td colspan="10" class="p-0">
+                <app-etapa-atividades-list
+                  [etapaId]="etapa.EtapaProjetoId"
+                  [expanded]="isEtapaExpanded(etapa.EtapaProjetoId)">
+                </app-etapa-atividades-list>
+              </td>
+            </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>
