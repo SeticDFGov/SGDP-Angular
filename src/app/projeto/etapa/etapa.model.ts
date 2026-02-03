@@ -16,6 +16,7 @@ export interface Etapa {
   PERCENT_EXEC_REAL: number;
   PERCENT_PLANEJADO: number;
 }
+
 export interface EtapaForm {
   NM_PROJETO: number;
   NM_ETAPA: string;
@@ -23,5 +24,34 @@ export interface EtapaForm {
   DT_TERMINO_PREVISTO: string;
   RESPONSAVEL_ETAPA: string;
   PERCENT_TOTAL_ETAPA: number;
+}
+
+// Response DTO matching backend structure
+export interface EtapaResponseDTO {
+  EtapaProjetoId: number;
+  NM_ETAPA: string;
+  RESPONSAVEL_ETAPA: string | null;
+  ANALISE: string | null;
+  SITUACAO: string | null;
+
+  // Dates
+  DT_INICIO_PREVISTO: string | null;
+  DT_TERMINO_PREVISTO: string | null;
+  DT_INICIO_REAL: string | null;
+  DT_TERMINO_REAL: string | null;
+
+  // Percentages
+  PERCENT_TOTAL_ETAPA: number;
+  PERCENT_EXEC_ETAPA: number;
+  PERCENT_EXEC_REAL: number;
+  PERCENT_PLANEJADO: number;
+
+  // Others
+  DIAS_PREVISTOS: number;
+  Order: number;
+
+  // Simplified project reference
+  ProjetoId: number;
+  ProjetoNome: string | null;
 }
 

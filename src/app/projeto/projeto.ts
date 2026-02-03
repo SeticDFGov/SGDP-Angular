@@ -1,8 +1,5 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Component } from '@angular/core';
-import { Observable } from 'rxjs';
-import {Unidade,  AreaDemandante, Esteira, ProjetoDetalhado, ProjetoInterfaceForm } from '../../api/projeto/inteface';
-import { SERVICE_API_URL } from '../../api/consts';
+import { Unidade, AreaDemandante, Esteira, ProjetoDetalhado, ProjetoInterfaceForm, PagedResponse } from '../../api/projeto/inteface';
 import { AuthService } from '../auth/services/auth';
 import { CommonModule } from '@angular/common';
 import { Sidebar } from './components/sidebar/sidebar';
@@ -11,6 +8,8 @@ import { ProjetoForm } from './components/projeto-form/projeto-form';
 import { UnidadeService } from './service/unidade';
 import { DemandanteService } from './service/demandante';
 import { EsteiraService } from './service/esteira';
+import { ProjetoService } from './service/projeto.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-projeto',
@@ -19,7 +18,8 @@ import { EsteiraService } from './service/esteira';
     CommonModule,
     Sidebar,
     RouterLink,
-    ProjetoForm
+    ProjetoForm,
+    FormsModule
   ],
   templateUrl: './projeto.html',
   styleUrl: './projeto.css'
@@ -27,26 +27,37 @@ import { EsteiraService } from './service/esteira';
 
 export class Projeto {
   constructor(
-    private http:HttpClient,
     private authService: AuthService,
-    private unidadeService:UnidadeService,
-    private demandanteService:DemandanteService,
-    private esteiraService:EsteiraService
-  ){};
-  projetos:ProjetoDetalhado[] = [];
+    private unidadeService: UnidadeService,
+    private demandanteService: DemandanteService,
+    private esteiraService: EsteiraService,
+    private projetoService: ProjetoService
+  ) { }
+
+  // Data lists
+  projetos: ProjetoDetalhado[] = [];
   listaEsteiras: Esteira[] = [];
   listaUnidades: Unidade[] = [];
   listaDemandantes: AreaDemandante[] = [];
+  projetosFiltrados: ProjetoDetalhado[] = [];
 
+  // UI state
+  termoBusca: string = '';
   isModalOpen = false;
-  getProjetos(unidade:string): Observable<ProjetoDetalhado[]> {
-    const params = new HttpParams().set('unidade', unidade);
-    const token = this.authService.getToken();
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`)
-    return this.http.get<ProjetoDetalhado[]>(`${SERVICE_API_URL}/api/projeto`, {params:params, headers:headers});
-  };
+  esteiraSelecionada: string = '';
 
-   ngOnInit() {
+  // Pagination state
+  currentPage: number = 1;
+  pageSize: number = 20;
+  totalItems: number = 0;
+  totalPages: number = 0;
+  hasNextPage: boolean = false;
+  hasPreviousPage: boolean = false;
+
+  // Loading state
+  isLoading: boolean = false;
+
+  ngOnInit() {
     this.carregarProjetos();
     this.carregarOpcoes();
   }
@@ -61,8 +72,33 @@ export class Projeto {
   carregarProjetos() {
     this.authService.getUser().subscribe(user => {
       if (user && user.Unidade && user.Unidade.Nome) {
-        this.getProjetos(user.Unidade.Nome).subscribe(dadosRecebidos => {
-          this.projetos = dadosRecebidos;
+        this.isLoading = true;
+        this.projetoService.getProjetosPagedCompat(
+          user.Unidade.Nome,
+          this.currentPage,
+          this.pageSize
+        ).subscribe({
+          next: (response) => {
+            this.projetos = response.projetos;
+            this.projetosFiltrados = response.projetos;
+
+            // Update pagination state
+            this.totalItems = response.pagination.TotalItems;
+            this.totalPages = response.pagination.TotalPages;
+            this.hasNextPage = response.pagination.HasNextPage;
+            this.hasPreviousPage = response.pagination.HasPreviousPage;
+
+            this.isLoading = false;
+
+            // Reapply esteira filter if one was selected
+            if (this.esteiraSelecionada) {
+              this.aplicarFiltroEsteira();
+            }
+          },
+          error: (err) => {
+            console.error('Erro ao carregar projetos:', err);
+            this.isLoading = false;
+          }
         });
       } else {
         console.error('Usuário ou unidade não encontrados.');
@@ -70,27 +106,86 @@ export class Projeto {
     });
   }
 
-  salvarProjetos(request: ProjetoInterfaceForm) {
-    const token = this.authService.getToken();
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-    request.DT_INICIO = new Date(request.DT_INICIO).toISOString();
-    request.DT_TERMINO = new Date(request.DT_TERMINO).toISOString();
-    this.http.post(`${SERVICE_API_URL}/api/projeto`, request, { headers: headers })
-      .subscribe({
-        next: () => {
-          this.fecharModal();
-          this.carregarProjetos();
-        },
-        error: (err) => {
-          console.error('Erro ao salvar o projeto', err);
-        }
-      });
+  filtrarPorEsteira(event: any): void {
+    this.esteiraSelecionada = event.target.value;
+    this.aplicarFiltroEsteira();
   }
 
-  carregarOpcoes(){
-    this.esteiraService.getEsteira().subscribe(dados => this.listaEsteiras=dados);
-    this.demandanteService.getDemandantes().subscribe(dados => this.listaDemandantes=dados);
-    this.unidadeService.getUnidades().subscribe(dados=> this.listaUnidades=dados)
+  private aplicarFiltroEsteira(): void {
+    if (!this.esteiraSelecionada) {
+      this.projetosFiltrados = this.projetos;
+    } else {
+      this.projetosFiltrados = this.projetos.filter(p =>
+        p.Esteira.EsteiraId === this.esteiraSelecionada
+      );
+    }
+  }
+
+  salvarProjetos(request: ProjetoInterfaceForm) {
+    request.DT_INICIO = new Date(request.DT_INICIO).toISOString();
+    request.DT_TERMINO = new Date(request.DT_TERMINO).toISOString();
+
+    this.projetoService.createProjeto(request).subscribe({
+      next: () => {
+        this.fecharModal();
+        this.carregarProjetos();
+      },
+      error: (err) => {
+        console.error('Erro ao salvar o projeto', err);
+      }
+    });
+  }
+
+  // Pagination methods
+  onPageChange(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+    this.carregarProjetos();
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1; // Reset to first page
+    this.carregarProjetos();
+  }
+
+  goToFirstPage(): void {
+    this.onPageChange(1);
+  }
+
+  goToLastPage(): void {
+    this.onPageChange(this.totalPages);
+  }
+
+  get startItem(): number {
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get endItem(): number {
+    return Math.min(this.currentPage * this.pageSize, this.totalItems);
+  }
+
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxPagesToShow = 5;
+    let startPage = Math.max(1, this.currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
+
+    if (endPage - startPage < maxPagesToShow - 1) {
+      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  }
+
+  carregarOpcoes() {
+    this.esteiraService.getEsteira().subscribe(dados => this.listaEsteiras = dados);
+    this.demandanteService.getDemandantes().subscribe(dados => this.listaDemandantes = dados);
+    this.unidadeService.getUnidades().subscribe(dados => this.listaUnidades = dados)
   }
 
 }

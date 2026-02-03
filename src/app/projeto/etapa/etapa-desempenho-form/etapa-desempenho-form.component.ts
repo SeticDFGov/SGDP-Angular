@@ -51,7 +51,7 @@ export class EtapaDesempenhoFormComponent implements OnChanges {
   }
 
   handleSubmit(): void {
-  if (this.etapa?.EtapaProjetoId) {
+    if (this.etapa?.EtapaProjetoId) {
       const itemData = {
         DT_INICIO_REAL: this.emptyToNull(this.formData.DT_INICIO_REAL),
         DT_TERMINO_REAL: this.emptyToNull(this.formData.DT_TERMINO_REAL),

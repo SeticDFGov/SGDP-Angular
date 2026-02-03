@@ -1,4 +1,5 @@
 <div *ngIf="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+  <div *ngIf="formData">
   <div class="bg-white p-8 rounded-lg shadow-xl w-[700px] h-auto max-h-[90vh] overflow-y-auto flex flex-col">
     <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Nova Análise de Empenho</h2>
 
@@ -32,11 +33,13 @@
           required
         >
           <option [ngValue]="null">Selecione o percentual</option>
-          <option value="20">20</option>
-          <option value="40">40</option>
-          <option value="60">60</option>
-          <option value="80">80</option>
-          <option value="100">100</option>
+
+    <option [ngValue]="0">0%</option>
+    <option [ngValue]="20">20%</option>
+    <option [ngValue]="40">40%</option>
+    <option [ngValue]="60">60%</option>
+    <option [ngValue]="80">80%</option>
+    <option [ngValue]="100">100%</option>
         </select>
       </div>
 
@@ -67,5 +70,6 @@
         </button>
       </div>
     </form>
+  </div>
   </div>
 </div>

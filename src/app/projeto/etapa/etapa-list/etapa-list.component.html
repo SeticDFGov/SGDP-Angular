@@ -12,6 +12,11 @@
     <h1 class="text-2xl font-bold text-gray-800 leading-none truncate max-w-md" title="{{ projetoName?.NM_PROJETO }}">
       {{ projetoName?.NM_PROJETO || 'Carregando...' }}
     </h1>
+    <div *ngIf="projetoName?.NR_PROCESSO_SEI" class="flex items-center mt-1 text-sm text-gray-500">
+            <span class="material-icons text-xs mr-1 text-gray-400">description</span>
+            <span class="font-medium mr-1">SEI:</span>
+            <span class="tracking-wide">{{ projetoName?.NR_PROCESSO_SEI }}</span>
+        </div>
   </div>
 </div>
   <div>
@@ -68,7 +73,7 @@
     <div *ngIf="mostrarTabela; else kanbanView">
       <div class="flex justify-end mb-4">
         <button (click)="openModal()" class=" rounded-xl bg-gray-800 text-white font-bold py-2 px-4 hover:bg-gray-400">
-          <i class="fas fa-plus mr-2"></i> Inserir Etapa
+          <i class="fas fa-plus mr-2"></i> {{ projetoName?.TEMPLATE === 'Mensageria' ? 'Nova Campanha' : 'Inserir Etapa' }}
         </button>
       </div>
 
