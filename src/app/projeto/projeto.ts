@@ -41,12 +41,10 @@ export class Projeto {
   listaDemandantes: AreaDemandante[] = [];
   projetosFiltrados: ProjetoDetalhado[] = [];
 
-  // UI state
   termoBusca: string = '';
   isModalOpen = false;
   esteiraSelecionada: string = '';
 
-  // Pagination state
   currentPage: number = 1;
   pageSize: number = 20;
   totalItems: number = 0;
@@ -54,7 +52,6 @@ export class Projeto {
   hasNextPage: boolean = false;
   hasPreviousPage: boolean = false;
 
-  // Loading state
   isLoading: boolean = false;
 
   ngOnInit() {

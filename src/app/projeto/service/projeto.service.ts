@@ -67,9 +67,11 @@ export class ProjetoService {
    * Mapeia ProjetoResponseDTO para ProjetoDetalhado (para compatibilidade)
    * Útil para manter componentes existentes funcionando
    */
-  mapToProjetoDetalhado(dto: ProjetoResponseDTO): ProjetoDetalhado {
+  mapToProjetoDetalhado(dto: any): ProjetoDetalhado {
+    // O backend retorna 'projetoId' (minúsculo) mas o DTO espera 'ProjetoId' (maiúsculo)
+    // Aceita ambos os formatos para compatibilidade
     return {
-      projetoId: dto.ProjetoId,
+      projetoId: dto.ProjetoId || dto.projetoId,
       NM_PROJETO: dto.NM_PROJETO,
       GERENTE_PROJETO: dto.GERENTE_PROJETO,
       SITUACAO: dto.SITUACAO,
@@ -79,19 +81,19 @@ export class ProjetoService {
       PROFISCOII: dto.PROFISCOII,
       PDTIC2427: dto.PDTIC2427,
       PTD2427: dto.PTD2427,
-      valorEstimado: dto.ValorEstimado,
+      valorEstimado: dto.ValorEstimado || dto.valorEstimado,
       AREA_DEMANDANTE: {
-        AreaDemandanteID: dto.AreaDemandanteId || 0,
-        NM_DEMANDANTE: dto.AreaDemandanteNome || '',
-        NM_SIGLA: dto.AreaDemandanteSigla || ''
+        AreaDemandanteID: dto.AreaDemandanteId || dto.AREA_DEMANDANTE?.AreaDemandanteID || 0,
+        NM_DEMANDANTE: dto.AreaDemandanteNome || dto.AREA_DEMANDANTE?.NM_DEMANDANTE || '',
+        NM_SIGLA: dto.AreaDemandanteSigla || dto.AREA_DEMANDANTE?.NM_SIGLA || ''
       },
       Unidade: {
-        id: dto.UnidadeId || '',
-        Nome: dto.UnidadeNome || ''
+        id: dto.UnidadeId || dto.Unidade?.id || '',
+        Nome: dto.UnidadeNome || dto.Unidade?.Nome || ''
       },
       Esteira: {
-        EsteiraId: dto.EsteiraId || '',
-        Nome: dto.EsteiraNome || ''
+        EsteiraId: dto.EsteiraId || dto.Esteira?.EsteiraId || '',
+        Nome: dto.EsteiraNome || dto.Esteira?.Nome || ''
       }
     };
   }

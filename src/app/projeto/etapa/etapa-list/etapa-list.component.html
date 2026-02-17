@@ -23,43 +23,54 @@
     </div>
 
   <div class="flex flex-col items-end space-y-2">
-
     <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">
-      Nível de Visualização
+      Modo de Visualização
     </span>
 
-    <div
-      class="flex items-center cursor-pointer p-1 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"
-      (click)="handleToggleView($event)"
-    >
-
-      <span
-        class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200"
-        [class.bg-blue-100]="!mostrarTabela"
-        [class.text-blue-700]="!mostrarTabela"
-        [class.text-gray-400]="mostrarTabela"
+    <div class="flex gap-1 p-1 bg-white rounded-lg border border-gray-200 shadow-sm">
+      <button
+        (click)="mudarVisualizacao('lista')"
+        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+        [class.bg-blue-600]="visualizacao === 'lista'"
+        [class.text-white]="visualizacao === 'lista'"
+        [class.text-gray-600]="visualizacao !== 'lista'"
+        [class.hover:bg-gray-100]="visualizacao !== 'lista'"
       >
-        Atividades
-      </span>
+        <i class="fas fa-list mr-1"></i> Lista
+      </button>
 
-      <div class="mx-2 relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-           [class.bg-blue-600]="mostrarTabela"
-           [class.bg-gray-300]="!mostrarTabela">
-        <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-              [class.translate-x-4]="mostrarTabela"
-              [class.translate-x-0]="!mostrarTabela">
-        </span>
-      </div>
-
-      <span
-        class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200"
-        [class.bg-blue-100]="mostrarTabela"
-        [class.text-blue-700]="mostrarTabela"
-        [class.text-gray-400]="!mostrarTabela"
+      <button
+        (click)="mudarVisualizacao('kanban')"
+        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+        [class.bg-blue-600]="visualizacao === 'kanban'"
+        [class.text-white]="visualizacao === 'kanban'"
+        [class.text-gray-600]="visualizacao !== 'kanban'"
+        [class.hover:bg-gray-100]="visualizacao !== 'kanban'"
       >
-        Etapas
-      </span>
+        <i class="fas fa-columns mr-1"></i> Kanban
+      </button>
 
+      <button
+        (click)="mudarVisualizacao('gantt')"
+        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+        [class.bg-blue-600]="visualizacao === 'gantt'"
+        [class.text-white]="visualizacao === 'gantt'"
+        [class.text-gray-600]="visualizacao !== 'gantt'"
+        [class.hover:bg-gray-100]="visualizacao !== 'gantt'"
+      >
+        <i class="fas fa-chart-bar mr-1"></i> Gantt
+      </button>
+
+      <button
+        (click)="mudarVisualizacao('wbs')"
+        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+        [class.bg-blue-600]="visualizacao === 'wbs'"
+        [class.text-white]="visualizacao === 'wbs'"
+        [class.text-gray-600]="visualizacao !== 'wbs'"
+        [class.hover:bg-gray-100]="visualizacao !== 'wbs'"
+      >
+        <i class="fas fa-sitemap mr-1"></i> WBS
+      </button>
     </div>
   </div>
 
@@ -70,22 +81,22 @@
   </div>
 
   <div *ngIf="!loading">
-    <div *ngIf="mostrarTabela; else kanbanView">
+    <!-- Visualização Lista -->
+    <div *ngIf="visualizacao === 'lista'">
       <div class="flex justify-end mb-4">
         <button (click)="openModal()" class=" rounded-xl bg-gray-800 text-white font-bold py-2 px-4 hover:bg-gray-400">
-          <i class="fas fa-plus mr-2"></i> {{ projetoName?.TEMPLATE === 'Mensageria' ? 'Nova Campanha' : 'Inserir Etapa' }}
+          <i class="fas fa-plus mr-2"></i> {{ projetoName?.TEMPLATE === 'Mensageria' ? 'Nova Campanha' : 'Inserir Entregável' }}
         </button>
       </div>
 
       <app-etapa-form [isOpen]="isModalOpen" [projetoId]="projetoId" (onClose)="isModalOpen = false" (onSubmit)="handleCadastroEtapa($event)"></app-etapa-form>
-      <app-etapa-inicio-form [isOpen]="showModalInicio" [etapa]="etapaSelecionada" (onClose)="showModalInicio = false" (onEtapaIniciada)="handleEtapaIniciada()"></app-etapa-inicio-form>
-      <app-etapa-desempenho-form [isOpen]="showDesempenho" [etapa]="etapaSelecionada" (onClose)="showDesempenho = false" (onEtapaAtualizada)="handleEtapaAtualizada()"></app-etapa-desempenho-form>
 
       <table class="w-full border-collapse">
         <thead>
           <tr class="bg-gray-100 border-b">
             <th class="text-left text-gray-600 p-3 w-8"></th>
-            <th class="text-left text-gray-600 p-3">Nome da etapa</th>
+            <th class="text-left text-gray-600 p-3 w-20">Código</th>
+            <th class="text-left text-gray-600 p-3">Nome do Entregável</th>
             <th class="text-left text-gray-600 p-3">Início Planejado</th>
             <th class="text-left text-gray-600 p-3">Término Planejado</th>
             <th class="text-left text-gray-600 p-3">Início Real</th>
@@ -93,16 +104,15 @@
             <th class="text-left text-gray-600 p-3">Situação</th>
             <th class="text-left text-gray-600 p-3">Planejado</th>
             <th class="text-left text-gray-600 p-3">Executado</th>
-            <th class="text-left text-gray-600 p-3">Ação</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngIf="etapas.length === 0">
             <td colspan="10" class="text-center p-4 text-gray-500">
-              Este projeto não contém etapas.
+              Este projeto não contém entregáveis.
             </td>
           </tr>
-          <ng-container *ngFor="let etapa of etapas">
+          <ng-container *ngFor="let etapa of etapas; let i = index">
             <tr class="border-b hover:bg-gray-50">
               <td class="p-3">
                 <button
@@ -113,7 +123,12 @@
                   <i class="fas" [class.fa-chevron-down]="!isEtapaExpanded(etapa.EtapaProjetoId)" [class.fa-chevron-up]="isEtapaExpanded(etapa.EtapaProjetoId)"></i>
                 </button>
               </td>
-              <td class="p-3">{{ etapa.NM_ETAPA}}</td>
+              <td class="p-3">
+                <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono text-xs font-bold">
+                  {{ getCodigoEntregavel(i) }}
+                </span>
+              </td>
+              <td class="p-3 font-semibold">{{ etapa.NM_ETAPA }}</td>
               <td class="p-3">{{ etapa.DT_INICIO_PREVISTO | date:'dd/MM/yyyy' }}</td>
               <td class="p-3">{{ etapa.DT_TERMINO_PREVISTO | date:'dd/MM/yyyy' }}</td>
               <td class="p-3">{{ etapa.DT_INICIO_REAL | date:'dd/MM/yyyy' }}</td>
@@ -121,22 +136,12 @@
               <td class="p-3">{{ etapa.SITUACAO }}</td>
               <td class="p-3">{{ etapa.PERCENT_PLANEJADO | number:'1.2-2' }}%</td>
               <td class="p-3">{{ etapa.PERCENT_EXEC_ETAPA | number:'1.2-2' }}%</td>
-              <td class="p-3">
-                <button *ngIf="!etapa.DT_INICIO_PREVISTO" (click)="openInicioEtapaModal(etapa)"
-                  class="px-3 py-1 rounded-md bg-green-500 text-white" title="Iniciar Etapa">
-                  <i class="fas fa-play"></i>
-                </button>
-                <button *ngIf="etapa.DT_INICIO_PREVISTO" (click)="openDesempenhoModal(etapa)"
-                  class="px-3 py-1 rounded-md bg-blue-300" title="Aferir Etapa">
-                  <i class="fas fa-sync"></i>
-                </button>
-
-              </td>
             </tr>
             <tr *ngIf="isEtapaExpanded(etapa.EtapaProjetoId)" class="bg-gray-50">
               <td colspan="10" class="p-0">
                 <app-etapa-atividades-list
                   [etapaId]="etapa.EtapaProjetoId"
+                  [etapaIndex]="i + 1"
                   [expanded]="isEtapaExpanded(etapa.EtapaProjetoId)">
                 </app-etapa-atividades-list>
               </td>
@@ -146,11 +151,28 @@
       </table>
     </div>
 
-    <ng-template #kanbanView>
-      <div>
-        <app-kanban-board [projetoId]="projetoId"></app-kanban-board>
-        <app-export-manager [projectId]="projetoId"></app-export-manager>
-      </div>
-    </ng-template>
+    <!-- Visualização Kanban -->
+    <div *ngIf="visualizacao === 'kanban'">
+      <app-kanban-board [projetoId]="projetoId"></app-kanban-board>
+      <app-export-manager [projectId]="projetoId"></app-export-manager>
+    </div>
+
+    <!-- Visualização Gantt -->
+    <div *ngIf="visualizacao === 'gantt'">
+      <app-gantt-chart
+        [atividades]="atividades"
+        [etapas]="etapas">
+      </app-gantt-chart>
+    </div>
+
+    <!-- Visualização WBS -->
+    <div *ngIf="visualizacao === 'wbs'">
+      <app-wbs-chart
+        [projetoNome]="projetoName?.NM_PROJETO || ''"
+        [projetoId]="projetoId"
+        [atividades]="atividades"
+        [etapas]="etapas">
+      </app-wbs-chart>
+    </div>
   </div>
 </div>

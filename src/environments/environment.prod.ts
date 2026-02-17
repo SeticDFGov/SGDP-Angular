@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  serviceApiUrl: 'https://subgd-api.df.gov.br'
+  serviceApiUrl: 'http://localhost:5148'
 };

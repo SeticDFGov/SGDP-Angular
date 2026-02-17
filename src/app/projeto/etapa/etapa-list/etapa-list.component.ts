@@ -4,11 +4,13 @@ import { EtapaService } from '../etapa.service';
 import { Etapa, EtapaForm } from '../etapa.model';
 import { CommonModule } from '@angular/common';
 import { EtapaFormComponent } from '../etapa-form/etapa-form.component';
-import { EtapaInicioFormComponent } from '../etapa-inicio-form/etapa-inicio-form.component';
-import { EtapaDesempenhoFormComponent } from '../etapa-desempenho-form/etapa-desempenho-form.component';
 import { KanbanBoardComponent } from '../kanban-board/kanban-board.component';
 import { ExportManagerComponent } from '../export-manager/export-manager.component';
 import { EtapaAtividadesListComponent } from '../etapa-atividades-list/etapa-atividades-list.component';
+import { GanttChartComponent } from '../gantt-chart/gantt-chart.component';
+import { WbsChartComponent } from '../wbs-chart/wbs-chart.component';
+import { AtividadeService } from '../../service/atividade.service';
+import { AtividadeResponseDTO } from '../../../../api/atividade/interface';
 import { AuthService } from '../../../auth/services/auth';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -20,11 +22,11 @@ import { ProjetoDetalhado } from '../../../../api/projeto/inteface';
   imports: [
     CommonModule,
     EtapaFormComponent,
-    EtapaInicioFormComponent,
-    EtapaDesempenhoFormComponent,
     KanbanBoardComponent,
     ExportManagerComponent,
-    EtapaAtividadesListComponent
+    EtapaAtividadesListComponent,
+    GanttChartComponent,
+    WbsChartComponent
   ],
   templateUrl: './etapa-list.component.html',
   styleUrls: ['./etapa-list.component.css']
@@ -33,17 +35,16 @@ export class EtapaListComponent implements OnInit {
   projetoName: ProjetoDetalhado | null = null;
   projetoId!: number;
   etapas: Etapa[] = [];
+  atividades: AtividadeResponseDTO[] = [];
   loading = true;
   isModalOpen = false;
-  showModalInicio = false;
-  showDesempenho = false;
-  etapaSelecionada: Etapa | null = null;
-  mostrarTabela = true;
   expandedEtapas: Set<number> = new Set();
+  visualizacao: 'lista' | 'kanban' | 'gantt' | 'wbs' = 'lista';
 
   constructor(
     private route: ActivatedRoute,
     private etapaService: EtapaService,
+    private atividadeService: AtividadeService,
     private authService: AuthService,
     private http: HttpClient
   ) { }
@@ -53,7 +54,8 @@ export class EtapaListComponent implements OnInit {
     if (idParam) {
       this.projetoId = +idParam;
       this.loadEtapas();
-      this.loadProjeto()
+      this.loadProjeto();
+      this.loadAtividades();
     }
   }
   getProjeto(idProjeto: number): Observable<ProjetoDetalhado> {
@@ -86,17 +88,19 @@ export class EtapaListComponent implements OnInit {
     );
   }
 
-  handleToggleView(event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-      event.preventDefault();
-    }
-    this.mostrarTabela = !this.mostrarTabela;
-    this.isModalOpen = false;
-  }
-
   openModal(): void {
     this.isModalOpen = true;
+  }
+
+  loadAtividades(): void {
+    this.atividadeService.listarPorProjeto(this.projetoId).subscribe({
+      next: (data) => {
+        this.atividades = data.sort((a, b) => a.Order - b.Order);
+      },
+      error: (error) => {
+        console.error('Erro ao carregar atividades:', error);
+      }
+    });
   }
 
   handleCadastroEtapa(novaEtapa: EtapaForm): void {
@@ -107,44 +111,16 @@ export class EtapaListComponent implements OnInit {
           this.isModalOpen = false;
         },
         error: (err) => {
-          console.log(`error ao cadastrar a etapa ${err}`);
+          console.log(`error ao cadastrar o entregável ${err}`);
         }
       }
     )
-
   }
 
-  openInicioEtapaModal(etapa: Etapa): void {
-    this.etapaSelecionada = etapa;
-    this.showModalInicio = true;
-  }
-
-  handleEtapaIniciada(): void {
-    this.loadEtapas();
-    this.showModalInicio = false;
-  }
-
-  openDesempenhoModal(etapa: Etapa): void {
-    this.etapaSelecionada = etapa;
-    this.showDesempenho = true;
-  }
-
-  handleEtapaAtualizada(): void {
-    this.loadEtapas();
-    this.showDesempenho = false;
-  }
-
-  iniciarEtapa(etapa: Etapa): void {
-    if (confirm('Deseja realmente iniciar esta etapa?')) {
-      this.etapaService.iniciarEtapa(etapa.EtapaProjetoId, '').subscribe(
-        () => {
-          this.loadEtapas();
-        },
-        (error) => {
-          console.error('Erro ao iniciar etapa:', error);
-          alert('Erro ao iniciar etapa.');
-        }
-      );
+  mudarVisualizacao(tipo: 'lista' | 'kanban' | 'gantt' | 'wbs'): void {
+    this.visualizacao = tipo;
+    if (tipo === 'gantt' || tipo === 'wbs') {
+      this.loadAtividades(); // Recarregar atividades para garantir dados atualizados
     }
   }
 
@@ -158,5 +134,9 @@ export class EtapaListComponent implements OnInit {
 
   isEtapaExpanded(etapaId: number): boolean {
     return this.expandedEtapas.has(etapaId);
+  }
+
+  getCodigoEntregavel(index: number): string {
+    return `1.${index + 1}`;
   }
 }

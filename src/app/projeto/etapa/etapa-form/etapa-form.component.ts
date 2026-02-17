@@ -21,26 +21,11 @@ export class EtapaFormComponent {
   etapaForm = new FormGroup({
     NM_ETAPA: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.minLength(5)]
-    }),
-    DT_INICIO_PREVISTO: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required]
-    }),
-    DT_TERMINO_PREVISTO: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [
-        Validators.required,
-      ]
+      validators: [Validators.required, Validators.minLength(3)]
     }),
     RESPONSAVEL_ETAPA: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required]
-    }),
-    PERCENT_TOTAL_ETAPA: new FormControl<number>(0, {
-      nonNullable: true,
-      validators: [Validators.required]
-    }),
+      nonNullable: true
+    })
   });
   constructor(private etapaService: EtapaService) { }
   async handleSubmit(): Promise<void> {

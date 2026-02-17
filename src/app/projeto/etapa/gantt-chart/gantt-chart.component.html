@@ -1,0 +1,168 @@
+<div class="gantt-container bg-white rounded-lg shadow p-4">
+  <h3 class="text-xl font-bold text-gray-800 mb-4">Gráfico de Gantt</h3>
+
+  <div *ngIf="flattenedRows.length === 0" class="text-center py-8 text-gray-500">
+    <p>Nenhuma atividade encontrada para exibir no Gantt.</p>
+  </div>
+
+  <div *ngIf="flattenedRows.length > 0" class="border border-gray-200 rounded-lg overflow-hidden">
+    <!-- Container com scroll unificado para tudo -->
+    <div class="overflow-auto" style="max-height: 650px;" id="gantt-chart-container">
+      <div class="inline-block min-w-full">
+        <!-- Cabeçalho -->
+        <div class="flex border-b-2 border-gray-300 bg-gray-50 sticky top-0 z-20">
+          <!-- Cabeçalho da coluna de informações -->
+          <div class="flex-shrink-0 border-r-2 border-gray-300 bg-gray-50" style="width: 500px;">
+            <div class="flex items-center px-3 py-2 font-semibold text-xs text-gray-700 uppercase tracking-wider">
+              <div style="width: 180px;">Tarefa</div>
+              <div style="width: 140px;">Planejado</div>
+              <div style="width: 140px;">Real</div>
+              <div style="width: 40px;">%</div>
+            </div>
+          </div>
+
+          <!-- Cabeçalho de meses -->
+          <div class="flex-shrink-0 bg-gray-50">
+            <div class="relative" [style.width.px]="chartWidth">
+              <div *ngFor="let month of months"
+                   class="absolute top-0 border-r border-gray-200 text-center font-semibold text-sm text-gray-700 py-2"
+                   [style.left.px]="month.left"
+                   [style.width.px]="month.days * dayWidth">
+                {{ month.name }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Corpo do Gantt -->
+        <div>
+        <!-- Linhas (Entregáveis + Atividades) -->
+        <div *ngFor="let row of flattenedRows; let i = index" class="flex border-b border-gray-200 hover:bg-gray-50 transition-colors"
+             [class.bg-blue-50]="row.type === 'entregavel'"
+             [class.bg-white]="row.type === 'atividade'">
+
+          <!-- Coluna de informações -->
+          <div class="flex-shrink-0 border-r border-gray-200 bg-inherit" style="width: 500px;">
+            <div class="flex items-center px-2 py-1.5 text-xs">
+              <!-- Nome da Tarefa (180px) -->
+              <div class="flex items-center gap-1" style="width: 180px;">
+                <!-- Botão Expandir/Colapsar -->
+                <button *ngIf="row.type === 'entregavel'"
+                        (click)="toggleRow(row)"
+                        class="text-gray-600 hover:text-gray-800 focus:outline-none flex-shrink-0">
+                  <span class="material-icons" style="font-size: 14px;">
+                    {{ row.expanded ? 'expand_more' : 'chevron_right' }}
+                  </span>
+                </button>
+                <div *ngIf="row.type === 'atividade'" class="flex-shrink-0" style="width: 14px;"></div>
+
+                <!-- Código + Nome -->
+                <span class="text-xs font-mono text-gray-600 bg-gray-200 px-1 py-0.5 rounded flex-shrink-0" style="font-size: 10px;">
+                  {{ row.code }}
+                </span>
+                <span class="font-medium truncate" style="font-size: 11px;"
+                      [class.text-gray-900]="row.type === 'entregavel'"
+                      [class.font-bold]="row.type === 'entregavel'"
+                      [class.text-gray-700]="row.type === 'atividade'"
+                      [title]="row.name">
+                  {{ row.name }}
+                </span>
+              </div>
+
+              <!-- Datas Planejadas (140px) -->
+              <div class="text-gray-600 truncate" style="width: 140px; font-size: 10px;">
+                <span>{{ formatDate(row.startPlanejado) }} → {{ formatDate(row.endPlanejado) }}</span>
+              </div>
+
+              <!-- Datas Reais (140px) -->
+              <div class="truncate" style="width: 140px; font-size: 10px;"
+                   [class.text-blue-600]="row.hasReal"
+                   [class.text-gray-400]="!row.hasReal">
+                <span *ngIf="row.hasReal">
+                  {{ formatDate(row.startReal!) }} → {{ row.endReal ? formatDate(row.endReal) : '...' }}
+                </span>
+                <span *ngIf="!row.hasReal" class="italic">-</span>
+              </div>
+
+              <!-- Info adicional (40px) -->
+              <div class="text-blue-600 font-semibold text-right" style="width: 40px; font-size: 10px;">
+                <span *ngIf="row.type === 'atividade'" [title]="'Peso: ' + (row.peso | number:'1.1-1') + '% | Executado: ' + (row.percentExecutado | number:'1.0-0') + '%'">
+                  {{ row.percentExecutado | number:'1.0-0' }}%
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Área das barras de Gantt -->
+          <div class="flex-shrink-0">
+            <div class="relative h-10" [style.width.px]="chartWidth">
+              <!-- Grid de dias (fundo) -->
+              <div *ngFor="let i of [].constructor(totalDays); let idx = index"
+                   class="absolute top-0 bottom-0 border-r border-gray-100"
+                   [style.left.px]="idx * dayWidth"
+                   [style.width.px]="dayWidth">
+              </div>
+
+              <!-- Barra Planejada (cinza, atrás) -->
+              <div class="absolute rounded h-6 border"
+                   [class.bg-gray-400]="row.type === 'entregavel'"
+                   [class.opacity-50]="row.type === 'entregavel'"
+                   [class.bg-gray-300]="row.type === 'atividade'"
+                   [class.opacity-40]="row.type === 'atividade'"
+                   [class.border-gray-500]="row.type === 'entregavel'"
+                   [class.border-gray-400]="row.type === 'atividade'"
+                   [style.left.px]="row.leftPlanejado"
+                   [style.width.px]="row.widthPlanejado"
+                   [style.top]="'8px'"
+                   [title]="'Planejado: ' + row.name">
+              </div>
+
+              <!-- Barra Executada (azul, sobreposta na frente) -->
+              <div *ngIf="row.hasReal"
+                   class="absolute rounded-md shadow-md h-6 flex items-center justify-center text-white text-xs font-medium z-10"
+                   [class.bg-blue-700]="row.type === 'entregavel'"
+                   [class.bg-blue-500]="row.type === 'atividade'"
+                   [style.left.px]="row.leftReal"
+                   [style.width.px]="row.widthReal"
+                   [style.top]="'8px'"
+                   [title]="'Real: ' + row.name + ' (' + row.percentExecutado + '% executado)'">
+                <span *ngIf="row.widthReal > 60 && row.type === 'atividade'">
+                  {{ row.percentExecutado | number:'1.0-0' }}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legenda -->
+  <div class="mt-6 space-y-2">
+    <div class="flex flex-wrap gap-4 text-xs">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-4 bg-gray-300 opacity-40 border border-gray-400 rounded"></div>
+        <span class="font-medium">Barra Planejada (fundo)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-4 bg-blue-600 rounded shadow"></div>
+        <span class="font-medium">Barra Executada (sobreposta)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-4 bg-blue-50 border border-gray-300 rounded"></div>
+        <span class="font-medium">Entregável</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-4 bg-white border border-gray-300 rounded"></div>
+        <span class="font-medium">Atividade</span>
+      </div>
+    </div>
+    <div class="text-xs text-gray-600 bg-blue-50 p-3 rounded">
+      <strong>Como ler:</strong> Clique no ícone <span class="material-icons text-xs align-middle">expand_more</span> para expandir/colapsar entregáveis.
+      A barra azul (sobreposta) mostra a execução real.
+      A barra cinza (fundo) mostra o período planejado.
+      As informações à esquerda são fixas (não rolam), apenas a área de barras rola horizontalmente.
+      O código hierárquico (ex: 1.1, 1.1.1) indica a estrutura do projeto.
+    </div>
+  </div>
+</div>

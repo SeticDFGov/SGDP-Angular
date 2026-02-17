@@ -20,10 +20,7 @@ export interface Etapa {
 export interface EtapaForm {
   NM_PROJETO: number;
   NM_ETAPA: string;
-  DT_INICIO_PREVISTO: string;
-  DT_TERMINO_PREVISTO: string;
   RESPONSAVEL_ETAPA: string;
-  PERCENT_TOTAL_ETAPA: number;
 }
 
 // Response DTO matching backend structure

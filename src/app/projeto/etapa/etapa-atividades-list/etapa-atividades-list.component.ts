@@ -1,5 +1,6 @@
 import { Component, Input, OnInit, OnDestroy, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { AtividadeService } from '../../service/atividade.service';
 import { AtividadeResponseDTO } from '../../../../api/atividade/interface';
@@ -7,17 +8,36 @@ import { AtividadeResponseDTO } from '../../../../api/atividade/interface';
 @Component({
   selector: 'app-etapa-atividades-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './etapa-atividades-list.component.html',
   styleUrls: ['./etapa-atividades-list.component.css']
 })
 export class EtapaAtividadesListComponent implements OnInit, OnDestroy, OnChanges {
   @Input() etapaId!: number;
+  @Input() etapaIndex: number = 1;
   @Input() expanded: boolean = false;
 
   atividades: AtividadeResponseDTO[] = [];
   isLoading = false;
   error: string | null = null;
+  mostrarFormulario = false;
+  mostrarEdicao = false;
+  atividadeEmEdicao: AtividadeResponseDTO | null = null;
+
+  // Form data
+  novaAtividade = {
+    titulo: '',
+    categoria: '',
+    descricao: '',
+    dataInicioPrevisto: '',
+    dataTerminoPrevisto: '',
+    responsavel: ''
+  };
+
+  edicaoForm = {
+    dataInicioReal: '',
+    dataTerminoReal: ''
+  };
 
   private destroy$ = new Subject<void>();
 
@@ -59,32 +79,58 @@ export class EtapaAtividadesListComponent implements OnInit, OnDestroy, OnChange
       });
   }
 
-  iniciarAtividade(id: number): void {
-    this.atividadeService.iniciar(id)
+  abrirEdicaoAtividade(atividade: AtividadeResponseDTO): void {
+    this.atividadeEmEdicao = atividade;
+    this.mostrarEdicao = true;
+
+    // Preenche o formulário com as datas existentes (se houver)
+    this.edicaoForm.dataInicioReal = this.toDateInputFormat(atividade.DT_INICIO_REAL);
+    this.edicaoForm.dataTerminoReal = this.toDateInputFormat(atividade.DT_TERMINO_REAL);
+  }
+
+  fecharEdicao(): void {
+    this.mostrarEdicao = false;
+    this.atividadeEmEdicao = null;
+    this.edicaoForm = {
+      dataInicioReal: '',
+      dataTerminoReal: ''
+    };
+  }
+
+  salvarEdicaoAtividade(): void {
+    if (!this.atividadeEmEdicao) return;
+
+    const dto: any = {};
+
+    // Só inclui as datas que foram preenchidas
+    if (this.edicaoForm.dataInicioReal) {
+      dto.DT_INICIO_REAL = this.edicaoForm.dataInicioReal;
+    }
+    if (this.edicaoForm.dataTerminoReal) {
+      dto.DT_TERMINO_REAL = this.edicaoForm.dataTerminoReal;
+    }
+
+    this.atividadeService.atualizar(this.atividadeEmEdicao.AtividadeId, dto)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.carregarAtividades();
+          this.fecharEdicao();
         },
         error: (err) => {
-          console.error('Erro ao iniciar atividade:', err);
-          alert('Erro: ' + (err.error?.error || 'Não foi possível iniciar a atividade'));
+          console.error('Erro ao atualizar atividade:', err);
+          alert('Erro: ' + (err.error?.error || 'Não foi possível atualizar a atividade'));
         }
       });
   }
 
-  concluirAtividade(id: number): void {
-    this.atividadeService.concluir(id)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.carregarAtividades();
-        },
-        error: (err) => {
-          console.error('Erro ao concluir atividade:', err);
-          alert('Erro: ' + (err.error?.error || 'Não foi possível concluir a atividade'));
-        }
-      });
+  toDateInputFormat(dateString?: string): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   getSituacaoClass(situacao: string): string {
@@ -98,14 +144,6 @@ export class EtapaAtividadesListComponent implements OnInit, OnDestroy, OnChange
     return classes[situacao] || 'bg-gray-300 text-white';
   }
 
-  podeIniciar(atividade: AtividadeResponseDTO): boolean {
-    return !atividade.DT_INICIO_REAL;
-  }
-
-  podeConcluir(atividade: AtividadeResponseDTO): boolean {
-    return !!atividade.DT_INICIO_REAL && !atividade.DT_TERMINO_REAL;
-  }
-
   formatDate(dateString?: string): string {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -114,5 +152,60 @@ export class EtapaAtividadesListComponent implements OnInit, OnDestroy, OnChange
       month: '2-digit',
       year: 'numeric'
     });
+  }
+
+  abrirFormularioAtividade(): void {
+    this.mostrarFormulario = true;
+  }
+
+  fecharFormulario(): void {
+    this.mostrarFormulario = false;
+    this.resetForm();
+  }
+
+  resetForm(): void {
+    this.novaAtividade = {
+      titulo: '',
+      categoria: '',
+      descricao: '',
+      dataInicioPrevisto: '',
+      dataTerminoPrevisto: '',
+      responsavel: ''
+    };
+  }
+
+  salvarAtividade(): void {
+    const dados = this.novaAtividade;
+    if (!dados.titulo || !dados.dataInicioPrevisto || !dados.dataTerminoPrevisto) {
+      alert('Por favor, preencha os campos obrigatórios (Título e Datas)');
+      return;
+    }
+    this.criarAtividade(dados);
+  }
+
+  criarAtividade(dados: any): void {
+    const dto = {
+      EtapaProjetoId: this.etapaId,
+      Titulo: dados.titulo,
+      Categoria: dados.categoria || undefined,
+      Descricao: dados.descricao || undefined,
+      DT_INICIO_PREVISTO: dados.dataInicioPrevisto,
+      DT_TERMINO_PREVISTO: dados.dataTerminoPrevisto,
+      RESPONSAVEL_ATIVIDADE: dados.responsavel || undefined,
+      Order: this.atividades.length
+    };
+
+    this.atividadeService.criar(dto)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.carregarAtividades();
+          this.fecharFormulario();
+        },
+        error: (err) => {
+          console.error('Erro ao criar atividade:', err);
+          alert('Erro: ' + (err.error?.error || 'Não foi possível criar a atividade'));
+        }
+      });
   }
 }

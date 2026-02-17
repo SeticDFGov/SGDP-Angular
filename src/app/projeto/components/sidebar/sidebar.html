@@ -1,66 +1,128 @@
-<div class="w-72 h-screen bg-slate-900 text-white flex flex-col flex-shrink-0 shadow-2xl font-sans transition-all duration-300">
+<div class="fixed left-0 top-0 h-screen bg-slate-900 text-white flex flex-col shadow-2xl font-sans transition-all duration-300 z-40"
+     [class.w-72]="isExpanded"
+     [class.w-20]="!isExpanded">
 
-  <div class="h-24 flex items-center px-6 border-b border-gray-800">
-    <div class="flex items-center gap-4">
+  <!-- Header com Logo e Botão Toggle -->
+  <div class="h-24 flex items-center border-b border-gray-800 relative"
+       [class.px-6]="isExpanded"
+       [class.px-3]="!isExpanded"
+       [class.justify-center]="!isExpanded">
+    <div class="flex items-center gap-4" [class.flex-col]="!isExpanded" [class.gap-2]="!isExpanded">
       <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/20 transform transition hover:scale-105">
         <img src="assets/ipe.png" alt="Logo" class="h-8 w-auto object-contain" />
       </div>
-      <span class="text-xl font-bold tracking-wide text-gray-100">SGDP</span>
+      <span *ngIf="isExpanded" class="text-xl font-bold tracking-wide text-gray-100">SGDP</span>
     </div>
+
+    <!-- Botão Toggle -->
+    <button (click)="toggleSidebar()"
+            class="absolute top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-500 text-white rounded-full p-2 shadow-lg transition-all duration-200 z-10"
+            [class.right-4]="isExpanded"
+            [class.-right-3]="!isExpanded"
+            [title]="isExpanded ? 'Minimizar sidebar' : 'Expandir sidebar'">
+      <span class="material-icons text-sm">
+        {{ isExpanded ? 'chevron_left' : 'chevron_right' }}
+      </span>
+    </button>
   </div>
 
   <nav class="flex-1 overflow-y-auto py-6 space-y-1">
 
-    <p class="px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu Principal</p>
+    <p *ngIf="isExpanded" class="px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu Principal</p>
 
     <a
       [routerLink]="['/dashboard']"
       routerLinkActive="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30"
       [routerLinkActiveOptions]="{ exact: true }"
-      class="flex items-center py-3 px-4 mx-4 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 group cursor-pointer"
+      class="flex items-center py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 group cursor-pointer"
+      [class.px-4]="isExpanded"
+      [class.mx-4]="isExpanded"
+      [class.justify-center]="!isExpanded"
+      [class.mx-2]="!isExpanded"
+      [title]="!isExpanded ? 'Dashboard' : ''"
     >
-      <span class="material-icons mr-3 text-xl group-hover:animate-pulse">pie_chart</span>
-      <span class="font-medium">Dashboard</span>
+      <span class="material-icons text-xl group-hover:animate-pulse"
+            [class.mr-3]="isExpanded">pie_chart</span>
+      <span *ngIf="isExpanded" class="font-medium">Dashboard</span>
     </a>
 
     <a
       [routerLink]="['/projetos']"
       routerLinkActive="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30"
-      class="flex items-center py-3 px-4 mx-4 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 group cursor-pointer"
+      class="flex items-center py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 group cursor-pointer"
+      [class.px-4]="isExpanded"
+      [class.mx-4]="isExpanded"
+      [class.justify-center]="!isExpanded"
+      [class.mx-2]="!isExpanded"
+      [title]="!isExpanded ? 'Projetos' : ''"
     >
-      <span class="material-icons mr-3 text-xl">view_kanban</span>
-      <span class="font-medium">Projetos</span>
+      <span class="material-icons text-xl"
+            [class.mr-3]="isExpanded">view_kanban</span>
+      <span *ngIf="isExpanded" class="font-medium">Projetos</span>
     </a>
   </nav>
 
-  <div class="mt-auto m-4 p-4 rounded-2xl bg-slate-800/50 border border-gray-700/50 relative overflow-hidden">
-    <div class="absolute -right-6 -top-6 w-20 h-20 bg-blue-500 rounded-full opacity-10 blur-xl"></div>
+  <div class="mt-auto p-4 rounded-2xl bg-slate-800/50 border border-gray-700/50 relative overflow-hidden"
+       [class.m-4]="isExpanded"
+       [class.m-2]="!isExpanded">
+    <div *ngIf="isExpanded" class="absolute -right-6 -top-6 w-20 h-20 bg-blue-500 rounded-full opacity-10 blur-xl"></div>
 
-    <div *ngIf="user" class="flex items-center mb-4 relative z-10">
-      <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-purple-500 flex items-center justify-center text-sm font-bold shadow-md">
-        {{ user.Nome.charAt(0) }}
+    <!-- Modo Expandido -->
+    <div *ngIf="isExpanded">
+      <div *ngIf="user" class="flex items-center mb-4 relative z-10">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-purple-500 flex items-center justify-center text-sm font-bold shadow-md">
+          {{ user.Nome.charAt(0) }}
+        </div>
+        <div class="ml-3 overflow-hidden">
+          <p class="text-xs text-gray-400">Bem-vindo,</p>
+          <p class="text-sm font-bold text-white truncate">{{ user.Nome }}</p>
+        </div>
       </div>
-      <div class="ml-3 overflow-hidden">
-        <p class="text-xs text-gray-400">Bem-vindo,</p>
-        <p class="text-sm font-bold text-white truncate">{{ user.Nome }}</p>
+
+      <div class="space-y-2 relative z-10">
+        <a
+          [routerLink]="['/modulos']"
+          class="flex items-center py-2 px-3 text-sm text-gray-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+        >
+          <span class="material-icons text-sm mr-2">swap_horiz</span>
+          Módulos
+        </a>
+
+        <button
+          (click)="logout()"
+          class="w-full flex items-center py-2 px-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors text-left"
+        >
+          <span class="material-icons text-sm mr-2">logout</span>
+          Sair
+        </button>
       </div>
     </div>
 
-    <div class="space-y-2 relative z-10">
+    <!-- Modo Minimizado -->
+    <div *ngIf="!isExpanded" class="space-y-3 flex flex-col items-center">
+      <!-- Avatar -->
+      <div *ngIf="user"
+           class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-purple-500 flex items-center justify-center text-sm font-bold shadow-md"
+           [title]="user.Nome">
+        {{ user.Nome.charAt(0) }}
+      </div>
+
+      <!-- Módulos -->
       <a
         [routerLink]="['/modulos']"
-        class="flex items-center py-2 px-3 text-sm text-gray-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+        class="flex items-center justify-center p-2 text-gray-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+        title="Módulos"
       >
-        <span class="material-icons text-sm mr-2">swap_horiz</span>
-        Módulos
+        <span class="material-icons text-lg">swap_horiz</span>
       </a>
 
+      <!-- Logout -->
       <button
         (click)="logout()"
-        class="w-full flex items-center py-2 px-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors text-left"
+        class="flex items-center justify-center p-2 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors"
+        title="Sair"
       >
-        <span class="material-icons text-sm mr-2">logout</span>
-        Sair
+        <span class="material-icons text-lg">logout</span>
       </button>
     </div>
   </div>

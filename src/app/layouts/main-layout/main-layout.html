@@ -1,6 +1,8 @@
-<div class="flex">
+<div class="min-h-screen bg-gray-100">
   <app-sidebar></app-sidebar>
-  <main class="flex-1 w-full p-6 bg-gray-100 overflow-auto">
+  <main class="h-screen p-6 overflow-auto transition-all duration-300"
+        [class.ml-72]="isSidebarExpanded"
+        [class.ml-20]="!isSidebarExpanded">
     <router-outlet></router-outlet>
   </main>
 </div>

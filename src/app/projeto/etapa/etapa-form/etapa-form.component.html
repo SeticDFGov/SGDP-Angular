@@ -1,61 +1,31 @@
 <div *ngIf="isOpen" class="fixed z-50 inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
-  <div class="bg-white p-6 rounded-md w-[1200px] shadow-lg">
-    <h2 class="text-xl font-semibold mb-4">Cadastrar Etapa</h2>
-    <form [formGroup]="etapaForm" (ngSubmit)="handleSubmit()" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div class="bg-white p-6 rounded-md w-[600px] shadow-lg">
+    <h2 class="text-xl font-semibold mb-4">Cadastrar Entregável</h2>
+    <form [formGroup]="etapaForm" (ngSubmit)="handleSubmit()" class="space-y-4">
       <div class="mb-4">
-        <label class="block text-sm font-medium">Nome da Etapa</label>
+        <label class="block text-sm font-medium">Nome do Entregável</label>
         <input
           type="text"
           name="NM_ETAPA"
           formControlName="NM_ETAPA"
           class="w-full p-2 border border-gray-300 rounded-md"
+          placeholder="Ex: Levantamento de Requisitos, Documentação Final"
           required
         />
+        <p class="text-xs text-gray-500 mt-1">Datas e percentuais serão calculados automaticamente com base nas atividades</p>
       </div>
       <div class="mb-4">
-        <label class="block text-sm font-medium">Responsável pela Etapa</label>
+        <label class="block text-sm font-medium">Responsável pelo Entregável</label>
         <input
           type="text"
           name="RESPONSAVEL_ETAPA"
           formControlName="RESPONSAVEL_ETAPA"
           class="w-full p-2 border border-gray-300 rounded-md"
-          required
-        />
-      </div>
-      <div class="mb-4">
-        <label class="block text-sm font-medium">Data Início Previsto</label>
-        <input
-          type="date"
-          name="DT_INICIO_PREVISTO"
-          formControlName="DT_INICIO_PREVISTO"
-          class="w-full p-2 border border-gray-300 rounded-md"
-          required
-        />
-      </div>
-      <div class="mb-4">
-        <label class="block text-sm font-medium">Data Término Previsto</label>
-        <input
-          type="date"
-          name="DT_TERMINO_PREVISTO"
-          formControlName="DT_TERMINO_PREVISTO"
-          class="w-full p-2 border border-gray-300 rounded-md"
-          required
-        />
-      </div>
-      <div class="mb-4">
-        <label class="block text-sm font-medium">Percentual Total da Etapa</label>
-        <input
-          type="number"
-          name="PERCENT_TOTAL_ETAPA"
-          formControlName="PERCENT_TOTAL_ETAPA"
-          class="w-full p-2 border border-gray-300 rounded-md"
-          required
-          min="0"
-          max="100"
+          placeholder="Nome do responsável"
         />
       </div>
 
-      <div class="col-span-3 flex justify-end space-x-2">
+      <div class="flex justify-end space-x-2">
         <button
           type="button"
           (click)="closeModal()"

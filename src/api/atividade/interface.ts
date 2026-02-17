@@ -61,6 +61,8 @@ export interface AtividadeResponseDTO {
   DIAS_PREVISTOS: number;
   DIAS_EXECUTADOS?: number;
   Order: number;
+  PESO_ATIVIDADE: number;
+  PERCENT_EXECUTADO: number;
 }
 
 export type SituacaoAtividade =
