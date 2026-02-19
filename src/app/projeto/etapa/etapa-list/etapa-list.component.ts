@@ -41,13 +41,19 @@ export class EtapaListComponent implements OnInit {
   expandedEtapas: Set<number> = new Set();
   visualizacao: 'lista' | 'kanban' | 'gantt' | 'wbs' = 'lista';
 
+  // Observables de permissão
+  canCreateEtapa$: Observable<boolean>;
+
   constructor(
     private route: ActivatedRoute,
     private etapaService: EtapaService,
     private atividadeService: AtividadeService,
     private authService: AuthService,
     private http: HttpClient
-  ) { }
+  ) {
+    // Inicializa os observables de permissão
+    this.canCreateEtapa$ = this.authService.canCreate('etapa');
+  }
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');

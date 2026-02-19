@@ -1,9 +1,10 @@
 import { Component, Input, OnInit, OnDestroy, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { Observable, Subject, takeUntil } from 'rxjs';
 import { AtividadeService } from '../../service/atividade.service';
 import { AtividadeResponseDTO } from '../../../../api/atividade/interface';
+import { AuthService } from '../../../auth/services/auth';
 
 @Component({
   selector: 'app-etapa-atividades-list',
@@ -24,6 +25,12 @@ export class EtapaAtividadesListComponent implements OnInit, OnDestroy, OnChange
   mostrarEdicao = false;
   atividadeEmEdicao: AtividadeResponseDTO | null = null;
 
+  // Observables de permissão
+  canCreateAtividade$: Observable<boolean>;
+  canEditAtividade$: Observable<boolean>;
+  canDeleteAtividade$: Observable<boolean>;
+  isReadOnly$: Observable<boolean>;
+
   // Form data
   novaAtividade = {
     titulo: '',
@@ -41,7 +48,16 @@ export class EtapaAtividadesListComponent implements OnInit, OnDestroy, OnChange
 
   private destroy$ = new Subject<void>();
 
-  constructor(private atividadeService: AtividadeService) {}
+  constructor(
+    private atividadeService: AtividadeService,
+    private authService: AuthService
+  ) {
+    // Inicializa os observables de permissão
+    this.canCreateAtividade$ = this.authService.canCreate('atividade');
+    this.canEditAtividade$ = this.authService.canEdit('atividade');
+    this.canDeleteAtividade$ = this.authService.canDelete('atividade');
+    this.isReadOnly$ = this.authService.isReadOnly();
+  }
 
   ngOnInit(): void {
     if (this.expanded) {
@@ -205,6 +221,28 @@ export class EtapaAtividadesListComponent implements OnInit, OnDestroy, OnChange
         error: (err) => {
           console.error('Erro ao criar atividade:', err);
           alert('Erro: ' + (err.error?.error || 'Não foi possível criar a atividade'));
+        }
+      });
+  }
+
+  excluirAtividade(atividade: AtividadeResponseDTO): void {
+    if (!confirm(`Tem certeza que deseja excluir a atividade "${atividade.Titulo}"?`)) {
+      return;
+    }
+
+    this.atividadeService.deletar(atividade.AtividadeId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.carregarAtividades();
+        },
+        error: (err) => {
+          console.error('Erro ao excluir atividade:', err);
+          if (err.status === 403) {
+            alert('Você não tem permissão para excluir atividades.');
+          } else {
+            alert('Erro: ' + (err.error?.error || 'Não foi possível excluir a atividade'));
+          }
         }
       });
   }

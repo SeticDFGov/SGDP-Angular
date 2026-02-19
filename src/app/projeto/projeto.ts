@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Unidade, AreaDemandante, Esteira, ProjetoDetalhado, ProjetoInterfaceForm, PagedResponse } from '../../api/projeto/inteface';
 import { AuthService } from '../auth/services/auth';
+import { UserProfile } from '../../api/auth/interface';
 import { CommonModule } from '@angular/common';
 import { Sidebar } from './components/sidebar/sidebar';
 import { RouterLink } from '@angular/router';
@@ -10,6 +11,7 @@ import { DemandanteService } from './service/demandante';
 import { EsteiraService } from './service/esteira';
 import { ProjetoService } from './service/projeto.service';
 import { FormsModule } from '@angular/forms';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-projeto',
@@ -26,13 +28,31 @@ import { FormsModule } from '@angular/forms';
 })
 
 export class Projeto {
+  // Observables de permissão
+  canCreateProjeto$: Observable<boolean>;
+  currentUser: UserProfile | null = null;
+
+  get perfilLabel(): string {
+    const user = this.currentUser;
+    if (!user) return '';
+    switch (user.Perfil) {
+      case 'gestor':    return `Gestor da Unidade ${user.Unidade?.Nome ?? ''}`;
+      case 'centralit': return 'Acompanhamento de projetos centralDF';
+      case 'parceiro':  return `Acompanhamento de projetos parceiro ${user.Unidade?.Nome ?? ''}`;
+      default:          return '';
+    }
+  }
+
   constructor(
     private authService: AuthService,
     private unidadeService: UnidadeService,
     private demandanteService: DemandanteService,
     private esteiraService: EsteiraService,
     private projetoService: ProjetoService
-  ) { }
+  ) {
+    // Inicializa os observables de permissão
+    this.canCreateProjeto$ = this.authService.canCreate('projeto');
+  }
 
   // Data lists
   projetos: ProjetoDetalhado[] = [];
@@ -68,6 +88,7 @@ export class Projeto {
   }
   carregarProjetos() {
     this.authService.getUser().subscribe(user => {
+      this.currentUser = user;
       if (user && user.Unidade && user.Unidade.Nome) {
         this.isLoading = true;
         this.projetoService.getProjetosPagedCompat(
