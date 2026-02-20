@@ -41,7 +41,17 @@ export class Login {
 
     const credentials: AuthRequest = this.loginForm.getRawValue();
     this.authService.login(credentials).subscribe({
-      next: () => this.router.navigate(['/projetos']),
+      next: () => {
+        this.authService.getPerfil().subscribe(perfil => {
+          if (perfil === 'centralit') {
+            this.router.navigate(['/centralit']);
+          } else if (perfil === 'parceiro') {
+            this.router.navigate(['/parceiro']);
+          } else {
+            this.router.navigate(['/demandas']);
+          }
+        });
+      },
       error: (err) => this.mensagem = `problemas internos com o servidor cod: ${err.status}`
     })
 

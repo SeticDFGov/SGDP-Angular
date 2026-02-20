@@ -47,18 +47,18 @@
     </a>
 
     <a
-      [routerLink]="['/projetos']"
+      [routerLink]="['/demandas']"
       routerLinkActive="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30"
       class="flex items-center py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 group cursor-pointer"
       [class.px-4]="isExpanded"
       [class.mx-4]="isExpanded"
       [class.justify-center]="!isExpanded"
       [class.mx-2]="!isExpanded"
-      [title]="!isExpanded ? 'Projetos' : ''"
+      [title]="!isExpanded ? 'Demandas' : ''"
     >
       <span class="material-icons text-xl"
             [class.mr-3]="isExpanded">view_kanban</span>
-      <span *ngIf="isExpanded" class="font-medium">Projetos</span>
+      <span *ngIf="isExpanded" class="font-medium">Demandas</span>
     </a>
   </nav>
 

@@ -1,17 +1,16 @@
 import { Component } from '@angular/core';
-import { Unidade, AreaDemandante, Esteira, ProjetoDetalhado, ProjetoInterfaceForm, PagedResponse } from '../../api/projeto/inteface';
+import { DemandaDetalhada, DemandaForm, Esteira, PagedResponse } from '../../api/demanda/interface';
+import { AreaDemandante } from '../../api/demanda/interface';
 import { AuthService } from '../auth/services/auth';
 import { UserProfile } from '../../api/auth/interface';
 import { CommonModule } from '@angular/common';
 import { Sidebar } from './components/sidebar/sidebar';
 import { RouterLink } from '@angular/router';
-import { ProjetoForm } from './components/projeto-form/projeto-form';
-import { UnidadeService } from './service/unidade';
-import { DemandanteService } from './service/demandante';
-import { EsteiraService } from './service/esteira';
-import { ProjetoService } from './service/projeto.service';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
+import { DemandaService } from '../demanda/service/demanda.service';
+import { DemandanteService } from './service/demandante';
+import { EsteiraService } from './service/esteira';
 
 @Component({
   selector: 'app-projeto',
@@ -20,15 +19,12 @@ import { Observable } from 'rxjs';
     CommonModule,
     Sidebar,
     RouterLink,
-    ProjetoForm,
     FormsModule
   ],
   templateUrl: './projeto.html',
   styleUrl: './projeto.css'
 })
-
 export class Projeto {
-  // Observables de permissão
   canCreateProjeto$: Observable<boolean>;
   currentUser: UserProfile | null = null;
 
@@ -37,29 +33,26 @@ export class Projeto {
     if (!user) return '';
     switch (user.Perfil) {
       case 'gestor':    return `Gestor da Unidade ${user.Unidade?.Nome ?? ''}`;
-      case 'centralit': return 'Acompanhamento de projetos centralDF';
-      case 'parceiro':  return `Acompanhamento de projetos parceiro ${user.Unidade?.Nome ?? ''}`;
+      case 'admin':     return 'Administrador';
       default:          return '';
     }
   }
 
   constructor(
     private authService: AuthService,
-    private unidadeService: UnidadeService,
+    private demandaService: DemandaService,
     private demandanteService: DemandanteService,
-    private esteiraService: EsteiraService,
-    private projetoService: ProjetoService
+    private esteiraService: EsteiraService
   ) {
-    // Inicializa os observables de permissão
     this.canCreateProjeto$ = this.authService.canCreate('projeto');
   }
 
-  // Data lists
-  projetos: ProjetoDetalhado[] = [];
+  demandas: DemandaDetalhada[] = [];
   listaEsteiras: Esteira[] = [];
-  listaUnidades: Unidade[] = [];
   listaDemandantes: AreaDemandante[] = [];
-  projetosFiltrados: ProjetoDetalhado[] = [];
+  demandasFiltradas: DemandaDetalhada[] = [];
+
+  newDemanda: DemandaForm = { NM_PROJETO: '', NM_AREA_DEMANDANTE: 0, EsteiraId: '' };
 
   termoBusca: string = '';
   isModalOpen = false;
@@ -71,55 +64,36 @@ export class Projeto {
   totalPages: number = 0;
   hasNextPage: boolean = false;
   hasPreviousPage: boolean = false;
-
   isLoading: boolean = false;
 
   ngOnInit() {
-    this.carregarProjetos();
+    this.carregarDemandas();
     this.carregarOpcoes();
+    this.authService.getUser().subscribe(user => this.currentUser = user);
   }
 
   abrirModal() {
+    this.newDemanda = { NM_PROJETO: '', NM_AREA_DEMANDANTE: 0, EsteiraId: '' };
     this.isModalOpen = true;
   }
+  fecharModal() { this.isModalOpen = false; }
 
-  fecharModal() {
-    this.isModalOpen = false;
-  }
-  carregarProjetos() {
-    this.authService.getUser().subscribe(user => {
-      this.currentUser = user;
-      if (user && user.Unidade && user.Unidade.Nome) {
-        this.isLoading = true;
-        this.projetoService.getProjetosPagedCompat(
-          user.Unidade.Nome,
-          this.currentPage,
-          this.pageSize
-        ).subscribe({
-          next: (response) => {
-            this.projetos = response.projetos;
-            this.projetosFiltrados = response.projetos;
-
-            // Update pagination state
-            this.totalItems = response.pagination.TotalItems;
-            this.totalPages = response.pagination.TotalPages;
-            this.hasNextPage = response.pagination.HasNextPage;
-            this.hasPreviousPage = response.pagination.HasPreviousPage;
-
-            this.isLoading = false;
-
-            // Reapply esteira filter if one was selected
-            if (this.esteiraSelecionada) {
-              this.aplicarFiltroEsteira();
-            }
-          },
-          error: (err) => {
-            console.error('Erro ao carregar projetos:', err);
-            this.isLoading = false;
-          }
-        });
-      } else {
-        console.error('Usuário ou unidade não encontrados.');
+  carregarDemandas() {
+    this.isLoading = true;
+    this.demandaService.getDemandas(this.currentPage, this.pageSize).subscribe({
+      next: (response) => {
+        this.demandas = response.Items;
+        this.demandasFiltradas = response.Items;
+        this.totalItems = response.TotalItems;
+        this.totalPages = response.TotalPages;
+        this.hasNextPage = response.HasNextPage;
+        this.hasPreviousPage = response.HasPreviousPage;
+        this.isLoading = false;
+        if (this.esteiraSelecionada) this.aplicarFiltroEsteira();
+      },
+      error: (err) => {
+        console.error('Erro ao carregar demandas:', err);
+        this.isLoading = false;
       }
     });
   }
@@ -131,79 +105,58 @@ export class Projeto {
 
   private aplicarFiltroEsteira(): void {
     if (!this.esteiraSelecionada) {
-      this.projetosFiltrados = this.projetos;
+      this.demandasFiltradas = this.demandas;
     } else {
-      this.projetosFiltrados = this.projetos.filter(p =>
-        p.Esteira.EsteiraId === this.esteiraSelecionada
+      this.demandasFiltradas = this.demandas.filter(d =>
+        d.Esteira?.EsteiraId === this.esteiraSelecionada
       );
     }
   }
 
-  salvarProjetos(request: ProjetoInterfaceForm) {
-    request.DT_INICIO = new Date(request.DT_INICIO).toISOString();
-    request.DT_TERMINO = new Date(request.DT_TERMINO).toISOString();
-
-    this.projetoService.createProjeto(request).subscribe({
+  salvarDemanda(request: DemandaForm) {
+    this.demandaService.createDemanda(request).subscribe({
       next: () => {
         this.fecharModal();
-        this.carregarProjetos();
+        this.carregarDemandas();
       },
       error: (err) => {
-        console.error('Erro ao salvar o projeto', err);
+        console.error('Erro ao salvar demanda', err);
       }
     });
   }
 
-  // Pagination methods
   onPageChange(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    this.carregarProjetos();
+    this.carregarDemandas();
   }
 
   onPageSizeChange(size: number): void {
     this.pageSize = size;
-    this.currentPage = 1; // Reset to first page
-    this.carregarProjetos();
+    this.currentPage = 1;
+    this.carregarDemandas();
   }
 
-  goToFirstPage(): void {
-    this.onPageChange(1);
-  }
+  goToFirstPage(): void { this.onPageChange(1); }
+  goToLastPage(): void { this.onPageChange(this.totalPages); }
 
-  goToLastPage(): void {
-    this.onPageChange(this.totalPages);
-  }
-
-  get startItem(): number {
-    return (this.currentPage - 1) * this.pageSize + 1;
-  }
-
-  get endItem(): number {
-    return Math.min(this.currentPage * this.pageSize, this.totalItems);
-  }
+  get startItem(): number { return (this.currentPage - 1) * this.pageSize + 1; }
+  get endItem(): number { return Math.min(this.currentPage * this.pageSize, this.totalItems); }
 
   get pageNumbers(): number[] {
     const pages: number[] = [];
     const maxPagesToShow = 5;
     let startPage = Math.max(1, this.currentPage - Math.floor(maxPagesToShow / 2));
     let endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
-
     if (endPage - startPage < maxPagesToShow - 1) {
       startPage = Math.max(1, endPage - maxPagesToShow + 1);
     }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
+    for (let i = startPage; i <= endPage; i++) pages.push(i);
     return pages;
   }
 
   carregarOpcoes() {
     this.esteiraService.getEsteira().subscribe(dados => this.listaEsteiras = dados);
     this.demandanteService.getDemandantes().subscribe(dados => this.listaDemandantes = dados);
-    this.unidadeService.getUnidades().subscribe(dados => this.listaUnidades = dados)
   }
-
 }

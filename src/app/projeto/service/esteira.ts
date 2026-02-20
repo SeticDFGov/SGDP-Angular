@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Esteira } from '../../../api/projeto/inteface';
+import { Esteira } from '../../../api/demanda/interface';
 import { HttpClient } from '@angular/common/http';
 import { SERVICE_API_URL } from '../../../api/consts';
 

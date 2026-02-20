@@ -8,7 +8,7 @@ import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { map } from 'rxjs/operators';
 
-export type ResourceType = 'projeto' | 'etapa' | 'atividade';
+export type ResourceType = 'projeto' | 'etapa' | 'entregavel';
 
 export const Perfis = {
   Admin: 'admin',
@@ -146,7 +146,7 @@ export class AuthService {
           case Perfis.Gestor:
             return true;
           case Perfis.CentralIT:
-            return resource === 'etapa' || resource === 'atividade';
+            return resource === 'etapa' || resource === 'entregavel';
           case Perfis.Parceiro:
             return false;
           default:
@@ -167,7 +167,7 @@ export class AuthService {
           case Perfis.Gestor:
             return true;
           case Perfis.CentralIT:
-            return resource === 'etapa' || resource === 'atividade';
+            return resource === 'etapa' || resource === 'entregavel';
           case Perfis.Parceiro:
             return false;
           default:

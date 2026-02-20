@@ -3,7 +3,7 @@ import { AuthService } from '../../auth/services/auth';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
-import { AreaDemandante } from '../../../api/projeto/inteface';
+import { AreaDemandante } from '../../../api/demanda/interface';
 
 @Injectable({
   providedIn: 'root'

@@ -1,7 +1,7 @@
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth';
 import { inject } from '@angular/core';
-import { map, of } from 'rxjs';
+import { map, of, switchMap } from 'rxjs';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
@@ -13,13 +13,25 @@ export const authGuard: CanActivateFn = (route, state) => {
   }
 
   return authService.isHaveUnidade().pipe(
-    map(temUnidade => {
-      if (temUnidade) {
-        return true;
-      } else {
+    switchMap(temUnidade => {
+      if (!temUnidade) {
         router.navigate(['/auth/selecionar-unidade']);
-        return false;
+        return of(false);
       }
+
+      return authService.getPerfil().pipe(
+        map(perfil => {
+          if (perfil === 'centralit') {
+            router.navigate(['/centralit']);
+            return false;
+          }
+          if (perfil === 'parceiro') {
+            router.navigate(['/parceiro']);
+            return false;
+          }
+          return true;
+        })
+      );
     })
   );
 };
