@@ -13,7 +13,7 @@ export interface UserProfile {
   Nome: string;
   Email: string;
   Perfil: string;
-  Unidade: Unidade;
+  Unidade: Unidade | null;
 }
 
 export interface AuthResponse {

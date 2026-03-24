@@ -7,6 +7,16 @@ import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { map } from 'rxjs/operators';
+
+export type ResourceType = 'projeto' | 'etapa' | 'entregavel';
+
+export const Perfis = {
+  Admin: 'admin',
+  Gestor: 'gestor',
+  CentralIT: 'centralit',
+  Parceiro: 'parceiro',
+  Basico: 'basico'
+} as const;
 @Injectable({
   providedIn: 'root'
 })
@@ -64,6 +74,26 @@ export class AuthService {
       })
     );
   }
+
+  /**
+   * Verifica se o usuário está completamente configurado (tem perfil e unidade)
+   */
+  isUserFullyConfigured(): Observable<boolean> {
+    return this.getUser().pipe(
+      map((user: UserProfile | null) => {
+        console.log('isUserFullyConfigured - User:', user);
+        if (!user) {
+          console.log('isUserFullyConfigured - No user found');
+          return false;
+        }
+        const hasPerfil = !!user.Perfil && user.Perfil !== 'basico';
+        const hasUnidade = !!user.Unidade;
+        console.log('isUserFullyConfigured - hasPerfil:', hasPerfil, 'hasUnidade:', hasUnidade);
+        console.log('isUserFullyConfigured - Perfil:', user.Perfil, 'Unidade:', user.Unidade);
+        return hasPerfil && hasUnidade;
+      })
+    );
+  }
   getToken(): string | null {
     if (!isPlatformBrowser(this.platformId)) {
       return null;
@@ -114,5 +144,109 @@ export class AuthService {
     } catch (error) {
       return true;
     }
+  }
+
+  /**
+   * Retorna o perfil do usuário atual
+   */
+  getPerfil(): Observable<string | null> {
+    return this.getUser().pipe(
+      map((user: UserProfile | null) => {
+        console.log('getPerfil - User:', user);
+        const perfil = user?.Perfil ?? null;
+        console.log('getPerfil - Returning:', perfil);
+        return perfil;
+      })
+    );
+  }
+
+  /**
+   * Verifica se o usuário pode criar o recurso especificado
+   */
+  canCreate(resource: ResourceType): Observable<boolean> {
+    return this.getPerfil().pipe(
+      map(perfil => {
+        switch (perfil) {
+          case Perfis.Admin:
+          case Perfis.Gestor:
+            return true;
+          case Perfis.CentralIT:
+            return resource === 'etapa' || resource === 'entregavel';
+          case Perfis.Parceiro:
+            return false;
+          default:
+            return false;
+        }
+      })
+    );
+  }
+
+  /**
+   * Verifica se o usuário pode editar o recurso especificado
+   */
+  canEdit(resource: ResourceType): Observable<boolean> {
+    return this.getPerfil().pipe(
+      map(perfil => {
+        switch (perfil) {
+          case Perfis.Admin:
+          case Perfis.Gestor:
+            return true;
+          case Perfis.CentralIT:
+            return resource === 'etapa' || resource === 'entregavel';
+          case Perfis.Parceiro:
+            return false;
+          default:
+            return false;
+        }
+      })
+    );
+  }
+
+  /**
+   * Verifica se o usuário pode excluir o recurso especificado
+   */
+  canDelete(resource: ResourceType): Observable<boolean> {
+    return this.getPerfil().pipe(
+      map(perfil => {
+        switch (perfil) {
+          case Perfis.Admin:
+          case Perfis.Gestor:
+            return true;
+          case Perfis.CentralIT:
+            return false; // CentralIT NUNCA pode excluir
+          case Perfis.Parceiro:
+            return false;
+          default:
+            return false;
+        }
+      })
+    );
+  }
+
+  /**
+   * Verifica se o usuário é somente leitura (parceiro)
+   */
+  isReadOnly(): Observable<boolean> {
+    return this.getPerfil().pipe(
+      map(perfil => perfil === Perfis.Parceiro)
+    );
+  }
+
+  /**
+   * Verifica se o perfil é CentralIT
+   */
+  isCentralIT(): Observable<boolean> {
+    return this.getPerfil().pipe(
+      map(perfil => perfil === Perfis.CentralIT)
+    );
+  }
+
+  /**
+   * Verifica se o perfil é Gestor
+   */
+  isGestor(): Observable<boolean> {
+    return this.getPerfil().pipe(
+      map(perfil => perfil === Perfis.Gestor)
+    );
   }
 }

@@ -4,7 +4,8 @@ import { AuthService } from '../services/auth';
 import { Router } from '@angular/router';
 import { AuthRequest } from '../../../api/auth/interface';
 import { CommonModule } from '@angular/common';
-import { error } from 'console';
+import { switchMap, timeout, catchError } from 'rxjs/operators';
+import { of, throwError } from 'rxjs';
 @Component({
   selector: 'app-login',
   imports: [
@@ -39,11 +40,56 @@ export class Login {
     this.carregando = true;
     this.mensagem = null;
 
+    console.log('Starting login...');
     const credentials: AuthRequest = this.loginForm.getRawValue();
-    this.authService.login(credentials).subscribe({
-      next: () => this.router.navigate(['/projetos']),
-      error: (err) => this.mensagem = `problemas internos com o servidor cod: ${err.status}`
-    })
+    this.authService.login(credentials).pipe(
+      timeout(10000), // 10 segundos de timeout
+      switchMap(() => {
+        console.log('Login successful, checking if user configured...');
+        return this.authService.isUserFullyConfigured();
+      }),
+      switchMap((isConfigured) => {
+        console.log('User configured:', isConfigured);
 
+        if (!isConfigured) {
+          this.carregando = false;
+          this.router.navigate(['/pending-approval']);
+          throw new Error('User not configured');
+        }
+
+        console.log('Getting user perfil...');
+        return this.authService.getPerfil();
+      }),
+      timeout(15000) // Timeout total de 15 segundos
+    ).subscribe({
+      next: (perfil) => {
+        console.log('User perfil:', perfil);
+        this.carregando = false;
+
+        if (perfil === 'centralit') {
+          this.router.navigate(['/centralit']);
+        } else if (perfil === 'parceiro') {
+          this.router.navigate(['/parceiro']);
+        } else {
+          this.router.navigate(['/demandas']);
+        }
+      },
+      error: (err) => {
+        console.error('Login error:', err);
+        console.error('Error name:', err.name);
+        console.error('Error message:', err.message);
+
+        // Não mostra erro se for apenas "User not configured"
+        if (err.message === 'User not configured') {
+          // Usuário já redirecionado para pending-approval
+        } else if (err.name === 'TimeoutError') {
+          this.mensagem = 'Timeout: A operação demorou muito. Tente novamente.';
+        } else {
+          this.mensagem = `Problemas internos com o servidor cod: ${err.status || 'desconhecido'}`;
+        }
+
+        this.carregando = false;
+      }
+    });
   }
 }

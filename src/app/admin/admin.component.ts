@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { SERVICE_API_URL } from '../../api/consts';
 import { AuthService } from '../auth/services/auth';
-import { UserProfile } from '../../api/auth/interface';
+import { AreaExecutoraService } from '../area-executora/area-executora.service';
+import { AreaExecutora } from '../../api/area-executora/interface';
 
 interface User {
   Id: string;
@@ -20,15 +21,6 @@ interface User {
 interface Unit {
   id: number;
   Nome: string;
-}
-
-interface Template {
-  TemplateId: string;
-  NM_TEMPLATE: string;
-  NM_ETAPA: string;
-  PERCENT_TOTAL: number;
-  DIAS_PREVISTOS: number;
-  ORDER: number;
 }
 
 @Component({
@@ -49,16 +41,24 @@ export class AdminComponent implements OnInit {
   messageType = '';
   selectedUnits: { [key: string]: string } = {};
   selectedProfiles: { [key: string]: string } = {};
-  templates: { [key: string]: Template[] } = {};
-  expandedTemplates: { [key: string]: boolean } = {};
-  editEtapa: Template | null = null;
-  modalOpen = false;
   user: any;
   email: any;
 
+  // AreaExecutora
+  areasExecutoras: AreaExecutora[] = [];
+  loadingAreas = false;
+  newAreaNome = '';
+  loadingArea = false;
+  editingArea: AreaExecutora | null = null;
+  editAreaNome = '';
+
   private URL_AUTH_SERVICE = `${SERVICE_API_URL}/api`;
-  private URL_TEMPLATE_SERVICE = `${SERVICE_API_URL}/templates`;
-  constructor(private http: HttpClient, private authService: AuthService) { }
+
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService,
+    private areaExecutoraService: AreaExecutoraService
+  ) { }
 
   ngOnInit(): void {
     this.authService.getUser().subscribe(user => {
@@ -66,9 +66,8 @@ export class AdminComponent implements OnInit {
       this.email = user?.Email;
       this.loadUsers();
       this.loadUnits();
-      this.loadTemplates()
-    })
-
+      this.loadAreasExecutoras();
+    });
   }
 
   loadUsers(): void {
@@ -112,66 +111,84 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  loadTemplates(): void {
-    this.http.get<{ [key: string]: Template[] }>(this.URL_TEMPLATE_SERVICE).subscribe({
-      next: (data) => {
-        this.templates = data;
+  loadAreasExecutoras(): void {
+    this.loadingAreas = true;
+    this.areaExecutoraService.getAll().subscribe({
+      next: (areas) => {
+        this.areasExecutoras = areas;
+        this.loadingAreas = false;
       },
       error: (error) => {
-        console.error('Erro ao carregar templates:', error);
-        this.showMessage('Erro ao carregar templates', 'error');
+        console.error('Erro ao carregar áreas executoras:', error);
+        this.showMessage('Erro ao carregar áreas executoras', 'error');
+        this.loadingAreas = false;
       }
     });
   }
 
-  handleEdit(etapa: Template): void {
-    this.editEtapa = { ...etapa };
-    this.modalOpen = true;
-  }
-
-  handleCreate(): void {
-    this.editEtapa = {
-      TemplateId: '',
-      NM_TEMPLATE: '',
-      NM_ETAPA: '',
-      PERCENT_TOTAL: 0,
-      DIAS_PREVISTOS: 0,
-      ORDER: 0,
-    };
-    this.modalOpen = true;
-  }
-
-  handleSave(form: Template): void {
-    if (!this.editEtapa || !this.editEtapa.TemplateId) {
-      this.http.post(this.URL_TEMPLATE_SERVICE, form).subscribe({
-        next: () => {
-          this.modalOpen = false;
-          this.editEtapa = null;
-          this.loadTemplates();
-        },
-        error: (error) => {
-          console.error('Erro ao criar template:', error);
-          this.showMessage('Erro ao criar template', 'error');
-        }
-      });
-    } else {
-      this.http.put(`${this.URL_TEMPLATE_SERVICE}/${this.editEtapa.TemplateId}`, form).subscribe({
-        next: () => {
-          this.modalOpen = false;
-          this.editEtapa = null;
-          this.loadTemplates();
-        },
-        error: (error) => {
-          console.error('Erro ao atualizar template:', error);
-          this.showMessage('Erro ao atualizar template', 'error');
-        }
-      });
+  cadastrarArea(event: Event): void {
+    event.preventDefault();
+    if (!this.newAreaNome.trim()) {
+      this.showMessage('Nome da área executora é obrigatório', 'error');
+      return;
     }
+
+    this.loadingArea = true;
+    this.areaExecutoraService.create(this.newAreaNome.trim()).subscribe({
+      next: () => {
+        this.showMessage('Área executora cadastrada com sucesso!', 'success');
+        this.newAreaNome = '';
+        this.loadAreasExecutoras();
+        this.loadingArea = false;
+      },
+      error: (error) => {
+        console.error('Erro ao cadastrar área executora:', error);
+        this.showMessage('Erro ao cadastrar área executora', 'error');
+        this.loadingArea = false;
+      }
+    });
   }
 
-  handleClose(): void {
-    this.modalOpen = false;
-    this.editEtapa = null;
+  startEditArea(area: AreaExecutora): void {
+    this.editingArea = area;
+    this.editAreaNome = area.Nome;
+  }
+
+  cancelEditArea(): void {
+    this.editingArea = null;
+    this.editAreaNome = '';
+  }
+
+  saveEditArea(): void {
+    if (!this.editingArea || !this.editAreaNome.trim()) return;
+
+    this.areaExecutoraService.update(this.editingArea.AreaExecutoraId, this.editAreaNome.trim()).subscribe({
+      next: () => {
+        this.showMessage('Área executora atualizada com sucesso!', 'success');
+        this.editingArea = null;
+        this.editAreaNome = '';
+        this.loadAreasExecutoras();
+      },
+      error: (error) => {
+        console.error('Erro ao atualizar área executora:', error);
+        this.showMessage('Erro ao atualizar área executora', 'error');
+      }
+    });
+  }
+
+  deleteArea(id: number): void {
+    if (!confirm('Deseja remover esta área executora?')) return;
+
+    this.areaExecutoraService.delete(id).subscribe({
+      next: () => {
+        this.showMessage('Área executora removida com sucesso!', 'success');
+        this.loadAreasExecutoras();
+      },
+      error: (error) => {
+        console.error('Erro ao remover área executora:', error);
+        this.showMessage('Erro ao remover área executora', 'error');
+      }
+    });
   }
 
   alterarPerfil(email: string, novoPerfil: string): void {

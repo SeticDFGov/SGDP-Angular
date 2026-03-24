@@ -1,9 +1,9 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { EtapaService } from '../etapa.service';
-import { Etapa, EtapaForm } from '../etapa.model';
-import { Projeto } from '../../projeto';
+import { EtapaForm } from '../etapa.model';
+import { AreaExecutoraService } from '../../../area-executora/area-executora.service';
+import { AreaExecutora } from '../../../../api/area-executora/interface';
 
 @Component({
   selector: 'app-etapa-form',
@@ -12,35 +12,65 @@ import { Projeto } from '../../projeto';
   templateUrl: './etapa-form.component.html',
   styleUrls: ['./etapa-form.component.css']
 })
-export class EtapaFormComponent {
+export class EtapaFormComponent implements OnInit {
   @Input() isOpen: boolean = false;
-  @Input() projetoId!: number;
+  @Input() demandaId!: number;
   @Output() onClose = new EventEmitter<void>();
   @Output() onSubmit = new EventEmitter<EtapaForm>();
+
+  areasExecutoras: AreaExecutora[] = [];
 
   etapaForm = new FormGroup({
     NM_ETAPA: new FormControl<string>('', {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(3)]
     }),
-    RESPONSAVEL_ETAPA: new FormControl<string>('', {
-      nonNullable: true
-    })
+    AreaExecutoraId: new FormControl<number>(0, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)]
+    }),
+    TIPO_ENTREGA: new FormControl<string>('Intermediario', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    DT_INICIO: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    DT_FIM: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    Descricao: new FormControl<string>('', { nonNullable: true })
   });
-  constructor(private etapaService: EtapaService) { }
+
+  constructor(private areaExecutoraService: AreaExecutoraService) {}
+
+  ngOnInit(): void {
+    this.areaExecutoraService.getAll().subscribe({
+      next: (areas) => this.areasExecutoras = areas,
+      error: (err) => console.error('Erro ao carregar áreas executoras:', err)
+    });
+  }
+
   async handleSubmit(): Promise<void> {
-    const payload = {
-      ...this.etapaForm.getRawValue(),
-      NM_PROJETO: this.projetoId
+    if (this.etapaForm.invalid) return;
+
+    const raw = this.etapaForm.getRawValue();
+    const payload: EtapaForm = {
+      DemandaId: this.demandaId,
+      NM_ETAPA: raw.NM_ETAPA,
+      AreaExecutoraId: raw.AreaExecutoraId,
+      TIPO_ENTREGA: raw.TIPO_ENTREGA,
+      DT_INICIO: new Date(raw.DT_INICIO).toISOString(),
+      DT_FIM: new Date(raw.DT_FIM).toISOString(),
+      Descricao: raw.Descricao || undefined
     };
 
     this.onSubmit.emit(payload);
-
-
   }
 
   closeModal(): void {
-    this.onClose.emit()
+    this.onClose.emit();
   }
-
 }

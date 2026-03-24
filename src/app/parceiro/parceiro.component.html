@@ -1,0 +1,127 @@
+<div class="min-h-screen bg-slate-100 font-sans">
+  <!-- Header -->
+  <header class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-lg">
+    <div class="flex items-center gap-3">
+      <img src="assets/ipe.png" alt="Logo" class="h-8 w-auto" />
+      <span class="text-xl font-bold">SGDP — Parceiro</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-gray-300">{{ currentUser?.Nome }} — {{ currentUser?.Unidade?.Nome }}</span>
+      <button (click)="logout()" class="text-sm text-red-400 hover:text-red-300 transition-colors flex items-center gap-1">
+        <span class="material-icons text-sm">logout</span>
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="p-6 max-w-7xl mx-auto">
+    <h1 class="text-2xl font-bold text-slate-800 mb-6">Minhas Demandas</h1>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-12 text-slate-500">
+      Carregando...
+    </div>
+
+    <!-- Lista de Demandas -->
+    <div *ngIf="!loading" class="space-y-3">
+      <div *ngFor="let demanda of demandas"
+           class="bg-white rounded-xl shadow overflow-hidden">
+        <!-- Linha da Demanda -->
+        <div class="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors"
+             (click)="toggleDemanda(demanda.demandaId)">
+          <div class="flex items-center gap-4">
+            <span class="material-icons text-slate-400 transition-transform"
+                  [class.rotate-90]="isExpanded(demanda.demandaId)">
+              chevron_right
+            </span>
+            <div>
+              <p class="font-semibold text-slate-800">{{ demanda.NM_PROJETO }}</p>
+              <p class="text-xs text-slate-500">
+                SEI: {{ demanda.NR_PROCESSO_SEI ?? '-' }} &nbsp;|&nbsp;
+                Esteira: {{ demanda.Esteira?.Nome ?? '-' }}
+              </p>
+            </div>
+          </div>
+          <span *ngIf="demanda.SITUACAO"
+                class="px-3 py-1 rounded-full text-xs font-semibold"
+                [class]="getSituacaoClass(demanda.SITUACAO ?? '')">
+            {{ demanda.SITUACAO }}
+          </span>
+        </div>
+
+        <!-- Entregáveis -->
+        <div *ngIf="isExpanded(demanda.demandaId)" class="border-t border-slate-100">
+          <div *ngIf="loadingEntregaveis[demanda.demandaId]" class="px-5 py-4 text-sm text-slate-400">
+            Carregando entregáveis...
+          </div>
+          <div *ngIf="!loadingEntregaveis[demanda.demandaId]">
+            <div class="space-y-4 p-4">
+              <div *ngFor="let e of entregaveisByDemanda[demanda.demandaId]"
+                   class="bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <!-- Header do Entregável -->
+                <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-5 py-3 border-b border-slate-200">
+                  <h3 class="font-bold text-slate-800 text-base">{{ e.NM_ETAPA }}</h3>
+                </div>
+
+                <!-- Observação em Destaque -->
+                <div *ngIf="e.Descricao" class="px-5 py-4 bg-amber-50 border-b-2 border-amber-300">
+                  <div class="flex items-start gap-2 mb-2">
+                    <span class="material-icons text-amber-600 text-xl">info</span>
+                    <h4 class="font-bold text-amber-900 text-sm uppercase tracking-wide">Observação Importante</h4>
+                  </div>
+                  <div class="bg-white border-l-4 border-amber-500 px-4 py-3 rounded shadow-sm">
+                    <p class="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">{{ e.Descricao }}</p>
+                  </div>
+                </div>
+                <div *ngIf="!e.Descricao" class="px-5 py-3 bg-slate-50 border-b border-slate-100">
+                  <p class="text-slate-400 text-sm italic flex items-center gap-1">
+                    <span class="material-icons text-sm">info_outline</span>
+                    Nenhuma observação registrada para este entregável
+                  </p>
+                </div>
+
+                <!-- Detalhes do Entregável -->
+                <div class="px-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Área Responsável</p>
+                    <p class="text-sm text-slate-700">{{ e.Responsavel?.Nome ?? '-' }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Tipo</p>
+                    <span class="inline-block px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                      {{ e.TIPO_ENTREGA }}
+                    </span>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Período</p>
+                    <p class="text-sm text-slate-700">{{ formatDate(e.DT_INICIO) }} → {{ formatDate(e.DT_FIM) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Progresso</p>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-bold text-slate-700">{{ e.PERCENT_EXECUTADO }}%</span>
+                      <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                            [class]="getSituacaoClass(e.SITUACAO)">
+                        {{ e.SITUACAO }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="!entregaveisByDemanda[demanda.demandaId]?.length"
+                   class="text-center py-8 text-slate-400 text-sm">
+                Nenhum entregável cadastrado.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="demandas.length === 0" class="text-center py-12 text-slate-400">
+        Nenhuma demanda encontrada.
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,98 @@
+<div class="min-h-screen bg-slate-100 font-sans">
+  <!-- Header -->
+  <header class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-lg">
+    <div class="flex items-center gap-3">
+      <img src="assets/ipe.png" alt="Logo" class="h-8 w-auto" />
+      <span class="text-xl font-bold">SGDP — CentralIT</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-gray-300">{{ currentUser?.Nome }}</span>
+      <button (click)="logout()" class="text-sm text-red-400 hover:text-red-300 transition-colors flex items-center gap-1">
+        <span class="material-icons text-sm">logout</span>
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="p-6 max-w-7xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800">Meus Entregáveis</h1>
+        <p class="text-sm text-slate-500 mt-1">Área: {{ currentUser?.Unidade?.Nome }}</p>
+      </div>
+    </div>
+
+    <!-- Mensagem -->
+    <div *ngIf="message" class="mb-4 px-4 py-3 rounded-lg text-sm font-medium"
+         [class.bg-green-100]="messageType === 'success'"
+         [class.text-green-700]="messageType === 'success'"
+         [class.bg-red-100]="messageType === 'error'"
+         [class.text-red-700]="messageType === 'error'">
+      {{ message }}
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-12 text-slate-500">
+      Carregando...
+    </div>
+
+    <!-- Tabela -->
+    <div *ngIf="!loading" class="bg-white rounded-xl shadow overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-800 text-white">
+          <tr>
+            <th class="px-4 py-3 text-left font-semibold">Demanda</th>
+            <th class="px-4 py-3 text-left font-semibold">Entregável</th>
+            <th class="px-4 py-3 text-left font-semibold">Tipo</th>
+            <th class="px-4 py-3 text-left font-semibold">Início</th>
+            <th class="px-4 py-3 text-left font-semibold">Fim</th>
+            <th class="px-4 py-3 text-left font-semibold">Observação</th>
+            <th class="px-4 py-3 text-center font-semibold">% Executado</th>
+            <th class="px-4 py-3 text-center font-semibold">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let e of entregaveis" class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <td class="px-4 py-3 text-slate-700 font-medium">{{ e.DemandaNome ?? '-' }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ e.NM_ETAPA }}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 rounded-full text-xs font-semibold"
+                    [class.bg-blue-100]="e.TIPO_ENTREGA === 'Intermediario'"
+                    [class.text-blue-700]="e.TIPO_ENTREGA === 'Intermediario'"
+                    [class.bg-purple-100]="e.TIPO_ENTREGA === 'Final'"
+                    [class.text-purple-700]="e.TIPO_ENTREGA === 'Final'">
+                {{ e.TIPO_ENTREGA }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-slate-600">{{ formatDate(e.DT_INICIO) }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ formatDate(e.DT_FIM) }}</td>
+            <td class="px-4 py-3">
+              <textarea [(ngModel)]="editState[e.EtapaProjetoId].descricao"
+                        rows="3"
+                        class="w-full min-w-[300px] px-3 py-2 border-2 border-amber-300 bg-amber-50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-y"
+                        placeholder="Digite observações importantes sobre este entregável..."></textarea>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <select [(ngModel)]="editState[e.EtapaProjetoId].percent"
+                      class="px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option *ngFor="let p of percentOptions" [value]="p">{{ p }}%</option>
+              </select>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <button (click)="salvar(e)"
+                      class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                Salvar
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="entregaveis.length === 0">
+            <td colspan="8" class="px-4 py-8 text-center text-slate-400">
+              Nenhum entregável encontrado para sua área.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

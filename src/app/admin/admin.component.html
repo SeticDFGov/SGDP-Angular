@@ -111,10 +111,11 @@
                 </div>
                 <div class="flex-shrink-0">
                   <span [ngClass]="{
-                    'bg-red-100 text-red-800': user.Perfil === 'Admin',
-                    'bg-yellow-100 text-yellow-800': user.Perfil === 'Dir',
-                    'bg-green-100 text-green-800': user.Perfil === 'User',
-                    'bg-gray-100 text-gray-800': user.Perfil !== 'Admin' && user.Perfil !== 'Dir' && user.Perfil !== 'User'
+                    'bg-red-100 text-red-800': user.Perfil === 'admin',
+                    'bg-purple-100 text-purple-800': user.Perfil === 'gestor',
+                    'bg-blue-100 text-blue-800': user.Perfil === 'centralit',
+                    'bg-yellow-100 text-yellow-800': user.Perfil === 'parceiro',
+                    'bg-gray-100 text-gray-800': user.Perfil === 'basico'
                   }" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
                     {{ user.Perfil }}
                   </span>
@@ -131,8 +132,12 @@
                       (ngModelChange)="$event"
                       class="flex-grow w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="admin">admin</option>
-                      <option value="basico">básico</option>
+                      <option value="" disabled>Selecione um perfil</option>
+                      <option value="admin">Admin</option>
+                      <option value="gestor">Gestor</option>
+                      <option value="centralit">Central IT</option>
+                      <option value="parceiro">Parceiro</option>
+                      <option value="basico">Básico</option>
                     </select>
                     <button
                       (click)="alterarPerfil(user.Email, selectedProfiles[user.Id])"
@@ -177,69 +182,82 @@
       </div>
     </div>
 
-    <h2 class="text-2xl font-bold mt-8 mb-4">Templates</h2>
-    <button
-      class="mb-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-800"
-      (click)="handleCreate()"
-    >
-      Criar Novo Template
-    </button>
-
-    <!-- Template Collapse -->
-    <div class="w-full">
-      <div *ngFor="let template of templates | keyvalue" class="mb-4 border rounded">
+    <!-- Seção de Áreas Executoras -->
+    <div class="mt-8 bg-white rounded-lg shadow p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Gerenciar Áreas Executoras</h2>
         <button
-          class="w-full text-left px-4 py-2 bg-gray-200 font-semibold rounded-t focus:outline-none"
-          (click)="expandedTemplates[template.key] = !expandedTemplates[template.key]"
+          (click)="loadAreasExecutoras()"
+          [disabled]="loadingAreas"
+          class="text-sm bg-gray-600 text-white py-1 px-3 rounded hover:bg-gray-700 disabled:opacity-50"
         >
-          {{ template.key }}
+          {{ loadingAreas ? 'Carregando...' : 'Atualizar' }}
         </button>
-        <div *ngIf="expandedTemplates[template.key]" class="bg-white px-4 py-2">
-          <div *ngFor="let etapa of template.value" class="flex justify-between items-center border-b py-2">
-            <div>
-              <span class="font-medium">{{ etapa.NM_ETAPA }}</span>
-              <span class="ml-4 text-gray-500">Dias previstos: {{ etapa.DIAS_PREVISTOS }}</span>
-            </div>
-            <button
-              class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-800"
-              (click)="handleEdit(etapa)"
-            >
+      </div>
+
+      <!-- Formulário de Cadastro -->
+      <form (ngSubmit)="cadastrarArea($event)" class="mb-6 flex gap-3">
+        <input
+          type="text"
+          [(ngModel)]="newAreaNome"
+          name="newAreaNome"
+          class="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Nome da nova área executora"
+          [disabled]="loadingArea"
+        />
+        <button
+          type="submit"
+          [disabled]="loadingArea || !newAreaNome.trim()"
+          class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {{ loadingArea ? 'Cadastrando...' : 'Cadastrar' }}
+        </button>
+      </form>
+
+      <!-- Lista de Áreas Executoras -->
+      <div *ngIf="loadingAreas" class="text-center py-4 text-gray-500">Carregando áreas executoras...</div>
+
+      <div *ngIf="!loadingAreas" class="space-y-2">
+        <div *ngIf="areasExecutoras.length === 0" class="text-center py-4 text-gray-500">
+          Nenhuma área executora cadastrada
+        </div>
+
+        <div *ngFor="let area of areasExecutoras" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+          <!-- Modo edição -->
+          <div *ngIf="editingArea?.AreaExecutoraId === area.AreaExecutoraId" class="flex-grow flex gap-2">
+            <input
+              type="text"
+              [(ngModel)]="editAreaNome"
+              class="flex-grow px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+            <button (click)="saveEditArea()"
+              class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700">
+              Salvar
+            </button>
+            <button (click)="cancelEditArea()"
+              class="px-3 py-1 text-sm bg-gray-400 text-white rounded hover:bg-gray-500">
+              Cancelar
+            </button>
+          </div>
+
+          <!-- Modo visualização -->
+          <div *ngIf="editingArea?.AreaExecutoraId !== area.AreaExecutoraId" class="flex-grow">
+            <span class="font-medium text-gray-900">{{ area.Nome }}</span>
+            <span class="ml-2 text-xs text-gray-400">ID: {{ area.AreaExecutoraId }}</span>
+          </div>
+
+          <div *ngIf="editingArea?.AreaExecutoraId !== area.AreaExecutoraId" class="flex gap-2 ml-4">
+            <button (click)="startEditArea(area)"
+              class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
               Editar
+            </button>
+            <button (click)="deleteArea(area.AreaExecutoraId)"
+              class="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-700">
+              Remover
             </button>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Edit Template Modal -->
-    <div *ngIf="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <form (ngSubmit)="handleSave(editEtapa!)" class="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 class="text-xl font-bold mb-4">Editar Etapa</h2>
-        <div class="mb-2">
-          <label class="block text-sm font-medium">Nome do Template</label>
-          <input name="NM_TEMPLATE" [(ngModel)]="editEtapa!.NM_TEMPLATE" class="w-full border p-2 rounded" required />
-        </div>
-        <div class="mb-2">
-          <label class="block text-sm font-medium">Nome da Etapa</label>
-          <input name="NM_ETAPA" [(ngModel)]="editEtapa!.NM_ETAPA" class="w-full border p-2 rounded" required />
-        </div>
-        <div class="mb-2">
-          <label class="block text-sm font-medium">Percentual Total</label>
-          <input name="PERCENT_TOTAL" type="number" [(ngModel)]="editEtapa!.PERCENT_TOTAL" class="w-full border p-2 rounded" required />
-        </div>
-        <div class="mb-2">
-          <label class="block text-sm font-medium">Dias Previstos</label>
-          <input name="DIAS_PREVISTOS" type="number" [(ngModel)]="editEtapa!.DIAS_PREVISTOS" class="w-full border p-2 rounded" required />
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium">Ordem</label>
-          <input name="ORDER" type="number" [(ngModel)]="editEtapa!.ORDER" class="w-full border p-2 rounded" required />
-        </div>
-        <div class="flex justify-end gap-2">
-          <button type="button" (click)="handleClose()" class="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Salvar</button>
-        </div>
-      </form>
     </div>
   </div>
 </div>

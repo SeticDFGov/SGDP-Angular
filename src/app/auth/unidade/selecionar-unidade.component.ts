@@ -54,7 +54,15 @@ export class SelecionarUnidadeComponent implements OnInit {
       this.unidadeService.informarUnidade(user.Email, unidadeId).subscribe({
         next: () => {
           this.authService.updateUserUnidade(unidadeSelecionada);
-          this.router.navigate(['/']);
+          this.authService.getPerfil().subscribe(perfil => {
+            if (perfil === 'centralit') {
+              this.router.navigate(['/centralit']);
+            } else if (perfil === 'parceiro') {
+              this.router.navigate(['/parceiro']);
+            } else {
+              this.router.navigate(['/demandas']);
+            }
+          });
         },
         error: (err) => {
           console.error('Erro ao selecionar unidade', err);

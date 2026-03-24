@@ -2,41 +2,59 @@
   <div class="bg-white p-6 rounded-md w-[600px] shadow-lg">
     <h2 class="text-xl font-semibold mb-4">Cadastrar Entregável</h2>
     <form [formGroup]="etapaForm" (ngSubmit)="handleSubmit()" class="space-y-4">
-      <div class="mb-4">
-        <label class="block text-sm font-medium">Nome do Entregável</label>
-        <input
-          type="text"
-          name="NM_ETAPA"
-          formControlName="NM_ETAPA"
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Nome do Entregável *</label>
+        <input type="text" formControlName="NM_ETAPA"
           class="w-full p-2 border border-gray-300 rounded-md"
-          placeholder="Ex: Levantamento de Requisitos, Documentação Final"
-          required
-        />
-        <p class="text-xs text-gray-500 mt-1">Datas e percentuais serão calculados automaticamente com base nas atividades</p>
-      </div>
-      <div class="mb-4">
-        <label class="block text-sm font-medium">Responsável pelo Entregável</label>
-        <input
-          type="text"
-          name="RESPONSAVEL_ETAPA"
-          formControlName="RESPONSAVEL_ETAPA"
-          class="w-full p-2 border border-gray-300 rounded-md"
-          placeholder="Nome do responsável"
-        />
+          placeholder="Ex: Levantamento de Requisitos, Documentação Final" required />
       </div>
 
-      <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          (click)="closeModal()"
-          class="px-4 py-2 bg-gray-300 rounded-md"
-        >
+      <div>
+        <label class="block text-sm font-medium mb-1">Área Executora *</label>
+        <select formControlName="AreaExecutoraId" class="w-full p-2 border border-gray-300 rounded-md">
+          <option [value]="0" disabled>Selecione...</option>
+          <option *ngFor="let area of areasExecutoras" [value]="area.AreaExecutoraId">
+            {{ area.Nome }}
+          </option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Tipo de Entrega *</label>
+        <select formControlName="TIPO_ENTREGA" class="w-full p-2 border border-gray-300 rounded-md">
+          <option value="Intermediario">Intermediário</option>
+          <option value="Final">Final</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Data de Início *</label>
+          <input type="date" formControlName="DT_INICIO"
+            class="w-full p-2 border border-gray-300 rounded-md" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Data de Fim *</label>
+          <input type="date" formControlName="DT_FIM"
+            class="w-full p-2 border border-gray-300 rounded-md" required />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Observação</label>
+        <textarea formControlName="Descricao" rows="3"
+          class="w-full p-2 border border-gray-300 rounded-md"
+          placeholder="Observação opcional do entregável..."></textarea>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-2">
+        <button type="button" (click)="closeModal()"
+          class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition-colors">
           Cancelar
         </button>
-        <button
-          type="submit"
-          class="px-4 py-2 bg-blue-500 text-white rounded-md"
-        >
+        <button type="submit" [disabled]="etapaForm.invalid"
+          class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           Cadastrar
         </button>
       </div>
