@@ -1,0 +1,48 @@
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+  <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+    <!-- Ícone de espera -->
+    <div class="mb-6 flex justify-center">
+      <div class="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center">
+        <span class="material-icons text-yellow-600 text-6xl">hourglass_empty</span>
+      </div>
+    </div>
+
+    <!-- Título -->
+    <h1 class="text-2xl font-bold text-gray-800 mb-3">
+      Aguarde a Liberação
+    </h1>
+
+    <!-- Mensagem -->
+    <p class="text-gray-600 mb-6 leading-relaxed">
+      Seu acesso está pendente de aprovação pelo administrador do sistema.
+      Você será notificado assim que seu perfil e unidade forem configurados.
+    </p>
+
+    <!-- Informações -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+      <div class="flex items-start gap-3">
+        <span class="material-icons text-blue-600 text-xl mt-0.5">info</span>
+        <div class="text-sm text-gray-700">
+          <p class="font-medium mb-1">O que está pendente?</p>
+          <ul class="list-disc list-inside space-y-1 text-gray-600">
+            <li>Atribuição de perfil de acesso</li>
+            <li>Vinculação à unidade organizacional</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botão de logout -->
+    <button
+      (click)="logout()"
+      class="w-full bg-gray-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center gap-2">
+      <span class="material-icons text-xl">logout</span>
+      Sair do Sistema
+    </button>
+
+    <!-- Footer -->
+    <p class="text-xs text-gray-500 mt-6">
+      Entre em contato com o administrador do sistema caso necessite de acesso urgente.
+    </p>
+  </div>
+</div>

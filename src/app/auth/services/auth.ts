@@ -74,6 +74,26 @@ export class AuthService {
       })
     );
   }
+
+  /**
+   * Verifica se o usuário está completamente configurado (tem perfil e unidade)
+   */
+  isUserFullyConfigured(): Observable<boolean> {
+    return this.getUser().pipe(
+      map((user: UserProfile | null) => {
+        console.log('isUserFullyConfigured - User:', user);
+        if (!user) {
+          console.log('isUserFullyConfigured - No user found');
+          return false;
+        }
+        const hasPerfil = !!user.Perfil && user.Perfil !== 'basico';
+        const hasUnidade = !!user.Unidade;
+        console.log('isUserFullyConfigured - hasPerfil:', hasPerfil, 'hasUnidade:', hasUnidade);
+        console.log('isUserFullyConfigured - Perfil:', user.Perfil, 'Unidade:', user.Unidade);
+        return hasPerfil && hasUnidade;
+      })
+    );
+  }
   getToken(): string | null {
     if (!isPlatformBrowser(this.platformId)) {
       return null;
@@ -131,7 +151,12 @@ export class AuthService {
    */
   getPerfil(): Observable<string | null> {
     return this.getUser().pipe(
-      map((user: UserProfile | null) => user?.Perfil ?? null)
+      map((user: UserProfile | null) => {
+        console.log('getPerfil - User:', user);
+        const perfil = user?.Perfil ?? null;
+        console.log('getPerfil - Returning:', perfil);
+        return perfil;
+      })
     );
   }
 

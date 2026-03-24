@@ -21,11 +21,12 @@ export const authGuard: CanActivateFn = (route, state) => {
 
       return authService.getPerfil().pipe(
         map(perfil => {
-          if (perfil === 'centralit') {
+          // Only redirect if we're not already on the target route
+          if (perfil === 'centralit' && state.url !== '/centralit') {
             router.navigate(['/centralit']);
             return false;
           }
-          if (perfil === 'parceiro') {
+          if (perfil === 'parceiro' && state.url !== '/parceiro') {
             router.navigate(['/parceiro']);
             return false;
           }

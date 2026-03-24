@@ -9,24 +9,31 @@ import { AdminComponent } from './admin/admin.component';
 import { adminGuard } from './auth/guards/admin.guard';
 import { centralitGuard } from './auth/guards/centralit.guard';
 import { parceiroGuard } from './auth/guards/parceiro.guard';
+import { userConfiguredGuard } from './auth/guards/user-configured.guard';
 import { CentralITComponent } from './centralit/centralit.component';
 import { ParceiroComponent } from './parceiro/parceiro.component';
+import { PendingApprovalComponent } from './auth/pending-approval/pending-approval.component';
 
 export const routes: Routes = [
   {
+    path: 'pending-approval',
+    component: PendingApprovalComponent,
+    canActivate: [authGuard]
+  },
+  {
     path: 'admin',
     component: AdminComponent,
-    canActivate: [adminGuard]
+    canActivate: [authGuard, userConfiguredGuard, adminGuard]
   },
   {
     path: 'centralit',
     component: CentralITComponent,
-    canActivate: [centralitGuard]
+    canActivate: [authGuard, userConfiguredGuard, centralitGuard]
   },
   {
     path: 'parceiro',
     component: ParceiroComponent,
-    canActivate: [parceiroGuard]
+    canActivate: [authGuard, userConfiguredGuard, parceiroGuard]
   },
   {
     path: 'selecionar-unidade',
@@ -41,7 +48,7 @@ export const routes: Routes = [
   {
     path: '',
     component: MainLayout,
-    canActivate: [authGuard],
+    canActivate: [authGuard, userConfiguredGuard],
     children: [
       {
         path: 'demandas',
