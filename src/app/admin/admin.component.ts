@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient, HttpClientModule, HttpHeaders } from '@angular/common/http';
 import { SERVICE_API_URL } from '../../api/consts';
 import { AuthService } from '../auth/services/auth';
 import { AreaExecutoraService } from '../area-executora/area-executora.service';
@@ -180,11 +180,16 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  private getAuthHeaders(): HttpHeaders {
+    const token = this.authService.getToken();
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
   // ── Áreas Demandantes ─────────────────────────────────────────────────────
 
   loadDemandantes(): void {
     this.loadingDemandantes = true;
-    this.http.get<AreaDemandante[]>(this.URL_DEMANDANTE).subscribe({
+    this.http.get<AreaDemandante[]>(this.URL_DEMANDANTE, { headers: this.getAuthHeaders() }).subscribe({
       next: (data) => { this.demandantes = data; this.loadingDemandantes = false; },
       error: () => { this.showMessage('Erro ao carregar áreas demandantes', 'error'); this.loadingDemandantes = false; }
     });
@@ -199,7 +204,7 @@ export class AdminComponent implements OnInit {
     this.http.post(this.URL_DEMANDANTE, {
       NM_DEMANDANTE: this.newDemandanteNome.trim(),
       NM_SIGLA: this.newDemandanteSigla.trim()
-    }).subscribe({
+    }, { headers: this.getAuthHeaders() }).subscribe({
       next: () => { this.showMessage('Área demandante cadastrada!', 'success'); this.newDemandanteNome = ''; this.newDemandanteSigla = ''; this.loadDemandantes(); this.loadingDemandante = false; },
       error: () => { this.showMessage('Erro ao cadastrar área demandante', 'error'); this.loadingDemandante = false; }
     });
@@ -207,7 +212,7 @@ export class AdminComponent implements OnInit {
 
   deleteDemandante(id: number): void {
     if (!confirm('Deseja remover esta área demandante?')) return;
-    this.http.delete(`${this.URL_DEMANDANTE}/${id}`).subscribe({
+    this.http.delete(`${this.URL_DEMANDANTE}/${id}`, { headers: this.getAuthHeaders() }).subscribe({
       next: () => { this.showMessage('Área demandante removida!', 'success'); this.loadDemandantes(); },
       error: () => this.showMessage('Erro ao remover área demandante', 'error')
     });
