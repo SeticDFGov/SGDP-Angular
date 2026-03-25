@@ -42,6 +42,15 @@
     </div>
   </div>
 
+  <!-- Mensagem de feedback -->
+  <div *ngIf="message" class="mb-4 px-4 py-3 rounded-lg text-sm font-medium"
+       [class.bg-green-100]="messageType === 'success'"
+       [class.text-green-700]="messageType === 'success'"
+       [class.bg-red-100]="messageType === 'error'"
+       [class.text-red-700]="messageType === 'error'">
+    {{ message }}
+  </div>
+
   <div *ngIf="loading" class="text-center py-12 text-gray-500">
     Carregando entregáveis...
   </div>
@@ -73,6 +82,7 @@
               <th class="px-4 py-3">Tipo</th>
               <th class="px-4 py-3">Início</th>
               <th class="px-4 py-3">Fim</th>
+              <th *ngIf="isGestor" class="px-4 py-3">Observação</th>
               <th class="px-4 py-3 text-center">% Executado</th>
               <th class="px-4 py-3 text-center">Situação</th>
               <th class="px-4 py-3 text-center">Ação</th>
@@ -80,7 +90,7 @@
           </thead>
           <tbody>
             <tr *ngIf="etapas.length === 0">
-              <td colspan="9" class="text-center p-8 text-gray-500">
+              <td [attr.colspan]="isGestor ? 10 : 9" class="text-center p-8 text-gray-500">
                 Esta demanda não contém entregáveis.
               </td>
             </tr>
@@ -103,18 +113,46 @@
               </td>
               <td class="px-4 py-3">{{ formatDate(etapa.DT_INICIO) }}</td>
               <td class="px-4 py-3">{{ formatDate(etapa.DT_FIM) }}</td>
-              <td class="px-4 py-3 text-center font-medium text-gray-700">{{ etapa.PERCENT_EXECUTADO }}%</td>
+
+              <!-- Campo de Observação (apenas para gestor) -->
+              <td *ngIf="isGestor" class="px-4 py-3">
+                <textarea [(ngModel)]="editState[etapa.EtapaProjetoId].observacao"
+                          rows="2"
+                          class="w-full min-w-[250px] px-3 py-2 border-2 border-amber-300 bg-amber-50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-y"
+                          placeholder="Observação importante..."></textarea>
+              </td>
+
+              <!-- Campo de Percentual (editável para gestor, apenas visualização para outros) -->
+              <td class="px-4 py-3 text-center">
+                <select *ngIf="isGestor"
+                        [(ngModel)]="editState[etapa.EtapaProjetoId].percentual"
+                        class="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option *ngFor="let p of percentOptions" [value]="p">{{ p }}%</option>
+                </select>
+                <span *ngIf="!isGestor" class="font-medium text-gray-700">{{ etapa.PERCENT_EXECUTADO }}%</span>
+              </td>
+
               <td class="px-4 py-3 text-center">
                 <span class="px-3 py-1 text-xs font-semibold rounded-full border inline-block" [class]="getSituacaoClass(etapa.SITUACAO)">
                   {{ etapa.SITUACAO }}
                 </span>
               </td>
               <td class="px-4 py-3 text-center">
-                <button (click)="deleteEntregavel(etapa.EtapaProjetoId)"
-                  class="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-full transition-colors"
-                  title="Remover">
-                  <span class="material-icons text-sm">delete</span>
-                </button>
+                <div class="flex items-center justify-center gap-1">
+                  <!-- Botão salvar (apenas para gestor) -->
+                  <button *ngIf="isGestor"
+                          (click)="salvarAtualizacao(etapa.EtapaProjetoId)"
+                          class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                          title="Salvar alterações">
+                    Salvar
+                  </button>
+                  <!-- Botão deletar -->
+                  <button (click)="deleteEntregavel(etapa.EtapaProjetoId)"
+                    class="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-full transition-colors"
+                    title="Remover">
+                    <span class="material-icons text-sm">delete</span>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>

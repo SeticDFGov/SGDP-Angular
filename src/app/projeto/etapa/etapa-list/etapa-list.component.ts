@@ -3,13 +3,14 @@ import { ActivatedRoute } from '@angular/router';
 import { EtapaService } from '../etapa.service';
 import { Etapa, EtapaForm } from '../etapa.model';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { EtapaFormComponent } from '../etapa-form/etapa-form.component';
 import { GanttChartComponent } from '../gantt-chart/gantt-chart.component';
 import { AuthService } from '../../../auth/services/auth';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { SERVICE_API_URL } from '../../../../api/consts';
-import { DemandaDetalhada } from '../../../../api/demanda/interface';
+import { DemandaDetalhada, EntregavelUpdatePercentForm } from '../../../../api/demanda/interface';
 import { DemandaService } from '../../../demanda/service/demanda.service';
 
 @Component({
@@ -17,6 +18,7 @@ import { DemandaService } from '../../../demanda/service/demanda.service';
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     EtapaFormComponent,
     GanttChartComponent
   ],
@@ -30,6 +32,12 @@ export class EtapaListComponent implements OnInit {
   loading = true;
   isModalOpen = false;
   visualizacao: 'lista' | 'gantt' = 'lista';
+
+  editState: { [key: number]: { percentual: number; observacao: string } } = {};
+  percentOptions = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  isGestor = false;
+  message: string | null = null;
+  messageType: 'success' | 'error' = 'success';
 
   canCreateEtapa$: Observable<boolean>;
 
@@ -48,7 +56,17 @@ export class EtapaListComponent implements OnInit {
       this.demandaId = +idParam;
       this.loadDemanda();
       this.loadEtapas();
+      this.checkIfGestor();
     }
+  }
+
+  checkIfGestor(): void {
+    this.authService.getPerfil().subscribe({
+      next: (perfil) => {
+        this.isGestor = perfil === 'gestor' || perfil === 'admin';
+      },
+      error: (err) => console.error('Erro ao verificar perfil:', err)
+    });
   }
 
   loadDemanda(): void {
@@ -63,6 +81,13 @@ export class EtapaListComponent implements OnInit {
     this.etapaService.getAllEtapas(this.demandaId).subscribe({
       next: (data) => {
         this.etapas = data;
+        // Inicializar o estado de edição para cada entregável
+        this.etapas.forEach(e => {
+          this.editState[e.EtapaProjetoId] = {
+            percentual: e.PERCENT_EXECUTADO ?? 0,
+            observacao: e.Descricao ?? ''
+          };
+        });
         this.loading = false;
       },
       error: (err) => {
@@ -115,5 +140,32 @@ export class EtapaListComponent implements OnInit {
       next: () => this.loadEtapas(),
       error: (err) => console.error('Erro ao deletar entregável:', err)
     });
+  }
+
+  salvarAtualizacao(etapaId: number): void {
+    const state = this.editState[etapaId];
+    const updateData: EntregavelUpdatePercentForm = {
+      PERCENT_EXECUTADO: state.percentual,
+      Descricao: state.observacao
+    };
+
+    this.etapaService.updatePercentual(etapaId, updateData).subscribe({
+      next: () => {
+        this.showMessage('Entregável atualizado com sucesso!', 'success');
+        this.loadEtapas();
+      },
+      error: (err) => {
+        console.error('Erro ao atualizar entregável:', err);
+        this.showMessage('Erro ao atualizar entregável.', 'error');
+      }
+    });
+  }
+
+  showMessage(msg: string, type: 'success' | 'error'): void {
+    this.message = msg;
+    this.messageType = type;
+    setTimeout(() => {
+      this.message = null;
+    }, 3000);
   }
 }
