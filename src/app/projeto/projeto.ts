@@ -155,6 +155,17 @@ export class Projeto {
     return pages;
   }
 
+  formatarProcessoSEI(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    let value = input.value.replace(/\D/g, '');
+    if (value.length > 19) value = value.slice(0, 19);
+    value = value.replace(/^(\d{5})(\d)/, '$1-$2');
+    value = value.replace(/^(\d{5})-(\d{8})(\d)/, '$1-$2/$3');
+    value = value.replace(/^(\d{5})-(\d{8})\/(\d{4})(\d)/, '$1-$2/$3-$4');
+    input.value = value;
+    this.newDemanda.NR_PROCESSO_SEI = value;
+  }
+
   carregarOpcoes() {
     this.esteiraService.getEsteira().subscribe(dados => this.listaEsteiras = dados);
     this.demandanteService.getDemandantes().subscribe(dados => this.listaDemandantes = dados);

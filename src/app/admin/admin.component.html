@@ -259,5 +259,87 @@
         </div>
       </div>
     </div>
+
+    <!-- Seção de Áreas Demandantes -->
+    <div class="mt-8 bg-white rounded-lg shadow p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Gerenciar Áreas Demandantes</h2>
+        <button (click)="loadDemandantes()" [disabled]="loadingDemandantes"
+          class="text-sm bg-gray-600 text-white py-1 px-3 rounded hover:bg-gray-700 disabled:opacity-50">
+          {{ loadingDemandantes ? 'Carregando...' : 'Atualizar' }}
+        </button>
+      </div>
+
+      <!-- Formulário de Cadastro -->
+      <form (ngSubmit)="cadastrarDemandante($event)" class="mb-6 flex gap-3">
+        <input type="text" [(ngModel)]="newDemandanteNome" name="newDemandanteNome"
+          class="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Nome (ex: Fundação Hemocentro)" [disabled]="loadingDemandante" />
+        <input type="text" [(ngModel)]="newDemandanteSigla" name="newDemandanteSigla"
+          class="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Sigla" [disabled]="loadingDemandante" />
+        <button type="submit"
+          [disabled]="loadingDemandante || !newDemandanteNome.trim() || !newDemandanteSigla.trim()"
+          class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ loadingDemandante ? 'Cadastrando...' : 'Cadastrar' }}
+        </button>
+      </form>
+
+      <!-- Lista -->
+      <div *ngIf="loadingDemandantes" class="text-center py-4 text-gray-500">Carregando...</div>
+      <div *ngIf="!loadingDemandantes" class="space-y-2">
+        <div *ngIf="demandantes.length === 0" class="text-center py-4 text-gray-500">
+          Nenhuma área demandante cadastrada
+        </div>
+        <div *ngFor="let d of demandantes" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+          <div>
+            <span class="font-medium text-gray-900">{{ d.NM_DEMANDANTE }}</span>
+            <span class="ml-2 text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-0.5 rounded">{{ d.NM_SIGLA }}</span>
+          </div>
+          <button (click)="deleteDemandante(d.AreaDemandanteID)"
+            class="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-700">
+            Remover
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção de Esteiras -->
+    <div class="mt-8 bg-white rounded-lg shadow p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Gerenciar Esteiras</h2>
+        <button (click)="loadEsteiras()" [disabled]="loadingEsteiras"
+          class="text-sm bg-gray-600 text-white py-1 px-3 rounded hover:bg-gray-700 disabled:opacity-50">
+          {{ loadingEsteiras ? 'Carregando...' : 'Atualizar' }}
+        </button>
+      </div>
+
+      <!-- Formulário de Cadastro -->
+      <form (ngSubmit)="cadastrarEsteira($event)" class="mb-6 flex gap-3">
+        <input type="text" [(ngModel)]="newEsteiraNome" name="newEsteiraNome"
+          class="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Nome da esteira (ex: Desenvolvimento de Soluções)" [disabled]="loadingEsteira" />
+        <button type="submit" [disabled]="loadingEsteira || !newEsteiraNome.trim()"
+          class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ loadingEsteira ? 'Cadastrando...' : 'Cadastrar' }}
+        </button>
+      </form>
+
+      <!-- Lista -->
+      <div *ngIf="loadingEsteiras" class="text-center py-4 text-gray-500">Carregando...</div>
+      <div *ngIf="!loadingEsteiras" class="space-y-2">
+        <div *ngIf="esteiras.length === 0" class="text-center py-4 text-gray-500">
+          Nenhuma esteira cadastrada
+        </div>
+        <div *ngFor="let e of esteiras" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+          <span class="font-medium text-gray-900">{{ e.Nome }}</span>
+          <button (click)="deleteEsteira(e.EsteiraId)"
+            class="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-700">
+            Remover
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
