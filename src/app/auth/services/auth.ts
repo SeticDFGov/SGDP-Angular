@@ -1,12 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
-import { AuthRequest, AuthResponse, UserProfile } from '../../../api/auth/interface';
-import { BehaviorSubject, Observable, tap, of } from 'rxjs';
+import { AuthRequest, AuthResponse, UserProfile, RefreshTokenRequest } from '../../../api/auth/interface';
+import { BehaviorSubject, Observable, tap, of, throwError } from 'rxjs';
 import { AUTH_API_URL, SERVICE_API_URL } from '../../../api/consts';
 import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
-import { map } from 'rxjs/operators';
+import { map, catchError, switchMap } from 'rxjs/operators';
 
 export type ResourceType = 'projeto' | 'etapa' | 'entregavel';
 
@@ -30,19 +30,45 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${SERVICE_API_URL}/api/Auth`, credencials).pipe(
       tap(response => {
         localStorage.setItem('token', response.token);
+        localStorage.setItem('refreshToken', response.refreshToken);
         localStorage.setItem('user', JSON.stringify(response.user));
-
       })
     );
-
-
   }
 
   logout() {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     this.userSubject.next(null);
     this.router.navigate(['/auth']);
+  }
+
+  getRefreshToken(): string | null {
+    if (!isPlatformBrowser(this.platformId)) {
+      return null;
+    }
+    return localStorage.getItem('refreshToken');
+  }
+
+  refreshToken(): Observable<AuthResponse> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      return throwError(() => new Error('Refresh token não encontrado'));
+    }
+
+    const request: RefreshTokenRequest = { RefreshToken: refreshToken };
+    return this.http.post<AuthResponse>(`${SERVICE_API_URL}/api/Auth/refresh`, request).pipe(
+      tap(response => {
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('refreshToken', response.refreshToken);
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }),
+      catchError(error => {
+        this.logout();
+        return throwError(() => error);
+      })
+    );
   }
   isAuthenticate(): boolean {
 

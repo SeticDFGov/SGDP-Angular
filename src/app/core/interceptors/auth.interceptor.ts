@@ -1,26 +1,18 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { catchError, throwError, switchMap } from 'rxjs';
 import { AuthService } from '../../auth/services/auth';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 
-/**
- * HTTP Interceptor para:
- * 1. Adicionar token JWT automaticamente em todas requisições
- * 2. Tratar erros globalmente (401, 403, 500, etc)
- * 3. Redirecionar para login em caso de não autorização
- */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const platformId = inject(PLATFORM_ID);
 
-  // Clonar requisição para adicionar headers (se necessário)
   let modifiedReq = req;
 
-  // Adicionar token JWT apenas no browser (não no SSR)
   if (isPlatformBrowser(platformId)) {
     const token = authService.getToken();
 
@@ -33,14 +25,40 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     }
   }
 
-  // Processar requisição e tratar erros
   return next(modifiedReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Apenas processar erros no browser
       if (isPlatformBrowser(platformId)) {
         switch (error.status) {
           case 401:
-            // Não autorizado - token inválido ou expirado
+            if (req.url.includes('/refresh')) {
+              console.error('Refresh token inválido. Redirecionando para login...');
+              authService.logout();
+              router.navigate(['/auth']);
+              return throwError(() => error);
+            }
+
+            const refreshToken = authService.getRefreshToken();
+            if (refreshToken) {
+              console.log('Token expirado. Tentando renovar...');
+              return authService.refreshToken().pipe(
+                switchMap(() => {
+                  const newToken = authService.getToken();
+                  const retryReq = req.clone({
+                    setHeaders: {
+                      Authorization: `Bearer ${newToken}`
+                    }
+                  });
+                  return next(retryReq);
+                }),
+                catchError(refreshError => {
+                  console.error('Falha ao renovar token. Redirecionando para login...');
+                  authService.logout();
+                  router.navigate(['/auth']);
+                  return throwError(() => refreshError);
+                })
+              );
+            }
+
             console.error('Não autorizado. Redirecionando para login...');
             authService.logout();
             router.navigate(['/auth']);
