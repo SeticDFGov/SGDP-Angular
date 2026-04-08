@@ -34,7 +34,6 @@ export class SelecionarUnidadeComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        console.error('Erro ao carregar unidades', err);
         this.loading = false;
       }
     });
@@ -43,7 +42,6 @@ export class SelecionarUnidadeComponent implements OnInit {
   handleSelecionar(unidadeId: string): void {
     const userJson = localStorage.getItem('user');
     if (!userJson) {
-      console.error("Usuário não encontrado no localStorage");
       return;
     }
 
@@ -65,11 +63,9 @@ export class SelecionarUnidadeComponent implements OnInit {
           });
         },
         error: (err) => {
-          console.error('Erro ao selecionar unidade', err);
         }
       });
     } else {
-      console.error("Email do usuário não encontrado ou unidade inválida");
     }
   }
 }

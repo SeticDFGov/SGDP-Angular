@@ -49,7 +49,6 @@ export class EtapaFormComponent implements OnInit {
   ngOnInit(): void {
     this.areaExecutoraService.getAll().subscribe({
       next: (areas) => this.areasExecutoras = areas,
-      error: (err) => console.error('Erro ao carregar áreas executoras:', err)
     });
   }
 

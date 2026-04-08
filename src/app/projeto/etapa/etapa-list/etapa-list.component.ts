@@ -65,14 +65,12 @@ export class EtapaListComponent implements OnInit {
       next: (perfil) => {
         this.isGestor = perfil === 'gestor' || perfil === 'admin';
       },
-      error: (err) => console.error('Erro ao verificar perfil:', err)
     });
   }
 
   loadDemanda(): void {
     this.demandaService.getDemandaById(this.demandaId).subscribe({
       next: (data) => { this.demanda = data; },
-      error: (err) => console.error('Erro ao carregar demanda:', err)
     });
   }
 
@@ -91,7 +89,6 @@ export class EtapaListComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        console.error('Erro ao carregar entregáveis:', err);
         this.loading = false;
       }
     });
@@ -106,7 +103,6 @@ export class EtapaListComponent implements OnInit {
         this.isModalOpen = false;
       },
       error: (err) => {
-        console.error('Erro ao cadastrar entregável:', err);
       }
     });
   }
@@ -138,7 +134,6 @@ export class EtapaListComponent implements OnInit {
     if (!confirm('Deseja remover este entregável?')) return;
     this.etapaService.deleteEntregavel(id).subscribe({
       next: () => this.loadEtapas(),
-      error: (err) => console.error('Erro ao deletar entregável:', err)
     });
   }
 
@@ -155,7 +150,6 @@ export class EtapaListComponent implements OnInit {
         this.loadEtapas();
       },
       error: (err) => {
-        console.error('Erro ao atualizar entregável:', err);
         this.showMessage('Erro ao atualizar entregável.', 'error');
       }
     });

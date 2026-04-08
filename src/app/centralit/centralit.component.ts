@@ -48,7 +48,6 @@ export class CentralITComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        console.error('Erro ao carregar demandas:', err);
         this.loading = false;
       }
     });
@@ -68,10 +67,14 @@ export class CentralITComponent implements OnInit {
   loadEntregaveis(demandaId: number): void {
     if (!this.currentUser?.Unidade?.Nome) return;
 
+    const areaExecutoraNome = this.currentUser.Unidade.Nome;
     this.loadingEntregaveis[demandaId] = true;
-    this.etapaService.getEntregaveisCentralIT(this.currentUser.Unidade.Nome).subscribe({
+
+    this.etapaService.getAllEtapas(demandaId).subscribe({
       next: (data) => {
-        const filteredData = data.filter(e => e.DemandaId === demandaId);
+        const filteredData = data.filter(e =>
+          e.Responsavel?.Nome === areaExecutoraNome
+        );
         this.entregaveisByDemanda[demandaId] = filteredData;
         filteredData.forEach(e => {
           this.editState[e.EtapaProjetoId] = {
@@ -82,7 +85,6 @@ export class CentralITComponent implements OnInit {
         this.loadingEntregaveis[demandaId] = false;
       },
       error: (err) => {
-        console.error('Erro ao carregar entregáveis:', err);
         this.loadingEntregaveis[demandaId] = false;
       }
     });
@@ -108,7 +110,6 @@ export class CentralITComponent implements OnInit {
         this.showMessage('Salvo com sucesso!', 'success');
       },
       error: (err) => {
-        console.error('Erro ao salvar:', err);
         this.showMessage('Erro ao salvar.', 'error');
       }
     });

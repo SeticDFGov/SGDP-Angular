@@ -107,15 +107,11 @@ export class AuthService {
   isUserFullyConfigured(): Observable<boolean> {
     return this.getUser().pipe(
       map((user: UserProfile | null) => {
-        console.log('isUserFullyConfigured - User:', user);
         if (!user) {
-          console.log('isUserFullyConfigured - No user found');
           return false;
         }
         const hasPerfil = !!user.Perfil && user.Perfil !== 'basico';
         const hasUnidade = !!user.Unidade;
-        console.log('isUserFullyConfigured - hasPerfil:', hasPerfil, 'hasUnidade:', hasUnidade);
-        console.log('isUserFullyConfigured - Perfil:', user.Perfil, 'Unidade:', user.Unidade);
         return hasPerfil && hasUnidade;
       })
     );
@@ -139,7 +135,6 @@ export class AuthService {
       const user: UserProfile = JSON.parse(userJson);
       return of(user);
     } catch (error) {
-      console.error('Erro ao decodificar os dados do usuário', error);
       return of(null);
     }
   }
@@ -153,7 +148,6 @@ export class AuthService {
         localStorage.setItem('user', JSON.stringify(user));
         this.userSubject.next(user);
       } catch (error) {
-        console.error('Erro ao atualizar a unidade do usuário', error);
       }
     }
   }
@@ -178,9 +172,7 @@ export class AuthService {
   getPerfil(): Observable<string | null> {
     return this.getUser().pipe(
       map((user: UserProfile | null) => {
-        console.log('getPerfil - User:', user);
         const perfil = user?.Perfil ?? null;
-        console.log('getPerfil - Returning:', perfil);
         return perfil;
       })
     );

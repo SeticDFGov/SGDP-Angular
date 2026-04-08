@@ -13,7 +13,6 @@ export interface Notification {
 
 /**
  * Serviço centralizado de notificações
- * Substitui alerts/console.error espalhados pelo código
  */
 @Injectable({
   providedIn: 'root'

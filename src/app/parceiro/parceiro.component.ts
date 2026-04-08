@@ -42,7 +42,6 @@ export class ParceiroComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        console.error('Erro ao carregar demandas:', err);
         this.loading = false;
       }
     });
@@ -67,7 +66,6 @@ export class ParceiroComponent implements OnInit {
         this.loadingEntregaveis[demandaId] = false;
       },
       error: (err) => {
-        console.error('Erro ao carregar entregáveis:', err);
         this.loadingEntregaveis[demandaId] = false;
       }
     });

@@ -92,7 +92,6 @@ export class Projeto {
         if (this.esteiraSelecionada) this.aplicarFiltroEsteira();
       },
       error: (err) => {
-        console.error('Erro ao carregar demandas:', err);
         this.isLoading = false;
       }
     });
@@ -120,7 +119,6 @@ export class Projeto {
         this.carregarDemandas();
       },
       error: (err) => {
-        console.error('Erro ao salvar demanda', err);
       }
     });
   }
