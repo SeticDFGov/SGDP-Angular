@@ -107,10 +107,10 @@ export class CentralITComponent implements OnInit {
       next: () => {
         entregavel.PERCENT_EXECUTADO = state.percent;
         entregavel.Descricao = state.descricao;
-        this.showMessage('Salvo com sucesso!', 'success');
+        this.showMessage('✓ Entregável atualizado com sucesso!', 'success');
       },
       error: (err) => {
-        this.showMessage('Erro ao salvar.', 'error');
+        this.showMessage('✗ Erro ao salvar entregável. Tente novamente.', 'error');
       }
     });
   }
@@ -125,7 +125,7 @@ export class CentralITComponent implements OnInit {
     setTimeout(() => {
       this.message = '';
       this.messageType = '';
-    }, 3000);
+    }, 5000);
   }
 
   formatDate(dateStr: string | null): string {
