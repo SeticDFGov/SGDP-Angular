@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { AuthRequest, AuthResponse, KeycloakTokenResponse, UserProfile } from '../../../api/auth/interface';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { KEYCLOAK_CLIENT_ID, KEYCLOAK_TOKEN_URL, SERVICE_API_URL } from '../../../api/consts';
+import { SERVICE_API_URL } from '../../../api/consts';
 import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
@@ -28,15 +28,10 @@ export class AuthService {
   constructor(private http: HttpClient, private router: Router, @Inject(PLATFORM_ID) private platformId: Object) { }
 
   login(credencials: AuthRequest): Observable<AuthResponse> {
-    const body = new URLSearchParams();
-    body.set('grant_type', 'password');
-    body.set('client_id', KEYCLOAK_CLIENT_ID);
-    body.set('username', credencials.Email);
-    body.set('password', credencials.Senha);
-
-    const headers = new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' });
-
-    return this.http.post<KeycloakTokenResponse>(KEYCLOAK_TOKEN_URL, body.toString(), { headers }).pipe(
+    return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/Auth/token`, {
+      Email: credencials.Email,
+      Senha: credencials.Senha
+    }).pipe(
       switchMap(keycloakResponse => {
         localStorage.setItem('token', keycloakResponse.access_token);
         localStorage.setItem('refreshToken', keycloakResponse.refresh_token);
@@ -73,14 +68,9 @@ export class AuthService {
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) return throwError(() => new Error('Refresh token não encontrado'));
 
-    const body = new URLSearchParams();
-    body.set('grant_type', 'refresh_token');
-    body.set('client_id', KEYCLOAK_CLIENT_ID);
-    body.set('refresh_token', refreshToken);
-
-    const headers = new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' });
-
-    return this.http.post<KeycloakTokenResponse>(KEYCLOAK_TOKEN_URL, body.toString(), { headers }).pipe(
+    return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/Auth/refresh`, {
+      RefreshToken: refreshToken
+    }).pipe(
       switchMap(response => {
         localStorage.setItem('token', response.access_token);
         localStorage.setItem('refreshToken', response.refresh_token);
