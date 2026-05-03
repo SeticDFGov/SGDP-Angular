@@ -1,8 +1,8 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
-import { AuthRequest, AuthResponse, UserProfile, RefreshTokenRequest } from '../../../api/auth/interface';
-import { BehaviorSubject, Observable, tap, of, throwError } from 'rxjs';
-import { AUTH_API_URL, SERVICE_API_URL } from '../../../api/consts';
+import { AuthRequest, AuthResponse, KeycloakTokenResponse, UserProfile } from '../../../api/auth/interface';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { KEYCLOAK_CLIENT_ID, KEYCLOAK_TOKEN_URL, SERVICE_API_URL } from '../../../api/consts';
 import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
@@ -17,6 +17,7 @@ export const Perfis = {
   Parceiro: 'parceiro',
   Basico: 'basico'
 } as const;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -27,11 +28,35 @@ export class AuthService {
   constructor(private http: HttpClient, private router: Router, @Inject(PLATFORM_ID) private platformId: Object) { }
 
   login(credencials: AuthRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${SERVICE_API_URL}/api/Auth`, credencials).pipe(
-      tap(response => {
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('refreshToken', response.refreshToken);
-        localStorage.setItem('user', JSON.stringify(response.user));
+    const body = new URLSearchParams();
+    body.set('grant_type', 'password');
+    body.set('client_id', KEYCLOAK_CLIENT_ID);
+    body.set('username', credencials.Email);
+    body.set('password', credencials.Senha);
+
+    const headers = new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' });
+
+    return this.http.post<KeycloakTokenResponse>(KEYCLOAK_TOKEN_URL, body.toString(), { headers }).pipe(
+      switchMap(keycloakResponse => {
+        localStorage.setItem('token', keycloakResponse.access_token);
+        localStorage.setItem('refreshToken', keycloakResponse.refresh_token);
+
+        return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
+          headers: new HttpHeaders({ Authorization: `Bearer ${keycloakResponse.access_token}` })
+        }).pipe(
+          map(meResponse => {
+            const user: UserProfile = {
+              Id: meResponse.Id,
+              Nome: meResponse.Nome,
+              Email: meResponse.Email,
+              Perfil: meResponse.Perfil,
+              Unidade: meResponse.Unidade ?? null
+            };
+            localStorage.setItem('user', JSON.stringify(user));
+            this.userSubject.next(user);
+            return { token: keycloakResponse.access_token, user } as AuthResponse;
+          })
+        );
       })
     );
   }
@@ -44,25 +69,36 @@ export class AuthService {
     this.router.navigate(['/auth']);
   }
 
-  getRefreshToken(): string | null {
-    if (!isPlatformBrowser(this.platformId)) {
-      return null;
-    }
-    return localStorage.getItem('refreshToken');
-  }
-
-  refreshToken(): Observable<AuthResponse> {
+  refreshToken(): Observable<void> {
     const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      return throwError(() => new Error('Refresh token não encontrado'));
-    }
+    if (!refreshToken) return throwError(() => new Error('Refresh token não encontrado'));
 
-    const request: RefreshTokenRequest = { RefreshToken: refreshToken };
-    return this.http.post<AuthResponse>(`${SERVICE_API_URL}/api/Auth/refresh`, request).pipe(
-      tap(response => {
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('refreshToken', response.refreshToken);
-        localStorage.setItem('user', JSON.stringify(response.user));
+    const body = new URLSearchParams();
+    body.set('grant_type', 'refresh_token');
+    body.set('client_id', KEYCLOAK_CLIENT_ID);
+    body.set('refresh_token', refreshToken);
+
+    const headers = new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' });
+
+    return this.http.post<KeycloakTokenResponse>(KEYCLOAK_TOKEN_URL, body.toString(), { headers }).pipe(
+      switchMap(response => {
+        localStorage.setItem('token', response.access_token);
+        localStorage.setItem('refreshToken', response.refresh_token);
+        return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
+          headers: new HttpHeaders({ Authorization: `Bearer ${response.access_token}` })
+        }).pipe(
+          map(meResponse => {
+            const user: UserProfile = {
+              Id: meResponse.Id,
+              Nome: meResponse.Nome,
+              Email: meResponse.Email,
+              Perfil: meResponse.Perfil,
+              Unidade: meResponse.Unidade ?? null
+            };
+            localStorage.setItem('user', JSON.stringify(user));
+            this.userSubject.next(user);
+          })
+        );
       }),
       catchError(error => {
         this.logout();
@@ -70,71 +106,54 @@ export class AuthService {
       })
     );
   }
-  isAuthenticate(): boolean {
 
+  isAuthenticate(): boolean {
     const token = this.getToken();
     if (!token) return false;
     if (this.isTokenExpired(token)) {
       localStorage.removeItem('token');
       return false;
-    };
+    }
     return true;
-  };
+  }
 
   isAdmin(): Observable<boolean> {
-
-    return this.getUser().pipe(
-      map((user: UserProfile | null) => {
-        return !!(user && user.Perfil == "admin");
-      })
-    );
+    return this.getUser().pipe(map(user => !!(user && user.Perfil === 'admin')));
   }
+
   isHaveUnidade(): Observable<boolean> {
-    if (!this.isAuthenticate()) {
-      return of(false);
-    }
-
-    return this.getUser().pipe(
-      map((user: UserProfile | null) => {
-        return !!(user && user.Unidade);
-      })
-    );
+    if (!this.isAuthenticate()) return of(false);
+    return this.getUser().pipe(map(user => !!(user && user.Unidade)));
   }
 
-  /**
-   * Verifica se o usuário está completamente configurado (tem perfil e unidade)
-   */
   isUserFullyConfigured(): Observable<boolean> {
     return this.getUser().pipe(
-      map((user: UserProfile | null) => {
-        if (!user) {
-          return false;
-        }
+      map(user => {
+        if (!user) return false;
         const hasPerfil = !!user.Perfil && user.Perfil !== 'basico';
         const hasUnidade = !!user.Unidade;
         return hasPerfil && hasUnidade;
       })
     );
   }
+
   getToken(): string | null {
-    if (!isPlatformBrowser(this.platformId)) {
-      return null;
-    }
+    if (!isPlatformBrowser(this.platformId)) return null;
     return localStorage.getItem('token');
   }
 
+  getRefreshToken(): string | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    return localStorage.getItem('refreshToken');
+  }
+
   getUser(): Observable<UserProfile | null> {
-    if (!isPlatformBrowser(this.platformId)) {
-      return of(null);
-    }
+    if (!isPlatformBrowser(this.platformId)) return of(null);
     const userJson = localStorage.getItem('user');
-    if (!userJson) {
-      return of(null);
-    }
+    if (!userJson) return of(null);
     try {
-      const user: UserProfile = JSON.parse(userJson);
-      return of(user);
-    } catch (error) {
+      return of(JSON.parse(userJson) as UserProfile);
+    } catch {
       return of(null);
     }
   }
@@ -147,124 +166,64 @@ export class AuthService {
         user.Unidade = unidade;
         localStorage.setItem('user', JSON.stringify(user));
         this.userSubject.next(user);
-      } catch (error) {
-      }
+      } catch { }
     }
   }
 
-
   isTokenExpired(token: string): boolean {
     try {
-      const decode: { exp: number } = jwtDecode(token);
-      const expirationDate = new Date(0);
-      expirationDate.setUTCSeconds(decode.exp);
-
-      return expirationDate.valueOf() < new Date().valueOf();
-
-    } catch (error) {
+      const decoded: { exp: number } = jwtDecode(token);
+      return new Date(0).setUTCSeconds(decoded.exp) < new Date().valueOf();
+    } catch {
       return true;
     }
   }
 
-  /**
-   * Retorna o perfil do usuário atual
-   */
   getPerfil(): Observable<string | null> {
-    return this.getUser().pipe(
-      map((user: UserProfile | null) => {
-        const perfil = user?.Perfil ?? null;
-        return perfil;
-      })
-    );
+    return this.getUser().pipe(map(user => user?.Perfil ?? null));
   }
 
-  /**
-   * Verifica se o usuário pode criar o recurso especificado
-   */
   canCreate(resource: ResourceType): Observable<boolean> {
-    return this.getPerfil().pipe(
-      map(perfil => {
-        switch (perfil) {
-          case Perfis.Admin:
-          case Perfis.Gestor:
-            return true;
-          case Perfis.CentralIT:
-            return resource === 'etapa' || resource === 'entregavel';
-          case Perfis.Parceiro:
-            return false;
-          default:
-            return false;
-        }
-      })
-    );
+    return this.getPerfil().pipe(map(perfil => {
+      switch (perfil) {
+        case Perfis.Admin:
+        case Perfis.Gestor: return true;
+        case Perfis.CentralIT: return resource === 'etapa' || resource === 'entregavel';
+        default: return false;
+      }
+    }));
   }
 
-  /**
-   * Verifica se o usuário pode editar o recurso especificado
-   */
   canEdit(resource: ResourceType): Observable<boolean> {
-    return this.getPerfil().pipe(
-      map(perfil => {
-        switch (perfil) {
-          case Perfis.Admin:
-          case Perfis.Gestor:
-            return true;
-          case Perfis.CentralIT:
-            return resource === 'etapa' || resource === 'entregavel';
-          case Perfis.Parceiro:
-            return false;
-          default:
-            return false;
-        }
-      })
-    );
+    return this.getPerfil().pipe(map(perfil => {
+      switch (perfil) {
+        case Perfis.Admin:
+        case Perfis.Gestor: return true;
+        case Perfis.CentralIT: return resource === 'etapa' || resource === 'entregavel';
+        default: return false;
+      }
+    }));
   }
 
-  /**
-   * Verifica se o usuário pode excluir o recurso especificado
-   */
   canDelete(resource: ResourceType): Observable<boolean> {
-    return this.getPerfil().pipe(
-      map(perfil => {
-        switch (perfil) {
-          case Perfis.Admin:
-          case Perfis.Gestor:
-            return true;
-          case Perfis.CentralIT:
-            return false; // CentralIT NUNCA pode excluir
-          case Perfis.Parceiro:
-            return false;
-          default:
-            return false;
-        }
-      })
-    );
+    return this.getPerfil().pipe(map(perfil => {
+      switch (perfil) {
+        case Perfis.Admin:
+        case Perfis.Gestor: return true;
+        default: return false;
+      }
+    }));
   }
 
-  /**
-   * Verifica se o usuário é somente leitura (parceiro)
-   */
   isReadOnly(): Observable<boolean> {
-    return this.getPerfil().pipe(
-      map(perfil => perfil === Perfis.Parceiro)
-    );
+    return this.getPerfil().pipe(map(perfil => perfil === Perfis.Parceiro));
   }
 
-  /**
-   * Verifica se o perfil é CentralIT
-   */
   isCentralIT(): Observable<boolean> {
-    return this.getPerfil().pipe(
-      map(perfil => perfil === Perfis.CentralIT)
-    );
+    return this.getPerfil().pipe(map(perfil => perfil === Perfis.CentralIT));
   }
 
-  /**
-   * Verifica se o perfil é Gestor
-   */
   isGestor(): Observable<boolean> {
-    return this.getPerfil().pipe(
-      map(perfil => perfil === Perfis.Gestor)
-    );
+    return this.getPerfil().pipe(map(perfil => perfil === Perfis.Gestor));
   }
 }

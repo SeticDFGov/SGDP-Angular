@@ -14,7 +14,7 @@ interface User {
   Email: string;
   Perfil: string;
   Unidade: {
-    id: number;
+    id: string;
     Nome: string;
   };
 }
@@ -41,7 +41,6 @@ export class AdminComponent implements OnInit {
   message = '';
   messageType = '';
   selectedUnits: { [key: string]: string } = {};
-  selectedProfiles: { [key: string]: string } = {};
   user: any;
   email: any;
 
@@ -91,30 +90,17 @@ export class AdminComponent implements OnInit {
   // ── Usuários ──────────────────────────────────────────────────────────────
 
   loadUsers(): void {
-    if (!this.user?.Email) return;
     this.loadingUsers = true;
-    this.http.get<User[]>(`${this.URL_AUTH_SERVICE}/auth/usuarios`, {
-      headers: { 'Content-Type': 'application/json', 'adminEmail': this.email }
-    }).subscribe({
+    this.http.get<User[]>(`${this.URL_AUTH_SERVICE}/auth/usuarios`).subscribe({
       next: (data) => { this.users = data; this.loadingUsers = false; },
       error: () => { this.showMessage('Erro ao carregar usuários', 'error'); this.loadingUsers = false; }
-    });
-  }
-
-  alterarPerfil(email: string, novoPerfil: string): void {
-    this.http.put(`${this.URL_AUTH_SERVICE}/auth/alterar-perfil`,
-      { Email: email, Perfil: novoPerfil },
-      { headers: { 'Content-Type': 'application/json', 'adminEmail': this.user.Email } }
-    ).subscribe({
-      next: () => { this.showMessage('Perfil alterado com sucesso!', 'success'); this.loadUsers(); },
-      error: () => this.showMessage('Erro ao alterar perfil', 'error')
     });
   }
 
   alterarUnidade(email: string, unidadeId: string): void {
     this.http.put(`${this.URL_AUTH_SERVICE}/auth/modificar-unidade`,
       { email, unidadeId },
-      { headers: { 'Content-Type': 'application/json', 'adminEmail': this.email }, responseType: 'text' as 'json' }
+      { responseType: 'text' as 'json' }
     ).subscribe({
       next: () => { this.showMessage('Unidade alterada com sucesso!', 'success'); this.loadUsers(); },
       error: (err) => this.showMessage(err.error?.message || 'Erro ao alterar unidade', 'error')
