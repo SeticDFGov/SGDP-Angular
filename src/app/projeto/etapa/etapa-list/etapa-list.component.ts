@@ -78,7 +78,7 @@ export class EtapaListComponent implements OnInit {
     this.loading = true;
     this.etapaService.getAllEtapas(this.demandaId).subscribe({
       next: (data) => {
-        this.etapas = data;
+        this.etapas = data.sort((a, b) => new Date(a.DT_INICIO).getTime() - new Date(b.DT_INICIO).getTime());
         // Inicializar o estado de edição para cada entregável
         this.etapas.forEach(e => {
           this.editState[e.EtapaProjetoId] = {

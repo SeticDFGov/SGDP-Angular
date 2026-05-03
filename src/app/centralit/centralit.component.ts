@@ -72,9 +72,9 @@ export class CentralITComponent implements OnInit {
 
     this.etapaService.getAllEtapas(demandaId).subscribe({
       next: (data) => {
-        const filteredData = data.filter(e =>
-          e.Responsavel?.Nome === areaExecutoraNome
-        );
+        const filteredData = data
+          .filter(e => e.Responsavel?.Nome === areaExecutoraNome)
+          .sort((a, b) => new Date(a.DT_INICIO).getTime() - new Date(b.DT_INICIO).getTime());
         this.entregaveisByDemanda[demandaId] = filteredData;
         filteredData.forEach(e => {
           this.editState[e.EtapaProjetoId] = {

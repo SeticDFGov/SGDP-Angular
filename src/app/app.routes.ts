@@ -13,6 +13,7 @@ import { userConfiguredGuard } from './auth/guards/user-configured.guard';
 import { CentralITComponent } from './centralit/centralit.component';
 import { ParceiroComponent } from './parceiro/parceiro.component';
 import { PendingApprovalComponent } from './auth/pending-approval/pending-approval.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
 
 export const routes: Routes = [
   {
@@ -50,6 +51,10 @@ export const routes: Routes = [
     component: MainLayout,
     canActivate: [authGuard, userConfiguredGuard],
     children: [
+      {
+        path: 'dashboard',
+        component: DashboardComponent
+      },
       {
         path: 'demandas',
         component: Projeto

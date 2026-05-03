@@ -62,7 +62,9 @@ export class ParceiroComponent implements OnInit {
     this.loadingEntregaveis[demandaId] = true;
     this.etapaService.getAllEtapas(demandaId).subscribe({
       next: (data) => {
-        this.entregaveisByDemanda[demandaId] = data;
+        this.entregaveisByDemanda[demandaId] = data.sort(
+          (a, b) => new Date(a.DT_INICIO).getTime() - new Date(b.DT_INICIO).getTime()
+        );
         this.loadingEntregaveis[demandaId] = false;
       },
       error: (err) => {
