@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Unidade } from '../../../api/auth/interface';
-import { AUTH_API_URL, SERVICE_API_URL } from '../../../api/consts';
+import { SERVICE_API_URL } from '../../../api/consts';
 @Injectable({
   providedIn: 'root'
 })

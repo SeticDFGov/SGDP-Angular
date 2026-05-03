@@ -1,6 +1,5 @@
-import { environment } from '../environments/environment.prod';
+import { environment } from '../environments/environment';
 
 export const SERVICE_API_URL: string = environment.serviceApiUrl;
-export const AUTH_API_URL = 'https://subgd-api.df.gov.br/api/auth';
-export const KEYCLOAK_TOKEN_URL = 'http://keycloak.10.233.159.150.nip.io/realms/SISTEMA_GEDE/protocol/openid-connect/token';
-export const KEYCLOAK_CLIENT_ID = 'client-subgd';
+export const KEYCLOAK_TOKEN_URL: string = environment.keycloakUrl;
+export const KEYCLOAK_CLIENT_ID: string = environment.keycloakClientId;

@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth'; // Assumindo que existe
 import { Unidade } from '../../../api/auth/interface';
-import { AUTH_API_URL, SERVICE_API_URL } from '../../../api/consts';
+import { SERVICE_API_URL } from '../../../api/consts';
 import { UnidadeService } from './unidade.service';
 import { firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
