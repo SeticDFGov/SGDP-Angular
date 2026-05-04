@@ -51,8 +51,11 @@
     </thead>
     <tbody>
       <tr *ngFor="let demanda of demandasFiltradas" class="bg-white border-b hover:bg-gray-50 transition-colors">
-        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-          {{ demanda.NM_PROJETO }}
+        <td class="px-6 py-4">
+          <div class="font-medium text-gray-900">{{ demanda.NM_PROJETO }}</div>
+          <div *ngIf="demanda.CriadoPor" class="text-xs text-gray-400 mt-0.5">
+            Criado em {{ demanda.CriadoEm | date:'dd/MM/yyyy HH:mm' }} por {{ demanda.CriadoPor }}
+          </div>
         </td>
         <td class="px-6 py-4">{{ demanda.NR_PROCESSO_SEI ?? '-' }}</td>
         <td class="px-6 py-4">

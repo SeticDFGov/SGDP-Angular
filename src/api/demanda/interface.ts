@@ -24,6 +24,10 @@ export interface Entregavel {
   DT_FIM: string;
   Descricao: string | null;
   SITUACAO: string;
+  CriadoEm: string | null;
+  CriadoPor: string | null;
+  AlteradoEm: string | null;
+  AlteradoPor: string | null;
   DemandaId?: number;
   DemandaNome?: string;
 }
@@ -35,6 +39,8 @@ export interface DemandaDetalhada {
   AREA_DEMANDANTE: AreaDemandante | null;
   Esteira: Esteira | null;
   SITUACAO?: string;
+  CriadoEm: string | null;
+  CriadoPor: string | null;
   Entregaveis?: Entregavel[];
 }
 

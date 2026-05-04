@@ -10,6 +10,10 @@ export interface Etapa {
   DT_FIM: string;
   Descricao: string | null;
   SITUACAO: string;
+  CriadoEm: string | null;
+  CriadoPor: string | null;
+  AlteradoEm: string | null;
+  AlteradoPor: string | null;
 }
 
 export interface EtapaForm {
