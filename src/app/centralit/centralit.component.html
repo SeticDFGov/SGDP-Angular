@@ -14,7 +14,14 @@
   </header>
 
   <div class="p-6 max-w-7xl mx-auto">
-    <h1 class="text-2xl font-bold text-slate-800 mb-6">Minhas Demandas</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-slate-800">Minhas Demandas</h1>
+      <button (click)="abrirModalDemanda()"
+              class="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-700 text-white rounded-lg transition-colors">
+        <span class="material-icons text-sm">add</span>
+        Nova Demanda
+      </button>
+    </div>
 
     <div *ngIf="message"
          class="mb-4 px-4 py-3 rounded-lg text-sm font-medium border-2 shadow-md flex items-center gap-2"
@@ -35,9 +42,8 @@
 
     <div *ngIf="!loading" class="space-y-3">
       <div *ngFor="let demanda of demandas" class="bg-white rounded-xl shadow overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors"
-             (click)="toggleDemanda(demanda.demandaId)">
-          <div class="flex items-center gap-4">
+        <div class="flex items-center justify-between px-5 py-4">
+          <div class="flex items-center gap-4 cursor-pointer flex-1" (click)="toggleDemanda(demanda.demandaId)">
             <span class="material-icons text-slate-400 transition-transform"
                   [class.rotate-90]="isExpanded(demanda.demandaId)">
               chevron_right
@@ -55,11 +61,23 @@
               </p>
             </div>
           </div>
-          <span *ngIf="demanda.SITUACAO"
-                class="px-3 py-1 rounded-full text-xs font-semibold"
-                [class]="getSituacaoClass(demanda.SITUACAO ?? '')">
-            {{ demanda.SITUACAO }}
-          </span>
+          <div class="flex items-center gap-3">
+            <button (click)="abrirModalEdicaoDemanda(demanda); $event.stopPropagation()"
+                    class="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                    title="Editar Demanda">
+              <span class="material-icons text-slate-600 text-lg">edit</span>
+            </button>
+            <button (click)="abrirModalEntregavel(demanda.demandaId); $event.stopPropagation()"
+                    class="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Adicionar Entregável">
+              <span class="material-icons text-blue-600 text-lg">add_circle</span>
+            </button>
+            <span *ngIf="demanda.SITUACAO"
+                  class="px-3 py-1 rounded-full text-xs font-semibold"
+                  [class]="getSituacaoClass(demanda.SITUACAO ?? '')">
+              {{ demanda.SITUACAO }}
+            </span>
+          </div>
         </div>
 
         <div *ngIf="isExpanded(demanda.demandaId)" class="border-t border-slate-100">
@@ -109,10 +127,17 @@
                     </span>
                   </td>
                   <td class="px-4 py-3 text-center">
-                    <button (click)="salvar(e)"
-                            class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
-                      Salvar
-                    </button>
+                    <div class="flex items-center justify-center gap-2">
+                      <button (click)="abrirModalEdicaoEntregavel(e)"
+                              class="p-1.5 hover:bg-slate-100 rounded transition-colors"
+                              title="Editar Nome e Tipo">
+                        <span class="material-icons text-slate-600 text-sm">edit</span>
+                      </button>
+                      <button (click)="salvar(e)"
+                              class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                        Salvar %
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 <tr *ngIf="!entregaveisByDemanda[demanda.demandaId]?.length">
@@ -132,3 +157,138 @@
     </div>
   </div>
 </div>
+
+<!-- Modal Cadastrar/Editar Demanda -->
+<div *ngIf="isModalDemandaOpen || isModalDemandaEdicaoOpen" class="fixed inset-0 z-50 bg-gray-900 bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+    <h2 class="text-xl font-semibold text-gray-800 mb-5">{{ isModalDemandaEdicaoOpen ? 'Editar Demanda' : 'Nova Demanda' }}</h2>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nome da Demanda *</label>
+        <input type="text" [(ngModel)]="newDemanda.NM_PROJETO"
+          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+          placeholder="Ex: Sistema de Controle de Estoque" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nº Processo SEI</label>
+        <input type="text" [(ngModel)]="newDemanda.NR_PROCESSO_SEI"
+          (input)="formatarProcessoSEI($event)"
+          maxlength="22"
+          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+          placeholder="Ex: 00001-00000000/0000-00" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Área Demandante *</label>
+        <select [(ngModel)]="newDemanda.NM_AREA_DEMANDANTE"
+          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900">
+          <option [ngValue]="0" disabled>Selecione...</option>
+          <option *ngFor="let d of listaDemandantes" [ngValue]="d.AreaDemandanteID">
+            {{ d.NM_DEMANDANTE }} ({{ d.NM_SIGLA }})
+          </option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Esteira *</label>
+        <select [(ngModel)]="newDemanda.EsteiraId"
+          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900">
+          <option value="" disabled>Selecione...</option>
+          <option *ngFor="let e of listaEsteiras" [value]="e.EsteiraId">
+            {{ e.Nome }}
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3 mt-6">
+      <button type="button" (click)="fecharModalDemanda(); fecharModalEdicaoDemanda()"
+        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
+        Cancelar
+      </button>
+      <button type="button"
+        (click)="isModalDemandaEdicaoOpen ? salvarEdicaoDemanda() : salvarDemanda()"
+        [disabled]="!newDemanda.NM_PROJETO || !newDemanda.NM_AREA_DEMANDANTE || !newDemanda.EsteiraId"
+        class="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        {{ isModalDemandaEdicaoOpen ? 'Atualizar' : 'Salvar' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cadastrar Entregável -->
+<div *ngIf="isModalEntregavelOpen" class="fixed inset-0 z-50 bg-gray-900 bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+    <h2 class="text-xl font-semibold text-gray-800 mb-5">Novo Entregável</h2>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Entregável *</label>
+        <input type="text" [(ngModel)]="newEntregavel.NM_ETAPA"
+          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+          placeholder="Ex: Desenvolvimento do módulo de relatórios" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Área Executora</label>
+        <input type="text" value="CentraLIT" disabled
+          class="w-full p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" />
+        <p class="text-xs text-gray-500 mt-1">
+          <span class="material-icons text-xs align-middle mr-1">lock</span>
+          Fixado automaticamente em CentraLIT
+        </p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Entrega *</label>
+        <select [(ngModel)]="newEntregavel.TIPO_ENTREGA"
+          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600">
+          <option value="Intermediario">Intermediário</option>
+          <option value="Final">Final</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Data de Início *</label>
+          <input type="date" [(ngModel)]="newEntregavel.DT_INICIO"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Data de Fim *</label>
+          <input type="date" [(ngModel)]="newEntregavel.DT_FIM"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Observação</label>
+        <textarea [(ngModel)]="newEntregavel.Descricao" rows="3"
+          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+          placeholder="Observação opcional..."></textarea>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3 mt-6">
+      <button type="button" (click)="fecharModalEntregavel()"
+        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
+        Cancelar
+      </button>
+      <button type="button" (click)="salvarEntregavel()"
+        [disabled]="!newEntregavel.NM_ETAPA || !newEntregavel.DT_INICIO || !newEntregavel.DT_FIM"
+        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        Cadastrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Entregável (apenas nome e tipo) -->
+<app-etapa-edit-basico
+  [isOpen]="isModalEntregavelEdicaoOpen"
+  [entregavel]="entregavelEmEdicao!"
+  (onClose)="fecharModalEdicaoEntregavel()"
+  (onSubmit)="salvarEdicaoEntregavel($event)">
+</app-etapa-edit-basico>

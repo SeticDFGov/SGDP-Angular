@@ -48,24 +48,13 @@ export class EtapaFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.areaExecutoraService.getAll().subscribe({
-      next: (areas) => {
-        this.areasExecutoras = areas;
-
-        // Buscar CentraLIT e fixar como padrão
-        const centralit = areas.find(a => a.Nome.toLowerCase().includes('centralit'));
-        if (centralit) {
-          this.etapaForm.patchValue({ AreaExecutoraId: centralit.AreaExecutoraId });
-          // Desabilitar o campo para não permitir alteração
-          this.etapaForm.get('AreaExecutoraId')?.disable();
-        }
-      },
+      next: (areas) => this.areasExecutoras = areas,
     });
   }
 
   async handleSubmit(): Promise<void> {
     if (this.etapaForm.invalid) return;
 
-    // getRawValue() pega valores mesmo de campos desabilitados
     const raw = this.etapaForm.getRawValue();
     const payload: EtapaForm = {
       DemandaId: this.demandaId,

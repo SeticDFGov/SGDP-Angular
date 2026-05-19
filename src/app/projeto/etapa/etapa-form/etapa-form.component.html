@@ -12,22 +12,12 @@
 
       <div>
         <label class="block text-sm font-medium mb-1">Área Executora *</label>
-        <div class="relative">
-          <select formControlName="AreaExecutoraId"
-                  class="w-full p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed">
-            <option [value]="0" disabled>Selecione...</option>
-            <option *ngFor="let area of areasExecutoras" [value]="area.AreaExecutoraId">
-              {{ area.Nome }}
-            </option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <span class="material-icons text-gray-400 text-sm">lock</span>
-          </div>
-        </div>
-        <p class="text-xs text-gray-500 mt-1">
-          <span class="material-icons text-xs align-middle mr-1">info</span>
-          Fixado em CentraLIT para esta área
-        </p>
+        <select formControlName="AreaExecutoraId" class="w-full p-2 border border-gray-300 rounded-md">
+          <option [value]="0" disabled>Selecione...</option>
+          <option *ngFor="let area of areasExecutoras" [value]="area.AreaExecutoraId">
+            {{ area.Nome }}
+          </option>
+        </select>
       </div>
 
       <div>
