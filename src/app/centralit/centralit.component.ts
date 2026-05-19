@@ -43,6 +43,7 @@ export class CentralITComponent implements OnInit {
 
   newEntregavel: any = {
     NM_ETAPA: '',
+    AreaExecutoraId: 0,
     TIPO_ENTREGA: 'Intermediario',
     DT_INICIO: '',
     DT_FIM: '',
@@ -247,6 +248,7 @@ export class CentralITComponent implements OnInit {
     this.demandaIdParaEntregavel = demandaId;
     this.newEntregavel = {
       NM_ETAPA: '',
+      AreaExecutoraId: 0,
       TIPO_ENTREGA: 'Intermediario',
       DT_INICIO: '',
       DT_FIM: '',
@@ -263,7 +265,7 @@ export class CentralITComponent implements OnInit {
     const payload: EntregavelCreateForm = {
       DemandaId: this.demandaIdParaEntregavel,
       NM_ETAPA: this.newEntregavel.NM_ETAPA,
-      AreaExecutoraId: this.centraliTId, // Fixado em CentraLIT
+      AreaExecutoraId: this.newEntregavel.AreaExecutoraId,
       TIPO_ENTREGA: this.newEntregavel.TIPO_ENTREGA,
       DT_INICIO: new Date(this.newEntregavel.DT_INICIO).toISOString(),
       DT_FIM: new Date(this.newEntregavel.DT_FIM).toISOString(),
