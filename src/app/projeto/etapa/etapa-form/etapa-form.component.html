@@ -14,8 +14,7 @@
         <label class="block text-sm font-medium mb-1">Área Executora *</label>
         <div class="relative">
           <select formControlName="AreaExecutoraId"
-                  class="w-full p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
-                  disabled>
+                  class="w-full p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed">
             <option [value]="0" disabled>Selecione...</option>
             <option *ngFor="let area of areasExecutoras" [value]="area.AreaExecutoraId">
               {{ area.Nome }}
