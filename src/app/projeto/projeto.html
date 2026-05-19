@@ -76,21 +76,28 @@
           </span>
         </td>
         <td class="px-6 py-4 text-center">
-          <button [routerLink]="['/demandas', demanda.demandaId, 'entregaveis']"
-            class="text-blue-600 hover:text-blue-900 hover:bg-blue-100 p-2 rounded-full transition-colors"
-            title="Ver Entregáveis">
-            <span class="material-icons align-middle">chevron_right</span>
-          </button>
+          <div class="flex items-center justify-center gap-2">
+            <button *ngIf="canCreateProjeto$ | async" (click)="abrirModalEdicao(demanda)"
+              class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-full transition-colors"
+              title="Editar Demanda">
+              <span class="material-icons align-middle text-lg">edit</span>
+            </button>
+            <button [routerLink]="['/demandas', demanda.demandaId, 'entregaveis']"
+              class="text-blue-600 hover:text-blue-900 hover:bg-blue-100 p-2 rounded-full transition-colors"
+              title="Ver Entregáveis">
+              <span class="material-icons align-middle">chevron_right</span>
+            </button>
+          </div>
         </td>
       </tr>
     </tbody>
   </table>
 </div>
 
-<!-- Modal Adicionar Demanda -->
-<div *ngIf="isModalOpen" class="fixed inset-0 z-50 bg-gray-500 bg-opacity-50 flex items-center justify-center">
+<!-- Modal Adicionar/Editar Demanda -->
+<div *ngIf="isModalOpen || isModalEdicaoOpen" class="fixed inset-0 z-50 bg-gray-500 bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-    <h2 class="text-xl font-semibold text-gray-800 mb-5">Nova Demanda</h2>
+    <h2 class="text-xl font-semibold text-gray-800 mb-5">{{ isModalEdicaoOpen ? 'Editar Demanda' : 'Nova Demanda' }}</h2>
 
     <div class="space-y-4">
       <div>
@@ -133,15 +140,15 @@
     </div>
 
     <div class="flex justify-end gap-3 mt-6">
-      <button type="button" (click)="fecharModal()"
+      <button type="button" (click)="fecharModal(); fecharModalEdicao()"
         class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
         Cancelar
       </button>
       <button type="button"
-        (click)="salvarDemanda(newDemanda)"
+        (click)="isModalEdicaoOpen ? salvarEdicaoDemanda(newDemanda) : salvarDemanda(newDemanda)"
         [disabled]="!newDemanda.NM_PROJETO || !newDemanda.NM_AREA_DEMANDANTE || !newDemanda.EsteiraId"
         class="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-        Salvar
+        {{ isModalEdicaoOpen ? 'Atualizar' : 'Salvar' }}
       </button>
     </div>
   </div>

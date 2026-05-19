@@ -1,0 +1,57 @@
+<div *ngIf="isOpen" class="fixed inset-0 z-50 bg-gray-900 bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+    <h2 class="text-xl font-semibold text-gray-800 mb-5">Editar Entregável</h2>
+
+    <form [formGroup]="etapaForm" (ngSubmit)="handleSubmit()">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Entregável *</label>
+          <input
+            type="text"
+            formControlName="NM_ETAPA"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+            placeholder="Ex: Desenvolvimento do módulo de relatórios" />
+          <p *ngIf="etapaForm.get('NM_ETAPA')?.invalid && etapaForm.get('NM_ETAPA')?.touched"
+             class="text-red-500 text-xs mt-1">
+            Nome deve ter no mínimo 3 caracteres
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Entrega *</label>
+          <select
+            formControlName="TIPO_ENTREGA"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900">
+            <option value="Intermediario">Intermediário</option>
+            <option value="Final">Final</option>
+          </select>
+        </div>
+
+        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+          <div class="flex">
+            <span class="material-icons text-yellow-600 text-sm mr-2">info</span>
+            <p class="text-xs text-yellow-800">
+              <strong>Observação:</strong> Apenas o nome e tipo de entrega podem ser editados.
+              Para alterar datas, área executora ou outras informações, entre em contato com o gestor.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <button
+          type="button"
+          (click)="closeModal()"
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          [disabled]="etapaForm.invalid"
+          class="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+          Atualizar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

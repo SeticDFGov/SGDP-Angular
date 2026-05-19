@@ -51,6 +51,13 @@ export interface DemandaForm {
   EsteiraId: string;
 }
 
+export interface DemandaUpdateForm {
+  NM_PROJETO: string;
+  NR_PROCESSO_SEI?: string;
+  NM_AREA_DEMANDANTE: number;
+  EsteiraId: string;
+}
+
 export interface EntregavelCreateForm {
   DemandaId: number;
   NM_ETAPA: string;
@@ -64,6 +71,11 @@ export interface EntregavelCreateForm {
 export interface EntregavelUpdatePercentForm {
   PERCENT_EXECUTADO: number;
   Descricao?: string;
+}
+
+export interface EntregavelUpdateBasicoForm {
+  NM_ETAPA: string;
+  TIPO_ENTREGA: string;
 }
 
 // Pagination interfaces

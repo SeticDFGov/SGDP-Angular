@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
-import { Entregavel, EntregavelCreateForm, EntregavelUpdatePercentForm } from '../../../api/demanda/interface';
+import { Entregavel, EntregavelCreateForm, EntregavelUpdatePercentForm, EntregavelUpdateBasicoForm } from '../../../api/demanda/interface';
 
 @Injectable({
   providedIn: 'root'
@@ -39,6 +39,10 @@ export class EtapaService {
 
   updateItem(id: number, entregavel: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}`, entregavel, { headers: this.getHeaders() });
+  }
+
+  updateEntregavelBasico(id: number, data: EntregavelUpdateBasicoForm): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${id}/basico`, data, { headers: this.getHeaders() });
   }
 
   updatePercentual(id: number, data: EntregavelUpdatePercentForm): Observable<any> {

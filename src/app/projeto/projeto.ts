@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { DemandaDetalhada, DemandaForm, Esteira, PagedResponse } from '../../api/demanda/interface';
+import { DemandaDetalhada, DemandaForm, DemandaUpdateForm, Esteira, PagedResponse } from '../../api/demanda/interface';
 import { AreaDemandante } from '../../api/demanda/interface';
 import { AuthService } from '../auth/services/auth';
 import { UserProfile } from '../../api/auth/interface';
@@ -53,9 +53,11 @@ export class Projeto {
   demandasFiltradas: DemandaDetalhada[] = [];
 
   newDemanda: DemandaForm = { NM_PROJETO: '', NM_AREA_DEMANDANTE: 0, EsteiraId: '' };
+  demandaEmEdicao: DemandaDetalhada | null = null;
 
   termoBusca: string = '';
   isModalOpen = false;
+  isModalEdicaoOpen = false;
   esteiraSelecionada: string = '';
 
   currentPage: number = 1;
@@ -77,6 +79,22 @@ export class Projeto {
     this.isModalOpen = true;
   }
   fecharModal() { this.isModalOpen = false; }
+
+  abrirModalEdicao(demanda: DemandaDetalhada) {
+    this.demandaEmEdicao = demanda;
+    this.newDemanda = {
+      NM_PROJETO: demanda.NM_PROJETO,
+      NR_PROCESSO_SEI: demanda.NR_PROCESSO_SEI ?? '',
+      NM_AREA_DEMANDANTE: demanda.AREA_DEMANDANTE?.AreaDemandanteID ?? 0,
+      EsteiraId: demanda.Esteira?.EsteiraId ?? ''
+    };
+    this.isModalEdicaoOpen = true;
+  }
+
+  fecharModalEdicao() {
+    this.isModalEdicaoOpen = false;
+    this.demandaEmEdicao = null;
+  }
 
   carregarDemandas() {
     this.isLoading = true;
@@ -116,6 +134,19 @@ export class Projeto {
     this.demandaService.createDemanda(request).subscribe({
       next: () => {
         this.fecharModal();
+        this.carregarDemandas();
+      },
+      error: (err) => {
+      }
+    });
+  }
+
+  salvarEdicaoDemanda(request: DemandaUpdateForm) {
+    if (!this.demandaEmEdicao) return;
+
+    this.demandaService.updateDemanda(this.demandaEmEdicao.demandaId, request).subscribe({
+      next: () => {
+        this.fecharModalEdicao();
         this.carregarDemandas();
       },
       error: (err) => {
