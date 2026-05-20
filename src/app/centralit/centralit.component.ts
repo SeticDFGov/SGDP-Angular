@@ -111,15 +111,11 @@ export class CentralITComponent implements OnInit {
   }
 
   loadEntregaveis(demandaId: number): void {
-    if (!this.currentUser?.Unidade?.Nome) return;
-
-    const areaExecutoraNome = this.currentUser.Unidade.Nome;
     this.loadingEntregaveis[demandaId] = true;
 
     this.etapaService.getAllEtapas(demandaId).subscribe({
       next: (data) => {
         const filteredData = data
-          .filter(e => e.Responsavel?.Nome === areaExecutoraNome)
           .sort((a, b) => new Date(a.DT_INICIO).getTime() - new Date(b.DT_INICIO).getTime());
         this.entregaveisByDemanda[demandaId] = filteredData;
         filteredData.forEach(e => {

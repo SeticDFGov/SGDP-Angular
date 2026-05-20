@@ -235,6 +235,13 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  toggleCentralIT(id: string): void {
+    this.http.patch(`${this.URL_ESTEIRA}/${id}/centralit`, {}).subscribe({
+      next: () => { this.showMessage('Configuração atualizada!', 'success'); this.loadEsteiras(); },
+      error: () => this.showMessage('Erro ao atualizar configuração', 'error')
+    });
+  }
+
   // ── Utilitários ───────────────────────────────────────────────────────────
 
   showMessage(msg: string, type: string): void {
