@@ -267,8 +267,9 @@ export class CentralITComponent implements OnInit {
       NM_ETAPA: this.newEntregavel.NM_ETAPA,
       AreaExecutoraId: this.newEntregavel.AreaExecutoraId,
       TIPO_ENTREGA: this.newEntregavel.TIPO_ENTREGA,
-      DT_INICIO: new Date(this.newEntregavel.DT_INICIO).toISOString(),
-      DT_FIM: new Date(this.newEntregavel.DT_FIM).toISOString(),
+      // Envia datas no formato ISO sem conversão para UTC (horário de Brasília)
+      DT_INICIO: this.newEntregavel.DT_INICIO + 'T00:00:00',
+      DT_FIM: this.newEntregavel.DT_FIM + 'T00:00:00',
       Descricao: this.newEntregavel.Descricao
     };
 

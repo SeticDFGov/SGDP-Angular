@@ -61,8 +61,10 @@ export class EtapaFormComponent implements OnInit {
       NM_ETAPA: raw.NM_ETAPA,
       AreaExecutoraId: raw.AreaExecutoraId,
       TIPO_ENTREGA: raw.TIPO_ENTREGA,
-      DT_INICIO: new Date(raw.DT_INICIO).toISOString(),
-      DT_FIM: new Date(raw.DT_FIM).toISOString(),
+      // Envia a data como string no formato ISO sem conversão para UTC
+      // O backend agora espera datas no horário de Brasília
+      DT_INICIO: raw.DT_INICIO + 'T00:00:00',
+      DT_FIM: raw.DT_FIM + 'T00:00:00',
       Descricao: raw.Descricao || undefined
     };
 
