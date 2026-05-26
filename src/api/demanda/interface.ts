@@ -12,6 +12,7 @@ export interface AreaDemandante {
 export interface Esteira {
   EsteiraId: string;
   Nome: string;
+  IsCentralIT: boolean;
 }
 
 export interface Entregavel {
