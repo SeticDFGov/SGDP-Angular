@@ -44,7 +44,7 @@ export class EtapaFormComponent implements OnInit {
     Descricao: new FormControl<string>('', { nonNullable: true })
   });
 
-  constructor(private areaExecutoraService: AreaExecutoraService) {}
+  constructor(private areaExecutoraService: AreaExecutoraService) { }
 
   ngOnInit(): void {
     this.areaExecutoraService.getAll().subscribe({
@@ -61,10 +61,8 @@ export class EtapaFormComponent implements OnInit {
       NM_ETAPA: raw.NM_ETAPA,
       AreaExecutoraId: raw.AreaExecutoraId,
       TIPO_ENTREGA: raw.TIPO_ENTREGA,
-      // Envia a data como string no formato ISO sem conversão para UTC
-      // O backend agora espera datas no horário de Brasília
-      DT_INICIO: raw.DT_INICIO + 'T00:00:00',
-      DT_FIM: raw.DT_FIM + 'T00:00:00',
+      DT_INICIO: raw.DT_INICIO + 'T00:00:00Z',
+      DT_FIM: raw.DT_FIM + 'T00:00:00Z',
       Descricao: raw.Descricao || undefined
     };
 
