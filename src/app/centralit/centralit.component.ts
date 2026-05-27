@@ -116,7 +116,7 @@ export class CentralITComponent implements OnInit {
     this.etapaService.getAllEtapas(demandaId).subscribe({
       next: (data) => {
         const filteredData = data
-          .sort((a, b) => new Date(a.DT_INICIO).getTime() - new Date(b.DT_INICIO).getTime());
+          .sort((a, b) => a.DT_INICIO.localeCompare(b.DT_INICIO));
         this.entregaveisByDemanda[demandaId] = filteredData;
         filteredData.forEach(e => {
           this.editState[e.EtapaProjetoId] = {
@@ -172,7 +172,8 @@ export class CentralITComponent implements OnInit {
 
   formatDate(dateStr: string | null): string {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('pt-BR');
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
   }
 
   getSituacaoClass(situacao: string): string {
@@ -264,8 +265,8 @@ export class CentralITComponent implements OnInit {
       AreaExecutoraId: this.newEntregavel.AreaExecutoraId,
       TIPO_ENTREGA: this.newEntregavel.TIPO_ENTREGA,
       // Envia datas no formato ISO sem conversão para UTC (horário de Brasília)
-      DT_INICIO: this.newEntregavel.DT_INICIO + 'T00:00:00',
-      DT_FIM: this.newEntregavel.DT_FIM + 'T00:00:00',
+      DT_INICIO: this.newEntregavel.DT_INICIO,
+      DT_FIM: this.newEntregavel.DT_FIM,
       Descricao: this.newEntregavel.Descricao
     };
 

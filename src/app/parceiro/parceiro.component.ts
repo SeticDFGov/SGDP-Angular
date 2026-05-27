@@ -63,7 +63,7 @@ export class ParceiroComponent implements OnInit {
     this.etapaService.getAllEtapas(demandaId).subscribe({
       next: (data) => {
         this.entregaveisByDemanda[demandaId] = data.sort(
-          (a, b) => new Date(a.DT_INICIO).getTime() - new Date(b.DT_INICIO).getTime()
+          (a, b) => a.DT_INICIO.localeCompare(b.DT_INICIO)
         );
         this.loadingEntregaveis[demandaId] = false;
       },
@@ -83,7 +83,8 @@ export class ParceiroComponent implements OnInit {
 
   formatDate(dateStr: string | null): string {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('pt-BR');
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
   }
 
   getSituacaoClass(situacao: string): string {

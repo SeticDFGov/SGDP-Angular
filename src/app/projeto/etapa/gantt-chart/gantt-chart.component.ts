@@ -44,8 +44,8 @@ export class GanttChartComponent implements OnInit, OnChanges {
     if (!this.etapas || this.etapas.length === 0) return;
 
     const datas = this.etapas.flatMap(e => [
-      new Date(e.DT_INICIO),
-      new Date(e.DT_FIM)
+      this.parseDate(e.DT_INICIO),
+      this.parseDate(e.DT_FIM)
     ]).filter(d => !isNaN(d.getTime()));
 
     if (datas.length === 0) return;
@@ -59,8 +59,8 @@ export class GanttChartComponent implements OnInit, OnChanges {
     this.gerarMeses();
 
     this.ganttRows = this.etapas.map((etapa, idx) => {
-      const start = new Date(etapa.DT_INICIO);
-      const end = new Date(etapa.DT_FIM);
+      const start = this.parseDate(etapa.DT_INICIO);
+      const end = this.parseDate(etapa.DT_FIM);
       const daysFromStart = Math.ceil((start.getTime() - this.startDate.getTime()) / (1000 * 60 * 60 * 24));
       const duration = Math.max(Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)), 1);
 
@@ -108,6 +108,11 @@ export class GanttChartComponent implements OnInit, OnChanges {
       'Não Iniciado': 'bg-gray-400'
     };
     return classes[status] ?? 'bg-gray-400';
+  }
+
+  parseDate(dateStr: string): Date {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
   }
 
   formatDate(date: Date): string {

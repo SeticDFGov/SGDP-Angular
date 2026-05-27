@@ -61,8 +61,8 @@ export class EtapaFormComponent implements OnInit {
       NM_ETAPA: raw.NM_ETAPA,
       AreaExecutoraId: raw.AreaExecutoraId,
       TIPO_ENTREGA: raw.TIPO_ENTREGA,
-      DT_INICIO: raw.DT_INICIO + 'T00:00:00Z',
-      DT_FIM: raw.DT_FIM + 'T00:00:00Z',
+      DT_INICIO: raw.DT_INICIO,
+      DT_FIM: raw.DT_FIM,
       Descricao: raw.Descricao || undefined
     };
 

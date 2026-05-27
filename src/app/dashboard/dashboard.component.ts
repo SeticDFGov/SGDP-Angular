@@ -74,7 +74,7 @@ export class DashboardComponent implements OnInit {
   get filteredEntregaveis(): Entregavel[] {
     return this.filteredDemandas
       .flatMap(d => (d.Entregaveis ?? []).filter(e => this.matchesEntregavelFilter(e)))
-      .sort((a, b) => new Date(a.DT_INICIO).getTime() - new Date(b.DT_INICIO).getTime());
+      .sort((a, b) => a.DT_INICIO.localeCompare(b.DT_INICIO));
   }
 
   get totalAtrasadoDemanda(): number {
@@ -219,6 +219,7 @@ export class DashboardComponent implements OnInit {
 
   formatDate(d: string): string {
     if (!d) return '-';
-    return new Date(d).toLocaleDateString('pt-BR');
+    const [year, month, day] = d.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
   }
 }

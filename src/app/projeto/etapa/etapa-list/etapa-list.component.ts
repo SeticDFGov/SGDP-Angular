@@ -78,7 +78,7 @@ export class EtapaListComponent implements OnInit {
     this.loading = true;
     this.etapaService.getAllEtapas(this.demandaId).subscribe({
       next: (data) => {
-        this.etapas = data.sort((a, b) => new Date(a.DT_INICIO).getTime() - new Date(b.DT_INICIO).getTime());
+        this.etapas = data.sort((a, b) => a.DT_INICIO.localeCompare(b.DT_INICIO));
         // Inicializar o estado de edição para cada entregável
         this.etapas.forEach(e => {
           this.editState[e.EtapaProjetoId] = {
@@ -117,7 +117,8 @@ export class EtapaListComponent implements OnInit {
 
   formatDate(dateStr: string | null): string {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('pt-BR');
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
   }
 
   getSituacaoClass(situacao: string): string {
