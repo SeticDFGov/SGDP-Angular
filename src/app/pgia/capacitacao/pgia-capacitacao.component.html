@@ -1,0 +1,151 @@
+<div class="max-w-5xl mx-auto">
+
+  <!-- Contexto -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
+    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
+    Aqui o órgão acompanha quem já fez as trilhas de capacitação em IA (arts. 28 e 29).
+  </div>
+
+  <app-pgia-abas ativa="capacitacao"></app-pgia-abas>
+
+  <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <!-- Auditoria externa -->
+  <div *ngIf="!loading && isAuditoria" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-blue-500 bg-blue-50 p-4 text-sm leading-relaxed rounded-r-md">
+      Você está conectado(a) como entidade auditora externa. Esta tela é da equipe do órgão.
+      A sua área são as auditorias técnicas designadas pela SGDI (arts. 25, § 2º e 34).
+      <a routerLink="/pgia/auditoria" class="text-blue-700 font-semibold underline">Ir para as auditorias designadas</a>.
+    </div>
+  </div>
+
+  <!-- Papel de consulta -->
+  <div *ngIf="!loading && !isAuditoria && modoConsulta" class="border-l-4 border-blue-500 bg-blue-50 p-3 text-sm leading-relaxed rounded-r-md mb-5">
+    O seu papel permite apenas consultar estas informações. Quem edita é a equipe do órgão (Responsável de IA).
+  </div>
+
+  <!-- Unidade sem órgão PGIA -->
+  <div *ngIf="!loading && !isAuditoria && !orgao" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+      A sua unidade ainda não está vinculada a um órgão do PGIA.
+      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+      Depois disso, esta página é liberada para preenchimento.
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && !isAuditoria && orgao">
+
+    <!-- Formulário -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5" *ngIf="podeEditar">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">
+        {{ emEdicao ? 'Atualizar registro de capacitação' : 'Registrar capacitação' }}
+      </h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Registre uma trilha por pessoa. O órgão precisa capacitar
+      quem trabalha com IA, na medida da responsabilidade de cada um (art. 28). Estes dados alimentam o relatório semestral.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Pessoa <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="form.AgenteId" name="cap-agente" [disabled]="!!emEdicao"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-600"
+                  [class.border-red-500]="errAgente"
+                  [class.border-gray-300]="!errAgente">
+            <option value="">Escolha uma pessoa do órgão</option>
+            <option *ngFor="let p of pessoas" [value]="p.UserId">{{ p.Nome }}{{ p.Matricula ? ' · mat. ' + p.Matricula : '' }}</option>
+          </select>
+          <p *ngIf="!emEdicao" class="text-xs text-gray-500 mt-1">Não encontrou o nome? Peça à pessoa que acesse o SGDP e escolha a unidade do seu órgão.</p>
+          <p *ngIf="emEdicao" class="text-xs text-gray-500 mt-1">Pessoa e trilha identificam o registro e não mudam. Para outra combinação, cancele e registre uma nova.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Trilha <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="form.Trilha" name="cap-trilha" [disabled]="!!emEdicao"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-600">
+            <option *ngFor="let t of trilhas" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Situação <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="form.Status" name="cap-status"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let s of situacoes" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data de conclusão
+            <span class="text-yellow-700 text-xs font-semibold">ao concluir</span></label>
+          <input type="date" [(ngModel)]="form.DataConclusao" name="cap-conclusao"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errConclusao"
+                 [class.border-gray-300]="!errConclusao">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Prevista no plano de capacitação? <span class="text-red-600">*</span></label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="cap-prevista" [value]="true" [(ngModel)]="form.PrevistaPlanoCapacitacao"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="cap-prevista" [value]="false" [(ngModel)]="form.PrevistaPlanoCapacitacao"> Não</label>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">As trilhas entram nos planos de capacitação até 30/12/2026 (arts. 29, parágrafo único e 35, III).</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Certificado</label>
+          <input type="text" readonly value="anexo disponível em fase futura"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2 flex-wrap">
+        <button (click)="salvar()" [disabled]="salvando"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvando ? 'Salvando...' : (emEdicao ? 'Salvar alterações' : 'Registrar capacitação') }}
+        </button>
+        <button *ngIf="emEdicao" (click)="cancelarEdicao()"
+                class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+          Cancelar edição
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Capacitação da equipe</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Situação de cada pessoa do órgão em cada trilha.</p>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Pessoa</th>
+              <th class="px-3 py-2">Trilha</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2">Conclusão</th>
+              <th class="px-3 py-2">No plano</th>
+              <th class="px-3 py-2" *ngIf="podeEditar"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of capacitacoes" class="border-b border-gray-200">
+              <td class="px-3 py-2">{{ c.AgenteNome }}</td>
+              <td class="px-3 py-2">{{ c.Trilha }}</td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeStatus(c.Status)">{{ c.Status }}</span>
+              </td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ c.DataConclusao ? (c.DataConclusao | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+              <td class="px-3 py-2">{{ c.PrevistaPlanoCapacitacao ? 'sim' : 'não' }}</td>
+              <td class="px-3 py-2 text-right" *ngIf="podeEditar">
+                <button (click)="editar(c)"
+                        class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                  {{ emEdicao?.Id === c.Id ? 'Cancelar' : 'Atualizar' }}
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="capacitacoes.length === 0">
+              <td [attr.colspan]="podeEditar ? 6 : 5" class="px-3 py-4 text-center text-gray-500">Nenhuma capacitação registrada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

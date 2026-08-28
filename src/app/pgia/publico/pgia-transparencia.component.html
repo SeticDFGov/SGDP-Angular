@@ -1,0 +1,209 @@
+<div class="min-h-screen bg-gray-100">
+
+  <!-- Cabeçalho -->
+  <header class="bg-blue-900 text-white">
+    <div class="max-w-4xl mx-auto px-4 py-5 flex items-center gap-4">
+      <div class="bg-white/15 rounded-md px-3 py-2 text-sm font-bold tracking-wide">GDF</div>
+      <div>
+        <h1 class="text-lg font-bold leading-tight">PGIA/DF · Governança de Inteligência Artificial</h1>
+        <p class="text-sm text-blue-100">Sistema de gestão do Decreto nº 48.901, de 3 de julho de 2026</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-6">
+
+    <!-- Contexto -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-5">
+      O Governo do Distrito Federal usa inteligência artificial (IA) em alguns serviços. Se uma decisão que usou
+      IA afetou você, a lei garante os seus direitos: <strong>saber</strong> que a IA foi usada, <strong>entender</strong>
+      como ela chegou ao resultado, <strong>pedir revisão</strong> por um servidor e <strong>contestar</strong> erros ou
+      discriminação (art. 23 do Decreto nº 48.901/2026). Esta página é aberta: você não precisa de senha.
+    </div>
+
+    <!-- Registro Público -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Registro Público de Sistemas de IA</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Estes são os sistemas de inteligência artificial que os órgãos
+      do GDF já publicaram (art. 24). Para cada um, você vê para que ele serve, qual órgão o usa e o nível de risco.</p>
+
+      <div *ngIf="carregando" class="text-sm text-gray-500 py-2">Carregando...</div>
+
+      <div *ngIf="erroRegistro" class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+        Não foi possível carregar a lista agora. Atualize a página em alguns minutos.
+      </div>
+
+      <div *ngIf="!carregando && !erroRegistro && sistemas.length === 0"
+           class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+        Nenhum sistema publicado até o momento.
+      </div>
+
+      <div *ngFor="let s of sistemas" class="border border-gray-200 rounded-lg p-4 mb-3">
+        <div class="flex items-start justify-between gap-3 flex-wrap mb-1">
+          <h3 class="text-sm font-bold text-gray-900">{{ s.Denominacao }}</h3>
+          <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                [ngClass]="badgeClasse(s.ClassificacaoRiscoAtual)">{{ s.ClassificacaoRiscoAtual || 'Sem classificação' }}</span>
+        </div>
+        <p class="text-xs text-gray-500 mb-2">{{ s.OrgaoSigla }} — {{ s.OrgaoNome }}</p>
+        <p class="text-sm text-gray-700 leading-relaxed mb-2">{{ s.Finalidade }}</p>
+
+        <div *ngIf="s.NaturezaDecisoes" class="text-sm text-gray-700 leading-relaxed mb-1">
+          <strong class="text-gray-900">O que o sistema decide:</strong> {{ s.NaturezaDecisoes }}
+        </div>
+        <div *ngIf="s.EfeitosCidadao" class="text-sm text-gray-700 leading-relaxed mb-1">
+          <strong class="text-gray-900">Efeitos para o cidadão:</strong> {{ s.EfeitosCidadao }}
+        </div>
+
+        <div class="flex items-center gap-4 flex-wrap mt-2 text-xs text-gray-500">
+          <a *ngIf="s.AiaResultadoUrl" [href]="s.AiaResultadoUrl" target="_blank" rel="noopener noreferrer"
+             class="text-blue-700 font-semibold underline">Resultado da AIA</a>
+          <span *ngIf="s.IndicadoresPublicados > 0">{{ s.IndicadoresPublicados }} indicador(es) publicado(s)</span>
+          <span *ngIf="s.DataPublicacaoRegistro">publicado em {{ s.DataPublicacaoRegistro | date:'dd/MM/yyyy':'UTC' }}</span>
+        </div>
+      </div>
+
+      <div *ngIf="sistemas.length > 0" class="mt-3 flex items-center gap-3 flex-wrap">
+        <button *ngIf="temMaisPaginas" (click)="carregarMais()" [disabled]="carregandoMais"
+                class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50 disabled:opacity-50">
+          {{ carregandoMais ? 'Carregando...' : 'Carregar mais' }}
+        </button>
+        <span class="text-xs text-gray-500">mostrando {{ sistemas.length }} de {{ totalItens }}</span>
+        <span *ngIf="erroCarregarMais" class="text-xs text-red-700">
+          Não foi possível carregar mais sistemas agora. Tente de novo.
+        </span>
+      </div>
+    </div>
+
+    <!-- Pedido -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Fazer um pedido sobre uma decisão que usou IA</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Preencha os campos abaixo. Não precisa usar termos técnicos: escreva do seu jeito.
+      Ao enviar, você recebe um número de protocolo para acompanhar a resposta.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">1. Qual serviço ou decisão? <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="form.SistemaIaId" name="c-servico"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errSistema" [class.border-gray-300]="!errSistema">
+            <option [ngValue]="null">Escolha na lista de sistemas publicados</option>
+            <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}, {{ s.OrgaoNome }}</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">A lista vem do Registro Público de Sistemas de IA, no Portal da Transparência.</p>
+        </div>
+
+        <div class="md:col-span-2 rounded-md p-2 -m-2" [class.bg-red-50]="errTipo">
+          <label class="block text-sm font-semibold mb-1">2. O que você quer? <span class="text-red-600">*</span></label>
+          <div>
+            <label *ngFor="let t of tipos" class="flex items-start gap-2 text-sm py-1 leading-relaxed">
+              <input type="radio" class="mt-1" name="tp" [value]="t.valor" [(ngModel)]="form.Tipo">
+              <span><strong>{{ t.destaque }}</strong>{{ t.resto }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold mb-1">3. Seu nome <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="form.SolicitanteNome" name="c-nome"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errNome" [class.bg-red-50]="errNome" [class.border-gray-300]="!errNome">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">4. Como responder a você? <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="form.SolicitanteContato" name="c-contato" placeholder="Informe um e-mail ou um telefone"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errContato" [class.bg-red-50]="errContato" [class.border-gray-300]="!errContato">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">5. Qual foi a decisão?
+            <span class="text-yellow-700 text-xs font-semibold">se você pediu revisão ou contestou</span></label>
+          <input type="text" [(ngModel)]="form.ReferenciaDecisao" name="c-decisao"
+                 placeholder="Se souber, informe o número do protocolo ou a data da decisão."
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">6. Conte o que aconteceu <span class="text-red-600">*</span></label>
+          <textarea rows="4" [(ngModel)]="form.Descricao" name="c-desc" placeholder="Escreva com suas palavras."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="errDescricao" [class.bg-red-50]="errDescricao"
+                    [class.border-gray-300]="!errDescricao"></textarea>
+        </div>
+      </div>
+
+      <p class="text-xs text-gray-500 mt-2">Usamos seus dados somente para responder a este pedido, conforme a Lei Geral de Proteção de Dados.</p>
+
+      <div *ngIf="mensagemAviso" class="border-l-4 border-yellow-500 bg-yellow-50 p-3 text-sm leading-relaxed rounded-r-md mt-3">
+        {{ mensagemAviso }}
+      </div>
+
+      <div class="mt-4">
+        <button (click)="enviarPedido()" [disabled]="enviando"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ enviando ? 'Enviando...' : 'Enviar pedido' }}
+        </button>
+      </div>
+
+      <div #caixaProtocolo *ngIf="protocoloGerado"
+           class="border-l-4 border-green-600 bg-green-50 p-4 text-sm leading-relaxed rounded-r-md mt-4">
+        Recebemos o seu pedido. Guarde o número de protocolo
+        <strong>{{ protocoloGerado }}</strong>. A resposta será enviada em linguagem simples para o contato que você
+        informou, por um servidor responsável. Se o pedido for sobre dados pessoais, ele será encaminhado ao
+        Encarregado de Dados do órgão.
+      </div>
+    </div>
+
+    <!-- Acompanhamento -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Acompanhar um pedido</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Já fez um pedido? Informe o número do protocolo para ver a
+      situação e a resposta, quando ela estiver pronta.</p>
+
+      <div class="flex items-end gap-3 flex-wrap">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Número do protocolo</label>
+          <input type="text" [(ngModel)]="protocoloConsulta" name="c-protocolo" placeholder="PGIA-2026-000000-ABCD"
+                 class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <button (click)="consultarProtocolo()" [disabled]="consultando"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ consultando ? 'Consultando...' : 'Consultar' }}
+        </button>
+      </div>
+
+      <div *ngIf="naoEncontrado" class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md mt-4">
+        Não encontramos esse protocolo. Confira o número e tente de novo.
+      </div>
+
+      <div *ngIf="erroConsulta" class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md mt-4">
+        Não foi possível consultar agora. Tente de novo em alguns minutos.
+      </div>
+
+      <div *ngIf="consulta" class="border border-gray-200 rounded-lg p-4 mt-4">
+        <div class="flex items-start justify-between gap-3 flex-wrap mb-2">
+          <div>
+            <h3 class="text-sm font-bold text-gray-900">Protocolo {{ consulta.Protocolo }}</h3>
+            <p class="text-xs text-gray-500">{{ consulta.SistemaDenominacao }} · {{ consulta.OrgaoSigla }}</p>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeStatus(consulta.Status)">{{ consulta.Status }}</span>
+        </div>
+        <div class="text-sm text-gray-700 leading-relaxed">
+          <div><strong class="text-gray-900">Tipo do pedido:</strong> {{ consulta.Tipo }}</div>
+          <div><strong class="text-gray-900">Aberto em:</strong> {{ consulta.DataAbertura | date:'dd/MM/yyyy' }}</div>
+        </div>
+
+        <div *ngIf="consulta.Resposta" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md mt-3">
+          <strong class="text-gray-900">Resposta do órgão</strong>
+          <span *ngIf="consulta.DataResposta" class="text-gray-600"> · {{ consulta.DataResposta | date:'dd/MM/yyyy' }}</span>
+          <p class="mt-1">{{ consulta.Resposta }}</p>
+        </div>
+        <p *ngIf="!consulta.Resposta" class="text-sm text-gray-500 mt-3">
+          O seu pedido ainda está em andamento. Assim que houver resposta, ela aparece aqui e é enviada para o contato que você informou.
+        </p>
+      </div>
+    </div>
+
+    <footer class="text-xs text-gray-500 leading-relaxed py-4">
+      Registro Público de Sistemas de IA da PGIA/DF, instituída pelo Decreto nº 48.901/2026.
+    </footer>
+  </main>
+</div>

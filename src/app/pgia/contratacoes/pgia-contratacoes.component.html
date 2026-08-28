@@ -1,0 +1,462 @@
+<div class="max-w-5xl mx-auto">
+
+  <!-- Contexto -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
+    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
+    Aqui ficam os contratos de IA do órgão e a revisão dos contratos e atos assinados antes do decreto.
+  </div>
+
+  <app-pgia-abas ativa="contratacoes"></app-pgia-abas>
+
+  <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <!-- Auditoria externa -->
+  <div *ngIf="!loading && isAuditoria" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-blue-500 bg-blue-50 p-4 text-sm leading-relaxed rounded-r-md">
+      Você está conectado(a) como entidade auditora externa. Esta tela é da equipe do órgão.
+      A sua área são as auditorias técnicas designadas pela SGDI (arts. 25, § 2º e 34).
+      <a routerLink="/pgia/auditoria" class="text-blue-700 font-semibold underline">Ir para as auditorias designadas</a>.
+    </div>
+  </div>
+
+  <!-- Papel de consulta -->
+  <div *ngIf="!loading && !isAuditoria && modoConsulta" class="border-l-4 border-blue-500 bg-blue-50 p-3 text-sm leading-relaxed rounded-r-md mb-5">
+    O seu papel permite apenas consultar estas informações. Quem edita é a equipe do órgão (Responsável de IA).
+  </div>
+
+  <!-- Unidade sem órgão PGIA -->
+  <div *ngIf="!loading && !isAuditoria && !orgao" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+      A sua unidade ainda não está vinculada a um órgão do PGIA.
+      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+      Depois disso, esta página é liberada para preenchimento.
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && !isAuditoria && orgao">
+
+    <!-- ── 1. Contratos de IA ───────────────────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Contratos de IA</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Um registro por contrato de sistema de IA. Todo contrato precisa
+      da cláusula que veda treinar modelos com dados do GDF (art. 21) e dos requisitos do art. 25, § 1º. Os contratos de
+      Alto Risco exigem ainda auditoria independente e níveis de serviço (art. 25, § 2º).</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" *ngIf="podeEditar">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Número do contrato <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="contratoForm.NumeroContrato" name="ct-numero" placeholder="042/2026"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errNumero" [class.bg-red-50]="errNumero" [class.border-gray-300]="!errNumero">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Processo SEI <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="contratoForm.ProcessoSei" name="ct-sei" placeholder="00060-00077777/2026-10" maxlength="25"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errSei" [class.bg-red-50]="errSei" [class.border-gray-300]="!errSei">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Objeto do contrato <span class="text-red-600">*</span></label>
+          <textarea rows="3" [(ngModel)]="contratoForm.Objeto" name="ct-objeto"
+                    placeholder="O que o órgão está contratando, em linguagem clara."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="errObjeto" [class.bg-red-50]="errObjeto" [class.border-gray-300]="!errObjeto"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Fornecedor <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="contratoForm.FornecedorNome" name="ct-fornecedor"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errFornecedor" [class.bg-red-50]="errFornecedor" [class.border-gray-300]="!errFornecedor">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Situação <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="contratoForm.Status" name="ct-status"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let s of statusContrato" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Sistema do inventário</label>
+          <select [(ngModel)]="contratoForm.SistemaIaId" name="ct-sistema"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Ainda não vinculado</option>
+            <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">O vínculo traz a classificação de risco e define as exigências abaixo.</p>
+        </div>
+        <div *ngIf="classificacaoContrato">
+          <label class="block text-sm font-semibold mb-1">Classificação do sistema</label>
+          <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold mt-2"
+                [ngClass]="badgeClasse(classificacaoContrato)">{{ classificacaoContrato }}</span>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold mb-1">O contrato veda treinar modelos com dados do GDF? <span class="text-red-600">*</span></label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="ct-vedacao" [value]="true" [(ngModel)]="contratoForm.ClausulaVedacaoTreinamento"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="ct-vedacao" [value]="false" [(ngModel)]="contratoForm.ClausulaVedacaoTreinamento"> Não</label>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">A cláusula é obrigatória em todo contrato. Sem ela, é preciso autorização excepcional aprovada pelo CGTIC (art. 21).</p>
+        </div>
+        <div *ngIf="exigeAutorizacaoTreinamento">
+          <label class="block text-sm font-semibold mb-1">Autorização excepcional de treinamento <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="contratoForm.AutorizacaoTreinamentoId" name="ct-autorizacao"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errAutorizacao" [class.border-gray-300]="!errAutorizacao">
+            <option [ngValue]="null">Escolha a autorização</option>
+            <option *ngFor="let a of autorizacoesTreinamento" [ngValue]="a.Id">
+              {{ a.OrgaoSigla }} · {{ a.DataAutorizacao | date:'dd/MM/yyyy':'UTC' }}
+            </option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">A SGDI registra as autorizações. Se a sua não aparece, peça o registro antes de salvar.</p>
+        </div>
+
+        <div *ngIf="exigePdtic">
+          <label class="block text-sm font-semibold mb-1">Previsto no PDTIC do órgão?
+            <span class="text-yellow-700 text-xs font-semibold">exigido para Alto e Moderado Risco (art. 25)</span></label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="ct-pdtic" [value]="true" [(ngModel)]="contratoForm.PrevistoPdtic"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="ct-pdtic" [value]="false" [(ngModel)]="contratoForm.PrevistoPdtic"> Não</label>
+          </div>
+          <div *ngIf="errPdtic" class="text-xs font-semibold text-red-700 mt-1">Responda esta pergunta.</div>
+        </div>
+      </div>
+
+      <!-- Homologação técnica da SGDI: exigida no Risco Moderado -->
+      <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar && exigeHomologacao">
+        <h3 class="text-sm font-semibold text-gray-900 mb-1">Homologação técnica da SGDI (art. 25, II)
+          <span class="text-red-600">*</span></h3>
+        <p class="text-xs text-gray-500 mb-3">O contrato de Risco Moderado só é aceito com a homologação técnica registrada.
+        O arquivo em si entra como anexo em fase futura: por ora, o processo SEI comprova a homologação.</p>
+
+        <div *ngIf="contratoForm.HomologacaoSgdiDocId" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md">
+          Homologação registrada (doc #{{ contratoForm.HomologacaoSgdiDocId }}).
+          <button (click)="limparHomologacao()" class="text-blue-700 font-semibold underline ml-1">Registrar outra</button>
+        </div>
+
+        <div *ngIf="!contratoForm.HomologacaoSgdiDocId">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold mb-1">Processo SEI da homologação</label>
+              <input type="text" [(ngModel)]="homologacaoSei" name="ct-homosei" placeholder="00060-00088888/2026-45" maxlength="25"
+                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [class.border-red-500]="errHomologacao" [class.border-gray-300]="!errHomologacao">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Identificação do documento</label>
+              <input type="text" [(ngModel)]="homologacaoNome" name="ct-homonome" placeholder="Por exemplo: parecer técnico nº 12/2026, SGDI"
+                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [class.border-red-500]="errHomologacao" [class.border-gray-300]="!errHomologacao">
+            </div>
+          </div>
+          <div class="mt-3">
+            <button (click)="registrarHomologacao()" [disabled]="registrandoHomologacao"
+                    class="text-sm text-blue-700 border border-blue-600 rounded px-4 py-2 hover:bg-blue-50 disabled:opacity-50">
+              {{ registrandoHomologacao ? 'Registrando...' : 'Registrar homologação' }}
+            </button>
+          </div>
+          <div *ngIf="errHomologacao" class="text-xs font-semibold text-red-700 mt-2">
+            Registre a homologação técnica antes de salvar o contrato.
+          </div>
+        </div>
+      </div>
+
+      <!-- Requisitos do art. 25, § 1º -->
+      <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar">
+        <h3 class="text-sm font-semibold text-gray-900 mb-1">Requisitos obrigatórios do contrato (art. 25, § 1º)</h3>
+        <p class="text-xs text-gray-500 mb-3">Confirme cada ponto com o fornecedor antes de assinar.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">Explicabilidade documentada pelo fornecedor?</label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req1" [value]="true" [(ngModel)]="contratoForm.ReqExplicabilidade"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req1" [value]="false" [(ngModel)]="contratoForm.ReqExplicabilidade"> Não</label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Acesso do GDF aos registros de operação?</label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req2" [value]="true" [(ngModel)]="contratoForm.ReqAuditabilidade"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req2" [value]="false" [(ngModel)]="contratoForm.ReqAuditabilidade"> Não</label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Dados exportáveis em formato aberto?</label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req3" [value]="true" [(ngModel)]="contratoForm.ReqPortabilidade"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req3" [value]="false" [(ngModel)]="contratoForm.ReqPortabilidade"> Não</label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Sem aprisionamento tecnológico?</label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req4" [value]="true" [(ngModel)]="contratoForm.ReqSemAprisionamento"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req4" [value]="false" [(ngModel)]="contratoForm.ReqSemAprisionamento"> Não</label>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Migração e portabilidade garantidas (art. 25, § 1º, d).</p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Compatível com acessibilidade digital?</label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req5" [value]="true" [(ngModel)]="contratoForm.ReqAcessibilidade"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" name="ct-req5" [value]="false" [(ngModel)]="contratoForm.ReqAcessibilidade"> Não</label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Conforme o Guia de Contratações?</label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" name="ct-guia" [value]="true" [(ngModel)]="contratoForm.ConformeGuiaContratacoes"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" name="ct-guia" [value]="false" [(ngModel)]="contratoForm.ConformeGuiaContratacoes"> Não</label>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Responda depois que o guia for publicado (art. 26, § 1º).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exigências de Alto Risco -->
+      <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar && exigeAltoRisco">
+        <h3 class="text-sm font-semibold text-gray-900 mb-1">Exigências do Alto Risco
+          <span class="text-yellow-700 text-xs font-semibold">exigido para Alto Risco (art. 25, § 2º)</span></h3>
+        <p class="text-xs text-gray-500 mb-3">Os níveis de serviço são números acordados com o fornecedor: use a mesma unidade do contrato.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">Cláusula de auditoria independente? <span class="text-red-600">*</span></label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" name="ct-audind" [value]="true" [(ngModel)]="contratoForm.ClausulaAuditoriaIndependente"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" name="ct-audind" [value]="false" [(ngModel)]="contratoForm.ClausulaAuditoriaIndependente"> Não</label>
+            </div>
+            <div *ngIf="errAuditoriaIndependente" class="text-xs font-semibold text-red-700 mt-1">Responda esta pergunta.</div>
+          </div>
+          <div></div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">SLA de desempenho <span class="text-red-600">*</span></label>
+            <input type="number" [(ngModel)]="contratoForm.SlaDesempenho" name="ct-sla1"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="errSlaDesempenho" [class.border-gray-300]="!errSlaDesempenho">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">SLA de acurácia <span class="text-red-600">*</span></label>
+            <input type="number" [(ngModel)]="contratoForm.SlaAcuracia" name="ct-sla2"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="errSlaAcuracia" [class.border-gray-300]="!errSlaAcuracia">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">SLA de equidade <span class="text-red-600">*</span></label>
+            <input type="number" [(ngModel)]="contratoForm.SlaEquidade" name="ct-sla3"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="errSlaEquidade" [class.border-gray-300]="!errSlaEquidade">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">SLA de disponibilidade <span class="text-red-600">*</span></label>
+            <input type="number" [(ngModel)]="contratoForm.SlaDisponibilidade" name="ct-sla4"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="errSlaDisponibilidade" [class.border-gray-300]="!errSlaDisponibilidade">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Penalidades do SLA <span class="text-red-600">*</span></label>
+            <textarea rows="3" [(ngModel)]="contratoForm.SlaPenalidades" name="ct-penalidades"
+                      placeholder="O que acontece se o fornecedor não cumprir os níveis acordados."
+                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      [class.border-red-500]="errSlaPenalidades" [class.bg-red-50]="errSlaPenalidades"
+                      [class.border-gray-300]="!errSlaPenalidades"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2 flex-wrap" *ngIf="podeEditar">
+        <button (click)="salvarContrato()" [disabled]="salvandoContrato"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoContrato ? 'Salvando...' : (contratoEmEdicao ? 'Salvar alterações' : 'Registrar contrato') }}
+        </button>
+        <button *ngIf="contratoEmEdicao" (click)="cancelarEdicaoContrato()"
+                class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+          Cancelar edição
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Contrato</th>
+              <th class="px-3 py-2">Objeto</th>
+              <th class="px-3 py-2">Fornecedor</th>
+              <th class="px-3 py-2">Sistema</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2" *ngIf="podeEditar"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of contratos" class="border-b border-gray-200 align-top">
+              <td class="px-3 py-2 whitespace-nowrap">{{ c.NumeroContrato }}
+                <div class="text-xs text-gray-500">{{ c.ProcessoSei }}</div>
+              </td>
+              <td class="px-3 py-2 leading-relaxed">{{ c.Objeto }}</td>
+              <td class="px-3 py-2">{{ c.FornecedorNome }}</td>
+              <td class="px-3 py-2">
+                <span *ngIf="c.SistemaDenominacao">{{ c.SistemaDenominacao }}</span>
+                <span *ngIf="!c.SistemaDenominacao" class="text-gray-500">—</span>
+                <div *ngIf="c.SistemaClassificacao" class="mt-1">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeClasse(c.SistemaClassificacao)">{{ c.SistemaClassificacao }}</span>
+                </div>
+              </td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeStatusContrato(c.Status)">{{ c.Status }}</span>
+              </td>
+              <td class="px-3 py-2 text-right" *ngIf="podeEditar">
+                <button (click)="editarContrato(c)"
+                        class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="contratos.length === 0">
+              <td [attr.colspan]="podeEditar ? 6 : 5" class="px-3 py-4 text-center text-gray-500">Nenhum contrato de IA registrado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── 2. Triagem dos instrumentos anteriores ──────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Triagem de contratos e atos anteriores ao decreto</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Contratos, atos normativos e convênios assinados antes do decreto
+      precisam ser revistos e adequados <strong class="text-gray-900">até 30/12/2026</strong> (art. 37). Liste aqui cada
+      instrumento, marque se ele envolve IA e acompanhe a revisão.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" *ngIf="podeEditar">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Tipo de instrumento <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="legadoForm.TipoInstrumento" name="lg-tipo"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let t of tiposInstrumento" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Número</label>
+          <input type="text" [(ngModel)]="legadoForm.Numero" name="lg-numero"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Descrição <span class="text-red-600">*</span></label>
+          <textarea rows="2" [(ngModel)]="legadoForm.Descricao" name="lg-desc"
+                    placeholder="Do que trata o instrumento."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="errLegadoDescricao" [class.bg-red-50]="errLegadoDescricao"
+                    [class.border-gray-300]="!errLegadoDescricao"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Envolve IA? <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="legadoForm.EnvolveIa" name="lg-envolve"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let e of envolveIa" [value]="e">{{ e }}</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Incerto é tratado como sim até a confirmação do fornecedor.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data da triagem</label>
+          <input type="date" [(ngModel)]="legadoForm.DataTriagem" name="lg-dttriagem"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Revisado e adequado? <span class="text-red-600">*</span></label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="lg-revisado" [value]="true" [(ngModel)]="legadoForm.Revisado"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="lg-revisado" [value]="false" [(ngModel)]="legadoForm.Revisado"> Não</label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data da revisão</label>
+          <input type="date" [(ngModel)]="legadoForm.DataRevisao" name="lg-dtrevisao"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div *ngIf="legadoEnvolveIa">
+          <label class="block text-sm font-semibold mb-1">Termo aditivo com cláusula de treinamento?
+            <span class="text-yellow-700 text-xs font-semibold">responda porque envolve IA</span></label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="lg-aditivo" [value]="true" [(ngModel)]="legadoForm.AditivoClausulaTreinamento"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="lg-aditivo" [value]="false" [(ngModel)]="legadoForm.AditivoClausulaTreinamento"> Não</label>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Arts. 21 e 37.</p>
+        </div>
+        <div *ngIf="legadoEnvolveIa">
+          <label class="block text-sm font-semibold mb-1">Data do aditivo</label>
+          <input type="date" [(ngModel)]="legadoForm.DataAditivo" name="lg-dtaditivo"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Processo SEI</label>
+          <input type="text" [(ngModel)]="legadoForm.ProcessoSei" name="lg-sei" maxlength="25"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Sistema do inventário</label>
+          <select [(ngModel)]="legadoForm.SistemaIaId" name="lg-sistema"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Ainda não vinculado</option>
+            <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Se o instrumento envolve IA, o sistema entra no inventário com origem "Instrumento vigente em revisão".</p>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Comprovação</label>
+          <input type="text" readonly value="anexo disponível em fase futura"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2 flex-wrap" *ngIf="podeEditar">
+        <button (click)="salvarLegado()" [disabled]="salvandoLegado"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoLegado ? 'Salvando...' : (legadoEmEdicao ? 'Salvar alterações' : 'Registrar instrumento') }}
+        </button>
+        <button *ngIf="legadoEmEdicao" (click)="cancelarEdicaoLegado()"
+                class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+          Cancelar edição
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Instrumento</th>
+              <th class="px-3 py-2">Descrição</th>
+              <th class="px-3 py-2">Envolve IA</th>
+              <th class="px-3 py-2">Triagem</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2" *ngIf="podeEditar"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of legados" class="border-b border-gray-200 align-top">
+              <td class="px-3 py-2 whitespace-nowrap">{{ l.TipoInstrumento }}
+                <div class="text-xs text-gray-500" *ngIf="l.Numero">{{ l.Numero }}</div>
+              </td>
+              <td class="px-3 py-2 leading-relaxed">{{ l.Descricao }}</td>
+              <td class="px-3 py-2">{{ l.EnvolveIa }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ l.DataTriagem ? (l.DataTriagem | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+              <td class="px-3 py-2">
+                <span *ngIf="pendente(l)" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Pendente de revisão</span>
+                <span *ngIf="!pendente(l) && l.Revisado" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">Revisado</span>
+                <span *ngIf="!pendente(l) && !l.Revisado" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">Não envolve IA</span>
+              </td>
+              <td class="px-3 py-2 text-right" *ngIf="podeEditar">
+                <button (click)="editarLegado(l)"
+                        class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="legados.length === 0">
+              <td [attr.colspan]="podeEditar ? 6 : 5" class="px-3 py-4 text-center text-gray-500">Nenhum instrumento anterior ao decreto registrado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

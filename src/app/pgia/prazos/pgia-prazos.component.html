@@ -1,0 +1,132 @@
+<div class="max-w-5xl mx-auto">
+
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Acompanhe aqui as obrigações com prazo do Decreto nº 48.901/2026 (arts. 26, § 3º, 35 e 37).
+    O sistema mostra a situação de cada uma: no prazo, vencida ou cumprida.
+    Quando o seu órgão concluir uma obrigação, registre a data de cumprimento.
+  </div>
+
+  <app-pgia-abas ativa="prazos"></app-pgia-abas>
+
+  <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <div *ngIf="!loading && isAuditoria" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-blue-500 bg-blue-50 p-4 text-sm leading-relaxed rounded-r-md">
+      Você está conectado(a) como entidade auditora externa. Esta tela é da equipe do órgão.
+      A sua área são as auditorias técnicas designadas pela SGDI (arts. 25, § 2º e 34).
+      <a routerLink="/pgia/auditoria" class="text-blue-700 font-semibold underline">Ir para as auditorias designadas</a>.
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !isAuditoria && !orgao && !veCentrais" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+      A sua unidade ainda não está vinculada a um órgão do PGIA.
+      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+    </div>
+  </div>
+
+  <!-- Prazos do órgão -->
+  <div *ngIf="!loading && orgao" class="bg-white rounded-lg shadow p-6 mb-5">
+    <h2 class="text-base font-semibold text-blue-900 mb-1">Prazos do órgão · {{ orgao.Sigla }}</h2>
+    <p class="text-sm text-gray-600 mb-4 leading-relaxed">Obrigações que o decreto atribui ao seu órgão, com as datas-limite já carregadas.</p>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+            <th class="px-3 py-2">Obrigação</th>
+            <th class="px-3 py-2">Base legal</th>
+            <th class="px-3 py-2">Data-limite</th>
+            <th class="px-3 py-2">Situação</th>
+            <th class="px-3 py-2">Cumprida em</th>
+            <th class="px-3 py-2" *ngIf="podeMarcar"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of prazosOrgao" class="border-b border-gray-200 align-middle">
+            <td class="px-3 py-2">{{ p.Obrigacao }}</td>
+            <td class="px-3 py-2 text-gray-500">{{ p.BaseLegal }}</td>
+            <td class="px-3 py-2">{{ p.DataLimite | date:'dd/MM/yyyy':'UTC' }}</td>
+            <td class="px-3 py-2">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeClasse(p.Situacao)">{{ p.Situacao }}</span>
+            </td>
+            <td class="px-3 py-2">{{ p.CumpridoEm ? (p.CumpridoEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+            <td class="px-3 py-2 text-right" *ngIf="podeMarcar">
+              <button (click)="iniciarMarcacao(p)"
+                      class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                Registrar cumprimento
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="prazosOrgao.length === 0">
+            <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhuma obrigação registrada para o órgão.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Obrigações centrais (SGDI/CGTIC/admin) -->
+  <div *ngIf="!loading && veCentrais" class="bg-white rounded-lg shadow p-6 mb-5">
+    <h2 class="text-base font-semibold text-blue-900 mb-1">Obrigações centrais</h2>
+    <p class="text-sm text-gray-600 mb-4 leading-relaxed">Linhas-modelo instanciadas para cada órgão na adesão e obrigações
+    da própria SGDI (Guia de Contratações de IA e Relatório Anual).</p>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+            <th class="px-3 py-2">Obrigação</th>
+            <th class="px-3 py-2">Base legal</th>
+            <th class="px-3 py-2">Data-limite</th>
+            <th class="px-3 py-2">Situação</th>
+            <th class="px-3 py-2">Cumprida em</th>
+            <th class="px-3 py-2" *ngIf="podeMarcar"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of prazosCentrais" class="border-b border-gray-200">
+            <td class="px-3 py-2">{{ p.Obrigacao }}</td>
+            <td class="px-3 py-2 text-gray-500">{{ p.BaseLegal }}</td>
+            <td class="px-3 py-2">{{ p.DataLimite | date:'dd/MM/yyyy':'UTC' }}</td>
+            <td class="px-3 py-2">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeClasse(p.Situacao)">{{ p.Situacao }}</span>
+            </td>
+            <td class="px-3 py-2">{{ p.CumpridoEm ? (p.CumpridoEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+            <td class="px-3 py-2 text-right" *ngIf="podeMarcar">
+              <button (click)="iniciarMarcacao(p)"
+                      class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                Registrar cumprimento
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="prazosCentrais.length === 0">
+            <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhuma obrigação central registrada.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Registro de cumprimento -->
+  <div *ngIf="prazoEmEdicao" class="bg-white rounded-lg shadow p-6 mb-5 border border-blue-200">
+    <h3 class="text-sm font-semibold text-gray-900 mb-2">Registrar cumprimento</h3>
+    <p class="text-sm text-gray-600 mb-3">{{ prazoEmEdicao.Obrigacao }} ({{ prazoEmEdicao.BaseLegal }})</p>
+    <div class="flex items-end gap-3 flex-wrap">
+      <div>
+        <label class="block text-sm font-semibold mb-1">Data do cumprimento</label>
+        <input type="date" [(ngModel)]="dataCumprimento"
+               class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <p class="text-xs text-gray-500 mt-1">Deixe em branco para desfazer um registro anterior.</p>
+      </div>
+      <button (click)="salvarCumprimento()" [disabled]="salvando"
+              class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+        {{ salvando ? 'Salvando...' : 'Salvar' }}
+      </button>
+      <button (click)="cancelarMarcacao()"
+              class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>

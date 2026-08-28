@@ -1,0 +1,1085 @@
+<div class="max-w-5xl mx-auto">
+
+  <!-- Contexto (texto do mock) -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Você está na área da <strong>SGDI</strong>, órgão central da política (art. 8º). Aqui a equipe técnica da
+    Secretaria homologa plataformas, apura incidentes, publica o Registro Público e acompanha os prazos de
+    todos os órgãos. Para os sistemas da própria SGDI, use o perfil de órgão, como qualquer outra unidade.
+  </div>
+
+  <app-pgia-abas ativa="sgdi"></app-pgia-abas>
+
+  <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <!-- Sem papel da SGDI -->
+  <div *ngIf="!loading && !temAcesso" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+      Esta área é da equipe da SGDI. O seu papel no PGIA não dá acesso a ela.
+      Use as abas acima para voltar às telas do seu órgão.
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && temAcesso">
+
+    <!-- ── 1. Fila de homologação ───────────────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Fila de homologação</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Os órgãos enviam cada sistema do inventário para homologação.
+      Os casos de Baixo e Moderado Risco são avaliados aqui pela SGDI. Os de Alto Risco e Risco Excessivo vão ao CGTIC,
+      que delibera (arts. 7º, IV e 16, § 1º). Abra um item para ver o questionário respondido pelo órgão, com o peso de
+      cada quesito e a pontuação apurada.</p>
+
+      <div *ngIf="carregandoFilas" class="text-sm text-gray-500 py-2">Carregando...</div>
+
+      <!-- Fila da SGDI -->
+      <h3 class="text-sm font-semibold text-gray-900 mb-2">Aguardando avaliação da SGDI</h3>
+      <p *ngIf="!carregandoFilas && filaSgdi.length === 0" class="text-sm text-gray-500 mb-4">
+        Nenhum sistema aguardando avaliação da SGDI.
+      </p>
+
+      <div *ngFor="let item of filaSgdi" class="border border-gray-200 rounded-lg mb-3">
+        <button (click)="alternarDetalhe(item)"
+                class="w-full text-left px-4 py-3 flex items-start justify-between gap-3 hover:bg-gray-50">
+          <span class="text-sm">
+            <strong class="text-gray-900">{{ item.Sistema.Denominacao }}</strong>
+            <span class="text-gray-500"> · {{ item.Sistema.OrgaoSigla }}</span>
+          </span>
+          <span class="flex items-center gap-2 whitespace-nowrap">
+            <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  [ngClass]="badgeClasse(item.Sistema.ClassificacaoRiscoAtual)">{{ item.Sistema.ClassificacaoRiscoAtual || 'Sem classificação' }}</span>
+            <span class="text-xs text-blue-700 font-semibold">{{ expandido === item.Sistema.Id ? 'fechar' : 'abrir' }}</span>
+          </span>
+        </button>
+
+        <div *ngIf="expandido === item.Sistema.Id" class="px-4 pb-4 border-t border-gray-200 pt-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
+            <div><strong class="text-gray-800">Órgão:</strong> {{ item.Sistema.OrgaoSigla }}</div>
+            <div><strong class="text-gray-800">Fase do ciclo de vida:</strong> {{ item.Sistema.StatusCicloVida }}</div>
+            <div><strong class="text-gray-800">Dados tratados:</strong> {{ item.Sistema.EscopoDados }}</div>
+            <div><strong class="text-gray-800">Responsável de IA:</strong> {{ item.Sistema.ResponsavelNome }}</div>
+            <div class="md:col-span-2 leading-relaxed"><strong class="text-gray-800">Finalidade:</strong> {{ item.Sistema.Finalidade }}</div>
+          </div>
+
+          <app-pgia-checklist-aberto [classificacao]="item.ClassificacaoVigente"></app-pgia-checklist-aberto>
+
+          <div class="mt-4">
+            <label class="block text-sm font-semibold mb-1">Parecer da avaliação <span class="text-red-600">*</span></label>
+            <textarea rows="3" [(ngModel)]="parecerAtual" name="parecer"
+                      placeholder="Explique a decisão. O órgão vê este texto no inventário."
+                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      [class.border-red-500]="errParecer"
+                      [class.bg-red-50]="errParecer"
+                      [class.border-gray-300]="!errParecer"></textarea>
+            <div class="mt-3 flex gap-2 flex-wrap">
+              <button (click)="avaliar(item, true)" [disabled]="avaliando"
+                      class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                {{ avaliando ? 'Salvando...' : 'Aprovar' }}
+              </button>
+              <button (click)="avaliar(item, false)" [disabled]="avaliando"
+                      class="bg-white text-red-700 border border-red-600 text-sm font-semibold py-2 px-5 rounded-md hover:bg-red-50 disabled:opacity-50">
+                Vetar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila do CGTIC (somente leitura para a SGDI) -->
+      <h3 class="text-sm font-semibold text-gray-900 mb-2 mt-6">Delegados ao CGTIC</h3>
+      <p class="text-xs text-gray-500 mb-2">Estes casos são deliberados pelo comitê. A SGDI acompanha, mas não decide aqui.</p>
+      <p *ngIf="!carregandoFilas && filaCgtic.length === 0" class="text-sm text-gray-500">
+        Nenhum sistema aguardando deliberação do CGTIC.
+      </p>
+
+      <div *ngFor="let item of filaCgtic" class="border border-gray-200 rounded-lg mb-3">
+        <button (click)="alternarDetalhe(item)"
+                class="w-full text-left px-4 py-3 flex items-start justify-between gap-3 hover:bg-gray-50">
+          <span class="text-sm">
+            <strong class="text-gray-900">{{ item.Sistema.Denominacao }}</strong>
+            <span class="text-gray-500"> · {{ item.Sistema.OrgaoSigla }}</span>
+          </span>
+          <span class="flex items-center gap-2 whitespace-nowrap">
+            <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  [ngClass]="badgeClasse(item.Sistema.ClassificacaoRiscoAtual)">{{ item.Sistema.ClassificacaoRiscoAtual || 'Sem classificação' }}</span>
+            <span class="text-xs text-blue-700 font-semibold">{{ expandido === item.Sistema.Id ? 'fechar' : 'abrir' }}</span>
+          </span>
+        </button>
+
+        <div *ngIf="expandido === item.Sistema.Id" class="px-4 pb-4 border-t border-gray-200 pt-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
+            <div><strong class="text-gray-800">Órgão:</strong> {{ item.Sistema.OrgaoSigla }}</div>
+            <div><strong class="text-gray-800">Fase do ciclo de vida:</strong> {{ item.Sistema.StatusCicloVida }}</div>
+            <div><strong class="text-gray-800">Dados tratados:</strong> {{ item.Sistema.EscopoDados }}</div>
+            <div><strong class="text-gray-800">Responsável de IA:</strong> {{ item.Sistema.ResponsavelNome }}</div>
+            <div class="md:col-span-2 leading-relaxed"><strong class="text-gray-800">Finalidade:</strong> {{ item.Sistema.Finalidade }}</div>
+          </div>
+          <app-pgia-checklist-aberto [classificacao]="item.ClassificacaoVigente"></app-pgia-checklist-aberto>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 2. Plataformas ───────────────────────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Homologação de plataforma pública de IA generativa</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Registre a avaliação da plataforma e o ato próprio de homologação (art. 8º, IV). A relação
+      das plataformas homologadas fica pública e indica quais estão aptas a tratar dados pessoais e informações
+      sigilosas. Enquanto uma plataforma não estiver homologada, os agentes só podem usá-la com dados públicos (arts. 18 e 20).</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Nome da plataforma <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="plataformaForm.Nome" name="pl-nome" placeholder="Por exemplo: assistente de escrita XYZ"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errPlataformaNome"
+                 [class.bg-red-50]="errPlataformaNome"
+                 [class.border-gray-300]="!errPlataformaNome">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Fornecedor</label>
+          <input type="text" [(ngModel)]="plataformaForm.Fornecedor" name="pl-fornecedor"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Situação da homologação <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="plataformaForm.StatusHomologacao" name="pl-status"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let s of statusPlataforma" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Apta a dados pessoais e sigilosos? <span class="text-red-600">*</span></label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="apta" [value]="true" [(ngModel)]="plataformaForm.AptaDadosPessoaisSigilosos"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="apta" [value]="false" [(ngModel)]="plataformaForm.AptaDadosPessoaisSigilosos"> Não</label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Ato de homologação</label>
+          <input type="text" [(ngModel)]="plataformaForm.AtoHomologacao" name="pl-ato" placeholder="Instrução nº ___/2026, SGDI"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data de publicação da relação</label>
+          <input type="date" [(ngModel)]="plataformaForm.PublicadaRelacaoEm" name="pl-dtrel"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Diretrizes de uso</label>
+          <textarea rows="3" [(ngModel)]="plataformaForm.DiretrizesUso" name="pl-diretrizes"
+                    placeholder="Explique o que o agente público pode e não pode fazer nesta plataforma (arts. 18, § 1º e 25, III, b)."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2 flex-wrap">
+        <button (click)="salvarPlataforma()" [disabled]="salvandoPlataforma"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoPlataforma ? 'Salvando...' : (plataformaEmEdicao ? 'Salvar alterações' : 'Publicar na relação de homologadas') }}
+        </button>
+        <button *ngIf="plataformaEmEdicao" (click)="cancelarEdicaoPlataforma()"
+                class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+          Cancelar edição
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Plataforma</th>
+              <th class="px-3 py-2">Fornecedor</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2">Dados pessoais</th>
+              <th class="px-3 py-2">Relação publicada</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of plataformas" class="border-b border-gray-200">
+              <td class="px-3 py-2">{{ p.Nome }}</td>
+              <td class="px-3 py-2 text-gray-500">{{ p.Fornecedor || '—' }}</td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgePlataforma(p.StatusHomologacao)">{{ p.StatusHomologacao }}</span>
+              </td>
+              <td class="px-3 py-2">{{ p.AptaDadosPessoaisSigilosos ? 'apta' : 'não apta' }}</td>
+              <td class="px-3 py-2">{{ p.PublicadaRelacaoEm ? (p.PublicadaRelacaoEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+              <td class="px-3 py-2 text-right">
+                <button (click)="editarPlataforma(p)"
+                        class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="plataformas.length === 0">
+              <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhuma plataforma registrada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Apuração de incidente ────────────────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Apuração de incidente</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Continue aqui o tratamento dos incidentes comunicados pelos órgãos (arts. 8º, IX e 30,
+      parágrafo único). A SGDI apura a gravidade e pode recomendar medidas corretivas ao órgão ou propor ao
+      CGTIC, inclusive a suspensão do sistema.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Incidente em análise</label>
+          <select [(ngModel)]="incidenteSelecionadoId" name="ap-incidente" (ngModelChange)="aoTrocarIncidente()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Escolha o incidente</option>
+            <option *ngFor="let i of incidentes" [ngValue]="i.Id">{{ rotuloIncidente(i) }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Situação da apuração <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="apuracaoForm.StatusApuracao" name="ap-status"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let s of statusApuracao" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+        <div class="md:col-span-2" *ngIf="incidenteSelecionado">
+          <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 text-sm leading-relaxed">
+            <div><strong class="text-gray-800">Sistema:</strong> {{ incidenteSelecionado.SistemaDenominacao }}</div>
+            <div><strong class="text-gray-800">Comunicado em:</strong>
+              {{ incidenteSelecionado.DataComunicacaoSgdi | date:'dd/MM/yyyy HH:mm' }}
+              <span *ngIf="incidenteSelecionado.ProcessoSei"> · SEI {{ incidenteSelecionado.ProcessoSei }}</span>
+            </div>
+            <div class="mt-1"><strong class="text-gray-800">O que aconteceu:</strong> {{ incidenteSelecionado.Descricao }}</div>
+            <div *ngIf="incidenteSelecionado.MedidasAdotadas" class="mt-1">
+              <strong class="text-gray-800">Medidas do órgão:</strong> {{ incidenteSelecionado.MedidasAdotadas }}
+            </div>
+          </div>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Recomendações ao órgão</label>
+          <textarea rows="3" [(ngModel)]="apuracaoForm.RecomendacoesSgdi" name="ap-recomendacoes"
+                    placeholder="Descreva as medidas corretivas recomendadas."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Propor medidas ao CGTIC?</label>
+          <div class="flex gap-4 text-sm mt-1 flex-wrap">
+            <label class="flex items-center gap-2"><input type="radio" name="ap-pcg" [value]="true" [(ngModel)]="apuracaoForm.PropostaCgtic"> Sim, inclusive suspensão</label>
+            <label class="flex items-center gap-2"><input type="radio" name="ap-pcg" [value]="false" [(ngModel)]="apuracaoForm.PropostaCgtic"> Não</label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Encaminhado ao órgão competente em</label>
+          <input type="date" [(ngModel)]="apuracaoForm.EncaminhadoOrgaoCompetenteEm" name="ap-encaminhado"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="text-xs text-gray-500 mt-1">Art. 8º, IX.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">O sistema foi suspenso? <span class="text-red-600">*</span></label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="ap-susp" [value]="true" [(ngModel)]="apuracaoForm.SistemaSuspenso"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="ap-susp" [value]="false" [(ngModel)]="apuracaoForm.SistemaSuspenso"> Não</label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data da suspensão
+            <span *ngIf="apuracaoForm.SistemaSuspenso" class="text-red-600">*</span></label>
+          <input type="date" [(ngModel)]="apuracaoForm.DataSuspensao" name="ap-dtsusp"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errDataSuspensao"
+                 [class.border-gray-300]="!errDataSuspensao">
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button (click)="registrarApuracao()" [disabled]="salvandoApuracao || !incidenteSelecionado"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoApuracao ? 'Salvando...' : 'Registrar apuração' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── 3. Registro Público ──────────────────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Registro Público</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">O Registro Público de Sistemas de IA fica no Portal da Transparência e é montado com os dados
+      do inventário: nome, finalidade, órgão, classificação, decisões, efeitos e indicadores (art. 24). Marque abaixo a
+      publicação de cada sistema.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Órgão</label>
+          <select [(ngModel)]="orgaoSelecionadoId" name="rp-orgao" (ngModelChange)="aoTrocarOrgao()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Escolha o órgão</option>
+            <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Sistema</label>
+          <select [(ngModel)]="sistemaSelecionadoId" name="rp-sistema" (ngModelChange)="aoTrocarSistema()"
+                  [disabled]="!orgaoSelecionadoId || carregandoSistemas"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50">
+            <option [ngValue]="null">{{ carregandoSistemas ? 'Carregando...' : 'Escolha o sistema' }}</option>
+            <option *ngFor="let s of sistemasDoOrgao" [ngValue]="s.Id">{{ s.Denominacao }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Publicado no Registro Público?</label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="pub" [value]="true" [(ngModel)]="registroPublicado"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="pub" [value]="false" [(ngModel)]="registroPublicado"> Ainda não</label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data da publicação</label>
+          <input type="date" [(ngModel)]="registroData" name="rp-data"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2" *ngIf="sistemaSelecionado">
+          <label class="block text-sm font-semibold mb-1">Endereço do resultado da AIA</label>
+          <input type="text" readonly [value]="urlAiaPublicada || 'nenhuma avaliação publicada até agora'"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
+          <p class="text-xs text-gray-500 mt-1">Vem da avaliação de impacto publicada abaixo. Respeitados os segredos comerciais e industriais (art. 24, IV).</p>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button (click)="publicarRegistro()" [disabled]="publicandoRegistro || !sistemaSelecionado"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ publicandoRegistro ? 'Salvando...' : 'Publicar' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── 4. Publicação de AIA ─────────────────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Publicação de AIA</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">A Avaliação de Impacto Algorítmico (AIA) dos sistemas de Alto Risco
+      precisa ser publicada no Portal da Transparência antes de o sistema entrar em funcionamento (art. 16, § 1º).
+      Registre aqui a publicação e vincule a deliberação do CGTIC que aprovou o caso. As avaliações mostradas são as do
+      sistema escolhido no card acima.</p>
+
+      <p *ngIf="!sistemaSelecionado" class="text-sm text-gray-500">Escolha o órgão e o sistema no card acima.</p>
+      <p *ngIf="sistemaSelecionado && carregandoAias" class="text-sm text-gray-500">Carregando...</p>
+      <p *ngIf="sistemaSelecionado && !carregandoAias && aias.length === 0" class="text-sm text-gray-500">
+        Este sistema ainda não tem avaliação de impacto registrada pelo órgão.
+      </p>
+
+      <div *ngFor="let a of aias" class="border border-gray-200 rounded-lg p-4 mb-3">
+        <div class="text-sm mb-3">
+          <strong class="text-gray-900">{{ a.Status }}</strong>
+          <span class="text-gray-500"> · início {{ a.DataInicio | date:'dd/MM/yyyy':'UTC' }}</span>
+          <span class="text-gray-500" *ngIf="a.DataConclusao"> · conclusão {{ a.DataConclusao | date:'dd/MM/yyyy':'UTC' }}</span>
+          <span class="text-gray-500"> · elaborada por {{ a.ElaboradaPorNome }}</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" *ngIf="publicacao[a.Id]">
+          <div>
+            <label class="block text-sm font-semibold mb-1">Publicada no Portal?</label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" [name]="'aiapub-' + a.Id" [value]="true" [(ngModel)]="publicacao[a.Id].PublicadaPortal"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" [name]="'aiapub-' + a.Id" [value]="false" [(ngModel)]="publicacao[a.Id].PublicadaPortal"> Ainda não</label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Data da publicação</label>
+            <input type="date" [(ngModel)]="publicacao[a.Id].DataPublicacaoPortal" [name]="'aiadata-' + a.Id"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Endereço da publicação</label>
+            <input type="text" [(ngModel)]="publicacao[a.Id].UrlPublicacao" [name]="'aiaurl-' + a.Id"
+                   placeholder="URL no Portal da Transparência"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <div class="mt-3 flex flex-wrap items-end gap-3">
+          <button (click)="publicarAia(a)" [disabled]="publicandoAia"
+                  class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+            {{ publicandoAia ? 'Salvando...' : 'Registrar publicação' }}
+          </button>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1">Deliberação do CGTIC</label>
+            <select [(ngModel)]="deliberacaoEscolhida[a.Id]" [name]="'aiadelib-' + a.Id"
+                    class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option [ngValue]="null">Escolha a deliberação</option>
+              <option *ngFor="let d of deliberacoesDoSistema" [ngValue]="d.Id">
+                {{ d.DataDeliberacao | date:'dd/MM/yyyy':'UTC' }} · {{ d.Tipo }} · {{ d.Resultado }}
+              </option>
+            </select>
+          </div>
+          <button (click)="vincularDeliberacao(a)" [disabled]="vinculandoDeliberacao"
+                  class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-2 hover:bg-blue-50 disabled:opacity-50">
+            Vincular
+          </button>
+          <span *ngIf="a.DeliberacaoResultado" class="text-xs text-gray-600">
+            Decisão vinculada: {{ a.DeliberacaoResultado }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Painel de relatórios semestrais ──────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Painel de relatórios semestrais</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Cada órgão presta contas à SGDI a cada semestre (art. 32).
+      O atraso muda a situação para inadimplente, com registro neste painel e comunicação ao controle interno
+      (art. 32, parágrafo único). Escolha o órgão para ver os períodos e atualizar a situação.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Órgão</label>
+          <select [(ngModel)]="orgaoRelatoriosId" name="rs-orgao" (ngModelChange)="aoTrocarOrgaoRelatorios()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Escolha o órgão</option>
+            <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
+          </select>
+        </div>
+      </div>
+
+      <p *ngIf="!orgaoRelatoriosId" class="text-sm text-gray-500 mt-3">Escolha um órgão para ver os relatórios semestrais.</p>
+      <p *ngIf="orgaoRelatoriosId && carregandoRelatorios" class="text-sm text-gray-500 mt-3">Carregando...</p>
+
+      <div *ngIf="orgaoRelatoriosId && !carregandoRelatorios" class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Período</th>
+              <th class="px-3 py-2">Prazo</th>
+              <th class="px-3 py-2">Enviado em</th>
+              <th class="px-3 py-2">Processo SEI</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2">Registrado no painel</th>
+              <th class="px-3 py-2">Controle interno</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let r of relatoriosSemestrais">
+              <tr class="border-b border-gray-200 align-top">
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.Semestre }}º semestre de {{ r.Ano }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.PrazoEnvio | date:'dd/MM/yyyy':'UTC' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.DataEnvio ? (r.DataEnvio | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                <td class="px-3 py-2 text-gray-500">{{ r.ProcessoSei || '—' }}</td>
+                <td class="px-3 py-2">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeRelatorio(r.Status)">{{ r.Status }}</span>
+                </td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.RegistradoPainelEm ? (r.RegistradoPainelEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.ComunicadoControleInternoEm ? (r.ComunicadoControleInternoEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                <td class="px-3 py-2 text-right">
+                  <button (click)="editarSituacaoRelatorio(r)"
+                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                    {{ situacaoEmEdicao?.Id === r.Id ? 'Cancelar' : 'Atualizar' }}
+                  </button>
+                </td>
+              </tr>
+
+              <tr *ngIf="situacaoEmEdicao?.Id === r.Id" class="border-b border-gray-200 bg-gray-50">
+                <td colspan="8" class="px-3 py-4">
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Situação</label>
+                      <select [(ngModel)]="situacaoForm.Status" [name]="'rs-status-' + r.Id"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option *ngFor="let s of statusRelatorio" [value]="s">{{ s }}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Registrado no painel em</label>
+                      <input type="date" [(ngModel)]="situacaoForm.RegistradoPainelEm" [name]="'rs-painel-' + r.Id"
+                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Comunicado ao controle interno em</label>
+                      <input type="date" [(ngModel)]="situacaoForm.ComunicadoControleInternoEm" [name]="'rs-ci-' + r.Id"
+                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <button (click)="salvarSituacaoRelatorio()" [disabled]="salvandoSituacao"
+                            class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                      {{ salvandoSituacao ? 'Salvando...' : 'Salvar situação' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+            <tr *ngIf="relatoriosSemestrais.length === 0">
+              <td colspan="8" class="px-3 py-4 text-center text-gray-500">Nenhum relatório semestral gerado por este órgão.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Relatório Anual de Governança de IA ──────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Relatório Anual de Governança de IA</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">A SGDI publica o relatório do ano
+      <strong class="text-gray-900">até 31 de março</strong> (art. 33) e o CGTIC o aprecia (art. 7º, VII).
+      Registre aqui a publicação, as recomendações e a agenda de inovação para o ano seguinte.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Ano de referência <span class="text-red-600">*</span></label>
+          <input type="number" [(ngModel)]="anualForm.Ano" name="ra-ano"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errAnualAno" [class.border-gray-300]="!errAnualAno">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data da publicação</label>
+          <input type="date" [(ngModel)]="anualForm.DataPublicacao" name="ra-data"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Endereço da publicação</label>
+          <input type="text" [(ngModel)]="anualForm.UrlPublicacao" name="ra-url" placeholder="URL no Portal da Transparência"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Apreciado pelo CGTIC em</label>
+          <input type="date" [(ngModel)]="anualForm.ApreciadoCgticEm" name="ra-cgtic"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Recomendações</label>
+          <textarea rows="3" [(ngModel)]="anualForm.Recomendacoes" name="ra-recomendacoes"
+                    placeholder="O que o relatório recomenda aos órgãos para o próximo ciclo."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Agenda de inovação do exercício seguinte</label>
+          <textarea rows="3" [(ngModel)]="anualForm.AgendaInovacao" name="ra-agenda"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Arquivo do relatório</label>
+          <input type="text" readonly value="anexo disponível em fase futura"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2 flex-wrap">
+        <button (click)="salvarAnual()" [disabled]="salvandoAnual"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoAnual ? 'Salvando...' : (anualEmEdicao ? 'Salvar alterações' : 'Registrar relatório anual') }}
+        </button>
+        <button *ngIf="anualEmEdicao" (click)="cancelarEdicaoAnual()"
+                class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+          Cancelar edição
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Ano</th>
+              <th class="px-3 py-2">Publicado em</th>
+              <th class="px-3 py-2">Endereço</th>
+              <th class="px-3 py-2">Apreciado pelo CGTIC</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of relatoriosAnuais" class="border-b border-gray-200">
+              <td class="px-3 py-2">{{ r.Ano }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ r.DataPublicacao ? (r.DataPublicacao | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+              <td class="px-3 py-2 text-gray-500">{{ r.UrlPublicacao || '—' }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ r.ApreciadoCgticEm ? (r.ApreciadoCgticEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+              <td class="px-3 py-2 text-right">
+                <button (click)="editarAnual(r)"
+                        class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="relatoriosAnuais.length === 0">
+              <td colspan="5" class="px-3 py-4 text-center text-gray-500">Nenhum relatório anual registrado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Auditorias técnicas ──────────────────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Auditorias técnicas</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Os sistemas de Alto Risco passam por auditoria técnica, na forma
+      e na periodicidade que o CGTIC definir (art. 34). Designe a entidade auditora e o usuário dela que vai entregar o
+      parecer. Depois do encerramento, publique o resultado no Portal da Transparência.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Sistema auditado <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="auditoriaForm.SistemaIaId" name="au-sistema"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errAuditoriaSistema" [class.border-gray-300]="!errAuditoriaSistema">
+            <option [ngValue]="null">Escolha o sistema</option>
+            <option *ngFor="let s of todosSistemas" [ngValue]="s.Id">{{ s.Denominacao }} · {{ s.OrgaoSigla }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Tipo <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="auditoriaForm.Tipo" name="au-tipoaud"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let t of tiposAuditoria" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Entidade auditora <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="auditoriaForm.EntidadeAuditora" name="au-entidade" placeholder="Por exemplo: Instituto Auditor Ltda."
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errAuditoriaEntidade" [class.bg-red-50]="errAuditoriaEntidade"
+                 [class.border-gray-300]="!errAuditoriaEntidade">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Usuário da entidade auditora</label>
+          <select [(ngModel)]="auditoriaForm.AuditorUserId" name="au-auditor"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Escolher depois</option>
+            <option *ngFor="let a of auditores" [value]="a.UserId">{{ a.Nome }} · {{ a.Email }}</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">É quem vê a auditoria na área dela e entrega o parecer.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Externa ao fornecedor? <span class="text-red-600">*</span></label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="au-externa" [value]="true" [(ngModel)]="auditoriaForm.ExternaFornecedor"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="au-externa" [value]="false" [(ngModel)]="auditoriaForm.ExternaFornecedor"> Não</label>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">O decreto exige que a entidade auditora seja externa ao fornecedor (art. 25, § 2º).</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Apoio da FAPDF?</label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="au-fapdf" [value]="true" [(ngModel)]="auditoriaForm.ApoioFapdf"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="au-fapdf" [value]="false" [(ngModel)]="auditoriaForm.ApoioFapdf"> Não</label>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">A FAPDF pode dar suporte técnico-científico (art. 12, I).</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Início dos trabalhos <span class="text-red-600">*</span></label>
+          <input type="date" [(ngModel)]="auditoriaForm.DataInicio" name="au-inicio"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errAuditoriaInicio" [class.border-gray-300]="!errAuditoriaInicio">
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button (click)="criarAuditoria()" [disabled]="salvandoAuditoria"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoAuditoria ? 'Salvando...' : 'Designar auditoria' }}
+        </button>
+      </div>
+
+      <div class="mt-5">
+        <h3 class="text-sm font-semibold text-gray-900 mb-2">Auditorias designadas</h3>
+        <p *ngIf="auditorias.length === 0" class="text-sm text-gray-500">Nenhuma auditoria técnica registrada.</p>
+
+        <div *ngFor="let a of auditorias" class="border border-gray-200 rounded-lg p-4 mb-3">
+          <div class="text-sm mb-3 leading-relaxed">
+            <strong class="text-gray-900">{{ a.SistemaDenominacao }}</strong>
+            <span class="text-gray-500"> · {{ a.OrgaoSigla }} · {{ a.Tipo }}</span><br>
+            <span class="text-gray-600">{{ a.EntidadeAuditora }}<span *ngIf="a.ExternaFornecedor">, externa ao fornecedor</span></span>
+            <span class="text-gray-500" *ngIf="a.AuditorNome"> · {{ a.AuditorNome }}</span><br>
+            <span class="text-gray-500">Início {{ a.DataInicio | date:'dd/MM/yyyy':'UTC' }}</span>
+            <span class="text-gray-500" *ngIf="a.DataFim"> · encerramento {{ a.DataFim | date:'dd/MM/yyyy':'UTC' }}</span>
+          </div>
+
+          <div *ngIf="a.Parecer" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md mb-3">
+            <strong class="text-gray-800">Parecer da auditoria:</strong> {{ a.Parecer }}
+          </div>
+          <p *ngIf="!a.Parecer" class="text-sm text-gray-500 mb-3">Parecer ainda não entregue pela entidade auditora.</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" *ngIf="publicacaoAuditoria[a.Id]">
+            <div>
+              <label class="block text-sm font-semibold mb-1">Publicado no Portal?</label>
+              <div class="flex gap-4 text-sm mt-1">
+                <label class="flex items-center gap-2"><input type="radio" [name]="'aupub-' + a.Id" [value]="true" [(ngModel)]="publicacaoAuditoria[a.Id].PublicadoPortal"> Sim</label>
+                <label class="flex items-center gap-2"><input type="radio" [name]="'aupub-' + a.Id" [value]="false" [(ngModel)]="publicacaoAuditoria[a.Id].PublicadoPortal"> Ainda não</label>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Data da publicação</label>
+              <input type="date" [(ngModel)]="publicacaoAuditoria[a.Id].DataPublicacao" [name]="'audata-' + a.Id"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Endereço da publicação</label>
+              <input type="text" [(ngModel)]="publicacaoAuditoria[a.Id].Url" [name]="'auurl-' + a.Id"
+                     placeholder="URL no Portal da Transparência"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">O resultado da auditoria é publicado no Portal da Transparência (art. 34).</p>
+
+          <div class="mt-3">
+            <button (click)="publicarAuditoria(a)" [disabled]="publicandoAuditoriaId === a.Id"
+                    class="text-sm text-blue-700 border border-blue-600 rounded px-4 py-2 hover:bg-blue-50 disabled:opacity-50">
+              {{ publicandoAuditoriaId === a.Id ? 'Salvando...' : 'Registrar publicação' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Não conformidades da supervisão ──────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Não conformidades</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Situações em que a política de IA não foi cumprida. Os órgãos
+      registram o que o SGTIC deles encontra; a SGDI registra aqui o que a supervisão dela identifica. Acompanhe cada
+      uma até ser sanada e, quando for o caso, comunique o controle interno.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Órgão <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="ncForm.OrgaoId" name="nc-orgao"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errNcOrgao"
+                  [class.border-gray-300]="!errNcOrgao">
+            <option [ngValue]="null">Escolha o órgão</option>
+            <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Como foi identificada</label>
+          <input type="text" readonly value="Supervisão da SGDI"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
+          <p class="text-xs text-gray-500 mt-1">O que o SGTIC do órgão encontra é registrado por ele, na área do órgão.</p>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">O que não foi cumprido? <span class="text-red-600">*</span></label>
+          <textarea rows="3" [(ngModel)]="ncForm.Descricao" name="nc-desc"
+                    placeholder="Descreva a situação e o sistema ou processo envolvido."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="errNcDescricao"
+                    [class.bg-red-50]="errNcDescricao"
+                    [class.border-gray-300]="!errNcDescricao"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button (click)="registrarNaoConformidade()" [disabled]="salvandoNc"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoNc ? 'Salvando...' : 'Registrar não conformidade' }}
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Órgão</th>
+              <th class="px-3 py-2">O que não foi cumprido</th>
+              <th class="px-3 py-2">Como foi identificada</th>
+              <th class="px-3 py-2">Registrada em</th>
+              <th class="px-3 py-2">Reportada à SGDI</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let nc of naoConformidades">
+              <tr class="border-b border-gray-200 align-top">
+                <td class="px-3 py-2 whitespace-nowrap">{{ nc.OrgaoSigla }}</td>
+                <td class="px-3 py-2 leading-relaxed">{{ nc.Descricao }}</td>
+                <td class="px-3 py-2 text-gray-500">{{ nc.Origem }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ nc.DataRegistro | date:'dd/MM/yyyy':'UTC' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ nc.ReportadaSgdiEm ? (nc.ReportadaSgdiEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                <td class="px-3 py-2">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeNaoConformidade(nc.Situacao)">{{ nc.Situacao }}</span>
+                </td>
+                <td class="px-3 py-2 text-right">
+                  <button (click)="editarNaoConformidade(nc)"
+                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                    {{ ncEmEdicao?.Id === nc.Id ? 'Cancelar' : 'Atualizar' }}
+                  </button>
+                </td>
+              </tr>
+
+              <tr *ngIf="ncEmEdicao?.Id === nc.Id" class="border-b border-gray-200 bg-gray-50">
+                <td colspan="7" class="px-3 py-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-semibold mb-1">O que não foi cumprido</label>
+                      <textarea rows="3" [(ngModel)]="ncEdicao.Descricao" [name]="'nce-desc-' + nc.Id"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Situação</label>
+                      <select [(ngModel)]="ncEdicao.Situacao" [name]="'nce-sit-' + nc.Id"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option *ngFor="let s of situacoesNaoConformidade" [value]="s">{{ s }}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Data do reporte à SGDI</label>
+                      <input type="date" [(ngModel)]="ncEdicao.ReportadaSgdiEm" [name]="'nce-rep-' + nc.Id"
+                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Comunicada ao controle interno em</label>
+                      <input type="date" [(ngModel)]="ncEdicao.ComunicadaControleInternoEm" [name]="'nce-ci-' + nc.Id"
+                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <button (click)="salvarEdicaoNaoConformidade()" [disabled]="salvandoEdicaoNc"
+                            class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                      {{ salvandoEdicaoNc ? 'Salvando...' : 'Salvar alterações' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+            <tr *ngIf="naoConformidades.length === 0">
+              <td colspan="7" class="px-3 py-4 text-center text-gray-500">Nenhuma não conformidade registrada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── 5. Normas complementares ─────────────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Normas complementares</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Guarde aqui as normas que detalham a política: resoluções do CGTIC,
+      instruções normativas da SGDI, normas técnicas e guias. Os órgãos consultam esta lista para saber o que vale hoje.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Tipo <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="normaForm.Tipo" name="no-tipo"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let t of tiposNorma" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Número</label>
+          <input type="text" [(ngModel)]="normaForm.Numero" name="no-numero" placeholder="Resolução nº ___/2026, CGTIC"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Ementa <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="normaForm.Ementa" name="no-ementa" placeholder="Do que a norma trata, em uma frase."
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errNormaEmenta"
+                 [class.bg-red-50]="errNormaEmenta"
+                 [class.border-gray-300]="!errNormaEmenta">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Quem emitiu <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="normaForm.Emissor" name="no-emissor"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errNormaEmissor"
+                  [class.border-gray-300]="!errNormaEmissor">
+            <option *ngFor="let e of emissoresNorma" [value]="e">{{ e }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data da publicação <span class="text-red-600">*</span></label>
+          <input type="date" [(ngModel)]="normaForm.DataPublicacao" name="no-data"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errNormaData"
+                 [class.border-gray-300]="!errNormaData">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Endereço da norma</label>
+          <input type="text" [(ngModel)]="normaForm.Url" name="no-url" placeholder="URL da publicação"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Aprovada pelo CGTIC em</label>
+          <input type="date" [(ngModel)]="normaForm.AprovadaCgticEm" name="no-cgtic"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Está em vigor?</label>
+          <div class="flex gap-4 text-sm mt-1">
+            <label class="flex items-center gap-2"><input type="radio" name="no-vigente" [value]="true" [(ngModel)]="normaForm.Vigente"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="no-vigente" [value]="false" [(ngModel)]="normaForm.Vigente"> Não</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2 flex-wrap">
+        <button (click)="salvarNorma()" [disabled]="salvandoNorma"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoNorma ? 'Salvando...' : (normaEmEdicao ? 'Salvar alterações' : 'Registrar norma') }}
+        </button>
+        <button *ngIf="normaEmEdicao" (click)="cancelarEdicaoNorma()"
+                class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+          Cancelar edição
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Tipo</th>
+              <th class="px-3 py-2">Número</th>
+              <th class="px-3 py-2">Ementa</th>
+              <th class="px-3 py-2">Publicação</th>
+              <th class="px-3 py-2">Em vigor</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let n of normas" class="border-b border-gray-200">
+              <td class="px-3 py-2">{{ n.Tipo }}</td>
+              <td class="px-3 py-2">{{ n.Numero || '—' }}</td>
+              <td class="px-3 py-2">{{ n.Ementa }}</td>
+              <td class="px-3 py-2">{{ n.DataPublicacao | date:'dd/MM/yyyy':'UTC' }}</td>
+              <td class="px-3 py-2">{{ n.Vigente ? 'sim' : 'não' }}</td>
+              <td class="px-3 py-2 text-right">
+                <button (click)="editarNorma(n)"
+                        class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="normas.length === 0">
+              <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhuma norma complementar registrada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── 6. Autorizações excepcionais ─────────────────────────────────── -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Autorizações excepcionais</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Duas situações só acontecem com autorização expressa: usar plataforma
+      pública de IA generativa com dados que não são públicos (art. 20) e deixar o fornecedor treinar modelos com dados do GDF
+      (art. 21). Registre aqui cada autorização, com a justificativa e o prazo de validade.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Tipo de autorização <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="autorizacaoForm.Tipo" name="au-tipo"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let t of tiposAutorizacao" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Órgão autorizado <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="autorizacaoForm.OrgaoId" name="au-orgao"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errAutorizacaoOrgao"
+                  [class.border-gray-300]="!errAutorizacaoOrgao">
+            <option [ngValue]="null">Escolha o órgão</option>
+            <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Plataforma</label>
+          <select [(ngModel)]="autorizacaoForm.PlataformaId" name="au-plataforma"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Não se aplica</option>
+            <option *ngFor="let p of plataformas" [ngValue]="p.Id">{{ p.Nome }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Quem autorizou <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="autorizacaoForm.AutorizadaPor" name="au-por"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let a of autorizadaPor" [value]="a">{{ a }}</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Justificativa <span class="text-red-600">*</span></label>
+          <textarea rows="3" [(ngModel)]="autorizacaoForm.Justificativa" name="au-just"
+                    placeholder="Explique por que a exceção é necessária e que cuidados foram tomados."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="errAutorizacaoJustificativa"
+                    [class.bg-red-50]="errAutorizacaoJustificativa"
+                    [class.border-gray-300]="!errAutorizacaoJustificativa"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Deliberação do CGTIC
+            <span *ngIf="exigeDeliberacao" class="text-red-600">*</span></label>
+          <select [(ngModel)]="autorizacaoForm.DeliberacaoCgticId" name="au-delib"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errAutorizacaoDeliberacao"
+                  [class.border-gray-300]="!errAutorizacaoDeliberacao">
+            <option [ngValue]="null">Não se aplica</option>
+            <option *ngFor="let d of deliberacoes" [ngValue]="d.Id">
+              {{ d.DataDeliberacao | date:'dd/MM/yyyy':'UTC' }} · {{ d.Tipo }} · {{ d.Resultado }}
+            </option>
+          </select>
+          <p *ngIf="exigeDeliberacao" class="text-xs text-gray-500 mt-1">Treinar modelos com dados do GDF só acontece com
+          deliberação do comitê (art. 21).</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data da autorização <span class="text-red-600">*</span></label>
+          <input type="date" [(ngModel)]="autorizacaoForm.DataAutorizacao" name="au-data"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errAutorizacaoData"
+                 [class.border-gray-300]="!errAutorizacaoData">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Vale até</label>
+          <input type="date" [(ngModel)]="autorizacaoForm.VigenciaFim" name="au-vigencia"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="text-xs text-gray-500 mt-1">Deixe em branco se a autorização não tem prazo definido.</p>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Avaliação de riscos (documento)</label>
+          <input type="text" readonly value="anexo disponível em fase futura"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2 flex-wrap">
+        <button (click)="salvarAutorizacao()" [disabled]="salvandoAutorizacao"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoAutorizacao ? 'Salvando...' : (autorizacaoEmEdicao ? 'Salvar alterações' : 'Registrar autorização') }}
+        </button>
+        <button *ngIf="autorizacaoEmEdicao" (click)="cancelarEdicaoAutorizacao()"
+                class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+          Cancelar edição
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Tipo</th>
+              <th class="px-3 py-2">Órgão</th>
+              <th class="px-3 py-2">Plataforma</th>
+              <th class="px-3 py-2">Autorizada em</th>
+              <th class="px-3 py-2">Vale até</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of autorizacoes" class="border-b border-gray-200">
+              <td class="px-3 py-2">{{ a.Tipo }}</td>
+              <td class="px-3 py-2">{{ a.OrgaoSigla }}</td>
+              <td class="px-3 py-2">{{ a.PlataformaNome || '—' }}</td>
+              <td class="px-3 py-2">{{ a.DataAutorizacao | date:'dd/MM/yyyy':'UTC' }}</td>
+              <td class="px-3 py-2">{{ a.VigenciaFim ? (a.VigenciaFim | date:'dd/MM/yyyy':'UTC') : 'sem prazo' }}</td>
+              <td class="px-3 py-2">{{ a.Ativo ? 'ativa' : 'encerrada' }}</td>
+              <td class="px-3 py-2 text-right">
+                <button (click)="editarAutorizacao(a)"
+                        class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="autorizacoes.length === 0">
+              <td colspan="7" class="px-3 py-4 text-center text-gray-500">Nenhuma autorização registrada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

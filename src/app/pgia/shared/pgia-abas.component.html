@@ -1,0 +1,38 @@
+<div class="flex gap-2 flex-wrap mb-5">
+  <a *ngIf="!semPapel && !isAuditoria" routerLink="/pgia/orgao" [class]="classe('orgao')">
+    Informações do Órgão Responsável
+  </a>
+  <a *ngIf="!semPapel && !isAuditoria" routerLink="/pgia/sistemas" [class]="classe('sistemas')">
+    Inventário dos sistemas de IA e classificação de riscos
+  </a>
+  <a *ngIf="!isAuditoria" routerLink="/pgia/incidentes" [class]="classe('incidentes')">
+    Report de incidentes
+  </a>
+  <a routerLink="/pgia/uso" [class]="classe('uso')">
+    Registrar uso de IA
+  </a>
+  <a *ngIf="veGestao" routerLink="/pgia/capacitacao" [class]="classe('capacitacao')">
+    Capacitação
+  </a>
+  <a *ngIf="veGestao" routerLink="/pgia/contratacoes" [class]="classe('contratacoes')">
+    Contratações de IA
+  </a>
+  <a *ngIf="veGestao" routerLink="/pgia/relatorios" [class]="classe('relatorios')">
+    Relatórios e indicadores
+  </a>
+  <a *ngIf="veGestao" routerLink="/pgia/solicitacoes" [class]="classe('solicitacoes')">
+    Solicitações do cidadão
+  </a>
+  <a *ngIf="!semPapel && !isAuditoria" routerLink="/pgia/prazos" [class]="classe('prazos')">
+    Prazos
+  </a>
+  <a *ngIf="veSgdi" routerLink="/pgia/sgdi" [class]="classe('sgdi')">
+    Governança (SGDI)
+  </a>
+  <a *ngIf="veCgtic" routerLink="/pgia/cgtic" [class]="classe('cgtic')">
+    CGTIC
+  </a>
+  <a *ngIf="veAuditoria" routerLink="/pgia/auditoria" [class]="classe('auditoria')">
+    Auditorias designadas
+  </a>
+</div>
