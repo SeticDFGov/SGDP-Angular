@@ -66,7 +66,7 @@ export const pgia_routes: Routes = [
     ['fila', 'plataformas', 'apuracao', 'registro-publico', 'aia', 'semestrais',
      'anual', 'auditorias', 'nao-conformidades', 'normas', 'autorizacoes']),
   ...secoes('cgtic', PgiaCgticComponent,
-    ['casos', 'deliberacoes']),
+    ['casos', 'deliberacoes', 'historico']),
 
   // Áreas de tela única
   { path: 'uso', component: PgiaUsoComponent },

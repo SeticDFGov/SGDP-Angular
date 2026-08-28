@@ -10,12 +10,17 @@ import { PgiaChecklistAbertoComponent } from '../shared/pgia-checklist-aberto.co
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
 import {
+  PgiaCgticCasoHistorico,
+  PgiaCgticHistoricoResponse,
   PgiaDeliberacao,
   PgiaDeliberacaoForm,
   PgiaHomologacaoPendente,
   RESULTADOS_DELIBERACAO,
   TIPOS_DELIBERACAO
 } from '../../../api/pgia/interface';
+
+/** Filtros do histórico de decisões. */
+type FiltroHistorico = 'todas' | 'pendentes' | 'analisadas' | 'aprovadas' | 'negadas';
 
 /** Rótulos do mock, com a referência ao artigo; o valor gravado é o da lista de domínio. */
 const ROTULOS_TIPO: Record<string, string> = {
@@ -63,6 +68,22 @@ export class PgiaCgticComponent implements OnInit {
   submetido = false;
   salvando = false;
 
+  // Histórico de decisões (relatório de auditoria do comitê)
+  historico: PgiaCgticHistoricoResponse | null = null;
+  carregandoHistorico = false;
+  erroHistorico = false;
+  filtroHistorico: FiltroHistorico = 'todas';
+  casoExpandido: number | null = null;
+  baixandoPdf = false;
+
+  readonly filtros: { valor: FiltroHistorico; rotulo: string }[] = [
+    { valor: 'todas', rotulo: 'Todas' },
+    { valor: 'pendentes', rotulo: 'Pendentes' },
+    { valor: 'analisadas', rotulo: 'Analisadas' },
+    { valor: 'aprovadas', rotulo: 'Aprovadas' },
+    { valor: 'negadas', rotulo: 'Negadas' }
+  ];
+
   constructor(
     private authService: AuthService,
     private governancaService: PgiaGovernancaService,
@@ -95,6 +116,7 @@ export class PgiaCgticComponent implements OnInit {
         this.carregarFila();
         this.carregarDeliberacoes();
         this.carregarSistemas();
+        this.carregarHistorico();
       }
     });
   }
@@ -155,6 +177,81 @@ export class PgiaCgticComponent implements OnInit {
     });
   }
 
+  // ── Histórico de decisões ─────────────────────────────────────────────────
+
+  carregarHistorico(): void {
+    this.carregandoHistorico = true;
+    this.erroHistorico = false;
+    this.governancaService.getCgticHistorico().subscribe({
+      next: dados => {
+        this.historico = dados;
+        this.carregandoHistorico = false;
+      },
+      // Sem toast: a área carrega inteira ao entrar e o aviso apareceria mesmo
+      // com o usuário em outra seção. A mensagem fica na própria tela.
+      error: () => {
+        this.carregandoHistorico = false;
+        this.erroHistorico = true;
+      }
+    });
+  }
+
+  /** Casos que o filtro escolhido deixa passar (filtragem no navegador). */
+  get casosFiltrados(): PgiaCgticCasoHistorico[] {
+    const casos = this.historico?.Casos ?? [];
+    switch (this.filtroHistorico) {
+      case 'pendentes': return casos.filter(c => c.Situacao === 'Pendente');
+      case 'analisadas': return casos.filter(c => c.Deliberacoes.length > 0);
+      case 'aprovadas': return casos.filter(c => c.Situacao === 'Aprovada');
+      case 'negadas': return casos.filter(c => c.Situacao === 'Negada');
+      default: return casos;
+    }
+  }
+
+  contagem(filtro: FiltroHistorico): number {
+    const contagens = this.historico?.Contagens;
+    if (!contagens) return 0;
+    switch (filtro) {
+      case 'pendentes': return contagens.Pendentes;
+      case 'analisadas': return contagens.Analisadas;
+      case 'aprovadas': return contagens.Aprovadas;
+      case 'negadas': return contagens.Negadas;
+      default: return contagens.Total;
+    }
+  }
+
+  alternarCaso(caso: PgiaCgticCasoHistorico): void {
+    this.casoExpandido = this.casoExpandido === caso.SistemaIaId ? null : caso.SistemaIaId;
+  }
+
+  badgeSituacao(situacao: string): string {
+    switch (situacao) {
+      case 'Aprovada': return 'bg-green-100 text-green-800';
+      case 'Negada': return 'bg-red-100 text-red-800';
+      default: return 'bg-blue-100 text-blue-800'; // Pendente
+    }
+  }
+
+  baixarHistoricoPdf(): void {
+    this.baixandoPdf = true;
+    this.governancaService.baixarCgticHistoricoPdf().subscribe({
+      next: blob => {
+        this.baixandoPdf = false;
+        // Handler de clique: só roda no browser.
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'historico-decisoes-cgtic.pdf';
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.baixandoPdf = false;
+        this.notificationService.error('Não foi possível baixar o relatório em PDF.');
+      }
+    });
+  }
+
   badgeClasse(risco: string | null): string {
     switch (risco) {
       case 'Risco Excessivo': return 'bg-red-100 text-red-800';
@@ -211,6 +308,9 @@ export class PgiaCgticComponent implements OnInit {
         this.submetido = false;
         this.carregarFila();
         this.carregarDeliberacoes();
+        // A área carrega uma vez por entrada: sem isto o Histórico ficaria
+        // com a situação antiga do caso (e divergente do PDF, gerado na hora)
+        this.carregarHistorico();
         const base = 'Deliberação registrada. Os órgãos interessados serão notificados.';
         let mensagem = base;
         if (tipoMudaHomologacao && veioDaFila) {

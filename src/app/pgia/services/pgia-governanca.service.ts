@@ -12,6 +12,7 @@ import {
   PgiaAutorizacao,
   PgiaAutorizacaoForm,
   PgiaAvaliacaoHomologacaoForm,
+  PgiaCgticHistoricoResponse,
   PgiaDeliberacao,
   PgiaDeliberacaoForm,
   PgiaHomologacaoPendente,
@@ -85,6 +86,18 @@ export class PgiaGovernancaService {
 
   criarDeliberacao(form: PgiaDeliberacaoForm): Observable<PgiaDeliberacao> {
     return this.http.post<PgiaDeliberacao>(`${this.apiUrl}/deliberacao`, form, { headers: this.getHeaders() });
+  }
+
+  /** Histórico de decisões do comitê: casos, deliberações e contagens. */
+  getCgticHistorico(): Observable<PgiaCgticHistoricoResponse> {
+    return this.http.get<PgiaCgticHistoricoResponse>(`${this.apiUrl}/cgtic/historico`,
+      { headers: this.getHeaders() });
+  }
+
+  /** PDF do histórico. O download é disparado no componente, em handler de clique. */
+  baixarCgticHistoricoPdf(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/cgtic/historico/pdf`,
+      { headers: this.getHeaders(), responseType: 'blob' });
   }
 
   // ── Plataformas públicas de IA generativa ─────────────────────────────────

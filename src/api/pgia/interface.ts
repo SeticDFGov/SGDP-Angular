@@ -295,6 +295,38 @@ export interface PgiaDeliberacao extends PgiaDeliberacaoForm {
   CriadoEm: string;
 }
 
+// ── Histórico de decisões do CGTIC (relatório de auditoria) ─────────────────
+// GET api/pgia/governanca/cgtic/historico (cgtic, sgdi e admin)
+
+export interface PgiaCgticHistoricoContagens {
+  Pendentes: number;
+  Analisadas: number; // casos com ao menos uma deliberação registrada
+  Aprovadas: number;
+  Negadas: number;
+  Total: number;
+}
+
+// 'Pendente' | 'Aprovada' | 'Negada' — derivado da SituacaoHomologacao
+export interface PgiaCgticCasoHistorico {
+  SistemaIaId: number;
+  Denominacao: string;
+  OrgaoSigla: string;
+  OrgaoNome: string;
+  ClassificacaoRiscoAtual: string | null;
+  SituacaoHomologacao: string;
+  Situacao: string;
+  // Entrada do caso na pauta do comitê (melhor data disponível no modelo)
+  DataEntrada: string | null;
+  Deliberacoes: PgiaDeliberacao[];
+}
+
+export interface PgiaCgticHistoricoResponse {
+  Contagens: PgiaCgticHistoricoContagens;
+  Casos: PgiaCgticCasoHistorico[];
+  // Demais deliberações do comitê (contratos, autorizações, diretrizes...)
+  OutrasDeliberacoes: PgiaDeliberacao[];
+}
+
 export interface PgiaPlataformaForm {
   Nome: string;
   Fornecedor: string | null;

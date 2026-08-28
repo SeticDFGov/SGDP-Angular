@@ -152,7 +152,8 @@ const CGTIC: ItemNavPgia = {
   icone: 'groups',
   filhos: [
     { rotulo: 'Casos delegados ao comitê', rota: '/pgia/cgtic/casos' },
-    { rotulo: 'Registrar deliberação', rota: '/pgia/cgtic/deliberacoes' }
+    { rotulo: 'Registrar deliberação', rota: '/pgia/cgtic/deliberacoes' },
+    { rotulo: 'Histórico de decisões', rota: '/pgia/cgtic/historico' }
   ]
 };
 
