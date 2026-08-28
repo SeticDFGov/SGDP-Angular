@@ -13,6 +13,8 @@ export interface UserProfile {
   Nome: string;
   Email: string;
   Perfil: string;
+  // Papel no módulo PGIA (Decreto nº 48.901/2026); opcional para não quebrar dados já salvos
+  PapelPgia?: string | null;
   Unidade: Unidade | null;
 }
 

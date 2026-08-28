@@ -14,8 +14,15 @@ import { CentralITComponent } from './centralit/centralit.component';
 import { ParceiroComponent } from './parceiro/parceiro.component';
 import { PendingApprovalComponent } from './auth/pending-approval/pending-approval.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
+import { pgiaGuard } from './pgia/guards/pgia.guard';
 
 export const routes: Routes = [
+  {
+    // Transparência pública (arts. 23 e 24): fora do MainLayout e sem guard.
+    path: 'transparencia-ia',
+    loadComponent: () => import('./pgia/publico/pgia-transparencia.component')
+      .then(m => m.PgiaTransparenciaComponent)
+  },
   {
     path: 'pending-approval',
     component: PendingApprovalComponent,
@@ -65,6 +72,11 @@ export const routes: Routes = [
         data: {
           prerender: false
         }
+      },
+      {
+        path: 'pgia',
+        canActivate: [pgiaGuard],
+        loadChildren: () => import('./pgia/pgia.routes').then(m => m.pgia_routes)
       }
     ]
   }

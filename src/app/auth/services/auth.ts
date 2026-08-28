@@ -18,6 +18,14 @@ export const Perfis = {
   Basico: 'basico'
 } as const;
 
+// Papéis do módulo PGIA (campo Users.PapelPgia, paralelo ao Perfil)
+export const PapeisPgia = {
+  Orgao: 'pgia_orgao',
+  Sgdi: 'pgia_sgdi',
+  Cgtic: 'pgia_cgtic',
+  Auditoria: 'pgia_auditoria'
+} as const;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -45,6 +53,7 @@ export class AuthService {
               Nome: meResponse.Nome,
               Email: meResponse.Email,
               Perfil: meResponse.Perfil,
+              PapelPgia: meResponse.PapelPgia ?? null,
               Unidade: meResponse.Unidade ?? null
             };
             localStorage.setItem('user', JSON.stringify(user));
@@ -83,6 +92,7 @@ export class AuthService {
               Nome: meResponse.Nome,
               Email: meResponse.Email,
               Perfil: meResponse.Perfil,
+              PapelPgia: meResponse.PapelPgia ?? null,
               Unidade: meResponse.Unidade ?? null
             };
             localStorage.setItem('user', JSON.stringify(user));
@@ -120,9 +130,13 @@ export class AuthService {
     return this.getUser().pipe(
       map(user => {
         if (!user) return false;
+        // Mesma definição do userConfiguredGuard: unidade e (perfil válido OU papel PGIA).
+        // Usada também pelo fluxo de login; sem o PapelPgia aqui, o Responsável de IA
+        // com perfil 'basico' ficaria preso no /pending-approval a cada login.
         const hasPerfil = !!user.Perfil && user.Perfil !== 'basico';
+        const hasPapelPgia = !!user.PapelPgia;
         const hasUnidade = !!user.Unidade;
-        return hasPerfil && hasUnidade;
+        return (hasPerfil || hasPapelPgia) && hasUnidade;
       })
     );
   }
@@ -215,5 +229,56 @@ export class AuthService {
 
   isGestor(): Observable<boolean> {
     return this.getPerfil().pipe(map(perfil => perfil === Perfis.Gestor));
+  }
+
+  // ── Módulo PGIA (métodos novos, aditivos) ─────────────────────────────────
+
+  getPapelPgia(): Observable<string | null> {
+    return this.getUser().pipe(map(user => user?.PapelPgia ?? null));
+  }
+
+  hasPapelPgia(): Observable<boolean> {
+    return this.getPapelPgia().pipe(map(papel => !!papel));
+  }
+
+  /** Acesso à área /pgia: quem tem papel PGIA ou é admin do SGDP */
+  canAccessPgia(): Observable<boolean> {
+    return this.getUser().pipe(
+      map(user => !!user && (!!user.PapelPgia || user.Perfil === Perfis.Admin))
+    );
+  }
+
+  // ── Modo local (execução independente, sem Keycloak — só testes) ──────────
+
+  /**
+   * Login do modo local: o backend (Auth:ModoLocal=true, só em Development)
+   * emite um token com o mesmo formato dos do Keycloak; daqui em diante o
+   * fluxo é idêntico ao login normal (/me, perfis, guards).
+   */
+  loginLocal(dados: { Email: string; Nome: string; Perfil: string }): Observable<AuthResponse> {
+    return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/authlocal/token`, dados).pipe(
+      switchMap(tokenResponse => {
+        localStorage.setItem('token', tokenResponse.access_token);
+        localStorage.setItem('refreshToken', tokenResponse.refresh_token);
+
+        return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
+          headers: new HttpHeaders({ Authorization: `Bearer ${tokenResponse.access_token}` })
+        }).pipe(
+          map(meResponse => {
+            const user: UserProfile = {
+              Id: meResponse.Id,
+              Nome: meResponse.Nome,
+              Email: meResponse.Email,
+              Perfil: meResponse.Perfil,
+              PapelPgia: meResponse.PapelPgia ?? null,
+              Unidade: meResponse.Unidade ?? null
+            };
+            localStorage.setItem('user', JSON.stringify(user));
+            this.userSubject.next(user);
+            return { token: tokenResponse.access_token, user } as AuthResponse;
+          })
+        );
+      })
+    );
   }
 }

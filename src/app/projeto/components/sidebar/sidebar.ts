@@ -19,6 +19,8 @@ import { SidebarStateService } from './sidebar-state.service';
 export class Sidebar {
   user:UserProfile|null = null;
   isExpanded: boolean = true; // Sidebar expandido por padrão
+  canPgia: boolean = false; // item "Governança de IA": papel PGIA ou admin
+  soPgia: boolean = false;  // perfil 'basico' com papel PGIA: confinado à área /pgia
 
   constructor(
     private authService: AuthService,
@@ -43,6 +45,8 @@ export class Sidebar {
   carregarUser(){
     this.authService.getUser().subscribe(response =>{
       this.user = response
+      this.canPgia = !!(response && (response.PapelPgia || response.Perfil === 'admin'));
+      this.soPgia = !!(response && response.PapelPgia && response.Perfil === 'basico');
     }
     );
   }
