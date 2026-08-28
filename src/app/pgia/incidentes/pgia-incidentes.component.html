@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto">
+<div citaDecreto class="max-w-5xl mx-auto">
 
   <!-- Contexto -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
@@ -7,8 +7,6 @@
     <ng-container *ngIf="semPapel"> Percebeu um problema com um sistema de IA? Avise o Responsável de IA do seu órgão por aqui.</ng-container>
     <ng-container *ngIf="!semPapel"> Nesta área, o seu órgão avisa e comunica os problemas com sistemas de IA e acompanha o que a SGDI apurou.</ng-container>
   </div>
-
-  <app-pgia-abas ativa="incidentes"></app-pgia-abas>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
@@ -38,7 +36,7 @@
   <ng-container *ngIf="!loading && !isAuditoria && !semOrgao">
 
     <!-- ── 1. Aviso do agente ───────────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'aviso'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Avisar sobre um problema</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Percebeu que um sistema de IA causou ou pode causar dano a alguém ou a um serviço público?
       Avise o Responsável de IA do seu órgão (art. 13, II). Ele fará a comunicação formal à SGDI.</p>
@@ -73,7 +71,7 @@
     </div>
 
     <!-- ── 2. Comunicação de incidente grave ────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5" *ngIf="podeEditar">
+    <div *ngIf="secao === 'comunicacao' && podeEditar" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Comunicação de incidente grave</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Aconteceu um problema grave com um sistema de IA? Registre aqui. Quem percebe o problema
       avisa o Responsável de IA (art. 13, II). O Responsável, então, comunica a SGDI pelo SEI, no prazo definido
@@ -126,7 +124,7 @@
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errIncNotificado"
                  [class.border-gray-300]="!errIncNotificado">
-          <p class="text-xs text-gray-500 mt-1">Art. 13, II.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Art. 13, II.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Data e hora da comunicação à SGDI <span class="text-red-600">*</span></label>
@@ -134,7 +132,7 @@
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errIncComunicacao"
                  [class.border-gray-300]="!errIncComunicacao">
-          <p class="text-xs text-gray-500 mt-1">Art. 30.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Art. 30.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Processo SEI da comunicação <span class="text-red-600">*</span></label>
@@ -161,7 +159,7 @@
     </div>
 
     <!-- ── 3. Lista de incidentes ───────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5" *ngIf="!semPapel">
+    <div *ngIf="secao === 'acompanhamento' && !semPapel" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Incidentes do órgão</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Avisos internos e incidentes já comunicados à SGDI.
       Abra um item para ver o que a SGDI apurou e registrar as medidas do órgão.</p>
@@ -260,7 +258,7 @@
                         <label class="block text-sm font-semibold mb-1">Data e hora da ocorrência</label>
                         <input type="datetime-local" [(ngModel)]="comunicarForm.DataOcorrencia" [name]="'com-dtoc-' + i.Id"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <p class="text-xs text-gray-500 mt-1">Corrija se o aviso trouxe uma data aproximada.</p>
+                        <p class="text-xs text-gray-400 italic mt-1">Corrija se o aviso trouxe uma data aproximada.</p>
                       </div>
                       <div>
                         <label class="block text-sm font-semibold mb-1">Data e hora da detecção</label>
@@ -316,7 +314,7 @@
     </div>
 
     <!-- ── 4. Não conformidades ─────────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5" *ngIf="!semPapel">
+    <div *ngIf="secao === 'nao-conformidades' && !semPapel" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Não conformidades</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">O SGTIC do órgão registra aqui as situações em que a política
       de IA não foi cumprida e reporta à SGDI (art. 9º, II). Descreva o que aconteceu e acompanhe até a situação ser sanada.</p>
@@ -335,13 +333,13 @@
           <label class="block text-sm font-semibold mb-1">Como foi identificada</label>
           <input type="text" readonly value="Acompanhamento do SGTIC"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
-          <p class="text-xs text-gray-500 mt-1">O que a SGDI identifica na supervisão dela entra por outro caminho.</p>
+          <p class="text-xs text-gray-400 italic mt-1">O que a SGDI identifica na supervisão dela entra por outro caminho.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Data do reporte à SGDI</label>
           <input type="date" [(ngModel)]="ncForm.ReportadaSgdiEm" name="nc-reporte"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <p class="text-xs text-gray-500 mt-1">Deixe em branco se o reporte ainda não aconteceu.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Deixe em branco se o reporte ainda não aconteceu.</p>
         </div>
       </div>
 

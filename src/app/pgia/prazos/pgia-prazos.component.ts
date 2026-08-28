@@ -5,13 +5,13 @@ import { RouterModule } from '@angular/router';
 import { AuthService, PapeisPgia, Perfis } from '../../auth/services/auth';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
 import { PgiaOrgao, PgiaPrazo } from '../../../api/pgia/interface';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 
 @Component({
   selector: 'app-pgia-prazos',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PgiaAbasComponent],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
   templateUrl: './pgia-prazos.component.html'
 })
 export class PgiaPrazosComponent implements OnInit {

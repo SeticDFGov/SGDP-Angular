@@ -9,7 +9,8 @@ import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaSistemaService } from '../services/pgia-sistema.service';
 import { PgiaGovernancaService } from '../services/pgia-governanca.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { acompanharSecao } from '../shared/secao-rota';
 import {
   ENVOLVE_IA,
   PgiaAutorizacao,
@@ -26,10 +27,12 @@ import {
 @Component({
   selector: 'app-pgia-contratacoes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PgiaAbasComponent],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
   templateUrl: './pgia-contratacoes.component.html'
 })
 export class PgiaContratacoesComponent implements OnInit {
+  /** Formulário mostrado nesta página (vem do parâmetro `:secao` da rota). */
+  secao: string = '';
   user: UserProfile | null = null;
   loading = true;
 
@@ -66,7 +69,10 @@ export class PgiaContratacoesComponent implements OnInit {
     private governancaService: PgiaGovernancaService,
     private operacaoService: PgiaOperacaoService,
     private notificationService: NotificationService
-  ) {}
+  ) {
+    // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
+    acompanharSecao(secao => this.secao = secao);
+  }
 
   ngOnInit(): void {
     this.authService.getUser().subscribe(user => {

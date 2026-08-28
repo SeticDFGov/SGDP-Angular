@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-gray-100">
+<div citaDecreto class="min-h-screen bg-gray-100">
 
   <!-- Cabeçalho -->
   <header class="bg-blue-900 text-white">
@@ -89,7 +89,7 @@
             <option [ngValue]="null">Escolha na lista de sistemas publicados</option>
             <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}, {{ s.OrgaoNome }}</option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">A lista vem do Registro Público de Sistemas de IA, no Portal da Transparência.</p>
+          <p class="text-xs text-gray-400 italic mt-1">A lista vem do Registro Público de Sistemas de IA, no Portal da Transparência.</p>
         </div>
 
         <div class="md:col-span-2 rounded-md p-2 -m-2" [class.bg-red-50]="errTipo">
@@ -130,7 +130,7 @@
         </div>
       </div>
 
-      <p class="text-xs text-gray-500 mt-2">Usamos seus dados somente para responder a este pedido, conforme a Lei Geral de Proteção de Dados.</p>
+      <p class="text-xs text-gray-400 italic mt-2">Usamos seus dados somente para responder a este pedido, conforme a Lei Geral de Proteção de Dados.</p>
 
       <div *ngIf="mensagemAviso" class="border-l-4 border-yellow-500 bg-yellow-50 p-3 text-sm leading-relaxed rounded-r-md mt-3">
         {{ mensagemAviso }}

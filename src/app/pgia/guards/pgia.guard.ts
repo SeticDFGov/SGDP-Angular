@@ -18,10 +18,13 @@ export const pgiaGuard: CanActivateFn = (route, state) => {
     return true; // o authGuard da rota-mãe já garantiu a autenticação
   }
 
-  return authService.canAccessPgia().pipe(
-    map(canAccess => {
+  return authService.getUser().pipe(
+    map(user => {
+      const canAccess = !!user?.PapelPgia || user?.Perfil === 'admin';
       if (!canAccess) {
-        router.navigate(['/']);
+        // 'basico' é confinado a /pgia pelo authGuard: mandá-lo a '/' criaria um
+        // laço de redirecionamentos — o destino dele é o registro de uso (art. 13)
+        router.navigate([user?.Perfil === 'basico' ? '/pgia/uso' : '/']);
         return false;
       }
       return true;

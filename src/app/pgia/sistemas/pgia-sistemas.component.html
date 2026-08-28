@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto">
+<div citaDecreto class="max-w-5xl mx-auto">
 
   <!-- Contexto -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
@@ -7,9 +7,6 @@
     Nesta área, você registra as informações que o Decreto nº 48.901/2026 pede ao seu órgão.
     Siga as etapas na ordem. O sistema avisa você sobre os prazos.
   </div>
-
-  <!-- Abas do módulo -->
-  <app-pgia-abas ativa="sistemas"></app-pgia-abas>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
@@ -39,7 +36,7 @@
   <ng-container *ngIf="!loading && !isAuditoria && orgao">
 
     <!-- Card: lista do inventário -->
-    <div #cardLista class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'lista'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Sistemas de IA do órgão</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Registre aqui cada sistema de IA que o seu órgão usa, desenvolve ou está adquirindo
       (art. 2º, XI). O primeiro envio completo do inventário à SGDI deve acontecer <strong class="text-gray-900">até 01/10/2026</strong>
@@ -173,7 +170,7 @@
                                class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                [class.border-red-500]="errAiaProximaRevisao"
                                [class.border-gray-300]="!errAiaProximaRevisao">
-                        <p class="text-xs text-gray-500 mt-1">A avaliação é contínua: marque quando ela será revista.</p>
+                        <p class="text-xs text-gray-400 italic mt-1">A avaliação é contínua: marque quando ela será revista.</p>
                       </div>
                       <div class="md:col-span-2">
                         <label class="block text-sm font-semibold mb-1">Que impactos o sistema pode ter sobre direitos fundamentais? <span class="text-red-600">*</span></label>
@@ -217,7 +214,7 @@
                           <label class="flex items-center gap-2"><input type="radio" name="aia-previa" [value]="true" [(ngModel)]="aiaForm.PreviaLicitacao"> Sim</label>
                           <label class="flex items-center gap-2"><input type="radio" name="aia-previa" [value]="false" [(ngModel)]="aiaForm.PreviaLicitacao"> Não</label>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">Nas novas aquisições, a AIA vem antes da abertura da licitação (art. 25, I, b).</p>
+                        <p class="text-xs text-gray-400 italic mt-1">Nas novas aquisições, a AIA vem antes da abertura da licitação (art. 25, I, b).</p>
                       </div>
                       <div>
                         <label class="block text-sm font-semibold mb-1">Foi feita junto com o relatório de proteção de dados (RIPD)?</label>
@@ -225,7 +222,7 @@
                           <label class="flex items-center gap-2"><input type="radio" name="aia-ripd" [value]="true" [(ngModel)]="aiaForm.ConjuntaRipd"> Sim</label>
                           <label class="flex items-center gap-2"><input type="radio" name="aia-ripd" [value]="false" [(ngModel)]="aiaForm.ConjuntaRipd"> Não</label>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">Se sim, o documento precisa cobrir os requisitos dos dois (art. 22). O Encarregado de Dados analisa.</p>
+                        <p class="text-xs text-gray-400 italic mt-1">Se sim, o documento precisa cobrir os requisitos dos dois (art. 22). O Encarregado de Dados analisa.</p>
                       </div>
                       <div class="md:col-span-2">
                         <label class="block text-sm font-semibold mb-1">Arquivo completo da AIA</label>
@@ -258,11 +255,18 @@
         <span class="text-xs text-gray-500">mostrando {{ sistemas.length }} de {{ totalItens }}</span>
       </div>
 
-      <p class="text-xs text-gray-500 mt-3">Para incluir um sistema, preencha o formulário abaixo e salve. Ele passa a aparecer nesta lista.</p>
+      <p class="text-xs text-gray-400 italic mt-3">Para incluir um sistema, abra "Cadastrar sistema no inventário" e salve. Ele passa a aparecer nesta lista.</p>
+
+      <div *ngIf="podeCadastrar" class="mt-4">
+        <a routerLink="/pgia/sistemas/cadastro"
+           class="inline-block bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700">
+          Cadastrar sistema no inventário
+        </a>
+      </div>
     </div>
 
     <!-- Sem Responsável de IA vigente não há quem assine o registro do inventário -->
-    <div *ngIf="!responsavelVigente" class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'cadastro' && !responsavelVigente" class="bg-white rounded-lg shadow p-6 mb-5">
       <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
         Antes de cadastrar sistemas, conclua as Informações do Órgão Responsável: designe e comunique o
         Responsável de IA do órgão (art. 10). O registro do inventário fica assinado por ele.
@@ -270,7 +274,7 @@
     </div>
 
     <!-- Card: cadastro -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5" *ngIf="podeCadastrar">
+    <div *ngIf="secao === 'cadastro' && podeCadastrar" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Cadastrar sistema no inventário</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Preencha com atenção: parte destas informações vai ao Registro Público, no Portal da
       Transparência (art. 24). Os campos com asterisco (<span class="text-red-600">*</span>) são obrigatórios.</p>
@@ -335,7 +339,7 @@
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errDataImplantacao"
                  [class.border-gray-300]="!errDataImplantacao">
-          <p class="text-xs text-gray-500 mt-1">Sistema em operação antes de 03/07/2026 precisa concluir a AIA até 03/07/2027 (art. 35, IV).</p>
+          <p class="text-xs text-gray-400 italic mt-1">Sistema em operação antes de 03/07/2026 precisa concluir a AIA até 03/07/2027 (art. 35, IV).</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Que dados o sistema trata? <span class="text-red-600">*</span></label>
@@ -425,7 +429,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="interop" [value]="true" [(ngModel)]="form.InteroperavelPadroesSgdi"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="interop" [value]="false" [(ngModel)]="form.InteroperavelPadroesSgdi"> Não</label>
           </div>
-          <p class="text-xs text-gray-500 mt-1">É vedada a contratação de solução redundante ou que não converse com os padrões corporativos (art. 27).</p>
+          <p class="text-xs text-gray-400 italic mt-1">É vedada a contratação de solução redundante ou que não converse com os padrões corporativos (art. 27).</p>
         </div>
         <div *ngIf="mostraNaoRedundancia">
           <label class="block text-sm font-semibold mb-1">Por que a solução não duplica sistema corporativo que já existe?
@@ -435,7 +439,7 @@
                     [class.border-red-500]="errNaoRedundancia"
                     [class.bg-red-50]="errNaoRedundancia"
                     [class.border-gray-300]="!errNaoRedundancia"></textarea>
-          <p class="text-xs text-gray-500 mt-1">(art. 27)</p>
+          <p class="text-xs text-gray-400 italic mt-1">(art. 27)</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Como acontece a supervisão humana das decisões do sistema? <span class="text-red-600">*</span></label>
@@ -480,7 +484,7 @@
           <label class="block text-sm font-semibold mb-1">Data da remessa à SGDI</label>
           <input type="date" [(ngModel)]="form.ComunicadoSgdiEm" name="s-dtremessa"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <p class="text-xs text-gray-500 mt-1">Alimenta o Inventário Centralizado (arts. 9º, III e 10, II).</p>
+          <p class="text-xs text-gray-400 italic mt-1">Alimenta o Inventário Centralizado (arts. 9º, III e 10, II).</p>
         </div>
       </div>
 
@@ -525,7 +529,7 @@
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
           {{ salvando ? 'Salvando...' : 'Salvar sistema no inventário' }}
         </button>
-        <span class="text-xs text-gray-500">O registro fica assinado por {{ user?.Nome }}, Responsável de IA da {{ orgao.Sigla }}.</span>
+        <span class="text-xs text-gray-400 italic">O registro fica assinado por {{ user?.Nome }}, Responsável de IA da {{ orgao.Sigla }}.</span>
       </div>
     </div>
 

@@ -1,14 +1,15 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService, PapeisPgia, Perfis } from '../../auth/services/auth';
 import { UserProfile } from '../../../api/auth/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaSistemaService } from '../services/pgia-sistema.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
 import { QUESITOS, ROMANOS } from './quesitos';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { acompanharSecao } from '../shared/secao-rota';
 import {
   BASES_LEGAIS_LGPD,
   ESCOPOS_DADOS,
@@ -30,12 +31,12 @@ import {
 @Component({
   selector: 'app-pgia-sistemas',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PgiaAbasComponent],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
   templateUrl: './pgia-sistemas.component.html'
 })
 export class PgiaSistemasComponent implements OnInit {
-  @ViewChild('cardLista') cardLista?: ElementRef<HTMLElement>;
-
+  /** Formulário mostrado nesta página (vem do parâmetro `:secao` da rota). */
+  secao: string = '';
   user: UserProfile | null = null;
   loading = true;
 
@@ -117,8 +118,12 @@ export class PgiaSistemasComponent implements OnInit {
     private authService: AuthService,
     private pgiaOrgaoService: PgiaOrgaoService,
     private pgiaSistemaService: PgiaSistemaService,
-    private notificationService: NotificationService
-  ) {}
+    private notificationService: NotificationService,
+    private router: Router
+  ) {
+    // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
+    acompanharSecao(secao => this.secao = secao);
+  }
 
   ngOnInit(): void {
     this.authService.getUser().subscribe(user => {
@@ -501,9 +506,9 @@ export class PgiaSistemasComponent implements OnInit {
         this.marcados = this.quesitos.map(() => false);
         this.carregarSistemas();
         // Sem resultado no aviso: a classificação é competência da SGDI.
-        this.notificationService.success('Sistema incluído no inventário. Ele já aparece na lista acima.');
-        // Handler de clique: só roda no browser.
-        this.cardLista?.nativeElement?.scrollIntoView({ behavior: 'smooth' });
+        this.notificationService.success('Sistema incluído no inventário. Ele já aparece na lista.');
+        // Cada seção tem a sua página: depois de salvar, mostrar a lista.
+        this.router.navigate(['/pgia/sistemas/lista']);
       },
       error: () => {
         this.salvando = false;

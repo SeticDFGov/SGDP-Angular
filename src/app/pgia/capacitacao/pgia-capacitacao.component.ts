@@ -7,7 +7,7 @@ import { UserProfile } from '../../../api/auth/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import {
   PgiaCapacitacao,
   PgiaCapacitacaoForm,
@@ -20,7 +20,7 @@ import {
 @Component({
   selector: 'app-pgia-capacitacao',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PgiaAbasComponent],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
   templateUrl: './pgia-capacitacao.component.html'
 })
 export class PgiaCapacitacaoComponent implements OnInit {

@@ -130,13 +130,10 @@ export class AuthService {
     return this.getUser().pipe(
       map(user => {
         if (!user) return false;
-        // Mesma definição do userConfiguredGuard: unidade e (perfil válido OU papel PGIA).
-        // Usada também pelo fluxo de login; sem o PapelPgia aqui, o Responsável de IA
-        // com perfil 'basico' ficaria preso no /pending-approval a cada login.
-        const hasPerfil = !!user.Perfil && user.Perfil !== 'basico';
-        const hasPapelPgia = !!user.PapelPgia;
-        const hasUnidade = !!user.Unidade;
-        return (hasPerfil || hasPapelPgia) && hasUnidade;
+        // Mesma definição do userConfiguredGuard: configurado = tem unidade.
+        // Perfil 'basico' com unidade entra confinado a /pgia (art. 13);
+        // sem unidade, segue para o pending-approval como antes.
+        return !!user.Unidade;
       })
     );
   }

@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto">
+<div citaDecreto class="max-w-5xl mx-auto">
 
   <!-- Contexto -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
@@ -6,8 +6,6 @@
     <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
     Aqui ficam os contratos de IA do órgão e a revisão dos contratos e atos assinados antes do decreto.
   </div>
-
-  <app-pgia-abas ativa="contratacoes"></app-pgia-abas>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
@@ -37,7 +35,7 @@
   <ng-container *ngIf="!loading && !isAuditoria && orgao">
 
     <!-- ── 1. Contratos de IA ───────────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'contratos'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Contratos de IA</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Um registro por contrato de sistema de IA. Todo contrato precisa
       da cláusula que veda treinar modelos com dados do GDF (art. 21) e dos requisitos do art. 25, § 1º. Os contratos de
@@ -83,7 +81,7 @@
             <option [ngValue]="null">Ainda não vinculado</option>
             <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">O vínculo traz a classificação de risco e define as exigências abaixo.</p>
+          <p class="text-xs text-gray-400 italic mt-1">O vínculo traz a classificação de risco e define as exigências abaixo.</p>
         </div>
         <div *ngIf="classificacaoContrato">
           <label class="block text-sm font-semibold mb-1">Classificação do sistema</label>
@@ -97,7 +95,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="ct-vedacao" [value]="true" [(ngModel)]="contratoForm.ClausulaVedacaoTreinamento"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="ct-vedacao" [value]="false" [(ngModel)]="contratoForm.ClausulaVedacaoTreinamento"> Não</label>
           </div>
-          <p class="text-xs text-gray-500 mt-1">A cláusula é obrigatória em todo contrato. Sem ela, é preciso autorização excepcional aprovada pelo CGTIC (art. 21).</p>
+          <p class="text-xs text-gray-400 italic mt-1">A cláusula é obrigatória em todo contrato. Sem ela, é preciso autorização excepcional aprovada pelo CGTIC (art. 21).</p>
         </div>
         <div *ngIf="exigeAutorizacaoTreinamento">
           <label class="block text-sm font-semibold mb-1">Autorização excepcional de treinamento <span class="text-red-600">*</span></label>
@@ -109,7 +107,7 @@
               {{ a.OrgaoSigla }} · {{ a.DataAutorizacao | date:'dd/MM/yyyy':'UTC' }}
             </option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">A SGDI registra as autorizações. Se a sua não aparece, peça o registro antes de salvar.</p>
+          <p class="text-xs text-gray-400 italic mt-1">A SGDI registra as autorizações. Se a sua não aparece, peça o registro antes de salvar.</p>
         </div>
 
         <div *ngIf="exigePdtic">
@@ -127,7 +125,7 @@
       <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar && exigeHomologacao">
         <h3 class="text-sm font-semibold text-gray-900 mb-1">Homologação técnica da SGDI (art. 25, II)
           <span class="text-red-600">*</span></h3>
-        <p class="text-xs text-gray-500 mb-3">O contrato de Risco Moderado só é aceito com a homologação técnica registrada.
+        <p class="text-xs text-gray-400 italic mb-3">O contrato de Risco Moderado só é aceito com a homologação técnica registrada.
         O arquivo em si entra como anexo em fase futura: por ora, o processo SEI comprova a homologação.</p>
 
         <div *ngIf="contratoForm.HomologacaoSgdiDocId" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md">
@@ -165,7 +163,7 @@
       <!-- Requisitos do art. 25, § 1º -->
       <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar">
         <h3 class="text-sm font-semibold text-gray-900 mb-1">Requisitos obrigatórios do contrato (art. 25, § 1º)</h3>
-        <p class="text-xs text-gray-500 mb-3">Confirme cada ponto com o fornecedor antes de assinar.</p>
+        <p class="text-xs text-gray-400 italic mb-3">Confirme cada ponto com o fornecedor antes de assinar.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-1">Explicabilidade documentada pelo fornecedor?</label>
@@ -194,7 +192,7 @@
               <label class="flex items-center gap-2"><input type="radio" name="ct-req4" [value]="true" [(ngModel)]="contratoForm.ReqSemAprisionamento"> Sim</label>
               <label class="flex items-center gap-2"><input type="radio" name="ct-req4" [value]="false" [(ngModel)]="contratoForm.ReqSemAprisionamento"> Não</label>
             </div>
-            <p class="text-xs text-gray-500 mt-1">Migração e portabilidade garantidas (art. 25, § 1º, d).</p>
+            <p class="text-xs text-gray-400 italic mt-1">Migração e portabilidade garantidas (art. 25, § 1º, d).</p>
           </div>
           <div>
             <label class="block text-sm font-semibold mb-1">Compatível com acessibilidade digital?</label>
@@ -209,7 +207,7 @@
               <label class="flex items-center gap-2"><input type="radio" name="ct-guia" [value]="true" [(ngModel)]="contratoForm.ConformeGuiaContratacoes"> Sim</label>
               <label class="flex items-center gap-2"><input type="radio" name="ct-guia" [value]="false" [(ngModel)]="contratoForm.ConformeGuiaContratacoes"> Não</label>
             </div>
-            <p class="text-xs text-gray-500 mt-1">Responda depois que o guia for publicado (art. 26, § 1º).</p>
+            <p class="text-xs text-gray-400 italic mt-1">Responda depois que o guia for publicado (art. 26, § 1º).</p>
           </div>
         </div>
       </div>
@@ -218,7 +216,7 @@
       <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar && exigeAltoRisco">
         <h3 class="text-sm font-semibold text-gray-900 mb-1">Exigências do Alto Risco
           <span class="text-yellow-700 text-xs font-semibold">exigido para Alto Risco (art. 25, § 2º)</span></h3>
-        <p class="text-xs text-gray-500 mb-3">Os níveis de serviço são números acordados com o fornecedor: use a mesma unidade do contrato.</p>
+        <p class="text-xs text-gray-400 italic mb-3">Os níveis de serviço são números acordados com o fornecedor: use a mesma unidade do contrato.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-1">Cláusula de auditoria independente? <span class="text-red-600">*</span></label>
@@ -320,7 +318,7 @@
     </div>
 
     <!-- ── 2. Triagem dos instrumentos anteriores ──────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'legados'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Triagem de contratos e atos anteriores ao decreto</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Contratos, atos normativos e convênios assinados antes do decreto
       precisam ser revistos e adequados <strong class="text-gray-900">até 30/12/2026</strong> (art. 37). Liste aqui cada
@@ -353,7 +351,7 @@
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let e of envolveIa" [value]="e">{{ e }}</option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">Incerto é tratado como sim até a confirmação do fornecedor.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Incerto é tratado como sim até a confirmação do fornecedor.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Data da triagem</label>
@@ -379,7 +377,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="lg-aditivo" [value]="true" [(ngModel)]="legadoForm.AditivoClausulaTreinamento"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="lg-aditivo" [value]="false" [(ngModel)]="legadoForm.AditivoClausulaTreinamento"> Não</label>
           </div>
-          <p class="text-xs text-gray-500 mt-1">Arts. 21 e 37.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Arts. 21 e 37.</p>
         </div>
         <div *ngIf="legadoEnvolveIa">
           <label class="block text-sm font-semibold mb-1">Data do aditivo</label>
@@ -398,7 +396,7 @@
             <option [ngValue]="null">Ainda não vinculado</option>
             <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">Se o instrumento envolve IA, o sistema entra no inventário com origem "Instrumento vigente em revisão".</p>
+          <p class="text-xs text-gray-400 italic mt-1">Se o instrumento envolve IA, o sistema entra no inventário com origem "Instrumento vigente em revisão".</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Comprovação</label>

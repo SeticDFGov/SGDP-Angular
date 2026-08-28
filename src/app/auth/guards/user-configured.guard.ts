@@ -9,12 +9,10 @@ export const userConfiguredGuard = () => {
 
   return authService.getUser().pipe(
     map(user => {
-      // Usuário configurado: tem unidade e (perfil válido OU papel PGIA).
-      // Um Responsável de IA cujo único vínculo é o PGIA não fica preso no pending-approval.
-      const hasUnidade = !!user?.Unidade;
-      const hasPerfil = !!user?.Perfil && user.Perfil !== 'basico';
-      const hasPapelPgia = !!user?.PapelPgia;
-      const isConfigured = hasUnidade && (hasPerfil || hasPapelPgia);
+      // Usuário configurado: tem unidade. Perfil 'basico' com unidade não fica
+      // mais preso no pending-approval: entra confinado a /pgia para cumprir o
+      // art. 13 (registrar uso de IA) — decisão registrada no CLAUDE.md.
+      const isConfigured = !!user?.Unidade;
 
       if (!isConfigured) {
         router.navigate(['/pending-approval']);

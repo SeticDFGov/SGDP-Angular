@@ -1,4 +1,4 @@
-﻿<div class="max-w-5xl mx-auto">
+﻿<div citaDecreto class="max-w-5xl mx-auto">
 
   <!-- Contexto -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
@@ -20,9 +20,6 @@
       <strong>DPO</strong>: Encarregado de Dados, pessoa que cuida da proteção de dados pessoais, conforme a LGPD (Lei Geral de Proteção de Dados).
     </div>
   </details>
-
-  <!-- Abas do módulo -->
-  <app-pgia-abas ativa="orgao"></app-pgia-abas>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
@@ -52,7 +49,7 @@
   <ng-container *ngIf="!loading && !isAuditoria && orgao">
 
     <!-- Card: dados do órgão -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'dados'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Dados do órgão ou entidade</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Primeiro, identifique o seu órgão. Essas informações aparecem no Registro Público de
       Sistemas de IA, no Portal da Transparência (art. 24 do decreto).</p>
@@ -88,7 +85,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="psc" [value]="true" [(ngModel)]="dadosForm.PrestaServicoCidadao"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="psc" [value]="false" [(ngModel)]="dadosForm.PrestaServicoCidadao"> Não</label>
           </div>
-          <p class="text-xs text-gray-500 mt-1">Para empresas públicas e sociedades de economia mista, a política vale no que couber (art. 1º, parágrafo único).</p>
+          <p class="text-xs text-gray-400 italic mt-1">Para empresas públicas e sociedades de economia mista, a política vale no que couber (art. 1º, parágrafo único).</p>
         </div>
       </div>
       <div class="mt-4" *ngIf="podeEditarDados">
@@ -100,7 +97,7 @@
     </div>
 
     <!-- Card: pessoas -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'pessoas'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Pessoas que vão usar o sistema</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Estas são as pessoas do seu órgão que podem operar este sistema ou exercer alguma função da
       política: servidores, estagiários e prestadores de serviço (art. 3º). Complete a matrícula, o cargo e o
@@ -134,7 +131,7 @@
           </tr>
         </tbody>
       </table>
-      <p class="text-xs text-gray-500">As pessoas entram nesta lista quando fazem o primeiro acesso ao SGDP e escolhem
+      <p class="text-xs text-gray-400 italic">As pessoas entram nesta lista quando fazem o primeiro acesso ao SGDP e escolhem
       a unidade do seu órgão. Não encontrou alguém? Peça a ela que acesse o sistema e selecione a unidade.</p>
 
       <!-- Edição de dados da pessoa -->
@@ -150,7 +147,7 @@
             <label class="block text-sm font-semibold mb-1">Cargo ou função</label>
             <input type="text" [(ngModel)]="infoForm.CargoFuncao"
                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <p class="text-xs text-gray-500 mt-1">Aparece nos atos de designação.</p>
+            <p class="text-xs text-gray-400 italic mt-1">Aparece nos atos de designação.</p>
           </div>
           <div>
             <label class="block text-sm font-semibold mb-1">Vínculo <span class="text-red-600">*</span></label>
@@ -174,7 +171,7 @@
     </div>
 
     <!-- Card: Responsável de IA -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'responsavel-ia'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Designação do Responsável de IA</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Informe quem responde pelo uso de IA no seu órgão e o ato que formalizou a designação
       (art. 10). Depois de salvar, comunique a designação à SGDI pelo SEI.
@@ -197,7 +194,7 @@
             <option value="" disabled>Escolha uma pessoa do órgão</option>
             <option *ngFor="let p of pessoas" [value]="p.UserId">{{ p.Nome }}{{ p.Matricula ? ' · mat. ' + p.Matricula : '' }}</option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">Não encontrou o nome? Peça à pessoa que acesse o SGDP e escolha a unidade do seu órgão.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Não encontrou o nome? Peça à pessoa que acesse o SGDP e escolha a unidade do seu órgão.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Tipo do ato <span class="text-red-600">*</span></label>
@@ -230,7 +227,7 @@
                  [class.border-red-500]="riaSubmetido && !riaForm.ProcessoSeiComunicacao.trim()"
                  [class.bg-red-50]="riaSubmetido && !riaForm.ProcessoSeiComunicacao.trim()"
                  [class.border-gray-300]="!(riaSubmetido && !riaForm.ProcessoSeiComunicacao.trim())">
-          <p class="text-xs text-gray-500 mt-1">O SEI é o canal oficial de comunicação com a SGDI (art. 10, § 1º).</p>
+          <p class="text-xs text-gray-400 italic mt-1">O SEI é o canal oficial de comunicação com a SGDI (art. 10, § 1º).</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Data da comunicação à SGDI <span class="text-red-600">*</span></label>
@@ -238,7 +235,7 @@
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="riaSubmetido && !riaForm.DataComunicacaoSgdi"
                  [class.border-gray-300]="!(riaSubmetido && !riaForm.DataComunicacaoSgdi)">
-          <p *ngIf="!riaForm.DataComunicacaoSgdi" class="text-xs text-gray-500 mt-1">O limite é 02/08/2026.</p>
+          <p *ngIf="!riaForm.DataComunicacaoSgdi" class="text-xs text-gray-400 italic mt-1">O limite é 02/08/2026.</p>
           <p *ngIf="riaForm.DataComunicacaoSgdi && prazoOk(riaForm.DataComunicacaoSgdi)" class="text-xs font-semibold text-green-700 mt-1">
             Dentro do prazo. O limite é 02/08/2026.</p>
           <p *ngIf="riaForm.DataComunicacaoSgdi && !prazoOk(riaForm.DataComunicacaoSgdi)" class="text-xs font-semibold text-red-700 mt-1">
@@ -250,7 +247,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="actic" [value]="true" [(ngModel)]="riaForm.AcumulaFuncaoTic"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="actic" [value]="false" [(ngModel)]="riaForm.AcumulaFuncaoTic"> Não</label>
           </div>
-          <p class="text-xs text-gray-500 mt-1">A acumulação é permitida, desde que não comprometa as duas funções (art. 10, § 2º).</p>
+          <p class="text-xs text-gray-400 italic mt-1">A acumulação é permitida, desde que não comprometa as duas funções (art. 10, § 2º).</p>
         </div>
         <div *ngIf="riaForm.AcumulaFuncaoTic">
           <label class="block text-sm font-semibold mb-1">Ela possui capacitação adequada?
@@ -259,7 +256,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="cap" [value]="true" [(ngModel)]="riaForm.CapacitacaoAdequada"> Sim, concluiu a trilha Governança de IA</label>
             <label class="flex items-center gap-2"><input type="radio" name="cap" [value]="false" [(ngModel)]="riaForm.CapacitacaoAdequada"> Ainda não</label>
           </div>
-          <p class="text-xs text-gray-500 mt-1">Arts. 10, § 2º e 29, III.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Arts. 10, § 2º e 29, III.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Início da vigência <span class="text-red-600">*</span></label>
@@ -271,7 +268,7 @@
         <div>
           <label class="block text-sm font-semibold mb-1">Cópia do ato (PDF)</label>
           <input type="text" readonly value="anexo disponível em fase futura" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
-          <p class="text-xs text-gray-500 mt-1">O processo SEI informado já comprova a comunicação. O histórico das designações anteriores fica guardado.</p>
+          <p class="text-xs text-gray-400 italic mt-1">O processo SEI informado já comprova a comunicação. O histórico das designações anteriores fica guardado.</p>
         </div>
       </div>
       <div class="mt-4 flex gap-2" *ngIf="podeDesignar">
@@ -303,7 +300,7 @@
     </div>
 
     <!-- Card: Encarregado de Dados -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'encarregado-dados'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Designação do Encarregado de Dados (DPO)</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">O Encarregado de Dados cuida da proteção dos dados pessoais tratados pelos sistemas de IA,
       conforme a LGPD (art. 11). A designação segue o mesmo caminho: ato do órgão e comunicação à SGDI
@@ -364,7 +361,7 @@
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="dpoSubmetido && !dpoForm.DataComunicacaoSgdi"
                  [class.border-gray-300]="!(dpoSubmetido && !dpoForm.DataComunicacaoSgdi)">
-          <p *ngIf="!dpoForm.DataComunicacaoSgdi" class="text-xs text-gray-500 mt-1">O limite é 02/08/2026.</p>
+          <p *ngIf="!dpoForm.DataComunicacaoSgdi" class="text-xs text-gray-400 italic mt-1">O limite é 02/08/2026.</p>
           <p *ngIf="dpoForm.DataComunicacaoSgdi && prazoOk(dpoForm.DataComunicacaoSgdi)" class="text-xs font-semibold text-green-700 mt-1">
             Dentro do prazo. O limite é 02/08/2026.</p>
           <p *ngIf="dpoForm.DataComunicacaoSgdi && !prazoOk(dpoForm.DataComunicacaoSgdi)" class="text-xs font-semibold text-red-700 mt-1">

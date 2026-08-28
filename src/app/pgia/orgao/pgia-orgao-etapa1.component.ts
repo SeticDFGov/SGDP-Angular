@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AuthService, PapeisPgia, Perfis } from '../../auth/services/auth';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
 import { UserProfile } from '../../../api/auth/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { acompanharSecao } from '../shared/secao-rota';
 import {
   NATUREZAS_JURIDICAS,
   PgiaAgenteInfoForm,
@@ -23,10 +24,12 @@ import {
 @Component({
   selector: 'app-pgia-orgao-etapa1',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PgiaAbasComponent],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
   templateUrl: './pgia-orgao-etapa1.component.html'
 })
 export class PgiaOrgaoEtapa1Component implements OnInit {
+  /** Formulário mostrado nesta página (vem do parâmetro `:secao` da rota). */
+  secao: string = '';
   user: UserProfile | null = null;
   loading = true;
 
@@ -72,7 +75,10 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
     private authService: AuthService,
     private pgiaOrgaoService: PgiaOrgaoService,
     private notificationService: NotificationService
-  ) {}
+  ) {
+    // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
+    acompanharSecao(secao => this.secao = secao);
+  }
 
   ngOnInit(): void {
     this.authService.getUser().subscribe(user => {

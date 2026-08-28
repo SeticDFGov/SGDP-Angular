@@ -13,7 +13,7 @@
       usuário no banco local, já com papel, unidade e órgão de teste quando a persona pede.</p>
 
       <h2 class="text-sm font-semibold text-gray-900 mb-2">Papéis do PGIA (Decreto 48.901/2026)</h2>
-      <p class="text-xs text-gray-500 mb-2">Cada persona entra direto na tela do seu papel — exatamente o que aquele papel enxerga.</p>
+      <p class="text-xs text-gray-400 italic mb-2">Cada persona entra direto na tela do seu papel — exatamente o que aquele papel enxerga.</p>
       <div class="space-y-2 mb-6">
         <button *ngFor="let p of personasPgia" (click)="entrarComo(p)" [disabled]="entrando"
           class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-left disabled:opacity-50">
@@ -21,7 +21,7 @@
             <span class="font-medium text-gray-900">{{ p.Nome }}</span>
             <span *ngIf="p.PapelPgia" class="ml-2 px-2 py-0.5 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded-full">{{ p.PapelPgia }}</span>
             <span *ngIf="!p.PapelPgia" class="ml-2 px-2 py-0.5 text-xs font-semibold bg-gray-200 text-gray-700 rounded-full">sem papel (art. 13)</span>
-            <span class="block text-xs text-gray-500 mt-0.5">{{ p.Descricao }}</span>
+            <span class="block text-xs text-gray-400 italic mt-0.5">{{ p.Descricao }}</span>
           </span>
           <span class="material-icons text-blue-600">login</span>
         </button>
@@ -30,7 +30,7 @@
           <span>
             <span class="font-medium text-gray-900">Cidadão</span>
             <span class="ml-2 px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded-full">público, sem login</span>
-            <span class="block text-xs text-gray-500 mt-0.5">Página de transparência: Registro Público dos sistemas de IA, pedido com protocolo e acompanhamento</span>
+            <span class="block text-xs text-gray-400 italic mt-0.5">Página de transparência: Registro Público dos sistemas de IA, pedido com protocolo e acompanhamento</span>
           </span>
           <span class="material-icons text-green-600">public</span>
         </button>
@@ -43,7 +43,7 @@
           <span>
             <span class="font-medium text-gray-900">{{ p.Nome }}</span>
             <span class="ml-2 px-2 py-0.5 text-xs font-semibold bg-gray-200 text-gray-700 rounded-full">{{ p.Perfil }}</span>
-            <span class="block text-xs text-gray-500 mt-0.5">{{ p.Descricao }}</span>
+            <span class="block text-xs text-gray-400 italic mt-0.5">{{ p.Descricao }}</span>
           </span>
           <span class="material-icons text-blue-600">login</span>
         </button>
@@ -75,6 +75,6 @@
       </div>
     </div>
 
-    <p class="text-xs text-gray-500 text-center">Roteiro de testes completo em EXECUTAR-LOCAL.md, na raiz do workspace.</p>
+    <p class="text-xs text-gray-400 italic text-center">Roteiro de testes completo em EXECUTAR-LOCAL.md, na raiz do workspace.</p>
   </div>
 </div>

@@ -57,9 +57,9 @@ export class LoginLocalComponent {
       Descricao: 'Comitê: casos delegados de Alto Risco e Risco Excessivo, deliberações e autorizações'
     },
     {
-      Email: 'agente@local.teste', Nome: 'Alice Agente Pública', Perfil: 'gestor',
+      Email: 'agente@local.teste', Nome: 'Alice Agente Pública', Perfil: 'basico',
       VincularAoOrgaoDeTeste: true, Rota: '/pgia/uso',
-      Descricao: 'Servidora do órgão SEM papel PGIA: só registra uso de IA e avisa incidentes (art. 13), além do SGDP normal'
+      Descricao: 'Servidora do órgão SEM papel PGIA: vê somente o registro de uso de IA (art. 13)'
     },
     {
       Email: 'auditoria@local.teste', Nome: 'Aurélio Auditor', Perfil: 'basico',

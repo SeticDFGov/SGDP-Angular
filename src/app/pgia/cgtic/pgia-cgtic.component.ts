@@ -1,12 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, PapeisPgia, Perfis } from '../../auth/services/auth';
 import { UserProfile } from '../../../api/auth/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaGovernancaService, PgiaSistemaResumo } from '../services/pgia-governanca.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
 import { PgiaChecklistAbertoComponent } from '../shared/pgia-checklist-aberto.component';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { acompanharSecao } from '../shared/secao-rota';
 import {
   PgiaDeliberacao,
   PgiaDeliberacaoForm,
@@ -33,10 +35,12 @@ const TIPOS_QUE_MUDAM_HOMOLOGACAO: string[] = [
 @Component({
   selector: 'app-pgia-cgtic',
   standalone: true,
-  imports: [CommonModule, FormsModule, PgiaAbasComponent, PgiaChecklistAbertoComponent],
+  imports: [CommonModule, FormsModule, PgiaChecklistAbertoComponent, CitaDecretoDirective],
   templateUrl: './pgia-cgtic.component.html'
 })
 export class PgiaCgticComponent implements OnInit {
+  /** Formulário mostrado nesta página (vem do parâmetro `:secao` da rota). */
+  secao: string = '';
   user: UserProfile | null = null;
   loading = true;
   temAcesso = false;
@@ -62,10 +66,25 @@ export class PgiaCgticComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private governancaService: PgiaGovernancaService,
-    private notificationService: NotificationService
-  ) {}
+    private notificationService: NotificationService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {
+    // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
+    acompanharSecao(secao => this.secao = secao);
+  }
 
   ngOnInit(): void {
+    // Caso preparado na página "Casos delegados ao comitê".
+    this.route.queryParams.subscribe(params => {
+      const sistemaId = Number(params['sistema']);
+      if (!sistemaId) return;
+      this.form = this.novoForm();
+      this.form.Tipo = 'Classificação de sistema como Alto Risco';
+      this.form.SistemaIaId = sistemaId;
+      this.submetido = false;
+    });
+
     this.authService.getUser().subscribe(user => {
       this.user = user;
       const papel = user?.PapelPgia ?? null;
@@ -128,12 +147,12 @@ export class PgiaCgticComponent implements OnInit {
 
   /** Atalho do card da fila: já deixa o formulário de deliberação pronto para o caso. */
   prepararDeliberacao(item: PgiaHomologacaoPendente): void {
-    this.form = this.novoForm();
-    this.form.Tipo = 'Classificação de sistema como Alto Risco';
-    this.form.SistemaIaId = item.Sistema.Id;
-    this.submetido = false;
     this.notificationService.info(
-      `Formulário preparado para ${item.Sistema.Denominacao}. Complete a data e o resultado abaixo.`);
+      `Formulário preparado para ${item.Sistema.Denominacao}. Complete a data e o resultado.`);
+    // A deliberação tem página própria: o caso escolhido vai junto na URL.
+    this.router.navigate(['/pgia/cgtic/deliberacoes'], {
+      queryParams: { sistema: item.Sistema.Id }
+    });
   }
 
   badgeClasse(risco: string | null): string {

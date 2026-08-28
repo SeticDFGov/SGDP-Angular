@@ -2,6 +2,7 @@ import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PgiaPublicoService } from '../services/pgia-publico.service';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import {
   PgiaRegistroPublicoItem,
   PgiaSolicitacaoPublica,
@@ -16,7 +17,7 @@ import {
 @Component({
   selector: 'app-pgia-transparencia',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CitaDecretoDirective],
   templateUrl: './pgia-transparencia.component.html'
 })
 export class PgiaTransparenciaComponent implements OnInit {

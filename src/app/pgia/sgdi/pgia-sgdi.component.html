@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto">
+<div citaDecreto class="max-w-5xl mx-auto">
 
   <!-- Contexto (texto do mock) -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
@@ -7,22 +7,20 @@
     todos os órgãos. Para os sistemas da própria SGDI, use o perfil de órgão, como qualquer outra unidade.
   </div>
 
-  <app-pgia-abas ativa="sgdi"></app-pgia-abas>
-
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
   <!-- Sem papel da SGDI -->
   <div *ngIf="!loading && !temAcesso" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
       Esta área é da equipe da SGDI. O seu papel no PGIA não dá acesso a ela.
-      Use as abas acima para voltar às telas do seu órgão.
+      Use o menu lateral para voltar às telas do seu órgão.
     </div>
   </div>
 
   <ng-container *ngIf="!loading && temAcesso">
 
     <!-- ── 1. Fila de homologação ───────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'fila'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Fila de homologação</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Os órgãos enviam cada sistema do inventário para homologação.
       Os casos de Baixo e Moderado Risco são avaliados aqui pela SGDI. Os de Alto Risco e Risco Excessivo vão ao CGTIC,
@@ -86,7 +84,7 @@
 
       <!-- Fila do CGTIC (somente leitura para a SGDI) -->
       <h3 class="text-sm font-semibold text-gray-900 mb-2 mt-6">Delegados ao CGTIC</h3>
-      <p class="text-xs text-gray-500 mb-2">Estes casos são deliberados pelo comitê. A SGDI acompanha, mas não decide aqui.</p>
+      <p class="text-xs text-gray-400 italic mb-2">Estes casos são deliberados pelo comitê. A SGDI acompanha, mas não decide aqui.</p>
       <p *ngIf="!carregandoFilas && filaCgtic.length === 0" class="text-sm text-gray-500">
         Nenhum sistema aguardando deliberação do CGTIC.
       </p>
@@ -119,7 +117,7 @@
     </div>
 
     <!-- ── 2. Plataformas ───────────────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'plataformas'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Homologação de plataforma pública de IA generativa</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Registre a avaliação da plataforma e o ato próprio de homologação (art. 8º, IV). A relação
       das plataformas homologadas fica pública e indica quais estão aptas a tratar dados pessoais e informações
@@ -219,7 +217,7 @@
     </div>
 
     <!-- ── Apuração de incidente ────────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'apuracao'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Apuração de incidente</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Continue aqui o tratamento dos incidentes comunicados pelos órgãos (arts. 8º, IX e 30,
       parágrafo único). A SGDI apura a gravidade e pode recomendar medidas corretivas ao órgão ou propor ao
@@ -271,7 +269,7 @@
           <label class="block text-sm font-semibold mb-1">Encaminhado ao órgão competente em</label>
           <input type="date" [(ngModel)]="apuracaoForm.EncaminhadoOrgaoCompetenteEm" name="ap-encaminhado"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <p class="text-xs text-gray-500 mt-1">Art. 8º, IX.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Art. 8º, IX.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">O sistema foi suspenso? <span class="text-red-600">*</span></label>
@@ -298,31 +296,37 @@
       </div>
     </div>
 
+    <!-- Escolha do órgão e do sistema: usada no Registro Público e na AIA,
+         que agora são páginas separadas. -->
+    <ng-template #seletorOrgaoSistema>
+      <div>
+        <label class="block text-sm font-semibold mb-1">Órgão</label>
+        <select [(ngModel)]="orgaoSelecionadoId" name="rp-orgao" (ngModelChange)="aoTrocarOrgao()"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option [ngValue]="null">Escolha o órgão</option>
+          <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">Sistema</label>
+        <select [(ngModel)]="sistemaSelecionadoId" name="rp-sistema" (ngModelChange)="aoTrocarSistema()"
+                [disabled]="!orgaoSelecionadoId || carregandoSistemas"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50">
+          <option [ngValue]="null">{{ carregandoSistemas ? 'Carregando...' : 'Escolha o sistema' }}</option>
+          <option *ngFor="let s of sistemasDoOrgao" [ngValue]="s.Id">{{ s.Denominacao }}</option>
+        </select>
+      </div>
+    </ng-template>
+
     <!-- ── 3. Registro Público ──────────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'registro-publico'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Registro Público</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">O Registro Público de Sistemas de IA fica no Portal da Transparência e é montado com os dados
       do inventário: nome, finalidade, órgão, classificação, decisões, efeitos e indicadores (art. 24). Marque abaixo a
       publicação de cada sistema.</p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-semibold mb-1">Órgão</label>
-          <select [(ngModel)]="orgaoSelecionadoId" name="rp-orgao" (ngModelChange)="aoTrocarOrgao()"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option [ngValue]="null">Escolha o órgão</option>
-            <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-semibold mb-1">Sistema</label>
-          <select [(ngModel)]="sistemaSelecionadoId" name="rp-sistema" (ngModelChange)="aoTrocarSistema()"
-                  [disabled]="!orgaoSelecionadoId || carregandoSistemas"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50">
-            <option [ngValue]="null">{{ carregandoSistemas ? 'Carregando...' : 'Escolha o sistema' }}</option>
-            <option *ngFor="let s of sistemasDoOrgao" [ngValue]="s.Id">{{ s.Denominacao }}</option>
-          </select>
-        </div>
+        <ng-container *ngTemplateOutlet="seletorOrgaoSistema"></ng-container>
         <div>
           <label class="block text-sm font-semibold mb-1">Publicado no Registro Público?</label>
           <div class="flex gap-4 text-sm mt-1">
@@ -339,7 +343,7 @@
           <label class="block text-sm font-semibold mb-1">Endereço do resultado da AIA</label>
           <input type="text" readonly [value]="urlAiaPublicada || 'nenhuma avaliação publicada até agora'"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
-          <p class="text-xs text-gray-500 mt-1">Vem da avaliação de impacto publicada abaixo. Respeitados os segredos comerciais e industriais (art. 24, IV).</p>
+          <p class="text-xs text-gray-400 italic mt-1">Vem da avaliação de impacto registrada em "Publicação de AIA". Respeitados os segredos comerciais e industriais (art. 24, IV).</p>
         </div>
       </div>
 
@@ -352,14 +356,18 @@
     </div>
 
     <!-- ── 4. Publicação de AIA ─────────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'aia'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Publicação de AIA</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">A Avaliação de Impacto Algorítmico (AIA) dos sistemas de Alto Risco
       precisa ser publicada no Portal da Transparência antes de o sistema entrar em funcionamento (art. 16, § 1º).
       Registre aqui a publicação e vincule a deliberação do CGTIC que aprovou o caso. As avaliações mostradas são as do
-      sistema escolhido no card acima.</p>
+      sistema escolhido abaixo.</p>
 
-      <p *ngIf="!sistemaSelecionado" class="text-sm text-gray-500">Escolha o órgão e o sistema no card acima.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <ng-container *ngTemplateOutlet="seletorOrgaoSistema"></ng-container>
+      </div>
+
+      <p *ngIf="!sistemaSelecionado" class="text-sm text-gray-500">Escolha o órgão e o sistema para ver as avaliações.</p>
       <p *ngIf="sistemaSelecionado && carregandoAias" class="text-sm text-gray-500">Carregando...</p>
       <p *ngIf="sistemaSelecionado && !carregandoAias && aias.length === 0" class="text-sm text-gray-500">
         Este sistema ainda não tem avaliação de impacto registrada pelo órgão.
@@ -422,7 +430,7 @@
     </div>
 
     <!-- ── Painel de relatórios semestrais ──────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'semestrais'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Painel de relatórios semestrais</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Cada órgão presta contas à SGDI a cada semestre (art. 32).
       O atraso muda a situação para inadimplente, com registro neste painel e comunicação ao controle interno
@@ -515,7 +523,7 @@
     </div>
 
     <!-- ── Relatório Anual de Governança de IA ──────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'anual'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Relatório Anual de Governança de IA</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">A SGDI publica o relatório do ano
       <strong class="text-gray-900">até 31 de março</strong> (art. 33) e o CGTIC o aprecia (art. 7º, VII).
@@ -605,7 +613,7 @@
     </div>
 
     <!-- ── Auditorias técnicas ──────────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'auditorias'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Auditorias técnicas</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Os sistemas de Alto Risco passam por auditoria técnica, na forma
       e na periodicidade que o CGTIC definir (art. 34). Designe a entidade auditora e o usuário dela que vai entregar o
@@ -642,7 +650,7 @@
             <option value="">Escolher depois</option>
             <option *ngFor="let a of auditores" [value]="a.UserId">{{ a.Nome }} · {{ a.Email }}</option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">É quem vê a auditoria na área dela e entrega o parecer.</p>
+          <p class="text-xs text-gray-400 italic mt-1">É quem vê a auditoria na área dela e entrega o parecer.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Externa ao fornecedor? <span class="text-red-600">*</span></label>
@@ -650,7 +658,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="au-externa" [value]="true" [(ngModel)]="auditoriaForm.ExternaFornecedor"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="au-externa" [value]="false" [(ngModel)]="auditoriaForm.ExternaFornecedor"> Não</label>
           </div>
-          <p class="text-xs text-gray-500 mt-1">O decreto exige que a entidade auditora seja externa ao fornecedor (art. 25, § 2º).</p>
+          <p class="text-xs text-gray-400 italic mt-1">O decreto exige que a entidade auditora seja externa ao fornecedor (art. 25, § 2º).</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Apoio da FAPDF?</label>
@@ -658,7 +666,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="au-fapdf" [value]="true" [(ngModel)]="auditoriaForm.ApoioFapdf"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="au-fapdf" [value]="false" [(ngModel)]="auditoriaForm.ApoioFapdf"> Não</label>
           </div>
-          <p class="text-xs text-gray-500 mt-1">A FAPDF pode dar suporte técnico-científico (art. 12, I).</p>
+          <p class="text-xs text-gray-400 italic mt-1">A FAPDF pode dar suporte técnico-científico (art. 12, I).</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Início dos trabalhos <span class="text-red-600">*</span></label>
@@ -714,7 +722,7 @@
                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
           </div>
-          <p class="text-xs text-gray-500 mt-1">O resultado da auditoria é publicado no Portal da Transparência (art. 34).</p>
+          <p class="text-xs text-gray-400 italic mt-1">O resultado da auditoria é publicado no Portal da Transparência (art. 34).</p>
 
           <div class="mt-3">
             <button (click)="publicarAuditoria(a)" [disabled]="publicandoAuditoriaId === a.Id"
@@ -727,7 +735,7 @@
     </div>
 
     <!-- ── Não conformidades da supervisão ──────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'nao-conformidades'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Não conformidades</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Situações em que a política de IA não foi cumprida. Os órgãos
       registram o que o SGTIC deles encontra; a SGDI registra aqui o que a supervisão dela identifica. Acompanhe cada
@@ -748,7 +756,7 @@
           <label class="block text-sm font-semibold mb-1">Como foi identificada</label>
           <input type="text" readonly value="Supervisão da SGDI"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
-          <p class="text-xs text-gray-500 mt-1">O que o SGTIC do órgão encontra é registrado por ele, na área do órgão.</p>
+          <p class="text-xs text-gray-400 italic mt-1">O que o SGTIC do órgão encontra é registrado por ele, na área do órgão.</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">O que não foi cumprido? <span class="text-red-600">*</span></label>
@@ -844,7 +852,7 @@
     </div>
 
     <!-- ── 5. Normas complementares ─────────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'normas'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Normas complementares</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Guarde aqui as normas que detalham a política: resoluções do CGTIC,
       instruções normativas da SGDI, normas técnicas e guias. Os órgãos consultam esta lista para saber o que vale hoje.</p>
@@ -951,7 +959,7 @@
     </div>
 
     <!-- ── 6. Autorizações excepcionais ─────────────────────────────────── -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'autorizacoes'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Autorizações excepcionais</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Duas situações só acontecem com autorização expressa: usar plataforma
       pública de IA generativa com dados que não são públicos (art. 20) e deixar o fornecedor treinar modelos com dados do GDF
@@ -1011,7 +1019,7 @@
               {{ d.DataDeliberacao | date:'dd/MM/yyyy':'UTC' }} · {{ d.Tipo }} · {{ d.Resultado }}
             </option>
           </select>
-          <p *ngIf="exigeDeliberacao" class="text-xs text-gray-500 mt-1">Treinar modelos com dados do GDF só acontece com
+          <p *ngIf="exigeDeliberacao" class="text-xs text-gray-400 italic mt-1">Treinar modelos com dados do GDF só acontece com
           deliberação do comitê (art. 21).</p>
         </div>
         <div>
@@ -1025,7 +1033,7 @@
           <label class="block text-sm font-semibold mb-1">Vale até</label>
           <input type="date" [(ngModel)]="autorizacaoForm.VigenciaFim" name="au-vigencia"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <p class="text-xs text-gray-500 mt-1">Deixe em branco se a autorização não tem prazo definido.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Deixe em branco se a autorização não tem prazo definido.</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Avaliação de riscos (documento)</label>

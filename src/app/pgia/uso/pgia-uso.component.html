@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto">
+<div citaDecreto class="max-w-5xl mx-auto">
 
   <!-- Contexto (texto do mock do agente) -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
@@ -7,8 +7,6 @@
     trabalho registra esse uso aqui (arts. 3º e 13). O registro garante a rastreabilidade e mostra que houve
     revisão humana antes de o material ser usado.
   </div>
-
-  <app-pgia-abas ativa="uso"></app-pgia-abas>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
@@ -44,7 +42,7 @@
               <option *ngFor="let s of fontes.Sistemas" [ngValue]="'sistema:' + s.Id">{{ s.Denominacao }}</option>
             </optgroup>
           </select>
-          <p class="text-xs text-gray-500 mt-1">Só aparecem as plataformas homologadas pela SGDI. Em plataformas de fora desta lista, use apenas informações públicas (art. 20).</p>
+          <p class="text-xs text-gray-400 italic mt-1">Só aparecem as plataformas homologadas pela SGDI. Em plataformas de fora desta lista, use apenas informações públicas (art. 20).</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Data do uso <span class="text-red-600">*</span></label>

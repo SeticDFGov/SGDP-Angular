@@ -8,7 +8,8 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaSistemaService } from '../services/pgia-sistema.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { acompanharSecao } from '../shared/secao-rota';
 import {
   HIPOTESES_INCIDENTE,
   PgiaIncidente,
@@ -24,10 +25,12 @@ import {
 @Component({
   selector: 'app-pgia-incidentes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PgiaAbasComponent],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
   templateUrl: './pgia-incidentes.component.html'
 })
 export class PgiaIncidentesComponent implements OnInit {
+  /** Formulário mostrado nesta página (vem do parâmetro `:secao` da rota). */
+  secao: string = '';
   user: UserProfile | null = null;
   loading = true;
 
@@ -88,7 +91,10 @@ export class PgiaIncidentesComponent implements OnInit {
     private sistemaService: PgiaSistemaService,
     private operacaoService: PgiaOperacaoService,
     private notificationService: NotificationService
-  ) {}
+  ) {
+    // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
+    acompanharSecao(secao => this.secao = secao);
+  }
 
   ngOnInit(): void {
     this.authService.getUser().subscribe(user => {

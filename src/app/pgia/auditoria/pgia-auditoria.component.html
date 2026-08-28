@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto">
+<div citaDecreto class="max-w-5xl mx-auto">
 
   <!-- Contexto (texto do mock) -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
@@ -7,15 +7,13 @@
     pode dar suporte técnico-científico (art. 12, I). O acesso é restrito à auditoria designada pela SGDI.
   </div>
 
-  <app-pgia-abas ativa="auditoria"></app-pgia-abas>
-
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
   <!-- Sem papel de auditoria -->
   <div *ngIf="!loading && !temAcesso" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
       Esta área é da entidade auditora externa designada pela SGDI. O seu papel no PGIA não dá acesso a ela.
-      Use as abas acima para voltar às suas telas.
+      Use o menu lateral para voltar às suas telas.
     </div>
   </div>
 

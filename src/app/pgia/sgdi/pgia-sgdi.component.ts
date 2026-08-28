@@ -8,8 +8,9 @@ import { PgiaGovernancaService, PgiaSistemaResumo } from '../services/pgia-gover
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaSistemaService } from '../services/pgia-sistema.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
 import { PgiaChecklistAbertoComponent } from '../shared/pgia-checklist-aberto.component';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { acompanharSecao } from '../shared/secao-rota';
 import {
   AUTORIZADA_POR,
   HIPOTESES_INCIDENTE,
@@ -46,10 +47,12 @@ import {
 @Component({
   selector: 'app-pgia-sgdi',
   standalone: true,
-  imports: [CommonModule, FormsModule, PgiaAbasComponent, PgiaChecklistAbertoComponent],
+  imports: [CommonModule, FormsModule, PgiaChecklistAbertoComponent, CitaDecretoDirective],
   templateUrl: './pgia-sgdi.component.html'
 })
 export class PgiaSgdiComponent implements OnInit {
+  /** Formulário mostrado nesta página (vem do parâmetro `:secao` da rota). */
+  secao: string = '';
   user: UserProfile | null = null;
   loading = true;
 
@@ -166,7 +169,10 @@ export class PgiaSgdiComponent implements OnInit {
     private sistemaService: PgiaSistemaService,
     private operacaoService: PgiaOperacaoService,
     private notificationService: NotificationService
-  ) {}
+  ) {
+    // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
+    acompanharSecao(secao => this.secao = secao);
+  }
 
   ngOnInit(): void {
     this.authService.getUser().subscribe(user => {

@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto">
+<div citaDecreto class="max-w-5xl mx-auto">
 
   <!-- Contexto -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
@@ -6,8 +6,6 @@
     <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
     Aqui o órgão acompanha quem já fez as trilhas de capacitação em IA (arts. 28 e 29).
   </div>
-
-  <app-pgia-abas ativa="capacitacao"></app-pgia-abas>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
@@ -54,8 +52,8 @@
             <option value="">Escolha uma pessoa do órgão</option>
             <option *ngFor="let p of pessoas" [value]="p.UserId">{{ p.Nome }}{{ p.Matricula ? ' · mat. ' + p.Matricula : '' }}</option>
           </select>
-          <p *ngIf="!emEdicao" class="text-xs text-gray-500 mt-1">Não encontrou o nome? Peça à pessoa que acesse o SGDP e escolha a unidade do seu órgão.</p>
-          <p *ngIf="emEdicao" class="text-xs text-gray-500 mt-1">Pessoa e trilha identificam o registro e não mudam. Para outra combinação, cancele e registre uma nova.</p>
+          <p *ngIf="!emEdicao" class="text-xs text-gray-400 italic mt-1">Não encontrou o nome? Peça à pessoa que acesse o SGDP e escolha a unidade do seu órgão.</p>
+          <p *ngIf="emEdicao" class="text-xs text-gray-400 italic mt-1">Pessoa e trilha identificam o registro e não mudam. Para outra combinação, cancele e registre uma nova.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Trilha <span class="text-red-600">*</span></label>
@@ -85,7 +83,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="cap-prevista" [value]="true" [(ngModel)]="form.PrevistaPlanoCapacitacao"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="cap-prevista" [value]="false" [(ngModel)]="form.PrevistaPlanoCapacitacao"> Não</label>
           </div>
-          <p class="text-xs text-gray-500 mt-1">As trilhas entram nos planos de capacitação até 30/12/2026 (arts. 29, parágrafo único e 35, III).</p>
+          <p class="text-xs text-gray-400 italic mt-1">As trilhas entram nos planos de capacitação até 30/12/2026 (arts. 29, parágrafo único e 35, III).</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Certificado</label>

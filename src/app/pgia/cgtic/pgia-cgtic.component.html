@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto">
+<div citaDecreto class="max-w-5xl mx-auto">
 
   <!-- Contexto (texto do mock) -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
@@ -7,26 +7,24 @@
     sistema de Alto Risco pode ser contratado ou implantado sem aprovação prévia do comitê (arts. 7º, IV e 16, § 1º).
   </div>
 
-  <app-pgia-abas ativa="cgtic"></app-pgia-abas>
-
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
   <!-- Sem papel do CGTIC -->
   <div *ngIf="!loading && !temAcesso" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
       Esta área é da secretaria do CGTIC. O seu papel no PGIA não dá acesso a ela.
-      Use as abas acima para voltar às telas do seu órgão.
+      Use o menu lateral para voltar às telas do seu órgão.
     </div>
   </div>
 
   <ng-container *ngIf="!loading && temAcesso">
 
     <!-- Casos delegados ao comitê -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'casos'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Casos delegados ao comitê</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Estes sistemas foram enviados pelos órgãos e dependem de
       deliberação do comitê. Abra um item para ver o questionário respondido, com o peso de cada quesito e a pontuação
-      apurada. O atalho "Preparar deliberação" já deixa o formulário abaixo pronto para o caso.</p>
+      apurada. O atalho "Preparar deliberação" já abre o formulário de deliberação pronto para o caso.</p>
 
       <div *ngIf="carregandoFila" class="text-sm text-gray-500 py-2">Carregando...</div>
       <p *ngIf="!carregandoFila && fila.length === 0" class="text-sm text-gray-500">
@@ -72,7 +70,7 @@
     </div>
 
     <!-- Registrar deliberação -->
-    <div class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'deliberacoes'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Registrar deliberação</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Escolha o tipo de decisão, o objeto e o resultado. Quando a deliberação virar resolução,
       informe também o número e a ementa (art. 7º, VIII).</p>
@@ -101,7 +99,7 @@
               </option>
             </optgroup>
           </select>
-          <p class="text-xs text-gray-500 mt-1">A lista traz primeiro os casos delegados ao comitê e depois os demais
+          <p class="text-xs text-gray-400 italic mt-1">A lista traz primeiro os casos delegados ao comitê e depois os demais
           sistemas do inventário. Escolha "Sem objeto específico" para decisões gerais, como resoluções e guias.</p>
         </div>
         <div>

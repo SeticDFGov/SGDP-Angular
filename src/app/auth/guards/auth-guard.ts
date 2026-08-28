@@ -32,9 +32,10 @@ export const authGuard: CanActivateFn = (route, state) => {
             router.navigate(['/parceiro']);
             return false;
           }
-          // Usuário cujo único vínculo é o papel PGIA (perfil ainda 'basico')
-          // fica confinado à área /pgia, no mesmo padrão de centralit/parceiro.
-          if (perfil === 'basico' && !!user?.PapelPgia && !state.url.startsWith('/pgia')) {
+          // Perfil 'basico' (com ou sem papel PGIA) fica confinado à área /pgia,
+          // no mesmo padrão de centralit/parceiro. Sem papel, o pgiaGuard o leva
+          // ao registro de uso de IA (art. 13) — dever de todo agente público.
+          if (perfil === 'basico' && !state.url.startsWith('/pgia')) {
             router.navigate(['/pgia']);
             return false;
           }

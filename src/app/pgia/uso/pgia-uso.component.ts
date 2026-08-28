@@ -5,8 +5,8 @@ import { AuthService } from '../../auth/services/auth';
 import { UserProfile } from '../../../api/auth/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
 import { PgiaRegistroUso, PgiaUsoFontes } from '../../../api/pgia/interface';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 
 /**
  * Registro de uso de IA (art. 13, IV). É a única tela do PGIA aberta a qualquer
@@ -16,7 +16,7 @@ import { PgiaRegistroUso, PgiaUsoFontes } from '../../../api/pgia/interface';
 @Component({
   selector: 'app-pgia-uso',
   standalone: true,
-  imports: [CommonModule, FormsModule, PgiaAbasComponent],
+  imports: [CommonModule, FormsModule, CitaDecretoDirective],
   templateUrl: './pgia-uso.component.html'
 })
 export class PgiaUsoComponent implements OnInit {

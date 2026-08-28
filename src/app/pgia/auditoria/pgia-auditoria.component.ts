@@ -5,8 +5,8 @@ import { AuthService, PapeisPgia, Perfis } from '../../auth/services/auth';
 import { UserProfile } from '../../../api/auth/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaGovernancaService } from '../services/pgia-governanca.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
 import { PgiaAuditoria } from '../../../api/pgia/interface';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 
 /** Campos que a entidade auditora edita em cada auditoria designada. */
 interface EdicaoParecer {
@@ -18,7 +18,7 @@ interface EdicaoParecer {
 @Component({
   selector: 'app-pgia-auditoria',
   standalone: true,
-  imports: [CommonModule, FormsModule, PgiaAbasComponent],
+  imports: [CommonModule, FormsModule, CitaDecretoDirective],
   templateUrl: './pgia-auditoria.component.html'
 })
 export class PgiaAuditoriaComponent implements OnInit {

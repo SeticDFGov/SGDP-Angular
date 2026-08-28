@@ -7,13 +7,13 @@ import { UserProfile } from '../../../api/auth/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
-import { PgiaAbasComponent } from '../shared/pgia-abas.component';
 import { PgiaOrgao, PgiaSolicitacaoOrgao } from '../../../api/pgia/interface';
+import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 
 @Component({
   selector: 'app-pgia-solicitacoes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PgiaAbasComponent],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
   templateUrl: './pgia-solicitacoes.component.html'
 })
 export class PgiaSolicitacoesComponent implements OnInit {
