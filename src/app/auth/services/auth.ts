@@ -255,7 +255,10 @@ export class AuthService {
    * emite um token com o mesmo formato dos do Keycloak; daqui em diante o
    * fluxo é idêntico ao login normal (/me, perfis, guards).
    */
-  loginLocal(dados: { Email: string; Nome: string; Perfil: string }): Observable<AuthResponse> {
+  loginLocal(dados: {
+    Email: string; Nome: string; Perfil: string;
+    PapelPgia?: string | null; VincularAoOrgaoDeTeste?: boolean;
+  }): Observable<AuthResponse> {
     return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/authlocal/token`, dados).pipe(
       switchMap(tokenResponse => {
         localStorage.setItem('token', tokenResponse.access_token);
