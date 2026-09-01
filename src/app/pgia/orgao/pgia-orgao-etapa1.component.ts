@@ -34,7 +34,8 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
   loading = true;
 
   // Usabilidade por papel (a autorização real é do backend):
-  // dados do órgão: pgia_orgao, pgia_sgdi, admin; pessoas e designações: pgia_orgao, admin.
+  // dados do órgão e cadastro das pessoas: pgia_sgdi e admin (a SGDI entrega o
+  // órgão pronto); designações: pgia_orgao e admin.
   podeEditarDados = false;
   podeDesignar = false;
   isAuditoria = false;
@@ -86,7 +87,8 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
       const papel = user?.PapelPgia ?? null;
       const isAdmin = user?.Perfil === Perfis.Admin;
       this.isAuditoria = papel === PapeisPgia.Auditoria && !isAdmin;
-      this.podeEditarDados = isAdmin || papel === PapeisPgia.Orgao || papel === PapeisPgia.Sgdi;
+      // A SGDI pré-cadastra o órgão e as pessoas; o órgão só faz as designações.
+      this.podeEditarDados = isAdmin || papel === PapeisPgia.Sgdi;
       this.podeDesignar = isAdmin || papel === PapeisPgia.Orgao;
       this.modoConsulta = !this.podeEditarDados && !this.podeDesignar;
       if (this.isAuditoria) {

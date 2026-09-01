@@ -132,6 +132,8 @@ const SGDI: ItemNavPgia = {
   icone: 'account_balance',
   filhos: [
     { rotulo: 'Fila de homologação', rota: '/pgia/sgdi/fila' },
+    { rotulo: 'Dados dos órgãos', rota: '/pgia/sgdi/orgaos-dados' },
+    { rotulo: 'Pessoas e acessos', rota: '/pgia/sgdi/pessoas' },
     { rotulo: 'Plataformas de IA generativa', rota: '/pgia/sgdi/plataformas' },
     { rotulo: 'Apuração de incidente', rota: '/pgia/sgdi/apuracao' },
     { rotulo: 'Registro Público', rota: '/pgia/sgdi/registro-publico' },

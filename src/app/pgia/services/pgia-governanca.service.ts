@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
@@ -18,6 +18,11 @@ import {
   PgiaHomologacaoPendente,
   PgiaNorma,
   PgiaNormaForm,
+  PgiaOrgao,
+  PgiaOrgaoCreateForm,
+  PgiaPessoaAcesso,
+  PgiaPessoaPreCadastroForm,
+  PgiaPessoaVinculoForm,
   PgiaPlataforma,
   PgiaPlataformaForm,
   PgiaRegistroPublicoForm,
@@ -98,6 +103,38 @@ export class PgiaGovernancaService {
   baixarCgticHistoricoPdf(): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/cgtic/historico/pdf`,
       { headers: this.getHeaders(), responseType: 'blob' });
+  }
+
+  // ── Cadastro de órgão pela SGDI ───────────────────────────────────────────
+
+  /** Cria o órgão já vinculando a unidade do SGDP, quando informada. */
+  criarOrgao(form: PgiaOrgaoCreateForm): Observable<PgiaOrgao> {
+    return this.http.post<PgiaOrgao>(`${this.apiUrl}/orgao`, form, { headers: this.getHeaders() });
+  }
+
+  // ── Pessoas e acessos (a SGDI define papel PGIA e órgão) ──────────────────
+
+  /** Busca por nome ou e-mail; ambos os filtros são opcionais. */
+  listarPessoas(filtro: string | null, orgaoId: number | null): Observable<PgiaPessoaAcesso[]> {
+    let params = new HttpParams();
+    if (filtro && filtro.trim()) params = params.set('filtro', filtro.trim());
+    if (orgaoId) params = params.set('orgaoId', String(orgaoId));
+    return this.http.get<PgiaPessoaAcesso[]>(`${this.apiUrl}/pessoas`,
+      { headers: this.getHeaders(), params });
+  }
+
+  /**
+   * Pré-cadastra a pessoa por e-mail, antes do primeiro login. Se o e-mail já
+   * existir, o backend aplica papel e órgão no cadastro existente.
+   */
+  preCadastrarPessoa(form: PgiaPessoaPreCadastroForm): Observable<PgiaPessoaAcesso> {
+    return this.http.post<PgiaPessoaAcesso>(`${this.apiUrl}/pessoa`, form, { headers: this.getHeaders() });
+  }
+
+  /** Define papel PGIA e unidade da pessoa; `null` limpa o campo. */
+  definirVinculoPessoa(userId: string, form: PgiaPessoaVinculoForm): Observable<PgiaPessoaAcesso> {
+    return this.http.put<PgiaPessoaAcesso>(`${this.apiUrl}/pessoa/${userId}/vinculo`, form,
+      { headers: this.getHeaders() });
   }
 
   // ── Plataformas públicas de IA generativa ─────────────────────────────────

@@ -2,7 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService, PapeisPgia, Perfis } from '../../auth/services/auth';
-import { UserProfile } from '../../../api/auth/interface';
+import { Unidade, UserProfile } from '../../../api/auth/interface';
+import { UnidadeService } from '../../auth/unidade/unidade.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaGovernancaService, PgiaSistemaResumo } from '../services/pgia-governanca.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
@@ -35,7 +36,15 @@ import {
   PgiaHomologacaoPendente,
   PgiaNorma,
   PgiaNormaForm,
+  NATUREZAS_JURIDICAS,
+  VINCULOS,
+  PgiaAgenteInfoForm,
   PgiaOrgao,
+  PgiaOrgaoCreateForm,
+  PgiaOrgaoDadosForm,
+  PgiaPessoaAcesso,
+  PgiaPessoaPreCadastroForm,
+  PgiaPessoaVinculoForm,
   PgiaPlataforma,
   PgiaPlataformaForm,
   PgiaSistema,
@@ -84,8 +93,57 @@ export class PgiaSgdiComponent implements OnInit {
   plataformaSubmetida = false;
   salvandoPlataforma = false;
 
+  // ── Dados dos órgãos (a SGDI entrega o órgão pronto) ──────────────────────
+  naturezas = NATUREZAS_JURIDICAS;
+  orgaoDadosId: number | null = null;
+  dadosForm: PgiaOrgaoDadosForm = { Sigla: '', Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null };
+  dadosSubmetido = false;
+  salvandoDados = false;
+
+  // Cadastro de órgão novo, na mesma tela
+  modoCriacaoOrgao = false;
+  novoOrgaoForm: PgiaOrgaoCreateForm = this.novoOrgao();
+  novoOrgaoSubmetido = false;
+  salvandoNovoOrgao = false;
+  unidades: Unidade[] = [];
+  carregandoUnidades = false;
+
+  // ── Pessoas e acessos ─────────────────────────────────────────────────────
+  vinculos = VINCULOS;
+  papeisPgia = [
+    { valor: PapeisPgia.Orgao, rotulo: 'Órgão responsável' },
+    { valor: PapeisPgia.Sgdi, rotulo: 'Governança central (SGDI)' },
+    { valor: PapeisPgia.Cgtic, rotulo: 'Comitê (CGTIC)' },
+    { valor: PapeisPgia.Auditoria, rotulo: 'Auditoria externa' }
+  ];
+  filtroPessoas = '';
+  filtroOrgaoId: number | null = null;
+  pessoas: PgiaPessoaAcesso[] = [];
+  buscouPessoas = false;
+  buscandoPessoas = false;
+  erroPessoas = false;
+  /** Pessoa com o mini-formulário de acesso aberto. */
+  pessoaEmAcesso: PgiaPessoaAcesso | null = null;
+  vinculoForm: PgiaPessoaVinculoForm = { PapelPgia: null, UnidadeId: null };
+  orgaoVinculoId: number | null = null;
+  salvandoVinculo = false;
+  // Pré-cadastro por e-mail (antes do primeiro login no Keycloak)
+  modoPreCadastro = false;
+  preCadastroForm: PgiaPessoaPreCadastroForm = this.novoPreCadastro();
+  preCadastroSubmetido = false;
+  salvandoPreCadastro = false;
+  orgaoPreCadastroId: number | null = null;
+
+  /** Pessoa com o formulário de matrícula/cargo/vínculo aberto. */
+  pessoaEmCadastro: PgiaPessoaAcesso | null = null;
+  infoForm: PgiaAgenteInfoForm = { Matricula: null, CargoFuncao: null, Vinculo: 'Servidor efetivo' };
+  salvandoInfo = false;
+
   // ── 3 e 4. Registro Público e publicação da AIA ───────────────────────────
+  /** Órgãos ativos: alimenta os seletores da área. */
   orgaos: PgiaOrgao[] = [];
+  /** Todos os órgãos, ativos e inativos: só para a checagem de unidade vinculada. */
+  todosOrgaos: PgiaOrgao[] = [];
   orgaoSelecionadoId: number | null = null;
   sistemasDoOrgao: PgiaSistema[] = [];
   sistemaSelecionadoId: number | null = null;
@@ -168,10 +226,18 @@ export class PgiaSgdiComponent implements OnInit {
     private orgaoService: PgiaOrgaoService,
     private sistemaService: PgiaSistemaService,
     private operacaoService: PgiaOperacaoService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private unidadeService: UnidadeService
   ) {
     // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
-    acompanharSecao(secao => this.secao = secao);
+    acompanharSecao(secao => {
+      this.secao = secao;
+      // A tela de dados dos órgãos tem o select de unidade (edição e criação):
+      // carrega a lista de unidades ao abrir a seção, uma vez só.
+      if (secao === 'orgaos-dados' && this.unidades.length === 0 && !this.carregandoUnidades) {
+        this.carregarUnidades();
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -206,8 +272,361 @@ export class PgiaSgdiComponent implements OnInit {
     });
     this.carregarDeliberacoes();
     this.orgaoService.listarOrgaos().subscribe({
-      next: (lista) => this.orgaos = lista.filter(o => o.Ativo),
+      next: (lista) => {
+        // `orgaos` (só ativos) alimenta os seletores; `todosOrgaos` inclui os
+        // inativos para a checagem de unidade já vinculada (F6).
+        this.todosOrgaos = lista;
+        this.orgaos = lista.filter(o => o.Ativo);
+      },
       error: () => this.notificationService.error('Não foi possível carregar a lista de órgãos.')
+    });
+  }
+
+  // ── Dados dos órgãos ──────────────────────────────────────────────────────
+
+  /** Órgão escolhido no seletor de "Dados dos órgãos". */
+  get orgaoDados(): PgiaOrgao | null {
+    return this.orgaos.find(o => o.Id === Number(this.orgaoDadosId)) ?? null;
+  }
+
+  get mostraServicoCidadao(): boolean {
+    return this.dadosForm.NaturezaJuridica === 'Empresa pública'
+      || this.dadosForm.NaturezaJuridica === 'Sociedade de economia mista';
+  }
+
+  // ── Cadastro de órgão novo ────────────────────────────────────────────────
+
+  private novoOrgao(): PgiaOrgaoCreateForm {
+    return {
+      Sigla: '', Nome: '', NaturezaJuridica: 'Administração direta',
+      PrestaServicoCidadao: null, UnidadeId: null
+    };
+  }
+
+  get mostraServicoCidadaoNovo(): boolean {
+    return this.novoOrgaoForm.NaturezaJuridica === 'Empresa pública'
+      || this.novoOrgaoForm.NaturezaJuridica === 'Sociedade de economia mista';
+  }
+
+  /**
+   * Unidade que já é o elo de outro órgão (ativo OU inativo) não pode ser
+   * reaproveitada — o backend rejeita, então a checagem precisa enxergar os
+   * inativos, que não estão em `orgaos`.
+   */
+  unidadeJaVinculada(unidade: Unidade): boolean {
+    return this.todosOrgaos.some(o => o.UnidadeId === unidade.id);
+  }
+
+  /** Sufixo do rótulo da unidade no select: distingue vínculo ativo de inativo. */
+  rotuloUnidade(unidade: Unidade): string {
+    const orgao = this.todosOrgaos.find(o => o.UnidadeId === unidade.id);
+    if (!orgao) return unidade.Nome;
+    return `${unidade.Nome} (${orgao.Ativo ? 'já vinculada' : 'vinculada a órgão inativo'})`;
+  }
+
+  abrirCriacaoOrgao(): void {
+    this.modoCriacaoOrgao = true;
+    this.novoOrgaoForm = this.novoOrgao();
+    this.novoOrgaoSubmetido = false;
+    if (this.unidades.length === 0 && !this.carregandoUnidades) this.carregarUnidades();
+  }
+
+  cancelarCriacaoOrgao(): void {
+    this.modoCriacaoOrgao = false;
+    this.novoOrgaoSubmetido = false;
+  }
+
+  private carregarUnidades(): void {
+    this.carregandoUnidades = true;
+    this.unidadeService.getAllUnidades().subscribe({
+      next: (lista) => {
+        this.unidades = lista;
+        this.carregandoUnidades = false;
+      },
+      error: () => {
+        this.carregandoUnidades = false;
+        this.notificationService.error('Não foi possível carregar as unidades do SGDP.');
+      }
+    });
+  }
+
+  salvarNovoOrgao(): void {
+    this.novoOrgaoSubmetido = true;
+    const sigla = this.novoOrgaoForm.Sigla.trim();
+    if (!sigla || !this.novoOrgaoForm.Nome.trim()) {
+      this.notificationService.warning('Informe a sigla e o nome do órgão.');
+      return;
+    }
+    // Unidade obrigatória na criação via SGDI (F7).
+    if (!this.novoOrgaoForm.UnidadeId) {
+      this.notificationService.warning('Escolha a unidade do SGDP que será o elo do órgão.');
+      return;
+    }
+    // Sigla duplicada tem mensagem própria, antes do POST (F5).
+    if (this.todosOrgaos.some(o => o.Sigla.trim().toLowerCase() === sigla.toLowerCase())) {
+      this.notificationService.warning(`Já existe um órgão com a sigla ${sigla}.`);
+      return;
+    }
+    this.salvandoNovoOrgao = true;
+    this.governancaService.criarOrgao(this.novoOrgaoForm).subscribe({
+      next: (criado) => {
+        this.salvandoNovoOrgao = false;
+        this.modoCriacaoOrgao = false;
+        this.novoOrgaoSubmetido = false;
+        this.orgaos = [...this.orgaos, criado].sort((a, b) => a.Sigla.localeCompare(b.Sigla));
+        this.todosOrgaos = [...this.todosOrgaos, criado];
+        // Deixa o órgão novo aberto no seletor, para conferência.
+        this.orgaoDadosId = criado.Id;
+        this.aoTrocarOrgaoDados();
+        this.notificationService.success(`Órgão ${criado.Sigla} cadastrado.`);
+      },
+      error: () => {
+        this.salvandoNovoOrgao = false;
+        this.notificationService.error('Não foi possível cadastrar o órgão.');
+      }
+    });
+  }
+
+  /** Erro do campo unidade obrigatório no cadastro de órgão (F4/F7). */
+  get errNovoOrgaoUnidade(): boolean {
+    return this.novoOrgaoSubmetido && !this.novoOrgaoForm.UnidadeId;
+  }
+
+  aoTrocarOrgaoDados(): void {
+    const orgao = this.orgaoDados;
+    this.dadosSubmetido = false;
+    // A SGDI pode trocar a unidade aqui mesmo (F7): o form de edição carrega UnidadeId.
+    this.dadosForm = orgao
+      ? {
+          Sigla: orgao.Sigla,
+          Nome: orgao.Nome,
+          NaturezaJuridica: orgao.NaturezaJuridica,
+          PrestaServicoCidadao: orgao.PrestaServicoCidadao,
+          UnidadeId: orgao.UnidadeId
+        }
+      : { Sigla: '', Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null, UnidadeId: null };
+  }
+
+  /** Erro do campo unidade obrigatório na edição de dados do órgão (F7). */
+  get errDadosUnidade(): boolean {
+    return this.dadosSubmetido && !this.dadosForm.UnidadeId;
+  }
+
+  salvarDadosOrgao(): void {
+    const orgao = this.orgaoDados;
+    if (!orgao) return;
+    this.dadosSubmetido = true;
+    if (!this.dadosForm.Sigla.trim() || !this.dadosForm.Nome.trim()) {
+      this.notificationService.warning('Informe a sigla e o nome do órgão.');
+      return;
+    }
+    if (!this.dadosForm.UnidadeId) {
+      this.notificationService.warning('Escolha a unidade do SGDP que será o elo do órgão.');
+      return;
+    }
+    this.salvandoDados = true;
+    this.orgaoService.atualizarDados(orgao.Id, this.dadosForm).subscribe({
+      next: (atualizado) => {
+        this.salvandoDados = false;
+        this.dadosSubmetido = false;
+        // Mantém as listas (usadas nos seletores e na checagem de unidade) em dia.
+        const aplica = (lista: PgiaOrgao[]) => {
+          const i = lista.findIndex(o => o.Id === orgao.Id);
+          if (i >= 0) lista[i] = { ...lista[i], ...atualizado };
+        };
+        aplica(this.orgaos);
+        aplica(this.todosOrgaos);
+        this.notificationService.success('Dados do órgão salvos.');
+      },
+      error: () => {
+        this.salvandoDados = false;
+        this.notificationService.error('Não foi possível salvar os dados do órgão.');
+      }
+    });
+  }
+
+  // ── Pessoas e acessos ─────────────────────────────────────────────────────
+
+  buscarPessoas(): void {
+    this.buscandoPessoas = true;
+    this.erroPessoas = false;
+    this.pessoaEmAcesso = null;
+    this.pessoaEmCadastro = null;
+    this.governancaService.listarPessoas(this.filtroPessoas, this.filtroOrgaoId).subscribe({
+      next: (lista) => {
+        this.pessoas = lista;
+        this.buscandoPessoas = false;
+        this.buscouPessoas = true;
+      },
+      // Falha de busca não é "ninguém encontrado": a tela precisa dizer qual dos dois é.
+      error: () => {
+        this.pessoas = [];
+        this.buscandoPessoas = false;
+        this.buscouPessoas = true;
+        this.erroPessoas = true;
+        this.notificationService.error('Não foi possível buscar as pessoas.');
+      }
+    });
+  }
+
+  /** Órgãos que já têm unidade: só eles podem ser vinculados a uma pessoa. */
+  orgaoSemUnidade(orgao: PgiaOrgao): boolean {
+    return !orgao.UnidadeId;
+  }
+
+  // ── Pré-cadastro de pessoa por e-mail ─────────────────────────────────────
+
+  private novoPreCadastro(): PgiaPessoaPreCadastroForm {
+    return { Email: '', Nome: '', PapelPgia: null, UnidadeId: null };
+  }
+
+  abrirPreCadastro(): void {
+    this.modoPreCadastro = true;
+    this.preCadastroForm = this.novoPreCadastro();
+    this.preCadastroSubmetido = false;
+    this.orgaoPreCadastroId = null;
+    this.pessoaEmAcesso = null;
+    this.pessoaEmCadastro = null;
+  }
+
+  cancelarPreCadastro(): void {
+    this.modoPreCadastro = false;
+    this.preCadastroSubmetido = false;
+  }
+
+  aoTrocarOrgaoPreCadastro(): void {
+    const orgao = this.orgaos.find(o => o.Id === Number(this.orgaoPreCadastroId)) ?? null;
+    this.preCadastroForm.UnidadeId = orgao?.UnidadeId ?? null;
+  }
+
+  /** E-mail vazio ou fora do formato algo@dominio.tld (F4). */
+  get errPreCadastroEmail(): boolean {
+    if (!this.preCadastroSubmetido) return false;
+    return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.preCadastroForm.Email.trim());
+  }
+
+  salvarPreCadastro(): void {
+    this.preCadastroSubmetido = true;
+    const email = this.preCadastroForm.Email.trim();
+    if (!this.preCadastroForm.Nome.trim()) {
+      this.notificationService.warning('Informe o nome da pessoa.');
+      return;
+    }
+    if (this.errPreCadastroEmail) {
+      this.notificationService.warning('Informe um e-mail válido, como nome@orgao.df.gov.br.');
+      return;
+    }
+    this.salvandoPreCadastro = true;
+    this.governancaService.preCadastrarPessoa({ ...this.preCadastroForm, Email: email }).subscribe({
+      next: () => {
+        this.salvandoPreCadastro = false;
+        this.modoPreCadastro = false;
+        this.preCadastroSubmetido = false;
+        this.notificationService.success('Pessoa cadastrada/atualizada.');
+        // Traz a pessoa para a tabela, para conferência.
+        this.filtroPessoas = email;
+        this.filtroOrgaoId = null;
+        this.buscarPessoas();
+      },
+      error: () => {
+        this.salvandoPreCadastro = false;
+        this.notificationService.error('Não foi possível cadastrar a pessoa.');
+      }
+    });
+  }
+
+  abrirAcesso(pessoa: PgiaPessoaAcesso): void {
+    if (this.pessoaEmAcesso?.UserId === pessoa.UserId) {
+      this.pessoaEmAcesso = null;
+      return;
+    }
+    this.pessoaEmAcesso = pessoa;
+    this.pessoaEmCadastro = null;
+    this.vinculoForm = { PapelPgia: pessoa.PapelPgia, UnidadeId: pessoa.UnidadeId };
+    this.orgaoVinculoId = pessoa.OrgaoId;
+  }
+
+  aoTrocarOrgaoVinculo(): void {
+    const orgao = this.orgaos.find(o => o.Id === Number(this.orgaoVinculoId)) ?? null;
+    // O vínculo do usuário é com a unidade; o órgão é só a forma de escolhê-la.
+    this.vinculoForm.UnidadeId = orgao?.UnidadeId ?? null;
+  }
+
+  salvarVinculo(): void {
+    const pessoa = this.pessoaEmAcesso;
+    if (!pessoa) return;
+    // Remover a unidade tira o acesso da pessoa ao restante do SGDP (o
+    // userConfiguredGuard exige unidade). Confirma antes de fazer isso (F2).
+    const removendoUnidade = !this.vinculoForm.UnidadeId && !!pessoa.UnidadeId;
+    if (removendoUnidade && typeof window !== 'undefined'
+        && !window.confirm('Remover o vínculo também tira o acesso desta pessoa ao restante do SGDP e a leva de volta à tela de aprovação pendente. Confirmar?')) {
+      return;
+    }
+    this.salvandoVinculo = true;
+    this.governancaService.definirVinculoPessoa(pessoa.UserId, this.vinculoForm).subscribe({
+      next: (atualizada) => {
+        this.salvandoVinculo = false;
+        const orgao = this.orgaos.find(o => o.Id === Number(this.orgaoVinculoId)) ?? null;
+        const i = this.pessoas.findIndex(p => p.UserId === pessoa.UserId);
+        if (i >= 0) {
+          this.pessoas[i] = atualizada ?? {
+            ...this.pessoas[i],
+            PapelPgia: this.vinculoForm.PapelPgia,
+            UnidadeId: this.vinculoForm.UnidadeId,
+            UnidadeNome: orgao?.UnidadeNome ?? null,
+            OrgaoId: orgao?.Id ?? null,
+            OrgaoSigla: orgao?.Sigla ?? null
+          };
+        }
+        this.pessoaEmAcesso = null;
+        this.notificationService.success(`Acesso de ${pessoa.Nome} atualizado.`);
+      },
+      error: () => {
+        this.salvandoVinculo = false;
+        this.notificationService.error('Não foi possível salvar o acesso desta pessoa.');
+      }
+    });
+  }
+
+  /** Rótulo amigável do papel PGIA na tabela (F12); token cru como fallback. */
+  rotuloPapel(papel: string | null): string {
+    if (!papel) return 'sem papel';
+    return this.papeisPgia.find(p => p.valor === papel)?.rotulo ?? papel;
+  }
+
+  abrirCadastroPessoa(pessoa: PgiaPessoaAcesso): void {
+    if (this.pessoaEmCadastro?.UserId === pessoa.UserId) {
+      this.pessoaEmCadastro = null;
+      return;
+    }
+    this.pessoaEmCadastro = pessoa;
+    this.pessoaEmAcesso = null;
+    // Pré-preenche com o que a pessoa já tem, para não zerar ao salvar (F3).
+    this.infoForm = {
+      Matricula: pessoa.Matricula ?? null,
+      CargoFuncao: pessoa.CargoFuncao ?? null,
+      Vinculo: pessoa.Vinculo ?? 'Servidor efetivo'
+    };
+  }
+
+  salvarCadastroPessoa(): void {
+    const pessoa = this.pessoaEmCadastro;
+    if (!pessoa || !pessoa.OrgaoId) return;
+    this.salvandoInfo = true;
+    const info = { ...this.infoForm };
+    this.orgaoService.salvarAgenteInfo(pessoa.OrgaoId, pessoa.UserId, info).subscribe({
+      next: () => {
+        this.salvandoInfo = false;
+        // Guarda o que foi salvo na linha, para reabrir já preenchido (F3).
+        const i = this.pessoas.findIndex(p => p.UserId === pessoa.UserId);
+        if (i >= 0) this.pessoas[i] = { ...this.pessoas[i], Matricula: info.Matricula, CargoFuncao: info.CargoFuncao, Vinculo: info.Vinculo };
+        this.pessoaEmCadastro = null;
+        this.notificationService.success(`Cadastro de ${pessoa.Nome} atualizado.`);
+      },
+      error: () => {
+        this.salvandoInfo = false;
+        this.notificationService.error('Não foi possível salvar o cadastro desta pessoa.');
+      }
     });
   }
 

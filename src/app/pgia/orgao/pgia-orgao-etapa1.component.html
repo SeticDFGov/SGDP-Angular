@@ -32,16 +32,18 @@
     </div>
   </div>
 
-  <!-- Papel de consulta -->
+  <!-- Papel de consulta: quem edita muda por seção -->
   <div *ngIf="!loading && !isAuditoria && modoConsulta" class="border-l-4 border-blue-500 bg-blue-50 p-3 text-sm leading-relaxed rounded-r-md mb-5">
-    O seu papel permite apenas consultar estas informações. Quem edita é a equipe do órgão (Responsável de IA).
+    O seu papel permite apenas consultar estas informações.
+    <ng-container *ngIf="secao === 'dados' || secao === 'pessoas'">Quem edita é a equipe da SGDI (art. 8º).</ng-container>
+    <ng-container *ngIf="secao === 'responsavel-ia' || secao === 'encarregado-dados'">Quem faz a designação é a equipe do órgão (Responsável de IA).</ng-container>
   </div>
 
   <!-- Unidade sem órgão PGIA -->
   <div *ngIf="!loading && !isAuditoria && !orgao" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
       A sua unidade ainda não está vinculada a um órgão do PGIA.
-      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+      Fale com a equipe da SGDI para cadastrar o órgão e vincular a sua unidade.
       Depois disso, esta página é liberada para preenchimento.
     </div>
   </div>
@@ -51,30 +53,34 @@
     <!-- Card: dados do órgão -->
     <div *ngIf="secao === 'dados'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Dados do órgão ou entidade</h2>
-      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Primeiro, identifique o seu órgão. Essas informações aparecem no Registro Público de
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Estas são as informações que identificam o seu órgão. Elas aparecem no Registro Público de
       Sistemas de IA, no Portal da Transparência (art. 24 do decreto).</p>
+
+      <div *ngIf="!podeEditarDados" class="border-l-4 border-blue-500 bg-blue-50 p-3 text-sm leading-relaxed rounded-r-md mb-4">
+        Estas informações são preenchidas pela SGDI (art. 8º). Encontrou algo errado? Fale com a equipe da SGDI.
+      </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-semibold mb-1">Sigla <span class="text-red-600">*</span></label>
-          <input type="text" maxlength="20" [(ngModel)]="dadosForm.Sigla"
-                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <input type="text" maxlength="20" [(ngModel)]="dadosForm.Sigla" [disabled]="!podeEditarDados"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-600"
                  [class.border-red-500]="dadosSubmetido && !dadosForm.Sigla.trim()"
                  [class.bg-red-50]="dadosSubmetido && !dadosForm.Sigla.trim()"
                  [class.border-gray-300]="!(dadosSubmetido && !dadosForm.Sigla.trim())">
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Nome completo <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="dadosForm.Nome"
-                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <input type="text" [(ngModel)]="dadosForm.Nome" [disabled]="!podeEditarDados"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-600"
                  [class.border-red-500]="dadosSubmetido && !dadosForm.Nome.trim()"
                  [class.bg-red-50]="dadosSubmetido && !dadosForm.Nome.trim()"
                  [class.border-gray-300]="!(dadosSubmetido && !dadosForm.Nome.trim())">
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Natureza jurídica <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="dadosForm.NaturezaJuridica"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <select [(ngModel)]="dadosForm.NaturezaJuridica" [disabled]="!podeEditarDados"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-600">
             <option *ngFor="let n of naturezas" [value]="n">{{ n }}</option>
           </select>
         </div>
@@ -82,8 +88,8 @@
           <label class="block text-sm font-semibold mb-1">O órgão presta serviço público diretamente ao cidadão?
             <span class="text-yellow-700 text-xs font-semibold">responda se for empresa pública ou SEM</span></label>
           <div class="flex gap-4 text-sm mt-1">
-            <label class="flex items-center gap-2"><input type="radio" name="psc" [value]="true" [(ngModel)]="dadosForm.PrestaServicoCidadao"> Sim</label>
-            <label class="flex items-center gap-2"><input type="radio" name="psc" [value]="false" [(ngModel)]="dadosForm.PrestaServicoCidadao"> Não</label>
+            <label class="flex items-center gap-2"><input type="radio" name="psc" [value]="true" [(ngModel)]="dadosForm.PrestaServicoCidadao" [disabled]="!podeEditarDados"> Sim</label>
+            <label class="flex items-center gap-2"><input type="radio" name="psc" [value]="false" [(ngModel)]="dadosForm.PrestaServicoCidadao" [disabled]="!podeEditarDados"> Não</label>
           </div>
           <p class="text-xs text-gray-400 italic mt-1">Para empresas públicas e sociedades de economia mista, a política vale no que couber (art. 1º, parágrafo único).</p>
         </div>
@@ -100,8 +106,12 @@
     <div *ngIf="secao === 'pessoas'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Pessoas que vão usar o sistema</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Estas são as pessoas do seu órgão que podem operar este sistema ou exercer alguma função da
-      política: servidores, estagiários e prestadores de serviço (art. 3º). Complete a matrícula, o cargo e o
-      vínculo de cada uma. Depois, você poderá indicá-las nos formulários de designação.</p>
+      política: servidores, estagiários e prestadores de serviço (art. 3º). É nesta lista que você escolhe quem
+      indicar nos formulários de designação.</p>
+
+      <div *ngIf="!podeEditarDados" class="border-l-4 border-blue-500 bg-blue-50 p-3 text-sm leading-relaxed rounded-r-md mb-4">
+        Estas informações são preenchidas pela SGDI (art. 8º). Encontrou algo errado? Fale com a equipe da SGDI.
+      </div>
 
       <table class="w-full text-sm mb-3">
         <thead>
@@ -120,7 +130,7 @@
             <td class="px-3 py-2">{{ p.Vinculo || 'não informado' }}</td>
             <td class="px-3 py-2">{{ p.PapelPgia || '—' }}</td>
             <td class="px-3 py-2 text-right">
-              <button *ngIf="podeDesignar" (click)="editarPessoa(p)"
+              <button *ngIf="podeEditarDados" (click)="editarPessoa(p)"
                       class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
                 Completar dados
               </button>
@@ -131,8 +141,8 @@
           </tr>
         </tbody>
       </table>
-      <p class="text-xs text-gray-400 italic">As pessoas entram nesta lista quando fazem o primeiro acesso ao SGDP e escolhem
-      a unidade do seu órgão. Não encontrou alguém? Peça a ela que acesse o sistema e selecione a unidade.</p>
+      <p class="text-xs text-gray-400 italic">As pessoas entram nesta lista quando fazem o primeiro acesso ao SGDP e a SGDI as
+      vincula ao seu órgão. Não encontrou alguém? Peça a ela que acesse o sistema e depois fale com a equipe da SGDI.</p>
 
       <!-- Edição de dados da pessoa -->
       <div *ngIf="pessoaEmEdicao" class="mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -194,7 +204,7 @@
             <option value="" disabled>Escolha uma pessoa do órgão</option>
             <option *ngFor="let p of pessoas" [value]="p.UserId">{{ p.Nome }}{{ p.Matricula ? ' · mat. ' + p.Matricula : '' }}</option>
           </select>
-          <p class="text-xs text-gray-400 italic mt-1">Não encontrou o nome? Peça à pessoa que acesse o SGDP e escolha a unidade do seu órgão.</p>
+          <p class="text-xs text-gray-400 italic mt-1">Não encontrou o nome? Peça à pessoa que acesse o sistema e fale com a equipe da SGDI para vinculá-la ao seu órgão.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Tipo do ato <span class="text-red-600">*</span></label>

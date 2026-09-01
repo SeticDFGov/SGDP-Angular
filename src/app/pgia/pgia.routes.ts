@@ -63,7 +63,7 @@ export const pgia_routes: Routes = [
   ...secoes('relatorios', PgiaRelatoriosComponent,
     ['indicadores', 'semestrais']),
   ...secoes('sgdi', PgiaSgdiComponent,
-    ['fila', 'plataformas', 'apuracao', 'registro-publico', 'aia', 'semestrais',
+    ['fila', 'orgaos-dados', 'pessoas', 'plataformas', 'apuracao', 'registro-publico', 'aia', 'semestrais',
      'anual', 'auditorias', 'nao-conformidades', 'normas', 'autorizacoes']),
   ...secoes('cgtic', PgiaCgticComponent,
     ['casos', 'deliberacoes', 'historico']),

@@ -116,6 +116,381 @@
       </div>
     </div>
 
+    <!-- ── Dados dos órgãos ─────────────────────────────────────────────── -->
+    <div *ngIf="secao === 'orgaos-dados'" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Dados dos órgãos</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">A SGDI preenche a identificação de cada órgão e entrega a área
+      pronta para a equipe dele. Estas informações aparecem no Registro Público de Sistemas de IA, no Portal da
+      Transparência (art. 24).</p>
+
+      <div class="flex items-end gap-3 flex-wrap mb-4" *ngIf="!modoCriacaoOrgao">
+        <div class="flex-1 min-w-64">
+          <label class="block text-sm font-semibold mb-1">Órgão</label>
+          <select [(ngModel)]="orgaoDadosId" name="od-orgao" (ngModelChange)="aoTrocarOrgaoDados()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Escolha o órgão</option>
+            <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
+          </select>
+        </div>
+        <button (click)="abrirCriacaoOrgao()"
+                class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+          Cadastrar novo órgão
+        </button>
+      </div>
+
+      <!-- Órgão novo -->
+      <div *ngIf="modoCriacaoOrgao" class="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Cadastrar novo órgão</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">Sigla <span class="text-red-600">*</span></label>
+            <input type="text" maxlength="20" [(ngModel)]="novoOrgaoForm.Sigla" name="no-sigla"
+                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="novoOrgaoSubmetido && !novoOrgaoForm.Sigla.trim()"
+                   [class.bg-red-50]="novoOrgaoSubmetido && !novoOrgaoForm.Sigla.trim()"
+                   [class.border-gray-300]="!(novoOrgaoSubmetido && !novoOrgaoForm.Sigla.trim())">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Nome completo <span class="text-red-600">*</span></label>
+            <input type="text" [(ngModel)]="novoOrgaoForm.Nome" name="no-nome"
+                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="novoOrgaoSubmetido && !novoOrgaoForm.Nome.trim()"
+                   [class.bg-red-50]="novoOrgaoSubmetido && !novoOrgaoForm.Nome.trim()"
+                   [class.border-gray-300]="!(novoOrgaoSubmetido && !novoOrgaoForm.Nome.trim())">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Natureza jurídica <span class="text-red-600">*</span></label>
+            <select [(ngModel)]="novoOrgaoForm.NaturezaJuridica" name="no-natureza"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option *ngFor="let n of naturezas" [value]="n">{{ n }}</option>
+            </select>
+          </div>
+          <div *ngIf="mostraServicoCidadaoNovo">
+            <label class="block text-sm font-semibold mb-1">O órgão presta serviço público diretamente ao cidadão?
+              <span class="text-yellow-700 text-xs font-semibold">responda se for empresa pública ou SEM</span></label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" name="no-psc" [value]="true" [(ngModel)]="novoOrgaoForm.PrestaServicoCidadao"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" name="no-psc" [value]="false" [(ngModel)]="novoOrgaoForm.PrestaServicoCidadao"> Não</label>
+            </div>
+            <p class="text-xs text-gray-400 italic mt-1">Para empresas públicas e sociedades de economia mista, a política vale no que couber (art. 1º, parágrafo único).</p>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Unidade do SGDP <span class="text-red-600">*</span></label>
+            <select [(ngModel)]="novoOrgaoForm.UnidadeId" name="no-unidade" [disabled]="carregandoUnidades"
+                    class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    [class.border-red-500]="errNovoOrgaoUnidade"
+                    [class.bg-red-50]="errNovoOrgaoUnidade"
+                    [class.border-gray-300]="!errNovoOrgaoUnidade">
+              <option [ngValue]="null">{{ carregandoUnidades ? 'Carregando...' : 'Escolha a unidade' }}</option>
+              <option *ngFor="let u of unidades" [ngValue]="u.id" [disabled]="unidadeJaVinculada(u)">
+                {{ rotuloUnidade(u) }}
+              </option>
+            </select>
+            <p *ngIf="errNovoOrgaoUnidade" class="text-xs text-red-600 mt-1">Escolha a unidade do SGDP.</p>
+            <p class="text-xs text-gray-400 italic mt-1">A unidade é o elo entre as pessoas e o órgão: quem estiver nela verá a área deste órgão.</p>
+          </div>
+        </div>
+
+        <div class="mt-4 flex gap-2">
+          <button (click)="salvarNovoOrgao()" [disabled]="salvandoNovoOrgao"
+                  class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+            {{ salvandoNovoOrgao ? 'Salvando...' : 'Cadastrar órgão' }}
+          </button>
+          <button (click)="cancelarCriacaoOrgao()"
+                  class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+            Cancelar
+          </button>
+        </div>
+      </div>
+
+      <p *ngIf="!orgaoDados && !modoCriacaoOrgao" class="text-sm text-gray-500">Escolha um órgão para ver e editar os dados dele.</p>
+
+      <ng-container *ngIf="orgaoDados && !modoCriacaoOrgao">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">Sigla <span class="text-red-600">*</span></label>
+            <input type="text" maxlength="20" [(ngModel)]="dadosForm.Sigla" name="od-sigla"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="dadosSubmetido && !dadosForm.Sigla.trim()"
+                   [class.bg-red-50]="dadosSubmetido && !dadosForm.Sigla.trim()"
+                   [class.border-gray-300]="!(dadosSubmetido && !dadosForm.Sigla.trim())">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Nome completo <span class="text-red-600">*</span></label>
+            <input type="text" [(ngModel)]="dadosForm.Nome" name="od-nome"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="dadosSubmetido && !dadosForm.Nome.trim()"
+                   [class.bg-red-50]="dadosSubmetido && !dadosForm.Nome.trim()"
+                   [class.border-gray-300]="!(dadosSubmetido && !dadosForm.Nome.trim())">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Natureza jurídica <span class="text-red-600">*</span></label>
+            <select [(ngModel)]="dadosForm.NaturezaJuridica" name="od-natureza"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option *ngFor="let n of naturezas" [value]="n">{{ n }}</option>
+            </select>
+          </div>
+          <div *ngIf="mostraServicoCidadao">
+            <label class="block text-sm font-semibold mb-1">O órgão presta serviço público diretamente ao cidadão?
+              <span class="text-yellow-700 text-xs font-semibold">responda se for empresa pública ou SEM</span></label>
+            <div class="flex gap-4 text-sm mt-1">
+              <label class="flex items-center gap-2"><input type="radio" name="od-psc" [value]="true" [(ngModel)]="dadosForm.PrestaServicoCidadao"> Sim</label>
+              <label class="flex items-center gap-2"><input type="radio" name="od-psc" [value]="false" [(ngModel)]="dadosForm.PrestaServicoCidadao"> Não</label>
+            </div>
+            <p class="text-xs text-gray-400 italic mt-1">Para empresas públicas e sociedades de economia mista, a política vale no que couber (art. 1º, parágrafo único).</p>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Unidade do SGDP <span class="text-red-600">*</span></label>
+            <select [(ngModel)]="dadosForm.UnidadeId" name="od-unidade" [disabled]="carregandoUnidades"
+                    class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    [class.border-red-500]="errDadosUnidade"
+                    [class.bg-red-50]="errDadosUnidade"
+                    [class.border-gray-300]="!errDadosUnidade">
+              <option [ngValue]="null">{{ carregandoUnidades ? 'Carregando...' : 'Escolha a unidade' }}</option>
+              <option *ngFor="let u of unidades" [ngValue]="u.id" [disabled]="unidadeJaVinculada(u) && u.id !== dadosForm.UnidadeId">
+                {{ u.id === dadosForm.UnidadeId ? u.Nome : rotuloUnidade(u) }}
+              </option>
+            </select>
+            <p *ngIf="errDadosUnidade" class="text-xs text-red-600 mt-1">Escolha a unidade do SGDP.</p>
+            <p class="text-xs text-gray-400 italic mt-1">A unidade é o elo entre as pessoas e o órgão: quem estiver nela verá a área deste órgão.</p>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <button (click)="salvarDadosOrgao()" [disabled]="salvandoDados"
+                  class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+            {{ salvandoDados ? 'Salvando...' : 'Salvar dados do órgão' }}
+          </button>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- ── Pessoas e acessos ────────────────────────────────────────────── -->
+    <div *ngIf="secao === 'pessoas'" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Pessoas e acessos</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Aqui a SGDI define quem faz o quê no PGIA: procure a pessoa pelo
+      nome ou pelo e-mail, escolha o papel dela e o órgão em que ela trabalha. Quem ainda não acessou o sistema pode ser
+      pré-cadastrada pelo e-mail, no botão ao lado.</p>
+      <p class="text-xs text-gray-400 italic mb-4">O perfil do SGDP (admin, gestor…) vem do Keycloak; papel PGIA e órgão são definidos aqui.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mb-4">
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Nome ou e-mail</label>
+          <input type="text" [(ngModel)]="filtroPessoas" name="pa-filtro" placeholder="Digite parte do nome ou do e-mail"
+                 (keyup.enter)="buscarPessoas()"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Órgão</label>
+          <select [(ngModel)]="filtroOrgaoId" name="pa-orgao"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Todos os órgãos</option>
+            <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="flex gap-2 flex-wrap">
+          <button (click)="buscarPessoas()" [disabled]="buscandoPessoas"
+                  class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+            {{ buscandoPessoas ? 'Buscando...' : 'Buscar' }}
+          </button>
+          <button *ngIf="!modoPreCadastro" (click)="abrirPreCadastro()"
+                  class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+            Pré-cadastrar pessoa
+          </button>
+        </div>
+        <p class="text-xs text-gray-400 italic mt-1">Deixe os campos em branco para listar todas as pessoas.</p>
+      </div>
+
+      <!-- Pré-cadastro: vincula a pessoa antes do primeiro login -->
+      <div *ngIf="modoPreCadastro" class="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Pré-cadastrar pessoa</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">E-mail <span class="text-red-600">*</span></label>
+            <input type="email" [(ngModel)]="preCadastroForm.Email" name="pc-email" placeholder="nome.sobrenome@orgao.df.gov.br"
+                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="errPreCadastroEmail"
+                   [class.bg-red-50]="errPreCadastroEmail"
+                   [class.border-gray-300]="!errPreCadastroEmail">
+            <p *ngIf="errPreCadastroEmail" class="text-xs text-red-600 mt-1">Informe um e-mail válido, como nome@orgao.df.gov.br.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Nome <span class="text-red-600">*</span></label>
+            <input type="text" [(ngModel)]="preCadastroForm.Nome" name="pc-nome"
+                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="preCadastroSubmetido && !preCadastroForm.Nome.trim()"
+                   [class.bg-red-50]="preCadastroSubmetido && !preCadastroForm.Nome.trim()"
+                   [class.border-gray-300]="!(preCadastroSubmetido && !preCadastroForm.Nome.trim())">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Papel no PGIA</label>
+            <select [(ngModel)]="preCadastroForm.PapelPgia" name="pc-papel"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option [ngValue]="null">Sem papel no PGIA</option>
+              <option *ngFor="let pp of papeisPgia" [ngValue]="pp.valor">{{ pp.rotulo }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Órgão</label>
+            <select [(ngModel)]="orgaoPreCadastroId" name="pc-orgao" (ngModelChange)="aoTrocarOrgaoPreCadastro()"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option [ngValue]="null">Sem vínculo</option>
+              <option *ngFor="let o of orgaos" [ngValue]="o.Id" [disabled]="orgaoSemUnidade(o)">
+                {{ o.Sigla }} · {{ o.Nome }}{{ orgaoSemUnidade(o) ? ' (sem unidade)' : '' }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-400 italic mt-3">Use exatamente o e-mail do Keycloak. No primeiro login a conta é
+        vinculada a este cadastro e o órgão e o papel já valem; se o e-mail for diferente, o login criará um segundo cadastro.
+        Se a pessoa já existir, os campos deixados em branco são mantidos como estão.</p>
+
+        <div class="mt-3 flex gap-2">
+          <button (click)="salvarPreCadastro()" [disabled]="salvandoPreCadastro"
+                  class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50">
+            {{ salvandoPreCadastro ? 'Salvando...' : 'Salvar pré-cadastro' }}
+          </button>
+          <button (click)="cancelarPreCadastro()"
+                  class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+            Cancelar
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="erroPessoas" class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+        Não foi possível consultar as pessoas agora. Tente novamente em alguns instantes.
+      </div>
+
+      <div class="overflow-x-auto" *ngIf="buscouPessoas && !erroPessoas">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Nome</th>
+              <th class="px-3 py-2">E-mail</th>
+              <th class="px-3 py-2">Perfil SGDP</th>
+              <th class="px-3 py-2">Papel PGIA</th>
+              <th class="px-3 py-2">Órgão / unidade</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let p of pessoas">
+              <tr class="border-b border-gray-200 align-top">
+                <td class="px-3 py-2">{{ p.Nome }}</td>
+                <td class="px-3 py-2 text-gray-600">{{ p.Email }}</td>
+                <td class="px-3 py-2">{{ p.Perfil }}</td>
+                <td class="px-3 py-2">
+                  <span *ngIf="p.PapelPgia">{{ rotuloPapel(p.PapelPgia) }}</span>
+                  <span *ngIf="!p.PapelPgia" class="text-gray-500">sem papel</span>
+                </td>
+                <td class="px-3 py-2">
+                  <span *ngIf="p.OrgaoSigla">{{ p.OrgaoSigla }}</span>
+                  <span *ngIf="!p.OrgaoSigla && p.UnidadeNome" class="text-gray-500">{{ p.UnidadeNome }}</span>
+                  <span *ngIf="!p.OrgaoSigla && !p.UnidadeNome" class="text-gray-500">sem vínculo</span>
+                </td>
+                <td class="px-3 py-2 text-right whitespace-nowrap">
+                  <button (click)="abrirAcesso(p)"
+                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                    {{ pessoaEmAcesso?.UserId === p.UserId ? 'Cancelar' : 'Definir acesso' }}
+                  </button>
+                  <button *ngIf="p.OrgaoId" (click)="abrirCadastroPessoa(p)"
+                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50 ml-2">
+                    {{ pessoaEmCadastro?.UserId === p.UserId ? 'Cancelar' : 'Completar dados' }}
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Papel PGIA e órgão -->
+              <tr *ngIf="pessoaEmAcesso?.UserId === p.UserId" class="border-b border-gray-200 bg-gray-50">
+                <td colspan="6" class="px-3 py-3">
+                  <h3 class="text-sm font-semibold text-gray-900 mb-3">Acesso de {{ p.Nome }}</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Papel no PGIA</label>
+                      <select [(ngModel)]="vinculoForm.PapelPgia" name="pa-papel"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option [ngValue]="null">Sem papel no PGIA</option>
+                        <option *ngFor="let pp of papeisPgia" [ngValue]="pp.valor">{{ pp.rotulo }}</option>
+                      </select>
+                      <p class="text-xs text-gray-400 italic mt-1">Sem papel, a pessoa só registra o uso de IA e avisa incidentes (art. 13).</p>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Órgão</label>
+                      <select [(ngModel)]="orgaoVinculoId" name="pa-vinculo-orgao" (ngModelChange)="aoTrocarOrgaoVinculo()"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option [ngValue]="null">Sem vínculo</option>
+                        <option *ngFor="let o of orgaos" [ngValue]="o.Id" [disabled]="orgaoSemUnidade(o)">
+                          {{ o.Sigla }} · {{ o.Nome }}{{ orgaoSemUnidade(o) ? ' (sem unidade)' : '' }}
+                        </option>
+                      </select>
+                      <p class="text-xs text-gray-400 italic mt-1">Órgão sem unidade vinculada não pode receber pessoas: defina a unidade dele em "Dados dos órgãos" primeiro.</p>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex gap-2">
+                    <button (click)="salvarVinculo()" [disabled]="salvandoVinculo"
+                            class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                      {{ salvandoVinculo ? 'Salvando...' : 'Salvar acesso' }}
+                    </button>
+                    <button (click)="abrirAcesso(p)"
+                            class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+                      Cancelar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Matrícula, cargo e vínculo -->
+              <tr *ngIf="pessoaEmCadastro?.UserId === p.UserId" class="border-b border-gray-200 bg-gray-50">
+                <td colspan="6" class="px-3 py-3">
+                  <h3 class="text-sm font-semibold text-gray-900 mb-3">Completar dados de {{ p.Nome }}</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Matrícula</label>
+                      <input type="text" [(ngModel)]="infoForm.Matricula" name="pa-matricula" maxlength="20"
+                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Cargo ou função</label>
+                      <input type="text" [(ngModel)]="infoForm.CargoFuncao" name="pa-cargo"
+                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <p class="text-xs text-gray-400 italic mt-1">Aparece nos atos de designação.</p>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Vínculo <span class="text-red-600">*</span></label>
+                      <select [(ngModel)]="infoForm.Vinculo" name="pa-vinculo"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option *ngFor="let v of vinculos" [value]="v">{{ v }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex gap-2">
+                    <button (click)="salvarCadastroPessoa()" [disabled]="salvandoInfo"
+                            class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                      {{ salvandoInfo ? 'Salvando...' : 'Salvar cadastro' }}
+                    </button>
+                    <button (click)="abrirCadastroPessoa(p)"
+                            class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+                      Cancelar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+
+            <tr *ngIf="pessoas.length === 0">
+              <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhuma pessoa encontrada com esses filtros.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ── 2. Plataformas ───────────────────────────────────────────────── -->
     <div *ngIf="secao === 'plataformas'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Homologação de plataforma pública de IA generativa</h2>

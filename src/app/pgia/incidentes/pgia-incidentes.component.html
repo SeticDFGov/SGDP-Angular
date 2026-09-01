@@ -422,4 +422,10 @@
     </div>
 
   </ng-container>
+
+  <!-- Incidente de outro órgão: fora do bloco "sem órgão" para alcançar também
+       quem não tem órgão vinculado (F11); abre a página pública em nova aba (F10). -->
+  <p *ngIf="!loading && !isAuditoria && secao === 'aviso'" class="text-xs text-gray-400 italic mt-3">Presenciou um problema com um sistema de IA de outro órgão?
+    <a routerLink="/transparencia-ia" target="_blank" rel="noopener" class="text-blue-700 underline">Registre pela página pública de transparência.</a>
+  </p>
 </div>

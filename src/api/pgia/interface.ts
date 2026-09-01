@@ -17,9 +17,13 @@ export interface PgiaOrgaoDadosForm {
   Nome: string;
   NaturezaJuridica: string;
   PrestaServicoCidadao: boolean | null;
+  // A SGDI pode trocar a unidade do órgão pela edição de dados (backend acrescentou
+  // UnidadeId ao DTO). Opcional aqui: a tela do órgão não envia este campo.
+  UnidadeId?: string | null;
 }
 
 export interface PgiaOrgaoCreateForm extends PgiaOrgaoDadosForm {
+  // Na criação via SGDI a unidade é obrigatória.
   UnidadeId: string | null;
 }
 
@@ -293,6 +297,43 @@ export interface PgiaDeliberacao extends PgiaDeliberacaoForm {
   SistemaDenominacao: string | null;
   OrgaoSigla: string | null;
   CriadoEm: string;
+}
+
+// ── Pessoas e acessos (gestão pela SGDI/admin) ──────────────────────────────
+// GET api/pgia/governanca/pessoas (sgdi e admin; ?filtro= nome/e-mail, ?orgaoId=)
+// PUT api/pgia/governanca/pessoa/{userId}/vinculo (sgdi e admin)
+
+export interface PgiaPessoaAcesso {
+  UserId: string;
+  Nome: string;
+  Email: string;
+  Perfil: string;
+  PapelPgia: string | null;
+  UnidadeId: string | null;
+  UnidadeNome: string | null;
+  OrgaoId: number | null;
+  OrgaoSigla: string | null;
+  // Dados de agente (matrícula/cargo/vínculo) — o backend acrescentou ao retorno
+  // para o "Completar dados" abrir já preenchido. Opcional: respostas antigas os omitem.
+  Matricula?: string | null;
+  CargoFuncao?: string | null;
+  Vinculo?: string | null;
+}
+
+// null limpa o campo correspondente (papel ou vínculo de unidade)
+export interface PgiaPessoaVinculoForm {
+  PapelPgia: string | null;
+  UnidadeId: string | null;
+}
+
+// POST api/pgia/governanca/pessoa (sgdi e admin)
+// Vincula a pessoa antes do primeiro login no Keycloak; se o e-mail já existir,
+// o backend aplica papel e órgão no cadastro existente em vez de duplicar.
+export interface PgiaPessoaPreCadastroForm {
+  Email: string;
+  Nome: string;
+  PapelPgia: string | null;
+  UnidadeId: string | null;
 }
 
 // ── Histórico de decisões do CGTIC (relatório de auditoria) ─────────────────
