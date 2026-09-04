@@ -19,9 +19,14 @@ export const pgiaRaizGuard: CanActivateFn = () => {
     map((user): UrlTree => {
       const papel = user?.PapelPgia ?? null;
 
-      // Admin do SGDP tem acesso total: entra pela tela do órgão, como antes.
-      if (user?.Perfil === Perfis.Admin || papel === PapeisPgia.Orgao) {
-        return router.parseUrl('/pgia/orgao');
+      // Admin do SGDP tem acesso total: entra pelos dados do órgão, como antes.
+      if (user?.Perfil === Perfis.Admin) {
+        return router.parseUrl('/pgia/orgao/dados');
+      }
+      // O papel de órgão não edita os dados (quem preenche é a SGDI): a
+      // primeira tela dele é a lista de pessoas.
+      if (papel === PapeisPgia.Orgao) {
+        return router.parseUrl('/pgia/orgao/pessoas');
       }
       if (papel === PapeisPgia.Sgdi) return router.parseUrl('/pgia/sgdi');
       if (papel === PapeisPgia.Cgtic) return router.parseUrl('/pgia/cgtic');
