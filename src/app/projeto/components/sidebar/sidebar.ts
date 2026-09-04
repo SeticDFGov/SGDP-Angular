@@ -1,18 +1,21 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../../../auth/services/auth';
 import { CommonModule } from '@angular/common';
-import { IsActiveMatchOptions, NavigationEnd, Router, RouterModule } from '@angular/router';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { UserProfile } from '../../../../api/auth/interface';
 import { filter } from 'rxjs/operators';
 import { SidebarStateService } from './sidebar-state.service';
 import { ItemNavPgia, arvorePgia } from './pgia-nav';
+import { contratacoesNav } from './contratacoes-nav';
+import { GrupoArvoreComponent } from './grupo-arvore.component';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
   imports: [
     CommonModule,
-    RouterModule
+    RouterModule,
+    GrupoArvoreComponent
   ],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.css'
@@ -30,22 +33,15 @@ export class Sidebar implements OnInit {
   /** O usuário está numa tela da área /pgia. */
   dentroPgia: boolean = false;
 
-  /**
-   * Destaque do formulário aberto: compara só o caminho. Com `{ exact: true }`
-   * o roteador exigiria também os query params iguais, e o item perderia o
-   * realce em telas que usam a URL para passar contexto (por exemplo
-   * `/pgia/cgtic/deliberacoes?sistema=12`, vindo de "Preparar deliberação").
-   */
-  readonly opcoesFormularioAtivo: IsActiveMatchOptions = {
-    paths: 'exact',
-    queryParams: 'ignored',
-    fragment: 'ignored',
-    matrixParams: 'ignored'
-  };
+  /** Árvore do módulo Análises de Contratações (vazia sem acesso). */
+  arvoreCtr: ItemNavPgia[] = [];
+  /** Grupo "Análises de Contratações" aberto no menu. */
+  grupoCtrAberto: boolean = false;
+  /** O usuário está numa tela da área /analises. */
+  dentroCtr: boolean = false;
 
-  /** Áreas abertas na árvore, por `base` (o usuário abriu ou fechou à mão). */
-  private areasAbertas: Record<string, boolean> = {};
-  private rotaAtual: string = '';
+  /** URL atual sem query/âncora — cada grupo destaca a área aberta com ela. */
+  rotaAtual: string = '';
 
   constructor(
     private authService: AuthService,
@@ -80,8 +76,12 @@ export class Sidebar implements OnInit {
       this.canPgia = !!(response && (response.PapelPgia || response.Perfil === 'admin'));
       this.soPgia = !!(response && response.Perfil === 'basico');
       this.arvore = arvorePgia(response?.PapelPgia, response?.Perfil);
-      // Quem só tem o PGIA vê a árvore sempre aberta.
-      if (this.soPgia) this.grupoPgiaAberto = true;
+      this.arvoreCtr = contratacoesNav(response?.PapelContratacoes, response?.Perfil);
+      // Quem só tem os módulos vê as árvores sempre abertas.
+      if (this.soPgia) {
+        this.grupoPgiaAberto = true;
+        this.grupoCtrAberto = true;
+      }
     }
     );
   }
@@ -90,14 +90,9 @@ export class Sidebar implements OnInit {
     this.sidebarStateService.setExpanded(!this.isExpanded);
   }
 
-  // ── Árvore do PGIA ────────────────────────────────────────────────────────
+  // ── Grupos de módulo no menu ──────────────────────────────────────────────
 
-  /** A árvore só aparece com o menu aberto. */
-  get mostrarArvore(): boolean {
-    return this.isExpanded && (this.grupoPgiaAberto || this.soPgia);
-  }
-
-  /** Destino do ícone quando o menu está minimizado. */
+  /** Destino do ícone do PGIA quando o menu está minimizado. */
   get rotaGrupoPgia(): string {
     return this.canPgia ? '/pgia' : '/pgia/uso';
   }
@@ -108,37 +103,9 @@ export class Sidebar implements OnInit {
     this.grupoPgiaAberto = !this.grupoPgiaAberto;
   }
 
-  /**
-   * A área é a que está aberta na tela (qualquer um dos formulários dela).
-   *
-   * Grupo com formulários casa pelos **filhos**, não pelo prefixo da rota:
-   * "Cadastro Inicial" e "Governança (SGDI)" moram os dois sob `/pgia/sgdi`,
-   * e o prefixo destacaria os dois ao mesmo tempo. Item sem filhos segue pelo
-   * prefixo de `base`.
-   */
-  areaAtiva(item: ItemNavPgia): boolean {
-    if (item.filhos && item.filhos.length > 0) {
-      return item.filhos.some(f => this.rotaAtual === f.rota);
-    }
-    const base = item.base ?? item.rota;
-    return this.rotaAtual === base || this.rotaAtual.startsWith(base + '/');
-  }
-
-  /** Formulários da área visíveis: a área ativa abre sozinha. */
-  areaAberta(item: ItemNavPgia): boolean {
-    const base = item.base ?? item.rota;
-    return this.areasAbertas[base] ?? this.areaAtiva(item);
-  }
-
-  /** Clique no nome da área: abre a lista de formulários (e navega ao 1º). */
-  abrirArea(item: ItemNavPgia): void {
-    this.areasAbertas[item.base ?? item.rota] = true;
-  }
-
-  /** Chevron: mostra ou esconde os formulários da área, sem sair da tela. */
-  alternarArea(item: ItemNavPgia): void {
-    const base = item.base ?? item.rota;
-    this.areasAbertas[base] = !this.areaAberta(item);
+  alternarGrupoCtr(): void {
+    if (this.soPgia) return;
+    this.grupoCtrAberto = !this.grupoCtrAberto;
   }
 
   private lerUrl(url: string): void {
@@ -148,5 +115,9 @@ export class Sidebar implements OnInit {
     // Ao entrar na área, a árvore abre sozinha; fora dela o usuário decide.
     if (dentro && !this.dentroPgia) this.grupoPgiaAberto = true;
     this.dentroPgia = dentro;
+
+    const dentroCtr = this.rotaAtual.startsWith('/analises');
+    if (dentroCtr && !this.dentroCtr) this.grupoCtrAberto = true;
+    this.dentroCtr = dentroCtr;
   }
 }

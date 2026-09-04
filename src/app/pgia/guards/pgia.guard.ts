@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { map } from 'rxjs/operators';
-import { AuthService } from '../../auth/services/auth';
+import { AuthService, PapeisContratacoes } from '../../auth/services/auth';
 
 /**
  * Área /pgia: entra quem tem papel PGIA (Users.PapelPgia) ou é admin do SGDP.
@@ -22,6 +22,16 @@ export const pgiaGuard: CanActivateFn = (route, state) => {
     map(user => {
       const canAccess = !!user?.PapelPgia || user?.Perfil === 'admin';
       if (!canAccess) {
+        // Quem tem o papel de Análises de Contratações e nenhum papel no PGIA
+        // pertence ao outro módulo: o desvio o leva para lá (mudança autorizada
+        // pelo usuário na entrada do módulo). É o que faz o login dele
+        // aterrissar em /analises: /demandas → confinamento do authGuard →
+        // /pgia → aqui. A exceção do art. 13 acima continua aberta a ele —
+        // muda só o destino do desvio das demais rotas do PGIA.
+        if (user?.PapelContratacoes === PapeisContratacoes.Analise) {
+          router.navigate(['/analises']);
+          return false;
+        }
         // 'basico' é confinado a /pgia pelo authGuard: mandá-lo a '/' criaria um
         // laço de redirecionamentos — o destino dele é o registro de uso (art. 13)
         router.navigate([user?.Perfil === 'basico' ? '/pgia/uso' : '/']);

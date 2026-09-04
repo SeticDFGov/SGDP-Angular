@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { SERVICE_API_URL } from '../../api/consts';
-import { AuthService } from '../auth/services/auth';
+import { AuthService, PapeisContratacoes } from '../auth/services/auth';
 import { AreaExecutoraService } from '../area-executora/area-executora.service';
 import { AreaExecutora } from '../../api/area-executora/interface';
 import { AreaDemandante, Esteira } from '../../api/demanda/interface';
 import { PgiaAdminService } from '../pgia/services/pgia-admin.service';
 import { NATUREZAS_JURIDICAS, PgiaOrgao, PgiaOrgaoCreateForm } from '../../api/pgia/interface';
+import { CtrAdminService } from '../contratacoes/services/ctr-admin.service';
 
 interface User {
   Id: string;
@@ -16,6 +17,8 @@ interface User {
   Email: string;
   Perfil: string;
   PapelPgia?: string | null;
+  // Papel do módulo Análises de Contratações (vem do /auth/usuarios)
+  PapelContratacoes?: string | null;
   Unidade: {
     id: string;
     Nome: string;
@@ -83,6 +86,13 @@ export class AdminComponent implements OnInit {
   vinculoUnidadeId: string | null = null;
   salvandoVinculo = false;
 
+  // Análises de Contratações — papel do módulo interno da SGDI
+  // A constante vem do AuthService (já eager): importar o interface.ts do
+  // módulo aqui traria as constantes de domínio dele para o bundle inicial.
+  papeisContratacoes: string[] = [PapeisContratacoes.Analise];
+  rotulosPapelContratacoes: Record<string, string> = { [PapeisContratacoes.Analise]: 'Análise de contratações' };
+  selectedPapeisContratacoes: { [key: string]: string } = {};
+
   private URL_AUTH_SERVICE = `${SERVICE_API_URL}/api`;
   private URL_DEMANDANTE = `${SERVICE_API_URL}/api/Demandante`;
   private URL_ESTEIRA = `${SERVICE_API_URL}/api/Esteira`;
@@ -91,7 +101,8 @@ export class AdminComponent implements OnInit {
     private http: HttpClient,
     private authService: AuthService,
     private areaExecutoraService: AreaExecutoraService,
-    private pgiaAdminService: PgiaAdminService
+    private pgiaAdminService: PgiaAdminService,
+    private ctrAdminService: CtrAdminService
   ) { }
 
   ngOnInit(): void {
@@ -268,6 +279,21 @@ export class AdminComponent implements OnInit {
     this.pgiaAdminService.atribuirPapel({ Email: email, PapelPgia: papel || null }).subscribe({
       next: () => { this.showMessage('Papel PGIA atualizado!', 'success'); this.loadUsers(); },
       error: () => this.showMessage('Erro ao atualizar o papel PGIA', 'error')
+    });
+  }
+
+  // ── Análises de Contratações: papel do módulo ─────────────────────────────
+
+  /** Rótulo amigável do papel; valor cru como reserva. */
+  rotuloPapelContratacoes(papel: string | null | undefined): string {
+    if (!papel) return '';
+    return this.rotulosPapelContratacoes[papel] ?? papel;
+  }
+
+  atribuirPapelContratacoes(email: string, papel: string): void {
+    this.ctrAdminService.atribuirPapel({ Email: email, PapelContratacoes: papel || null }).subscribe({
+      next: () => { this.showMessage('Papel de Análises de Contratações atualizado!', 'success'); this.loadUsers(); },
+      error: () => this.showMessage('Erro ao atualizar o papel de Análises de Contratações', 'error')
     });
   }
 

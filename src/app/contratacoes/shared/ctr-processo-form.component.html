@@ -1,0 +1,147 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+  <!-- Identificação -->
+  <div>
+    <label class="block text-sm font-semibold mb-1">Número do processo SEI <span class="text-red-600">*</span></label>
+    <input type="text" inputmode="numeric" [value]="form.NumeroProcesso" (input)="aoDigitarNumero($event)"
+           placeholder="00000-00000000/2026-00"
+           class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+           [class.border-red-500]="submetido && errNumero"
+           [class.bg-red-50]="submetido && errNumero"
+           [class.border-gray-300]="!(submetido && errNumero)">
+    <p *ngIf="submetido && errNumero" class="text-xs text-red-600 mt-1">{{ errNumero }}</p>
+    <p class="text-xs text-gray-400 italic mt-1">Digite só os números: a pontuação é preenchida sozinha.</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Categoria do objeto <span class="text-red-600">*</span></label>
+    <select [(ngModel)]="form.CategoriaObjeto" name="ctr-categoria"
+            class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            [class.border-red-500]="submetido && errCategoria"
+            [class.border-gray-300]="!(submetido && errCategoria)">
+      <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+    </select>
+    <p class="text-xs text-gray-400 italic mt-1">Use "Sem objeto / Indefinido" quando o processo ainda não define o objeto.</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Órgão comunicante <span class="text-red-600">*</span></label>
+    <input type="text" [(ngModel)]="form.OrgaoNome" name="ctr-orgao-nome" maxlength="200"
+           placeholder="Nome completo do órgão ou entidade"
+           class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+           [class.border-red-500]="submetido && errOrgaoNome"
+           [class.bg-red-50]="submetido && errOrgaoNome"
+           [class.border-gray-300]="!(submetido && errOrgaoNome)">
+    <p *ngIf="submetido && errOrgaoNome" class="text-xs text-red-600 mt-1">{{ errOrgaoNome }}</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Sigla <span class="text-red-600">*</span></label>
+    <input type="text" [value]="form.OrgaoSigla" (input)="aoDigitarSigla($event)" maxlength="20"
+           list="ctr-siglas" placeholder="SEEC"
+           class="w-full px-3 py-2 border rounded-md text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+           [class.border-red-500]="submetido && errOrgaoSigla"
+           [class.bg-red-50]="submetido && errOrgaoSigla"
+           [class.border-gray-300]="!(submetido && errOrgaoSigla)">
+    <datalist id="ctr-siglas">
+      <option *ngFor="let s of siglas" [value]="s"></option>
+    </datalist>
+    <p *ngIf="submetido && errOrgaoSigla" class="text-xs text-red-600 mt-1">{{ errOrgaoSigla }}</p>
+    <p class="text-xs text-gray-400 italic mt-1">A sigla é gravada em caixa alta. A lista sugere as siglas já usadas.</p>
+  </div>
+
+  <div class="md:col-span-2">
+    <label class="block text-sm font-semibold mb-1">Complemento / Área</label>
+    <input type="text" [(ngModel)]="form.ComplementoArea" name="ctr-complemento" maxlength="200"
+           placeholder="Subsecretaria, diretoria ou área demandante, quando houver"
+           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+  </div>
+
+  <div class="md:col-span-2">
+    <label class="block text-sm font-semibold mb-1">Objeto <span class="text-red-600">*</span></label>
+    <textarea rows="3" [(ngModel)]="form.Objeto" name="ctr-objeto"
+              placeholder="O que está sendo contratado, como consta no processo."
+              class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-500]="submetido && errObjeto"
+              [class.bg-red-50]="submetido && errObjeto"
+              [class.border-gray-300]="!(submetido && errObjeto)"></textarea>
+    <p *ngIf="submetido && errObjeto" class="text-xs text-red-600 mt-1">{{ errObjeto }}</p>
+  </div>
+</div>
+
+<!-- Tramitação -->
+<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Tramitação</h3>
+<p class="text-xs text-gray-400 italic mb-3">Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; a ordem
+das datas preenchidas precisa respeitar o caminho SGDI → SUBGD → UGTIC → Gab SGDI → órgão.</p>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div *ngFor="let c of checkpoints">
+    <label class="block text-sm font-semibold mb-1">{{ c.rotulo }}</label>
+    <input type="date" [ngModel]="dataDoCheckpoint(c.campo)" [name]="'ctr-' + c.campo"
+           (ngModelChange)="definirCheckpoint(c.campo, $event)"
+           [disabled]="c.campo === 'ChegadaUgtic' && form.UgticNaoSeAplica"
+           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
+    <label *ngIf="c.campo === 'ChegadaUgtic'" class="flex items-center gap-2 mt-2 text-sm">
+      <input type="checkbox" [ngModel]="form.UgticNaoSeAplica" name="ctr-ugtic-na"
+             (ngModelChange)="aoMarcarUgticNaoSeAplica($event)"
+             class="rounded border-gray-300">
+      <span>Não se aplica (etapa pulada de propósito)</span>
+    </label>
+    <p class="text-xs text-gray-400 italic mt-1">{{ c.ajuda }}</p>
+  </div>
+</div>
+
+<!-- Restituição -->
+<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Restituição ao órgão</h3>
+<label class="flex items-center gap-2 text-sm mb-3">
+  <input type="checkbox" [ngModel]="form.Restituido" name="ctr-restituido"
+         (ngModelChange)="aoMarcarRestituido($event)"
+         class="rounded border-gray-300">
+  <span>O processo foi restituído ao órgão comunicante</span>
+</label>
+
+<div *ngIf="form.Restituido" class="grid grid-cols-1 md:grid-cols-2 gap-4 border-l-4 border-orange-400 bg-orange-50 p-4 rounded-r-md">
+  <div>
+    <label class="block text-sm font-semibold mb-1">Data da restituição <span class="text-red-600">*</span></label>
+    <input type="date" [(ngModel)]="form.RestituidoEm" name="ctr-restituido-em"
+           class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+           [class.border-red-500]="submetido && errRestituidoEm"
+           [class.border-gray-300]="!(submetido && errRestituidoEm)">
+    <p *ngIf="submetido && errRestituidoEm" class="text-xs text-red-600 mt-1">{{ errRestituidoEm }}</p>
+  </div>
+  <div>
+    <label class="block text-sm font-semibold mb-1">Motivo da restituição <span class="text-red-600">*</span></label>
+    <textarea rows="2" [(ngModel)]="form.RestituidoMotivo" name="ctr-restituido-motivo"
+              placeholder="Por que o processo voltou ao órgão sem a análise concluída."
+              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-500]="submetido && errRestituidoMotivo"
+              [class.border-gray-300]="!(submetido && errRestituidoMotivo)"></textarea>
+    <p *ngIf="submetido && errRestituidoMotivo" class="text-xs text-red-600 mt-1">{{ errRestituidoMotivo }}</p>
+  </div>
+</div>
+
+<!-- Observação -->
+<div class="mt-4">
+  <label class="block text-sm font-semibold mb-1">Observação</label>
+  <textarea rows="3" [(ngModel)]="form.Observacao" name="ctr-observacao"
+            placeholder="Anotações da equipe sobre o andamento do processo."
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+</div>
+
+<!-- Datas incoerentes: aparecem assim que o problema existe -->
+<div *ngIf="errDatas.length > 0" class="mt-4 border-l-4 border-red-500 bg-red-50 p-3 rounded-r-md">
+  <p class="text-sm font-semibold text-red-800 mb-1">Confira as datas antes de salvar:</p>
+  <ul class="list-disc pl-5 text-sm text-red-800 space-y-0.5">
+    <li *ngFor="let e of errDatas">{{ e }}</li>
+  </ul>
+</div>
+
+<div class="mt-5 flex items-center gap-3">
+  <button (click)="enviar()" [disabled]="salvando"
+          class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+    {{ salvando ? 'Salvando...' : rotuloSalvar }}
+  </button>
+  <button *ngIf="rotaCancelar" type="button" (click)="cancelar.emit()"
+          class="text-sm text-blue-700 hover:underline">Cancelar</button>
+  <span *ngIf="submetido && !formValido" class="text-xs text-gray-400 italic">Há campos obrigatórios ou datas para corrigir acima.</span>
+</div>

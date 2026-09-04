@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { map } from 'rxjs/operators';
-import { AuthService, PapeisPgia, Perfis } from '../../auth/services/auth';
+import { AuthService, PapeisContratacoes, PapeisPgia, Perfis } from '../../auth/services/auth';
 
 /**
  * Porta de entrada da área /pgia: manda cada usuário para a primeira tela do
@@ -31,6 +31,11 @@ export const pgiaRaizGuard: CanActivateFn = () => {
       if (papel === PapeisPgia.Sgdi) return router.parseUrl('/pgia/sgdi');
       if (papel === PapeisPgia.Cgtic) return router.parseUrl('/pgia/cgtic');
       if (papel === PapeisPgia.Auditoria) return router.parseUrl('/pgia/auditoria');
+
+      // Quem não tem papel no PGIA mas tem o papel de Análises de Contratações
+      // aterrissa no módulo dele (o confinamento do 'basico' manda a raiz para
+      // cá; sem este desvio, o analista da SGDI cairia no registro de uso).
+      if (user?.PapelContratacoes === PapeisContratacoes.Analise) return router.parseUrl('/analises');
 
       // Sem papel no PGIA: registro de uso de IA (art. 13), dever de todo agente.
       return router.parseUrl('/pgia/uso');

@@ -1,0 +1,160 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { NotificationService } from '../../core/services/notification.service';
+import { CtrManifestacaoService } from '../services/ctr-manifestacao.service';
+import { CtrManifestacaoFormComponent } from '../shared/ctr-manifestacao-form.component';
+import { badgeEstagio } from '../shared/ctr-rotulos';
+import { CtrManifestacao, CtrManifestacaoForm } from '../../../api/contratacoes/interface';
+
+/**
+ * Página de uma manifestação (`/analises/manifestacoes/editar/:id`): o mesmo
+ * formulário do despacho, mais a geração do documento em PDF.
+ *
+ * Editar é a forma de acompanhar a evolução do caso — "Aguardando resposta"
+ * vira "Risco resolvido" ou "Não pode prosseguir" na mesma manifestação.
+ */
+@Component({
+  selector: 'app-ctr-manifestacao-editar',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent],
+  templateUrl: './ctr-manifestacao-editar.component.html'
+})
+export class CtrManifestacaoEditarComponent implements OnInit {
+  manifestacao: CtrManifestacao | null = null;
+  valorForm: CtrManifestacaoForm | null = null;
+
+  carregando = true;
+  salvando = false;
+  /** Falha de carregamento vira mensagem na própria página, não toast. */
+  erroCarregar: string | null = null;
+
+  // Modal do despacho em PDF (os três dados vão no fecho e não persistem)
+  modalPdfAberto = false;
+  despacho = { Local: 'Brasília', Nome: '', Cargo: '' };
+  gerandoPdf = false;
+  submetidoPdf = false;
+
+  badgeEstagio = badgeEstagio;
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private manifestacaoService: CtrManifestacaoService,
+    private notificationService: NotificationService
+  ) {}
+
+  ngOnInit(): void {
+    const id = Number(this.route.snapshot.paramMap.get('id'));
+    if (!id) {
+      this.carregando = false;
+      this.erroCarregar = 'Manifestação não encontrada.';
+      return;
+    }
+    this.carregar(id);
+  }
+
+  private carregar(id: number): void {
+    this.carregando = true;
+    this.erroCarregar = null;
+    this.manifestacaoService.getManifestacao(id).subscribe({
+      next: manifestacao => {
+        this.aplicar(manifestacao);
+        this.carregando = false;
+      },
+      error: () => {
+        this.carregando = false;
+        this.erroCarregar = 'Não foi possível carregar esta manifestação. O processo dela pode ter sido excluído.';
+      }
+    });
+  }
+
+  private aplicar(manifestacao: CtrManifestacao): void {
+    this.manifestacao = manifestacao;
+    this.valorForm = {
+      OficioTcdf: manifestacao.OficioTcdf,
+      DataOficio: manifestacao.DataOficio,
+      SituacaoPortfolio: manifestacao.SituacaoPortfolio,
+      ComunicadaDesde: manifestacao.ComunicadaDesde ?? null,
+      Criticidade: manifestacao.Criticidade ?? null,
+      ResultadoAnalise: manifestacao.ResultadoAnalise ?? null,
+      RecomendouSuspensao: manifestacao.RecomendouSuspensao,
+      ComunicouControleInterno: manifestacao.ComunicouControleInterno,
+      DesfechoRisco: manifestacao.DesfechoRisco ?? null,
+      PrazoRegularizacaoDias: manifestacao.PrazoRegularizacaoDias ?? null,
+      Observacao: manifestacao.Observacao ?? null
+    };
+  }
+
+  salvar(form: CtrManifestacaoForm): void {
+    if (!this.manifestacao) return;
+    this.salvando = true;
+    this.manifestacaoService.atualizar(this.manifestacao.Id, form).subscribe({
+      next: atualizada => {
+        this.salvando = false;
+        this.aplicar(atualizada);
+        this.notificationService.success('Manifestação atualizada.');
+      },
+      error: () => {
+        this.salvando = false;
+        this.notificationService.error(
+          'Não foi possível salvar. Confira os campos do inciso escolhido.'
+        );
+      }
+    });
+  }
+
+  irParaLista(): void {
+    this.router.navigate(['/analises/manifestacoes/lista']);
+  }
+
+  // ── Despacho em PDF ───────────────────────────────────────────────────────
+
+  abrirModalPdf(): void {
+    this.submetidoPdf = false;
+    this.modalPdfAberto = true;
+  }
+
+  fecharModalPdf(): void {
+    this.modalPdfAberto = false;
+  }
+
+  get errDespacho(): string | null {
+    if (!this.despacho.Local.trim()) return 'Informe o local.';
+    if (!this.despacho.Nome.trim()) return 'Informe o nome de quem assina.';
+    if (!this.despacho.Cargo.trim()) return 'Informe o cargo e a unidade de quem assina.';
+    return null;
+  }
+
+  gerarPdf(): void {
+    this.submetidoPdf = true;
+    if (!this.manifestacao || this.errDespacho) return;
+
+    this.gerandoPdf = true;
+    const id = this.manifestacao.Id;
+    const numero = this.manifestacao.NumeroProcesso.replace(/[^0-9]/g, '');
+    this.manifestacaoService.baixarDespachoPdf(id, {
+      Local: this.despacho.Local.trim(),
+      Nome: this.despacho.Nome.trim(),
+      Cargo: this.despacho.Cargo.trim()
+    }).subscribe({
+      next: blob => {
+        this.gerandoPdf = false;
+        this.modalPdfAberto = false;
+        // Handler de clique: só roda no browser.
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `despacho-tcdf-${numero}-${id}.pdf`;
+        link.click();
+        // Revogar na hora corre com o início do download em alguns navegadores.
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      },
+      error: () => {
+        this.gerandoPdf = false;
+        this.notificationService.error('Não foi possível gerar o despacho em PDF.');
+      }
+    });
+  }
+}

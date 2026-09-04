@@ -15,6 +15,7 @@ import { ParceiroComponent } from './parceiro/parceiro.component';
 import { PendingApprovalComponent } from './auth/pending-approval/pending-approval.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { pgiaGuard } from './pgia/guards/pgia.guard';
+import { contratacoesGuard } from './contratacoes/guards/contratacoes.guard';
 
 export const routes: Routes = [
   {
@@ -77,6 +78,12 @@ export const routes: Routes = [
         path: 'pgia',
         canActivate: [pgiaGuard],
         loadChildren: () => import('./pgia/pgia.routes').then(m => m.pgia_routes)
+      },
+      {
+        // Análises de Contratações: módulo interno da SGDI (lazy)
+        path: 'analises',
+        canActivate: [contratacoesGuard],
+        loadChildren: () => import('./contratacoes/contratacoes.routes').then(m => m.contratacoes_routes)
       }
     ]
   }

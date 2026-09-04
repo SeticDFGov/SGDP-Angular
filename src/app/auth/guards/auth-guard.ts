@@ -1,5 +1,5 @@
 import { CanActivateFn, Router } from '@angular/router';
-import { AuthService } from '../services/auth';
+import { AuthService, PapeisContratacoes } from '../services/auth';
 import { inject } from '@angular/core';
 import { map, of, switchMap } from 'rxjs';
 
@@ -35,7 +35,12 @@ export const authGuard: CanActivateFn = (route, state) => {
           // Perfil 'basico' (com ou sem papel PGIA) fica confinado à área /pgia,
           // no mesmo padrão de centralit/parceiro. Sem papel, o pgiaGuard o leva
           // ao registro de uso de IA (art. 13) — dever de todo agente público.
-          if (perfil === 'basico' && !state.url.startsWith('/pgia')) {
+          // Decisão do usuário (módulo Análises de Contratações): o confinamento
+          // passa a admitir também /analises para quem tem PapelContratacoes —
+          // os analistas da SGDI são 'basico' e precisam da área do módulo.
+          if (perfil === 'basico' && !state.url.startsWith('/pgia')
+              && !(state.url.startsWith('/analises')
+                   && user?.PapelContratacoes === PapeisContratacoes.Analise)) {
             router.navigate(['/pgia']);
             return false;
           }

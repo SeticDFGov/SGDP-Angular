@@ -15,6 +15,9 @@ export interface UserProfile {
   Perfil: string;
   // Papel no módulo PGIA (Decreto nº 48.901/2026); opcional para não quebrar dados já salvos
   PapelPgia?: string | null;
+  // Papel no módulo Análises de Contratações (ferramenta interna da SGDI);
+  // opcional pelo mesmo motivo — usuário salvo antes do módulo não tem o campo
+  PapelContratacoes?: string | null;
   Unidade: Unidade | null;
 }
 

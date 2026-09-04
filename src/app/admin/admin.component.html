@@ -170,6 +170,32 @@
                   </div>
                   <p class="text-xs text-gray-500 mt-1">O papel PGIA é independente do perfil e não altera nada no Keycloak.</p>
                 </div>
+
+                <!-- Papel · Análises de Contratações -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Papel · Análises de Contratações
+                    <span *ngIf="user.PapelContratacoes" class="ml-2 px-2 py-0.5 text-xs font-semibold bg-teal-100 text-teal-800 rounded-full">{{ rotuloPapelContratacoes(user.PapelContratacoes) }}</span>
+                    <span *ngIf="!user.PapelContratacoes" class="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded-full">sem papel</span>
+                  </label>
+                  <div class="flex items-center space-x-2">
+                    <select
+                      [(ngModel)]="selectedPapeisContratacoes[user.Id]"
+                      class="flex-grow w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Sem papel (remover)</option>
+                      <option *ngFor="let papel of papeisContratacoes" [value]="papel">{{ rotuloPapelContratacoes(papel) }}</option>
+                    </select>
+                    <button
+                      (click)="atribuirPapelContratacoes(user.Email, selectedPapeisContratacoes[user.Id])"
+                      [disabled]="selectedPapeisContratacoes[user.Id] === undefined || (selectedPapeisContratacoes[user.Id] || null) === (user.PapelContratacoes || null)"
+                      class="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50"
+                    >
+                      Salvar
+                    </button>
+                  </div>
+                  <p class="text-xs text-gray-400 italic mt-1">Módulo interno da SGDI. O papel é independente do perfil e não altera nada no Keycloak.</p>
+                </div>
               </div>
             </div>
           </div>
