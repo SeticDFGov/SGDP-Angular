@@ -523,9 +523,13 @@
       </div>
 
       <!-- Grupo "Outros": riscos que o próprio órgão identifica -->
-      <div class="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
+      <div class="border rounded-lg p-4 mb-4 bg-gray-50"
+           [class.border-red-500]="errOutros"
+           [class.border-gray-200]="!errOutros">
         <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
-          <h3 class="text-sm font-semibold text-gray-900">Outros riscos identificados pelo órgão</h3>
+          <h3 class="text-sm font-semibold text-gray-900">Outros riscos identificados pelo órgão
+            <span *ngIf="outrosObrigatorio" class="text-red-600">*</span>
+          </h3>
 
           <!-- Ajuda: matriz da CGDF em popover nativo -->
           <div class="relative" (mouseleave)="aoSairDaMatriz()">
@@ -572,7 +576,16 @@
         </div>
 
         <p class="text-sm text-gray-600 mb-3 leading-relaxed">Se o órgão identificou outros riscos no sistema, registre cada
-        um com a ação que vai reduzi-lo e quem responde por ela. Este grupo pode ficar vazio.</p>
+        um com a ação que vai reduzi-lo e quem responde por ela.
+        <ng-container *ngIf="!outrosObrigatorio">Este grupo pode ficar vazio.</ng-container></p>
+
+        <p *ngIf="outrosObrigatorio" class="text-xs text-gray-400 italic mb-3">
+          Obrigatório quando nenhuma das situações dos três grupos se aplica.
+        </p>
+
+        <p *ngIf="errOutros" class="text-xs text-red-600 mb-3">
+          Descreva ao menos um risco, com todos os campos preenchidos.
+        </p>
 
         <div *ngFor="let r of outrosRiscos; let i = index"
              class="border border-gray-200 rounded-lg p-3 mb-3 bg-white"
@@ -675,11 +688,12 @@
       </div>
 
       <div class="mt-4 flex items-center gap-3 flex-wrap">
-        <button (click)="salvarSistema()" [disabled]="salvando"
-                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+        <button (click)="salvarSistema()" [disabled]="salvando || !questionarioPronto"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
           {{ salvando ? 'Salvando...' : 'Salvar sistema no inventário' }}
         </button>
-        <span class="text-xs text-gray-400 italic">O registro fica assinado por {{ user?.Nome }}, Responsável de IA da {{ orgao.Sigla }}.</span>
+        <span *ngIf="faltaNoQuestionario" class="text-xs text-gray-400 italic">{{ faltaNoQuestionario }}</span>
+        <span *ngIf="!faltaNoQuestionario" class="text-xs text-gray-400 italic">O registro fica assinado por {{ user?.Nome }}, Responsável de IA da {{ orgao.Sigla }}.</span>
       </div>
     </div>
 

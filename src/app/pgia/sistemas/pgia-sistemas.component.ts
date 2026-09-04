@@ -459,6 +459,7 @@ export class PgiaSistemasComponent implements OnInit {
       && !this.errNaoRedundancia && !this.errSupervisao && !this.errAvisoIa
       && !this.errDataClassificacao && !this.errJustificativa
       && this.respostasGrupos.every((_, i) => this.grupoRespondido(i))
+      && this.outrosSatisfeito
       && this.outrosRiscosValidos();
   }
 
@@ -527,6 +528,51 @@ export class PgiaSistemasComponent implements OnInit {
     return this.outrosRiscos.every((_, i) =>
       !this.errRiscoDescricao(i) && !this.errRiscoMitigacao(i) && !this.errRiscoNome(i)
       && !this.errRiscoEmail(i) && !this.errRiscoProbabilidade(i) && !this.errRiscoConsequencia(i));
+  }
+
+  /** Risco com todos os campos obrigatórios preenchidos (não depende do submit). */
+  private riscoCompleto(risco: PgiaRiscoOutroForm): boolean {
+    return !!risco.DescricaoRisco.trim() && !!risco.AcaoMitigacao.trim()
+      && !!risco.ResponsavelNome.trim()
+      && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(risco.ResponsavelEmail.trim())
+      && !!risco.Probabilidade && !!risco.Consequencia;
+  }
+
+  /** Os três grupos responderam "Nenhuma das alternativas acima". */
+  get todosNenhuma(): boolean {
+    return this.respostasGrupos.every(r => r.nenhuma);
+  }
+
+  /**
+   * Se nenhuma situação dos arts. 15 a 17 se aplica, o órgão precisa declarar
+   * ao menos um risco próprio — senão o registro não diz nada sobre o sistema.
+   */
+  get outrosObrigatorio(): boolean {
+    return this.todosNenhuma;
+  }
+
+  get outrosSatisfeito(): boolean {
+    return !this.outrosObrigatorio || this.outrosRiscos.some(r => this.riscoCompleto(r));
+  }
+
+  get errOutros(): boolean {
+    return this.submetido && !this.outrosSatisfeito;
+  }
+
+  /** Dimensão do questionário: é ela que liga e desliga o botão de salvar. */
+  get questionarioPronto(): boolean {
+    return this.respostasGrupos.every((_, i) => this.grupoRespondido(i)) && this.outrosSatisfeito;
+  }
+
+  /** O que ainda falta no questionário, para o hint ao lado do botão. */
+  get faltaNoQuestionario(): string | null {
+    if (!this.respostasGrupos.every((_, i) => this.grupoRespondido(i))) {
+      return 'Responda os três grupos do questionário para salvar.';
+    }
+    if (!this.outrosSatisfeito) {
+      return 'Como nenhuma das situações se aplica, descreva ao menos um risco no grupo Outros para salvar.';
+    }
+    return null;
   }
 
   // ── Matriz de risco da CGDF (popover de ajuda) ────────────────────────────
