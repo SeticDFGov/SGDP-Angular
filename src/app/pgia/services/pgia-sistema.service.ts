@@ -16,8 +16,8 @@ import {
 } from '../../../api/pgia/interface';
 
 /**
- * Metadados de documento vinculado a um sistema. O anexo binário entra em fase
- * futura; por ora o processo SEI é a comprovação.
+ * Metadados de documento vinculado a um sistema. O arquivo binário sobe depois,
+ * pelo `PgiaDocumentoService` (POST documento/{id}/arquivo).
  */
 export interface PgiaDocumentoForm {
   Tipo: string;

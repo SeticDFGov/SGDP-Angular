@@ -8,7 +8,11 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
+import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
+import { Observable } from 'rxjs';
+import { PgiaDocumentoService } from '../services/pgia-documento.service';
 import {
+  PgiaDocumento,
   NATUREZAS_JURIDICAS,
   PgiaAgenteInfoForm,
   PgiaDesignacao,
@@ -24,7 +28,7 @@ import {
 @Component({
   selector: 'app-pgia-orgao-etapa1',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective, PgiaAnexoComponent],
   templateUrl: './pgia-orgao-etapa1.component.html'
 })
 export class PgiaOrgaoEtapa1Component implements OnInit {
@@ -61,6 +65,25 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
   salvandoInfo = false;
 
   // Card: Responsável de IA
+  /**
+   * Cópia do ato das designações. O documento tem de ser do MESMO órgão da
+   * designação — documento central é recusado pelo servidor.
+   */
+  criarDocumentoAto = (arquivo: File): Observable<PgiaDocumento> =>
+    this.documentoService.criarDocumento({
+      Tipo: 'Ato de designação',
+      NomeArquivo: arquivo.name,
+      OrgaoId: this.orgao?.Id ?? null
+    });
+
+  aoCriarDocumentoRia(documento: PgiaDocumento): void {
+    this.riaForm.DocumentoId = documento.Id;
+  }
+
+  aoCriarDocumentoDpo(documento: PgiaDocumento): void {
+    this.dpoForm.DocumentoId = documento.Id;
+  }
+
   riaForm: PgiaResponsavelIaForm = this.novoRiaForm();
   riaSubmetido = false;
   salvandoRia = false;
@@ -75,7 +98,8 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
   constructor(
     private authService: AuthService,
     private pgiaOrgaoService: PgiaOrgaoService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private documentoService: PgiaDocumentoService
   ) {
     // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
     acompanharSecao(secao => this.secao = secao);
@@ -105,6 +129,7 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
     return {
       AgenteId: '', AtoTipo: 'Portaria', AtoNumero: '', AtoData: '',
       ProcessoSeiComunicacao: '', DataComunicacaoSgdi: '', InicioVigencia: '',
+      DocumentoId: null,
       AcumulaFuncaoTic: false, CapacitacaoAdequada: null
     };
   }
@@ -112,7 +137,8 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
   private novoDpoForm(): PgiaDesignacaoForm {
     return {
       AgenteId: '', AtoTipo: 'Portaria', AtoNumero: '', AtoData: '',
-      ProcessoSeiComunicacao: '', DataComunicacaoSgdi: '', InicioVigencia: ''
+      ProcessoSeiComunicacao: '', DataComunicacaoSgdi: '', InicioVigencia: '',
+      DocumentoId: null
     };
   }
 

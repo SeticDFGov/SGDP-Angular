@@ -10,6 +10,9 @@ import { PgiaSistemaService } from '../services/pgia-sistema.service';
 import { GRUPOS_QUESITOS, ROMANOS } from './quesitos';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
+import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
+import { Observable } from 'rxjs';
+import { PgiaDocumentoService } from '../services/pgia-documento.service';
 import {
   BASES_LEGAIS_LGPD,
   ESCOPOS_DADOS,
@@ -24,6 +27,7 @@ import {
   PROBABILIDADES_CGDF,
   PROBABILIDADES_OUTROS,
   PgiaChecklist,
+  PgiaDocumento,
   PgiaRiscoOutroForm,
   PgiaDesignacao,
   PgiaOrgao,
@@ -37,7 +41,7 @@ import {
 @Component({
   selector: 'app-pgia-sistemas',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective, PgiaAnexoComponent],
   templateUrl: './pgia-sistemas.component.html'
 })
 export class PgiaSistemasComponent implements OnInit {
@@ -141,7 +145,8 @@ export class PgiaSistemasComponent implements OnInit {
     private pgiaOrgaoService: PgiaOrgaoService,
     private pgiaSistemaService: PgiaSistemaService,
     private notificationService: NotificationService,
-    private router: Router
+    private router: Router,
+    private documentoService: PgiaDocumentoService
   ) {
     // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
     acompanharSecao(secao => this.secao = secao);
@@ -199,6 +204,18 @@ export class PgiaSistemasComponent implements OnInit {
     return { Motivo: 'Classificação inicial' as string, DataClassificacao: '', Justificativa: '' };
   }
 
+  /** Arquivo da AIA: documento do sistema aberto. */
+  criarDocumentoAia = (arquivo: File): Observable<PgiaDocumento> =>
+    this.documentoService.criarDocumento({
+      Tipo: 'AIA',
+      NomeArquivo: arquivo.name,
+      SistemaIaId: this.sistemaAiaAberto?.Id ?? null
+    });
+
+  aoCriarDocumentoAia(documento: PgiaDocumento): void {
+    this.aiaForm.DocumentoId = documento.Id;
+  }
+
   private novaAia() {
     return {
       Status: 'Em elaboração' as string,
@@ -210,7 +227,8 @@ export class PgiaSistemasComponent implements OnInit {
       MedidasReversao: '',
       PreviaLicitacao: null as boolean | null,
       ConjuntaRipd: false,
-      ProximaRevisao: ''
+      ProximaRevisao: '',
+      DocumentoId: null as number | null
     };
   }
 
@@ -366,7 +384,8 @@ export class PgiaSistemasComponent implements OnInit {
       MedidasReversao: aia.MedidasReversao ?? '',
       PreviaLicitacao: aia.PreviaLicitacao,
       ConjuntaRipd: aia.ConjuntaRipd,
-      ProximaRevisao: aia.ProximaRevisao ?? ''
+      ProximaRevisao: aia.ProximaRevisao ?? '',
+      DocumentoId: aia.DocumentoId ?? null
     };
   }
 
@@ -407,9 +426,9 @@ export class PgiaSistemasComponent implements OnInit {
       MedidasReversao: this.aiaForm.MedidasReversao.trim(),
       PreviaLicitacao: this.aiaForm.PreviaLicitacao,
       ConjuntaRipd: this.aiaForm.ConjuntaRipd,
-      // Anexos entram em fase futura: o backend aceita nulo.
+      // Documento da AIA: o anexo sobe depois de salva, pelo DocumentoId dela.
       RipdDocumentoId: this.aiaEmEdicao?.RipdDocumentoId ?? null,
-      DocumentoId: this.aiaEmEdicao?.DocumentoId ?? null,
+      DocumentoId: this.aiaForm.DocumentoId,
       ProximaRevisao: this.aiaForm.ProximaRevisao || null
     };
     this.salvandoAia = true;

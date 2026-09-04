@@ -137,8 +137,12 @@
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Ata da reunião (PDF)</label>
-          <input type="text" readonly value="anexo disponível em fase futura"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+          <app-pgia-anexo
+            [documentoId]="form.DocumentoId"
+            [criarDocumento]="criarDocumentoAta"
+            (documentoCriado)="aoCriarDocumentoAta($event)">
+          </app-pgia-anexo>
+          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, registre a deliberação para guardar a ata nela.</p>
         </div>
       </div>
 
@@ -160,6 +164,7 @@
               <th class="px-3 py-2">Objeto</th>
               <th class="px-3 py-2">Resultado</th>
               <th class="px-3 py-2">Ato</th>
+              <th class="px-3 py-2">Ata</th>
             </tr>
           </thead>
           <tbody>
@@ -178,9 +183,15 @@
                 <span *ngIf="!d.NumeroAto" class="text-gray-500">—</span>
                 <div *ngIf="d.Ementa" class="text-xs text-gray-500 leading-relaxed">{{ d.Ementa }}</div>
               </td>
+              <td class="px-3 py-2 w-72">
+                <app-pgia-anexo
+                  [documentoId]="d.DocumentoId ?? null"
+                  avisoSemDocumento="Esta deliberação ainda não tem documento para anexar a ata.">
+                </app-pgia-anexo>
+              </td>
             </tr>
             <tr *ngIf="deliberacoes.length === 0">
-              <td colspan="5" class="px-3 py-4 text-center text-gray-500">Nenhuma deliberação registrada.</td>
+              <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhuma deliberação registrada.</td>
             </tr>
           </tbody>
         </table>

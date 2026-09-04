@@ -11,7 +11,11 @@ import { PgiaGovernancaService } from '../services/pgia-governanca.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
+import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
+import { Observable } from 'rxjs';
+import { PgiaDocumentoService } from '../services/pgia-documento.service';
 import {
+  PgiaDocumento,
   ENVOLVE_IA,
   PgiaAutorizacao,
   PgiaContrato,
@@ -27,7 +31,7 @@ import {
 @Component({
   selector: 'app-pgia-contratacoes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective, PgiaAnexoComponent],
   templateUrl: './pgia-contratacoes.component.html'
 })
 export class PgiaContratacoesComponent implements OnInit {
@@ -62,13 +66,37 @@ export class PgiaContratacoesComponent implements OnInit {
   legadoSubmetido = false;
   salvandoLegado = false;
 
+  /** Documento da comprovação do instrumento legado. */
+  comprovacaoDocId: number | null = null;
+
+  /**
+   * O anexo da comprovação cria o documento na hora. Vai com SistemaIaId
+   * quando o instrumento já está vinculado a um sistema (o backend herda o
+   * órgão dele); senão, com o OrgaoId.
+   */
+  criarDocumentoComprovacao = (arquivo: File): Observable<PgiaDocumento> => {
+    const sistemaId = this.legadoForm.SistemaIaId ? Number(this.legadoForm.SistemaIaId) : null;
+    return this.documentoService.criarDocumento({
+      Tipo: 'Comprovação de triagem',
+      NomeArquivo: arquivo.name,
+      ProcessoSei: this.legadoForm.ProcessoSei.trim() || null,
+      SistemaIaId: sistemaId,
+      OrgaoId: sistemaId ? null : (this.orgao?.Id ?? null)
+    });
+  };
+
+  aoCriarDocumentoComprovacao(documento: PgiaDocumento): void {
+    this.comprovacaoDocId = documento.Id;
+  }
+
   constructor(
     private authService: AuthService,
     private orgaoService: PgiaOrgaoService,
     private sistemaService: PgiaSistemaService,
     private governancaService: PgiaGovernancaService,
     private operacaoService: PgiaOperacaoService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private documentoService: PgiaDocumentoService
   ) {
     // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
     acompanharSecao(secao => this.secao = secao);
@@ -410,6 +438,7 @@ export class PgiaContratacoesComponent implements OnInit {
   editarLegado(l: PgiaLegado): void {
     this.legadoEmEdicao = l;
     this.legadoSubmetido = false;
+    this.comprovacaoDocId = l.ComprovacaoDocId ?? null;
     this.legadoForm = {
       TipoInstrumento: l.TipoInstrumento,
       Descricao: l.Descricao,
@@ -427,6 +456,7 @@ export class PgiaContratacoesComponent implements OnInit {
 
   cancelarEdicaoLegado(): void {
     this.legadoEmEdicao = null;
+    this.comprovacaoDocId = null;
     this.legadoSubmetido = false;
     this.legadoForm = this.novoLegado();
   }
@@ -449,8 +479,7 @@ export class PgiaContratacoesComponent implements OnInit {
       AditivoClausulaTreinamento: this.legadoEnvolveIa ? this.legadoForm.AditivoClausulaTreinamento : null,
       DataAditivo: this.legadoEnvolveIa ? (this.legadoForm.DataAditivo || null) : null,
       ProcessoSei: this.legadoForm.ProcessoSei.trim() || null,
-      // Comprovação em anexo entra em fase futura.
-      ComprovacaoDocId: this.legadoEmEdicao?.ComprovacaoDocId ?? null,
+      ComprovacaoDocId: this.comprovacaoDocId,
       SistemaIaId: this.legadoForm.SistemaIaId ? Number(this.legadoForm.SistemaIaId) : null
     };
     this.salvandoLegado = true;

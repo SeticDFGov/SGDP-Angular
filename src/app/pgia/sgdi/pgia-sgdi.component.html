@@ -939,8 +939,12 @@
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Arquivo do relatório</label>
-          <input type="text" readonly value="anexo disponível em fase futura"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+          <app-pgia-anexo
+            [documentoId]="anualForm.DocumentoId"
+            [criarDocumento]="criarDocumentoAnual"
+            (documentoCriado)="aoCriarDocumentoAnual($event)">
+          </app-pgia-anexo>
+          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve o relatório para guardar o arquivo nele.</p>
         </div>
       </div>
 
@@ -1048,6 +1052,15 @@
           <input type="date" [(ngModel)]="auditoriaForm.DataInicio" name="au-inicio"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errAuditoriaInicio" [class.border-gray-300]="!errAuditoriaInicio">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Relatório da auditoria</label>
+          <app-pgia-anexo
+            [documentoId]="auditoriaForm.DocumentoId"
+            [criarDocumento]="criarDocumentoAuditoria"
+            (documentoCriado)="aoCriarDocumentoAuditoria($event)">
+          </app-pgia-anexo>
+          <p class="text-xs text-gray-400 italic mt-1">Escolha o sistema antes de anexar. O relatório também pode ser anexado depois, editando a auditoria.</p>
         </div>
       </div>
 
@@ -1412,8 +1425,12 @@
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Avaliação de riscos (documento)</label>
-          <input type="text" readonly value="anexo disponível em fase futura"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+          <app-pgia-anexo
+            [documentoId]="autorizacaoForm.AvaliacaoRiscosDocId"
+            [criarDocumento]="criarDocumentoAvaliacaoRiscos"
+            (documentoCriado)="aoCriarDocumentoAvaliacaoRiscos($event)">
+          </app-pgia-anexo>
+          <p class="text-xs text-gray-400 italic mt-1">Escolha o órgão antes de anexar; depois salve a autorização para guardar o documento nela.</p>
         </div>
       </div>
 

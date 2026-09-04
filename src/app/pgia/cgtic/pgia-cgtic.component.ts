@@ -9,10 +9,14 @@ import { PgiaGovernancaService, PgiaSistemaResumo } from '../services/pgia-gover
 import { PgiaChecklistAbertoComponent } from '../shared/pgia-checklist-aberto.component';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
+import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
+import { Observable } from 'rxjs';
+import { PgiaDocumentoService } from '../services/pgia-documento.service';
 import {
   PgiaCgticCasoHistorico,
   PgiaCgticHistoricoResponse,
   PgiaDeliberacao,
+  PgiaDocumento,
   PgiaDeliberacaoForm,
   PgiaHomologacaoPendente,
   RESULTADOS_DELIBERACAO,
@@ -40,7 +44,7 @@ const TIPOS_QUE_MUDAM_HOMOLOGACAO: string[] = [
 @Component({
   selector: 'app-pgia-cgtic',
   standalone: true,
-  imports: [CommonModule, FormsModule, PgiaChecklistAbertoComponent, CitaDecretoDirective],
+  imports: [CommonModule, FormsModule, PgiaChecklistAbertoComponent, CitaDecretoDirective, PgiaAnexoComponent],
   templateUrl: './pgia-cgtic.component.html'
 })
 export class PgiaCgticComponent implements OnInit {
@@ -89,7 +93,8 @@ export class PgiaCgticComponent implements OnInit {
     private governancaService: PgiaGovernancaService,
     private notificationService: NotificationService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private documentoService: PgiaDocumentoService
   ) {
     // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
     acompanharSecao(secao => this.secao = secao);
@@ -121,6 +126,14 @@ export class PgiaCgticComponent implements OnInit {
     });
   }
 
+  /** A ata da reunião é documento CENTRAL do comitê. */
+  criarDocumentoAta = (arquivo: File): Observable<PgiaDocumento> =>
+    this.documentoService.criarDocumento({ Tipo: 'Ata ou deliberação', NomeArquivo: arquivo.name });
+
+  aoCriarDocumentoAta(documento: PgiaDocumento): void {
+    this.form.DocumentoId = documento.Id;
+  }
+
   private novoForm() {
     return {
       Tipo: 'Classificação de sistema como Alto Risco' as string,
@@ -128,7 +141,8 @@ export class PgiaCgticComponent implements OnInit {
       DataDeliberacao: '',
       Resultado: '' as string,
       NumeroAto: '',
-      Ementa: ''
+      Ementa: '',
+      DocumentoId: null as number | null
     };
   }
 
@@ -298,7 +312,8 @@ export class PgiaCgticComponent implements OnInit {
       DataDeliberacao: this.form.DataDeliberacao,
       Resultado: this.form.Resultado,
       NumeroAto: this.ehResolucao ? (this.form.NumeroAto.trim() || null) : null,
-      Ementa: this.ehResolucao ? (this.form.Ementa.trim() || null) : null
+      Ementa: this.ehResolucao ? (this.form.Ementa.trim() || null) : null,
+      DocumentoId: this.form.DocumentoId
     };
     this.salvando = true;
     this.governancaService.criarDeliberacao(payload).subscribe({

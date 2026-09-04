@@ -8,8 +8,12 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
+import { Observable } from 'rxjs';
+import { PgiaDocumentoService } from '../services/pgia-documento.service';
 import {
   PgiaCapacitacao,
+  PgiaDocumento,
   PgiaCapacitacaoForm,
   PgiaOrgao,
   PgiaPessoa,
@@ -20,7 +24,7 @@ import {
 @Component({
   selector: 'app-pgia-capacitacao',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective, PgiaAnexoComponent],
   templateUrl: './pgia-capacitacao.component.html'
 })
 export class PgiaCapacitacaoComponent implements OnInit {
@@ -43,11 +47,30 @@ export class PgiaCapacitacaoComponent implements OnInit {
   salvando = false;
   emEdicao: PgiaCapacitacao | null = null;
 
+  /** Documento do certificado: vem do registro em edição ou é criado ao anexar. */
+  certificadoDocId: number | null = null;
+
+  /**
+   * Arrow function: o componente de anexo chama isto quando o usuário escolhe
+   * o arquivo e ainda não há documento. O certificado é documento do órgão.
+   */
+  criarDocumentoCertificado = (arquivo: File): Observable<PgiaDocumento> =>
+    this.documentoService.criarDocumento({
+      Tipo: 'Certificado de capacitação',
+      NomeArquivo: arquivo.name,
+      OrgaoId: this.orgao?.Id ?? null
+    });
+
+  aoCriarDocumentoCertificado(documento: PgiaDocumento): void {
+    this.certificadoDocId = documento.Id;
+  }
+
   constructor(
     private authService: AuthService,
     private orgaoService: PgiaOrgaoService,
     private operacaoService: PgiaOperacaoService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private documentoService: PgiaDocumentoService
   ) {}
 
   ngOnInit(): void {
@@ -124,6 +147,7 @@ export class PgiaCapacitacaoComponent implements OnInit {
       return;
     }
     this.emEdicao = c;
+    this.certificadoDocId = c.CertificadoDocId ?? null;
     this.submetido = false;
     this.form = {
       AgenteId: c.AgenteId,
@@ -136,6 +160,7 @@ export class PgiaCapacitacaoComponent implements OnInit {
 
   cancelarEdicao(): void {
     this.emEdicao = null;
+    this.certificadoDocId = null;
     this.submetido = false;
     this.form = this.novoForm();
   }
@@ -166,8 +191,7 @@ export class PgiaCapacitacaoComponent implements OnInit {
       Status: this.form.Status,
       DataConclusao: this.form.DataConclusao || null,
       PrevistaPlanoCapacitacao: this.form.PrevistaPlanoCapacitacao,
-      // Certificado entra como anexo em fase futura.
-      CertificadoDocId: this.emEdicao?.CertificadoDocId ?? null
+      CertificadoDocId: this.certificadoDocId
     };
     this.salvando = true;
     const chamada = this.emEdicao

@@ -226,8 +226,12 @@
                       </div>
                       <div class="md:col-span-2">
                         <label class="block text-sm font-semibold mb-1">Arquivo completo da AIA</label>
-                        <input type="text" readonly value="anexo disponível em fase futura"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+                        <app-pgia-anexo
+                          [documentoId]="aiaForm.DocumentoId"
+                          [criarDocumento]="criarDocumentoAia"
+                          (documentoCriado)="aoCriarDocumentoAia($event)">
+                        </app-pgia-anexo>
+                        <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve a avaliação para guardar o arquivo nela.</p>
                       </div>
                     </div>
 

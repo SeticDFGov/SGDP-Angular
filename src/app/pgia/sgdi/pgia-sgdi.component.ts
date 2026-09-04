@@ -1,3 +1,4 @@
+import { Observable } from 'rxjs';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,7 +13,10 @@ import { PgiaOperacaoService } from '../services/pgia-operacao.service';
 import { PgiaChecklistAbertoComponent } from '../shared/pgia-checklist-aberto.component';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
+import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
+import { PgiaDocumentoService } from '../services/pgia-documento.service';
 import {
+  PgiaDocumento,
   AUTORIZADA_POR,
   HIPOTESES_INCIDENTE,
   PgiaAia,
@@ -56,7 +60,7 @@ import {
 @Component({
   selector: 'app-pgia-sgdi',
   standalone: true,
-  imports: [CommonModule, FormsModule, PgiaChecklistAbertoComponent, CitaDecretoDirective],
+  imports: [CommonModule, FormsModule, PgiaChecklistAbertoComponent, CitaDecretoDirective, PgiaAnexoComponent],
   templateUrl: './pgia-sgdi.component.html'
 })
 export class PgiaSgdiComponent implements OnInit {
@@ -227,7 +231,8 @@ export class PgiaSgdiComponent implements OnInit {
     private sistemaService: PgiaSistemaService,
     private operacaoService: PgiaOperacaoService,
     private notificationService: NotificationService,
-    private unidadeService: UnidadeService
+    private unidadeService: UnidadeService,
+    private documentoService: PgiaDocumentoService
   ) {
     // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
     acompanharSecao(secao => {
@@ -1118,6 +1123,14 @@ export class PgiaSgdiComponent implements OnInit {
 
   // ── Relatório Anual de Governança de IA (art. 33) ─────────────────────────
 
+  /** Relatório Anual é documento CENTRAL: sem órgão e sem sistema. */
+  criarDocumentoAnual = (arquivo: File): Observable<PgiaDocumento> =>
+    this.documentoService.criarDocumento({ Tipo: 'Relatório anual', NomeArquivo: arquivo.name });
+
+  aoCriarDocumentoAnual(documento: PgiaDocumento): void {
+    this.anualForm.DocumentoId = documento.Id;
+  }
+
   private novoAnualForm() {
     return {
       Ano: new Date().getFullYear(),
@@ -1125,7 +1138,8 @@ export class PgiaSgdiComponent implements OnInit {
       UrlPublicacao: '',
       ApreciadoCgticEm: '',
       Recomendacoes: '',
-      AgendaInovacao: ''
+      AgendaInovacao: '',
+      DocumentoId: null as number | null
     };
   }
 
@@ -1147,7 +1161,8 @@ export class PgiaSgdiComponent implements OnInit {
       UrlPublicacao: r.UrlPublicacao ?? '',
       ApreciadoCgticEm: r.ApreciadoCgticEm ?? '',
       Recomendacoes: r.Recomendacoes ?? '',
-      AgendaInovacao: r.AgendaInovacao ?? ''
+      AgendaInovacao: r.AgendaInovacao ?? '',
+      DocumentoId: r.DocumentoId ?? null
     };
   }
 
@@ -1167,8 +1182,8 @@ export class PgiaSgdiComponent implements OnInit {
       Ano: Number(this.anualForm.Ano),
       DataPublicacao: this.anualForm.DataPublicacao || null,
       UrlPublicacao: this.anualForm.UrlPublicacao.trim() || null,
-      // Arquivo do relatório entra como anexo em fase futura.
-      DocumentoId: this.anualEmEdicao?.DocumentoId ?? null,
+      // Arquivo do relatório: o anexo sobe pelo documento do relatório salvo.
+      DocumentoId: this.anualForm.DocumentoId,
       ApreciadoCgticEm: this.anualForm.ApreciadoCgticEm || null,
       Recomendacoes: this.anualForm.Recomendacoes.trim() || null,
       AgendaInovacao: this.anualForm.AgendaInovacao.trim() || null
@@ -1203,8 +1218,36 @@ export class PgiaSgdiComponent implements OnInit {
       AuditorUserId: '' as string,
       ExternaFornecedor: true,
       ApoioFapdf: null as boolean | null,
-      DataInicio: ''
+      DataInicio: '',
+      DocumentoId: null as number | null
     };
+  }
+
+  /**
+   * Relatório da auditoria: documento do órgão do sistema auditado (o backend
+   * recusa documento de um terceiro órgão). Sem sistema escolhido, vai central.
+   */
+  criarDocumentoAuditoria = (arquivo: File): Observable<PgiaDocumento> =>
+    this.documentoService.criarDocumento({
+      Tipo: 'Parecer de auditoria',
+      NomeArquivo: arquivo.name,
+      SistemaIaId: this.auditoriaForm.SistemaIaId ? Number(this.auditoriaForm.SistemaIaId) : null
+    });
+
+  aoCriarDocumentoAuditoria(documento: PgiaDocumento): void {
+    this.auditoriaForm.DocumentoId = documento.Id;
+  }
+
+  /** Avaliação de riscos da autorização: documento do órgão autorizado. */
+  criarDocumentoAvaliacaoRiscos = (arquivo: File): Observable<PgiaDocumento> =>
+    this.documentoService.criarDocumento({
+      Tipo: 'Avaliação de riscos',
+      NomeArquivo: arquivo.name,
+      OrgaoId: this.autorizacaoForm.OrgaoId ? Number(this.autorizacaoForm.OrgaoId) : null
+    });
+
+  aoCriarDocumentoAvaliacaoRiscos(documento: PgiaDocumento): void {
+    this.autorizacaoForm.AvaliacaoRiscosDocId = documento.Id;
   }
 
   carregarAuditorias(): void {
@@ -1241,7 +1284,8 @@ export class PgiaSgdiComponent implements OnInit {
       AuditorUserId: this.auditoriaForm.AuditorUserId || null,
       ExternaFornecedor: this.auditoriaForm.ExternaFornecedor,
       ApoioFapdf: this.auditoriaForm.ApoioFapdf,
-      DataInicio: this.auditoriaForm.DataInicio
+      DataInicio: this.auditoriaForm.DataInicio,
+      DocumentoId: this.auditoriaForm.DocumentoId
     };
     this.salvandoAuditoria = true;
     this.governancaService.criarAuditoria(payload).subscribe({
@@ -1467,7 +1511,8 @@ export class PgiaSgdiComponent implements OnInit {
       AutorizadaPor: 'SGDI' as string,
       DeliberacaoCgticId: null as number | null,
       DataAutorizacao: '',
-      VigenciaFim: ''
+      VigenciaFim: '',
+      AvaliacaoRiscosDocId: null as number | null
     };
   }
 
@@ -1489,7 +1534,8 @@ export class PgiaSgdiComponent implements OnInit {
       AutorizadaPor: a.AutorizadaPor,
       DeliberacaoCgticId: a.DeliberacaoCgticId,
       DataAutorizacao: a.DataAutorizacao ?? '',
-      VigenciaFim: a.VigenciaFim ?? ''
+      VigenciaFim: a.VigenciaFim ?? '',
+      AvaliacaoRiscosDocId: a.AvaliacaoRiscosDocId ?? null
     };
   }
 
@@ -1523,8 +1569,7 @@ export class PgiaSgdiComponent implements OnInit {
       OrgaoId: Number(this.autorizacaoForm.OrgaoId),
       PlataformaId: this.autorizacaoForm.PlataformaId ? Number(this.autorizacaoForm.PlataformaId) : null,
       Justificativa: this.autorizacaoForm.Justificativa.trim(),
-      // Anexo da avaliação de riscos entra em fase futura.
-      AvaliacaoRiscosDocId: this.autorizacaoEmEdicao?.AvaliacaoRiscosDocId ?? null,
+      AvaliacaoRiscosDocId: this.autorizacaoForm.AvaliacaoRiscosDocId,
       AutorizadaPor: this.autorizacaoForm.AutorizadaPor,
       DeliberacaoCgticId: this.autorizacaoForm.DeliberacaoCgticId ? Number(this.autorizacaoForm.DeliberacaoCgticId) : null,
       DataAutorizacao: this.autorizacaoForm.DataAutorizacao,

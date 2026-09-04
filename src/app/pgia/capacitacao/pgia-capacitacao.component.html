@@ -87,8 +87,12 @@
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Certificado</label>
-          <input type="text" readonly value="anexo disponível em fase futura"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+          <app-pgia-anexo
+            [documentoId]="certificadoDocId"
+            [criarDocumento]="criarDocumentoCertificado"
+            (documentoCriado)="aoCriarDocumentoCertificado($event)">
+          </app-pgia-anexo>
+          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve o registro para guardar o certificado nele.</p>
         </div>
       </div>
 
