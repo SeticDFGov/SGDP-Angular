@@ -28,7 +28,7 @@
   <div *ngIf="!loading && !isAuditoria && !orgao" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
       A sua unidade ainda não está vinculada a um órgão do PGIA.
-      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+      Fale com a equipe da SGDI para cadastrar o órgão e vincular a sua unidade.
       Depois disso, esta página é liberada para preenchimento.
     </div>
   </div>
@@ -472,7 +472,7 @@
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Parecer do SGTIC
             <span class="text-yellow-700 text-xs font-semibold">na adoção</span></label>
-          <textarea rows="3" [(ngModel)]="form.ParecerSgtic" name="s-parecer" placeholder="Conclusão da análise de adoção (art. 9º, I). Os casos de Alto Risco seguem ao CGTIC."
+          <textarea rows="3" [(ngModel)]="form.ParecerSgtic" name="s-parecer" placeholder="Conclusão da análise de adoção (art. 9º, I)."
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
         </div>
         <div>
@@ -490,13 +490,176 @@
 
       <!-- Questionário de classificação -->
       <h2 class="text-base font-semibold text-blue-900 mb-1 mt-8">Questionário de classificação</h2>
-      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Agora, responda ao questionário. Marque somente as situações
-      que se aplicam ao sistema. As respostas alimentam a avaliação da SGDI.</p>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Agora, responda ao questionário. Em cada grupo, marque as
+      situações que se aplicam ao sistema ou escolha "Nenhuma das alternativas acima". Os três grupos precisam ser
+      respondidos. As respostas alimentam a avaliação da SGDI.</p>
 
-      <div class="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
-        <label *ngFor="let q of quesitos; let i = index" class="flex items-start gap-2 text-sm py-1 leading-relaxed">
-          <input type="checkbox" class="mt-1" [(ngModel)]="marcados[i]" [name]="'quesito-' + i"> <span>{{ q.texto }}</span>
+      <div *ngFor="let g of grupos; let gi = index"
+           class="border rounded-lg p-4 mb-4 bg-gray-50"
+           [class.border-red-500]="errGrupo(gi)"
+           [class.border-gray-200]="!errGrupo(gi)">
+        <h3 class="text-sm font-semibold text-gray-900 mb-2">{{ g.rotulo }}</h3>
+
+        <label *ngFor="let q of g.quesitos; let i = index" class="flex items-start gap-2 text-sm py-1 leading-relaxed">
+          <input type="checkbox" class="mt-1"
+                 [(ngModel)]="respostasGrupos[gi].marcados[i]"
+                 [name]="'quesito-' + gi + '-' + i"
+                 [disabled]="respostasGrupos[gi].nenhuma"
+                 (ngModelChange)="aoMarcarQuesito(gi)">
+          <span [class.text-gray-400]="respostasGrupos[gi].nenhuma">{{ q.texto }}</span>
         </label>
+
+        <label class="flex items-start gap-2 text-sm py-1 mt-2 pt-2 border-t border-gray-200 leading-relaxed">
+          <input type="checkbox" class="mt-1"
+                 [(ngModel)]="respostasGrupos[gi].nenhuma"
+                 [name]="'nenhuma-' + gi"
+                 (ngModelChange)="aoMarcarNenhuma(gi)">
+          <span class="font-semibold">Nenhuma das alternativas acima</span>
+        </label>
+
+        <p *ngIf="errGrupo(gi)" class="text-xs text-red-600 mt-2">
+          Responda este grupo: marque as situações que se aplicam ou "Nenhuma das alternativas acima".
+        </p>
+      </div>
+
+      <!-- Grupo "Outros": riscos que o próprio órgão identifica -->
+      <div class="border rounded-lg p-4 mb-4 bg-gray-50"
+           [class.border-red-500]="errOutros"
+           [class.border-gray-200]="!errOutros">
+        <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
+          <h3 class="text-sm font-semibold text-gray-900">Outros riscos identificados pelo órgão
+            <span *ngIf="outrosObrigatorio" class="text-red-600">*</span>
+          </h3>
+
+          <!-- Ajuda: matriz da CGDF em popover nativo -->
+          <div class="relative" (mouseleave)="aoSairDaMatriz()">
+            <button type="button"
+                    class="text-xs text-blue-700 underline cursor-help"
+                    (mouseenter)="abrirMatriz()"
+                    (click)="fixarMatriz()"
+                    (focus)="fixarMatriz()"
+                    [attr.aria-expanded]="matrizAberta">
+              Classificação de riscos da CGDF
+            </button>
+
+            <div *ngIf="matrizAberta" role="tooltip"
+                 class="absolute right-0 z-30 mt-2 w-max max-w-[42rem] bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+              <p class="text-xs font-semibold text-gray-900 mb-2">Matriz de risco da CGDF</p>
+              <div class="overflow-x-auto">
+                <table class="text-[11px] border-collapse">
+                  <tbody>
+                    <tr *ngFor="let linha of matrizRisco; let li = index">
+                      <th class="pr-2 py-1 text-right font-semibold text-gray-700 whitespace-nowrap">
+                        {{ consequenciasMatriz[li] }}
+                      </th>
+                      <td *ngFor="let celula of linha; let ci = index"
+                          class="w-16 h-8 text-center align-middle border border-white"
+                          [ngClass]="corMatriz(celula)"
+                          [class.opacity-40]="!celulaSelecionavel(li, ci)"
+                          [class.ring-2]="celulaDoRisco(li, ci)"
+                          [class.ring-gray-900]="celulaDoRisco(li, ci)">
+                        <span *ngIf="celulaDoRisco(li, ci)" class="font-bold">•</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th></th>
+                      <th *ngFor="let p of probabilidadesCgdf"
+                          class="pt-1 text-[10px] font-semibold text-gray-700 leading-tight">{{ p }}</th>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="text-xs text-gray-400 italic mt-2">Linhas: consequência. Colunas: probabilidade.
+              Neste grupo você escolhe apenas as opções em destaque — as demais ficam esmaecidas.</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-sm text-gray-600 mb-3 leading-relaxed">Se o órgão identificou outros riscos no sistema, registre cada
+        um com a ação que vai reduzi-lo e quem responde por ela.
+        <ng-container *ngIf="!outrosObrigatorio">Este grupo pode ficar vazio.</ng-container></p>
+
+        <p *ngIf="outrosObrigatorio" class="text-xs text-gray-400 italic mb-3">
+          Obrigatório quando nenhuma das situações dos três grupos se aplica.
+        </p>
+
+        <p *ngIf="errOutros" class="text-xs text-red-600 mb-3">
+          Descreva ao menos um risco, com todos os campos preenchidos.
+        </p>
+
+        <div *ngFor="let r of outrosRiscos; let i = index"
+             class="border border-gray-200 rounded-lg p-3 mb-3 bg-white"
+             (focusin)="destacarRisco(i)">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <h4 class="text-sm font-semibold text-gray-900">Risco {{ i + 1 }}</h4>
+            <button type="button" (click)="removerRiscoOutro(i)"
+                    class="text-xs text-red-700 border border-red-300 rounded px-2 py-1 hover:bg-red-50">
+              Remover
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-semibold mb-1">Descrição do risco <span class="text-red-600">*</span></label>
+              <textarea rows="2" [(ngModel)]="r.DescricaoRisco" [name]="'ro-desc-' + i" placeholder="O que pode dar errado?"
+                        class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        [class.border-red-500]="errRiscoDescricao(i)"
+                        [class.bg-red-50]="errRiscoDescricao(i)"
+                        [class.border-gray-300]="!errRiscoDescricao(i)"></textarea>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-semibold mb-1">Ação de mitigação <span class="text-red-600">*</span></label>
+              <textarea rows="2" [(ngModel)]="r.AcaoMitigacao" [name]="'ro-acao-' + i" placeholder="O que o órgão vai fazer para reduzir esse risco?"
+                        class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        [class.border-red-500]="errRiscoMitigacao(i)"
+                        [class.bg-red-50]="errRiscoMitigacao(i)"
+                        [class.border-gray-300]="!errRiscoMitigacao(i)"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Responsável no órgão <span class="text-red-600">*</span></label>
+              <input type="text" [(ngModel)]="r.ResponsavelNome" [name]="'ro-nome-' + i" placeholder="Nome de quem acompanha a ação"
+                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [class.border-red-500]="errRiscoNome(i)"
+                     [class.bg-red-50]="errRiscoNome(i)"
+                     [class.border-gray-300]="!errRiscoNome(i)">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">E-mail do responsável <span class="text-red-600">*</span></label>
+              <input type="email" [(ngModel)]="r.ResponsavelEmail" [name]="'ro-email-' + i" placeholder="nome.sobrenome@orgao.df.gov.br"
+                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [class.border-red-500]="errRiscoEmail(i)"
+                     [class.bg-red-50]="errRiscoEmail(i)"
+                     [class.border-gray-300]="!errRiscoEmail(i)">
+              <p *ngIf="errRiscoEmail(i)" class="text-xs text-red-600 mt-1">Informe um e-mail válido, como nome@orgao.df.gov.br.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Probabilidade <span class="text-red-600">*</span></label>
+              <select [(ngModel)]="r.Probabilidade" [name]="'ro-prob-' + i" (ngModelChange)="destacarRisco(i)"
+                      class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      [class.border-red-500]="errRiscoProbabilidade(i)"
+                      [class.border-gray-300]="!errRiscoProbabilidade(i)">
+                <option value="">Escolha a probabilidade</option>
+                <option *ngFor="let p of probabilidadesOutros" [value]="p">{{ p }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Consequência ou impacto <span class="text-red-600">*</span></label>
+              <select [(ngModel)]="r.Consequencia" [name]="'ro-cons-' + i" (ngModelChange)="destacarRisco(i)"
+                      class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      [class.border-red-500]="errRiscoConsequencia(i)"
+                      [class.border-gray-300]="!errRiscoConsequencia(i)">
+                <option value="">Escolha a consequência</option>
+                <option *ngFor="let c of consequenciasOutros" [value]="c">{{ c }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" (click)="adicionarRiscoOutro()"
+                class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+          Adicionar risco
+        </button>
+        <p *ngIf="outrosRiscos.length === 0" class="text-xs text-gray-400 italic mt-2">Nenhum risco adicionado.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -516,7 +679,7 @@
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Justificativa <span class="text-red-600">*</span></label>
-          <textarea rows="3" [(ngModel)]="classForm.Justificativa" name="s-just" placeholder="Explique o enquadramento. No Alto Risco, este texto fundamenta a proposta da SGDI ao CGTIC (art. 7º, III)."
+          <textarea rows="3" [(ngModel)]="classForm.Justificativa" name="s-just" placeholder="Explique, com suas palavras, por que o sistema foi descrito assim."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errJustificativa"
                     [class.bg-red-50]="errJustificativa"
@@ -525,11 +688,12 @@
       </div>
 
       <div class="mt-4 flex items-center gap-3 flex-wrap">
-        <button (click)="salvarSistema()" [disabled]="salvando"
-                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+        <button (click)="salvarSistema()" [disabled]="salvando || !questionarioPronto"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
           {{ salvando ? 'Salvando...' : 'Salvar sistema no inventário' }}
         </button>
-        <span class="text-xs text-gray-400 italic">O registro fica assinado por {{ user?.Nome }}, Responsável de IA da {{ orgao.Sigla }}.</span>
+        <span *ngIf="faltaNoQuestionario" class="text-xs text-gray-400 italic">{{ faltaNoQuestionario }}</span>
+        <span *ngIf="!faltaNoQuestionario" class="text-xs text-gray-400 italic">O registro fica assinado por {{ user?.Nome }}, Responsável de IA da {{ orgao.Sigla }}.</span>
       </div>
     </div>
 

@@ -126,13 +126,55 @@ export interface PgiaChecklist {
   Q15: string[];
   Q16: string[];
   Q17: string[];
+  // Resposta explícita "Nenhuma das alternativas acima" por grupo (exclusiva
+  // com os incisos do grupo; o questionário só é válido com cada grupo
+  // respondido — incisos marcados OU o "nenhuma")
+  Q15Nenhuma: boolean;
+  Q16Nenhuma: boolean;
+  Q17Nenhuma: boolean;
 }
+
+// ── Grupo "Outros" — riscos declarados pelo órgão (matriz CGDF) ─────────────
+// Restrição de domínio: probabilidade só Improvável/Raro/Possível e
+// consequência só Desprezível/Menor/Moderada (quadrante baixo da matriz).
+// Não altera o cálculo do risco do sistema (arts. 15 a 17 continuam mandando).
+
+export interface PgiaRiscoOutroForm {
+  DescricaoRisco: string;
+  AcaoMitigacao: string;
+  ResponsavelNome: string;
+  ResponsavelEmail: string;
+  Probabilidade: string;
+  Consequencia: string;
+}
+
+export interface PgiaRiscoOutro extends PgiaRiscoOutroForm {
+  Id: number;
+}
+
+// Escala CGDF (peso 1 a 5, na ordem da matriz)
+export const PROBABILIDADES_CGDF = ['Improvável', 'Raro', 'Possível', 'Provável', 'Quase certo'] as const;
+export const CONSEQUENCIAS_CGDF = ['Desprezível', 'Menor', 'Moderada', 'Maior', 'Catastrófica'] as const;
+export const PROBABILIDADES_OUTROS = PROBABILIDADES_CGDF.slice(0, 3);
+export const CONSEQUENCIAS_OUTROS = CONSEQUENCIAS_CGDF.slice(0, 3);
+
+// Cores da matriz 5×5 (linhas = consequência da Catastrófica à Desprezível;
+// colunas = probabilidade da Improvável à Quase certo), fiel ao mapa da CGDF:
+// v=verde, a=amarelo, l=laranja, r=vermelho
+export const MATRIZ_RISCO_CGDF: ReadonlyArray<ReadonlyArray<'v' | 'a' | 'l' | 'r'>> = [
+  ['a', 'l', 'r', 'r', 'r'], // Catastrófica
+  ['a', 'a', 'l', 'r', 'r'], // Maior
+  ['v', 'a', 'a', 'l', 'r'], // Moderada
+  ['v', 'v', 'a', 'l', 'l'], // Menor
+  ['v', 'v', 'v', 'a', 'l'], // Desprezível
+];
 
 export interface PgiaClassificacaoForm {
   Checklist: PgiaChecklist;
   Motivo: string;
   DataClassificacao: string;
   Justificativa: string;
+  OutrosRiscos: PgiaRiscoOutroForm[];
 }
 
 export interface PgiaSistemaBaseForm {
@@ -199,6 +241,9 @@ export interface PgiaClassificacao {
   Justificativa: string;
   ClassificadoPorNome: string;
   CriadoEm: string;
+  // Riscos declarados pelo órgão no grupo "Outros" (matriz CGDF). Opcional:
+  // registros anteriores ao grupo não trazem a lista.
+  OutrosRiscos?: PgiaRiscoOutro[];
 }
 
 export interface PgiaPagedResponse<T> {

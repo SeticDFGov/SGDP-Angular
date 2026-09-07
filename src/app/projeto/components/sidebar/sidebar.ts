@@ -108,8 +108,18 @@ export class Sidebar implements OnInit {
     this.grupoPgiaAberto = !this.grupoPgiaAberto;
   }
 
-  /** A área é a que está aberta na tela (qualquer um dos formulários dela). */
+  /**
+   * A área é a que está aberta na tela (qualquer um dos formulários dela).
+   *
+   * Grupo com formulários casa pelos **filhos**, não pelo prefixo da rota:
+   * "Cadastro Inicial" e "Governança (SGDI)" moram os dois sob `/pgia/sgdi`,
+   * e o prefixo destacaria os dois ao mesmo tempo. Item sem filhos segue pelo
+   * prefixo de `base`.
+   */
   areaAtiva(item: ItemNavPgia): boolean {
+    if (item.filhos && item.filhos.length > 0) {
+      return item.filhos.some(f => this.rotaAtual === f.rota);
+    }
     const base = item.base ?? item.rota;
     return this.rotaAtual === base || this.rotaAtual.startsWith(base + '/');
   }

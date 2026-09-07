@@ -1,9 +1,11 @@
 /**
  * Quesitos da classificação de risco (arts. 15 a 17 do Decreto nº 48.901/2026).
  *
- * A tela do órgão exibe a lista em ordem fixa e embaralhada, sem títulos de grupo:
- * quem preenche não deve conseguir inferir o enquadramento de cada item.
- * As telas centrais (SGDI e CGTIC) reagrupam por artigo e mostram os pesos.
+ * A tela do órgão exibe os quesitos em **três grupos rotulados** (Risco Excessivo,
+ * Alto Risco, Risco Moderado) — ver `GRUPOS_QUESITOS`. O rótulo do grupo é a única
+ * pista permitida: nenhum texto de consequência ("vedado", "passa pelo comitê",
+ * prévia de risco) pode aparecer no momento do preenchimento.
+ * As telas centrais (SGDI e CGTIC) mostram os mesmos grupos com os pesos.
  */
 export interface PgiaQuesitoTexto {
   artigo: 15 | 16 | 17;
@@ -11,7 +13,7 @@ export interface PgiaQuesitoTexto {
   texto: string;
 }
 
-/** Ordem de apresentação no formulário do órgão (embaralhada de propósito). */
+/** Lista plana, na ordem em que foi cadastrada (a ordenação de tela vem dos grupos). */
 export const QUESITOS: PgiaQuesitoTexto[] = [
   { artigo: 16, inciso: 'VII', texto: 'Apoia decisões administrativas com efeitos jurídicos relevantes sobre direitos individuais' },
   { artigo: 17, inciso: 'II', texto: 'Produz ou distribui conteúdo informativo ou educativo para o público' },
@@ -36,6 +38,29 @@ export const QUESITOS: PgiaQuesitoTexto[] = [
 
 /** Ordem canônica dos incisos, para ordenar o checklist enviado ao servidor. */
 export const ROMANOS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+
+export interface PgiaGrupoQuesitos {
+  artigo: 15 | 16 | 17;
+  /** Rótulo do grupo — permitido; texto de consequência, não. */
+  rotulo: string;
+  quesitos: PgiaQuesitoTexto[];
+}
+
+function doArtigo(artigo: 15 | 16 | 17): PgiaQuesitoTexto[] {
+  return QUESITOS
+    .filter(q => q.artigo === artigo)
+    .sort((a, b) => ROMANOS.indexOf(a.inciso) - ROMANOS.indexOf(b.inciso));
+}
+
+/** Os três grupos do questionário, na ordem em que a tela os exibe. */
+export const GRUPOS_QUESITOS: PgiaGrupoQuesitos[] = [
+  // Sem "(art. N)" no rótulo de propósito: o chip de citação expandiria o
+  // caput — e o do art. 15 diz "ficam vedados", consequência que não pode
+  // aparecer no preenchimento (decisão do dono do produto)
+  { artigo: 15, rotulo: 'Risco Excessivo', quesitos: doArtigo(15) },
+  { artigo: 16, rotulo: 'Alto Risco', quesitos: doArtigo(16) },
+  { artigo: 17, rotulo: 'Risco Moderado', quesitos: doArtigo(17) }
+];
 
 /** Texto do quesito a partir do artigo e do inciso gravados no checklist. */
 export function textoDoQuesito(artigo: number, inciso: string): string {

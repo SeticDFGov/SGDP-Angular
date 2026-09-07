@@ -117,7 +117,6 @@
             <th class="px-3 py-2">Nome</th>
             <th class="px-3 py-2">Matrícula</th>
             <th class="px-3 py-2">Vínculo</th>
-            <th class="px-3 py-2">Papel no PGIA</th>
             <th class="px-3 py-2"></th>
           </tr>
         </thead>
@@ -126,7 +125,6 @@
             <td class="px-3 py-2">{{ p.Nome }}</td>
             <td class="px-3 py-2">{{ p.Matricula || 'não informada' }}</td>
             <td class="px-3 py-2">{{ p.Vinculo || 'não informado' }}</td>
-            <td class="px-3 py-2">{{ p.PapelPgia || '—' }}</td>
             <td class="px-3 py-2 text-right">
               <button *ngIf="podeEditarDados" (click)="editarPessoa(p)"
                       class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
@@ -135,7 +133,7 @@
             </td>
           </tr>
           <tr *ngIf="pessoas.length === 0">
-            <td colspan="5" class="px-3 py-4 text-center text-gray-500">Nenhuma pessoa encontrada na unidade do órgão.</td>
+            <td colspan="4" class="px-3 py-4 text-center text-gray-500">Nenhuma pessoa encontrada na unidade do órgão.</td>
           </tr>
         </tbody>
       </table>

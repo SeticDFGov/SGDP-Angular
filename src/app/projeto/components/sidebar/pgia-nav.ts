@@ -25,6 +25,12 @@ export interface ItemNavPgia {
 
 // ── Áreas do órgão ──────────────────────────────────────────────────────────
 
+const DESIGNACOES = [
+  { rotulo: 'Designação do Responsável de IA', rota: '/pgia/orgao/responsavel-ia' },
+  { rotulo: 'Designação do Encarregado de Dados (DPO)', rota: '/pgia/orgao/encarregado-dados' }
+];
+
+/** Visão completa da área do órgão — admin e SGDI, que editam os dados. */
 const ORGAO: ItemNavPgia = {
   rotulo: 'Informações do Órgão Responsável',
   rota: '/pgia/orgao/dados',
@@ -33,8 +39,23 @@ const ORGAO: ItemNavPgia = {
   filhos: [
     { rotulo: 'Dados do órgão ou entidade', rota: '/pgia/orgao/dados' },
     { rotulo: 'Pessoas que vão usar o sistema', rota: '/pgia/orgao/pessoas' },
-    { rotulo: 'Designação do Responsável de IA', rota: '/pgia/orgao/responsavel-ia' },
-    { rotulo: 'Designação do Encarregado de Dados (DPO)', rota: '/pgia/orgao/encarregado-dados' }
+    ...DESIGNACOES
+  ]
+};
+
+/**
+ * Visão do papel de órgão: sem "Dados do órgão ou entidade" — quem preenche
+ * esses dados é a SGDI (o órgão só faz as designações). A rota do grupo aponta
+ * para pessoas, que passa a ser a primeira tela dele.
+ */
+const ORGAO_PAPEL: ItemNavPgia = {
+  rotulo: 'Informações do Órgão Responsável',
+  rota: '/pgia/orgao/pessoas',
+  base: '/pgia/orgao',
+  icone: 'apartment',
+  filhos: [
+    { rotulo: 'Pessoas que vão usar o sistema', rota: '/pgia/orgao/pessoas' },
+    ...DESIGNACOES
   ]
 };
 
@@ -125,6 +146,20 @@ const PRAZOS: ItemNavPgia = {
 
 // ── Instâncias centrais e auditoria ─────────────────────────────────────────
 
+/**
+ * O que a SGDI faz ANTES de o órgão entrar: cadastrar o órgão e dar acesso às
+ * pessoas. São seções de `sgdi/:secao` como as demais — só a árvore as separa.
+ */
+const CADASTRO_INICIAL: ItemNavPgia = {
+  rotulo: 'Cadastro Inicial',
+  rota: '/pgia/sgdi/orgaos-dados',
+  icone: 'app_registration',
+  filhos: [
+    { rotulo: 'Dados dos órgãos', rota: '/pgia/sgdi/orgaos-dados' },
+    { rotulo: 'Pessoas e acessos', rota: '/pgia/sgdi/pessoas' }
+  ]
+};
+
 const SGDI: ItemNavPgia = {
   rotulo: 'Governança (SGDI)',
   rota: '/pgia/sgdi/fila',
@@ -132,8 +167,6 @@ const SGDI: ItemNavPgia = {
   icone: 'account_balance',
   filhos: [
     { rotulo: 'Fila de homologação', rota: '/pgia/sgdi/fila' },
-    { rotulo: 'Dados dos órgãos', rota: '/pgia/sgdi/orgaos-dados' },
-    { rotulo: 'Pessoas e acessos', rota: '/pgia/sgdi/pessoas' },
     { rotulo: 'Plataformas de IA generativa', rota: '/pgia/sgdi/plataformas' },
     { rotulo: 'Apuração de incidente', rota: '/pgia/sgdi/apuracao' },
     { rotulo: 'Registro Público', rota: '/pgia/sgdi/registro-publico' },
@@ -166,11 +199,17 @@ const AUDITORIA: ItemNavPgia = {
   icone: 'fact_check'
 };
 
-/** Áreas do órgão responsável, na ordem em que o trabalho acontece. */
-const ARVORE_ORGAO: ItemNavPgia[] = [
-  ORGAO, SISTEMAS, INCIDENTES, USO, CAPACITACAO,
+/** Demais áreas do órgão, na ordem em que o trabalho acontece. */
+const DEMAIS_AREAS_ORGAO: ItemNavPgia[] = [
+  SISTEMAS, INCIDENTES, USO, CAPACITACAO,
   CONTRATACOES, RELATORIOS, SOLICITACOES, PRAZOS
 ];
+
+/** Visão completa da área do órgão (admin). */
+const ARVORE_ORGAO: ItemNavPgia[] = [ORGAO, ...DEMAIS_AREAS_ORGAO];
+
+/** Visão do papel de órgão: sem a linha de dados do órgão. */
+const ARVORE_ORGAO_PAPEL: ItemNavPgia[] = [ORGAO_PAPEL, ...DEMAIS_AREAS_ORGAO];
 
 /**
  * Monta a árvore do menu conforme o papel do usuário no PGIA
@@ -180,14 +219,15 @@ const ARVORE_ORGAO: ItemNavPgia[] = [
 export function arvorePgia(papel: string | null | undefined, perfil: string | null | undefined): ItemNavPgia[] {
   if (perfil === 'admin') {
     // O admin do SGDP enxerga tudo: as áreas do órgão e as áreas centrais.
-    return [...ARVORE_ORGAO, SGDI, CGTIC, AUDITORIA];
+    return [...ARVORE_ORGAO, CADASTRO_INICIAL, SGDI, CGTIC, AUDITORIA];
   }
 
   switch (papel) {
     case 'pgia_orgao':
-      return ARVORE_ORGAO;
+      return ARVORE_ORGAO_PAPEL;
     case 'pgia_sgdi':
-      return [PRAZOS, SGDI];
+      // O cadastro inicial vem primeiro: é o que a SGDI faz antes de tudo.
+      return [CADASTRO_INICIAL, PRAZOS, SGDI];
     case 'pgia_cgtic':
       return [CGTIC];
     case 'pgia_auditoria':

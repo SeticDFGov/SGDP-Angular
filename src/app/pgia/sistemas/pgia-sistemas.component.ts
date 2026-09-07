@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -7,7 +7,7 @@ import { UserProfile } from '../../../api/auth/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaSistemaService } from '../services/pgia-sistema.service';
-import { QUESITOS, ROMANOS } from './quesitos';
+import { GRUPOS_QUESITOS, ROMANOS } from './quesitos';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
 import {
@@ -18,7 +18,13 @@ import {
   ORIGENS_REGISTRO,
   PgiaAia,
   PgiaAiaForm,
+  CONSEQUENCIAS_CGDF,
+  CONSEQUENCIAS_OUTROS,
+  MATRIZ_RISCO_CGDF,
+  PROBABILIDADES_CGDF,
+  PROBABILIDADES_OUTROS,
   PgiaChecklist,
+  PgiaRiscoOutroForm,
   PgiaDesignacao,
   PgiaOrgao,
   PgiaSistema,
@@ -94,10 +100,26 @@ export class PgiaSistemasComponent implements OnInit {
     rotulo: v === 'Revisão de instrumento vigente' ? 'Revisão de instrumento vigente (art. 37)' : v
   }));
 
-  // Ordem embaralhada e mapeamento artigo/inciso vivem em ./quesitos.ts,
-  // compartilhado com as telas da SGDI e do CGTIC (que reagrupam por artigo).
-  quesitos = QUESITOS;
-  marcados: boolean[] = this.quesitos.map(() => false);
+  // Os três grupos rotulados (art. 15, 16 e 17) vivem em ./quesitos.ts,
+  // compartilhado com as telas da SGDI e do CGTIC.
+  grupos = GRUPOS_QUESITOS;
+  /** Respostas por grupo, na mesma ordem de `grupos`. */
+  respostasGrupos: { marcados: boolean[]; nenhuma: boolean }[] = this.novasRespostas();
+
+  // ── Grupo "Outros": riscos declarados pelo órgão (matriz CGDF) ────────────
+  probabilidadesOutros = PROBABILIDADES_OUTROS;
+  consequenciasOutros = CONSEQUENCIAS_OUTROS;
+  outrosRiscos: PgiaRiscoOutroForm[] = [];
+  /** Linha cujo par probabilidade×consequência é realçado na matriz. */
+  riscoDestacado: number | null = null;
+  matrizAberta = false;
+  /** Aberta por clique/foco: não fecha ao tirar o mouse. */
+  matrizFixada = false;
+  // Eixos e cores da matriz 5×5 da CGDF (só leitura, para o popover de ajuda)
+  probabilidadesCgdf = PROBABILIDADES_CGDF;
+  /** Consequências de cima para baixo na matriz: Catastrófica → Desprezível. */
+  consequenciasMatriz = [...CONSEQUENCIAS_CGDF].reverse();
+  matrizRisco = MATRIZ_RISCO_CGDF;
 
   form = this.novoForm();
   classForm = this.novaClassificacao();
@@ -435,17 +457,194 @@ export class PgiaSistemasComponent implements OnInit {
       && !this.errNaturezaDecisoes && !this.errEfeitosCidadao
       && !this.errCategorias && !this.errFinalidadeTratamento && !this.errMedidas
       && !this.errNaoRedundancia && !this.errSupervisao && !this.errAvisoIa
-      && !this.errDataClassificacao && !this.errJustificativa;
+      && !this.errDataClassificacao && !this.errJustificativa
+      && this.respostasGrupos.every((_, i) => this.grupoRespondido(i))
+      && this.outrosSatisfeito
+      && this.outrosRiscosValidos();
   }
 
-  // ── Checklist: incisos marcados, por artigo, em ordem de inciso ───────────
+  // ── Questionário: grupos, "nenhuma" e riscos declarados ──────────────────
+
+  private novasRespostas(): { marcados: boolean[]; nenhuma: boolean }[] {
+    return GRUPOS_QUESITOS.map(g => ({ marcados: g.quesitos.map(() => false), nenhuma: false }));
+  }
+
+  /** Marcar um quesito desfaz o "nenhuma" do grupo (as opções são exclusivas). */
+  aoMarcarQuesito(indiceGrupo: number): void {
+    const resposta = this.respostasGrupos[indiceGrupo];
+    if (resposta.marcados.some(m => m)) resposta.nenhuma = false;
+  }
+
+  /** Marcar "nenhuma" limpa e desabilita os quesitos do grupo. */
+  aoMarcarNenhuma(indiceGrupo: number): void {
+    const resposta = this.respostasGrupos[indiceGrupo];
+    if (resposta.nenhuma) resposta.marcados = resposta.marcados.map(() => false);
+  }
+
+  /** O grupo está respondido quando há quesito marcado ou o "nenhuma". */
+  grupoRespondido(indiceGrupo: number): boolean {
+    const resposta = this.respostasGrupos[indiceGrupo];
+    return resposta.nenhuma || resposta.marcados.some(m => m);
+  }
+
+  errGrupo(indiceGrupo: number): boolean {
+    return this.submetido && !this.grupoRespondido(indiceGrupo);
+  }
+
+  // ── Grupo "Outros" ────────────────────────────────────────────────────────
+
+  private novoRiscoOutro(): PgiaRiscoOutroForm {
+    return {
+      DescricaoRisco: '', AcaoMitigacao: '', ResponsavelNome: '', ResponsavelEmail: '',
+      Probabilidade: '', Consequencia: ''
+    };
+  }
+
+  adicionarRiscoOutro(): void {
+    this.outrosRiscos = [...this.outrosRiscos, this.novoRiscoOutro()];
+    this.riscoDestacado = this.outrosRiscos.length - 1;
+  }
+
+  removerRiscoOutro(indice: number): void {
+    this.outrosRiscos = this.outrosRiscos.filter((_, i) => i !== indice);
+    this.riscoDestacado = null;
+  }
+
+  destacarRisco(indice: number): void {
+    this.riscoDestacado = indice;
+  }
+
+  errRiscoDescricao(i: number): boolean { return this.submetido && !this.outrosRiscos[i].DescricaoRisco.trim(); }
+  errRiscoMitigacao(i: number): boolean { return this.submetido && !this.outrosRiscos[i].AcaoMitigacao.trim(); }
+  errRiscoNome(i: number): boolean { return this.submetido && !this.outrosRiscos[i].ResponsavelNome.trim(); }
+  errRiscoEmail(i: number): boolean {
+    if (!this.submetido) return false;
+    return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.outrosRiscos[i].ResponsavelEmail.trim());
+  }
+  errRiscoProbabilidade(i: number): boolean { return this.submetido && !this.outrosRiscos[i].Probabilidade; }
+  errRiscoConsequencia(i: number): boolean { return this.submetido && !this.outrosRiscos[i].Consequencia; }
+
+  private outrosRiscosValidos(): boolean {
+    return this.outrosRiscos.every((_, i) =>
+      !this.errRiscoDescricao(i) && !this.errRiscoMitigacao(i) && !this.errRiscoNome(i)
+      && !this.errRiscoEmail(i) && !this.errRiscoProbabilidade(i) && !this.errRiscoConsequencia(i));
+  }
+
+  /** Risco com todos os campos obrigatórios preenchidos (não depende do submit). */
+  private riscoCompleto(risco: PgiaRiscoOutroForm): boolean {
+    return !!risco.DescricaoRisco.trim() && !!risco.AcaoMitigacao.trim()
+      && !!risco.ResponsavelNome.trim()
+      && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(risco.ResponsavelEmail.trim())
+      && !!risco.Probabilidade && !!risco.Consequencia;
+  }
+
+  /** Os três grupos responderam "Nenhuma das alternativas acima". */
+  get todosNenhuma(): boolean {
+    return this.respostasGrupos.every(r => r.nenhuma);
+  }
+
+  /**
+   * Se nenhuma situação dos arts. 15 a 17 se aplica, o órgão precisa declarar
+   * ao menos um risco próprio — senão o registro não diz nada sobre o sistema.
+   */
+  get outrosObrigatorio(): boolean {
+    return this.todosNenhuma;
+  }
+
+  get outrosSatisfeito(): boolean {
+    return !this.outrosObrigatorio || this.outrosRiscos.some(r => this.riscoCompleto(r));
+  }
+
+  get errOutros(): boolean {
+    return this.submetido && !this.outrosSatisfeito;
+  }
+
+  /** Dimensão do questionário: é ela que liga e desliga o botão de salvar. */
+  get questionarioPronto(): boolean {
+    return this.respostasGrupos.every((_, i) => this.grupoRespondido(i)) && this.outrosSatisfeito;
+  }
+
+  /** O que ainda falta no questionário, para o hint ao lado do botão. */
+  get faltaNoQuestionario(): string | null {
+    if (!this.respostasGrupos.every((_, i) => this.grupoRespondido(i))) {
+      return 'Responda os três grupos do questionário para salvar.';
+    }
+    if (!this.outrosSatisfeito) {
+      return 'Como nenhuma das situações se aplica, descreva ao menos um risco no grupo Outros para salvar.';
+    }
+    return null;
+  }
+
+  // ── Matriz de risco da CGDF (popover de ajuda) ────────────────────────────
+
+  abrirMatriz(): void { this.matrizAberta = true; }
+
+  /** Só o mouse saindo fecha; clique/foco "prendem" a matriz aberta. */
+  aoSairDaMatriz(): void {
+    if (!this.matrizFixada) this.matrizAberta = false;
+  }
+
+  /**
+   * Clique (e toque) prendem a matriz aberta; o clique seguinte fecha. Sem isso
+   * o mouse abriria no hover e o clique logo em seguida fecharia — o contrário
+   * do que o usuário espera.
+   */
+  fixarMatriz(): void {
+    if (this.matrizAberta && this.matrizFixada) {
+      this.matrizAberta = false;
+      this.matrizFixada = false;
+      return;
+    }
+    this.matrizAberta = true;
+    this.matrizFixada = true;
+  }
+
+  @HostListener('document:keydown.escape')
+  aoTeclarEscape(): void {
+    this.matrizAberta = false;
+    this.matrizFixada = false;
+  }
+
+  /** Cor da célula da matriz (v verde, a amarelo, l laranja, r vermelho). */
+  corMatriz(codigo: string): string {
+    switch (codigo) {
+      case 'v': return 'bg-green-500 text-white';
+      case 'a': return 'bg-yellow-300 text-gray-900';
+      case 'l': return 'bg-orange-400 text-gray-900';
+      default: return 'bg-red-500 text-white';
+    }
+  }
+
+  /**
+   * Só o quadrante 3×3 de baixo à esquerda é selecionável no grupo "Outros"
+   * (probabilidade até Possível, consequência até Moderada).
+   */
+  celulaSelecionavel(linha: number, coluna: number): boolean {
+    return coluna <= 2 && linha >= 2;
+  }
+
+  /** Célula do par escolhido no risco em edição, para o realce. */
+  celulaDoRisco(linha: number, coluna: number): boolean {
+    if (this.riscoDestacado === null) return false;
+    const risco = this.outrosRiscos[this.riscoDestacado];
+    if (!risco || !risco.Probabilidade || !risco.Consequencia) return false;
+    return this.consequenciasMatriz[linha] === risco.Consequencia
+      && this.probabilidadesCgdf[coluna] === risco.Probabilidade;
+  }
+
+  // ── Checklist enviado ao servidor ────────────────────────────────────────
 
   private montarChecklist(): PgiaChecklist {
-    const incisos = (artigo: 15 | 16 | 17) => this.quesitos
-      .filter((q, i) => this.marcados[i] && q.artigo === artigo)
+    const incisos = (indiceGrupo: number) => this.grupos[indiceGrupo].quesitos
+      .filter((_, i) => this.respostasGrupos[indiceGrupo].marcados[i])
       .map(q => q.inciso)
       .sort((a, b) => ROMANOS.indexOf(a) - ROMANOS.indexOf(b));
-    return { Q15: incisos(15), Q16: incisos(16), Q17: incisos(17) };
+    return {
+      Q15: incisos(0), Q16: incisos(1), Q17: incisos(2),
+      Q15Nenhuma: this.respostasGrupos[0].nenhuma,
+      Q16Nenhuma: this.respostasGrupos[1].nenhuma,
+      Q17Nenhuma: this.respostasGrupos[2].nenhuma
+    };
   }
 
   private textoOuNulo(valor: string): string | null {
@@ -484,7 +683,15 @@ export class PgiaSistemasComponent implements OnInit {
         Checklist: this.montarChecklist(),
         Motivo: this.classForm.Motivo,
         DataClassificacao: this.classForm.DataClassificacao,
-        Justificativa: this.classForm.Justificativa.trim()
+        Justificativa: this.classForm.Justificativa.trim(),
+        OutrosRiscos: this.outrosRiscos.map(r => ({
+          DescricaoRisco: r.DescricaoRisco.trim(),
+          AcaoMitigacao: r.AcaoMitigacao.trim(),
+          ResponsavelNome: r.ResponsavelNome.trim(),
+          ResponsavelEmail: r.ResponsavelEmail.trim(),
+          Probabilidade: r.Probabilidade,
+          Consequencia: r.Consequencia
+        }))
       }
     };
   }
@@ -503,7 +710,9 @@ export class PgiaSistemasComponent implements OnInit {
         this.submetido = false;
         this.form = this.novoForm();
         this.classForm = this.novaClassificacao();
-        this.marcados = this.quesitos.map(() => false);
+        this.respostasGrupos = this.novasRespostas();
+        this.outrosRiscos = [];
+        this.riscoDestacado = null;
         this.carregarSistemas();
         // Sem resultado no aviso: a classificação é competência da SGDI.
         this.notificationService.success('Sistema incluído no inventário. Ele já aparece na lista.');
