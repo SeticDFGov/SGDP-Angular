@@ -32,8 +32,6 @@ export class LoginLocalComponent {
   personas: PersonaLocal[] = [
     { Email: 'admin@local.teste', Nome: 'Ana Admin', Perfil: 'admin', Descricao: 'Administra unidades, órgãos e papéis PGIA' },
     { Email: 'gestor@local.teste', Nome: 'Gabriel Gestor', Perfil: 'gestor', Descricao: 'Perfil gestor do SGDP' },
-    { Email: 'centralit@local.teste', Nome: 'Carla CentralIT', Perfil: 'centralit', Descricao: 'Página dedicada /centralit' },
-    { Email: 'parceiro@local.teste', Nome: 'Paulo Parceiro', Perfil: 'parceiro', Descricao: 'Página dedicada /parceiro' },
     { Email: 'basico@local.teste', Nome: 'Bruna Básico', Perfil: 'basico', Descricao: 'Sem perfil válido: cai no pending-approval até ganhar papel PGIA' }
   ];
 
@@ -68,7 +66,7 @@ export class LoginLocalComponent {
     }
   ];
 
-  perfis = ['admin', 'gestor', 'centralit', 'parceiro', 'basico'];
+  perfis = ['admin', 'gestor', 'basico'];
   papeisPgia = ['pgia_orgao', 'pgia_sgdi', 'pgia_cgtic', 'pgia_auditoria'];
 
   form: { Email: string; Nome: string; Perfil: string; PapelPgia: string } =
@@ -126,8 +124,6 @@ export class LoginLocalComponent {
   }
 
   private rotaPadrao(perfil: string): string {
-    if (perfil === 'centralit') return '/centralit';
-    if (perfil === 'parceiro') return '/parceiro';
     return '/demandas';
   }
 

@@ -13,11 +13,4 @@ export class UnidadeService {
   getAllUnidades(): Observable<Unidade[]> {
     return this.http.get<Unidade[]>(`${SERVICE_API_URL}/api/auth/unidades`);
   }
-
-  informarUnidade(email: string, unidadeId: string): Observable<any> {
-  return this.http.post(`${SERVICE_API_URL}/api/auth/informar-unidade`, {
-      email: email,
-      unidadeId: unidadeId
-    });
-  }
 }

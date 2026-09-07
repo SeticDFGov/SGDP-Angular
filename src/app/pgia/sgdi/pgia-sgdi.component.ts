@@ -96,7 +96,7 @@ export class PgiaSgdiComponent implements OnInit {
   // ── Dados dos órgãos (a SGDI entrega o órgão pronto) ──────────────────────
   naturezas = NATUREZAS_JURIDICAS;
   orgaoDadosId: number | null = null;
-  dadosForm: PgiaOrgaoDadosForm = { Sigla: '', Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null };
+  dadosForm: PgiaOrgaoDadosForm = { Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null };
   dadosSubmetido = false;
   salvandoDados = false;
 
@@ -298,7 +298,7 @@ export class PgiaSgdiComponent implements OnInit {
 
   private novoOrgao(): PgiaOrgaoCreateForm {
     return {
-      Sigla: '', Nome: '', NaturezaJuridica: 'Administração direta',
+      Nome: '', NaturezaJuridica: 'Administração direta',
       PrestaServicoCidadao: null, UnidadeId: null
     };
   }
@@ -352,19 +352,15 @@ export class PgiaSgdiComponent implements OnInit {
 
   salvarNovoOrgao(): void {
     this.novoOrgaoSubmetido = true;
-    const sigla = this.novoOrgaoForm.Sigla.trim();
-    if (!sigla || !this.novoOrgaoForm.Nome.trim()) {
-      this.notificationService.warning('Informe a sigla e o nome do órgão.');
+    if (!this.novoOrgaoForm.Nome.trim()) {
+      this.notificationService.warning('Informe o nome do órgão.');
       return;
     }
-    // Unidade obrigatória na criação via SGDI (F7).
+    // Unidade obrigatória na criação via SGDI (F7). A sigla nasce sozinha do
+    // grupo Keycloak da unidade escolhida — não é mais digitada nem checada
+    // por duplicidade aqui (a unicidade é da própria unidade).
     if (!this.novoOrgaoForm.UnidadeId) {
       this.notificationService.warning('Escolha a unidade do SGDP que será o elo do órgão.');
-      return;
-    }
-    // Sigla duplicada tem mensagem própria, antes do POST (F5).
-    if (this.todosOrgaos.some(o => o.Sigla.trim().toLowerCase() === sigla.toLowerCase())) {
-      this.notificationService.warning(`Já existe um órgão com a sigla ${sigla}.`);
       return;
     }
     this.salvandoNovoOrgao = true;
@@ -398,13 +394,12 @@ export class PgiaSgdiComponent implements OnInit {
     // A SGDI pode trocar a unidade aqui mesmo (F7): o form de edição carrega UnidadeId.
     this.dadosForm = orgao
       ? {
-          Sigla: orgao.Sigla,
           Nome: orgao.Nome,
           NaturezaJuridica: orgao.NaturezaJuridica,
           PrestaServicoCidadao: orgao.PrestaServicoCidadao,
           UnidadeId: orgao.UnidadeId
         }
-      : { Sigla: '', Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null, UnidadeId: null };
+      : { Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null, UnidadeId: null };
   }
 
   /** Erro do campo unidade obrigatório na edição de dados do órgão (F7). */
@@ -416,8 +411,8 @@ export class PgiaSgdiComponent implements OnInit {
     const orgao = this.orgaoDados;
     if (!orgao) return;
     this.dadosSubmetido = true;
-    if (!this.dadosForm.Sigla.trim() || !this.dadosForm.Nome.trim()) {
-      this.notificationService.warning('Informe a sigla e o nome do órgão.');
+    if (!this.dadosForm.Nome.trim()) {
+      this.notificationService.warning('Informe o nome do órgão.');
       return;
     }
     if (!this.dadosForm.UnidadeId) {

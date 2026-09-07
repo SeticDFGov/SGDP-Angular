@@ -13,7 +13,6 @@ export interface PgiaOrgao {
 }
 
 export interface PgiaOrgaoDadosForm {
-  Sigla: string;
   Nome: string;
   NaturezaJuridica: string;
   PrestaServicoCidadao: boolean | null;

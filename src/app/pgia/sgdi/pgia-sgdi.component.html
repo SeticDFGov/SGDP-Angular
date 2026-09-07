@@ -142,15 +142,8 @@
       <div *ngIf="modoCriacaoOrgao" class="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
         <h3 class="text-sm font-semibold text-gray-900 mb-3">Cadastrar novo órgão</h3>
 
+        <p class="text-xs text-gray-400 italic mb-3">A sigla do órgão é definida automaticamente pelo grupo do Keycloak da unidade escolhida abaixo.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-semibold mb-1">Sigla <span class="text-red-600">*</span></label>
-            <input type="text" maxlength="20" [(ngModel)]="novoOrgaoForm.Sigla" name="no-sigla"
-                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   [class.border-red-500]="novoOrgaoSubmetido && !novoOrgaoForm.Sigla.trim()"
-                   [class.bg-red-50]="novoOrgaoSubmetido && !novoOrgaoForm.Sigla.trim()"
-                   [class.border-gray-300]="!(novoOrgaoSubmetido && !novoOrgaoForm.Sigla.trim())">
-          </div>
           <div>
             <label class="block text-sm font-semibold mb-1">Nome completo <span class="text-red-600">*</span></label>
             <input type="text" [(ngModel)]="novoOrgaoForm.Nome" name="no-nome"
@@ -209,12 +202,10 @@
       <ng-container *ngIf="orgaoDados && !modoCriacaoOrgao">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-semibold mb-1">Sigla <span class="text-red-600">*</span></label>
-            <input type="text" maxlength="20" [(ngModel)]="dadosForm.Sigla" name="od-sigla"
-                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   [class.border-red-500]="dadosSubmetido && !dadosForm.Sigla.trim()"
-                   [class.bg-red-50]="dadosSubmetido && !dadosForm.Sigla.trim()"
-                   [class.border-gray-300]="!(dadosSubmetido && !dadosForm.Sigla.trim())">
+            <label class="block text-sm font-semibold mb-1">Sigla</label>
+            <input type="text" [value]="orgaoDados.Sigla" disabled
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
+            <p class="text-xs text-gray-400 italic mt-1">Definida pelo grupo do órgão no Keycloak; muda ao trocar a unidade abaixo.</p>
           </div>
           <div>
             <label class="block text-sm font-semibold mb-1">Nome completo <span class="text-red-600">*</span></label>

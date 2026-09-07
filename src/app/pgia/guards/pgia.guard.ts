@@ -4,27 +4,24 @@ import { map } from 'rxjs/operators';
 import { AuthService } from '../../auth/services/auth';
 
 /**
- * Área /pgia: entra quem tem papel PGIA (Users.PapelPgia) ou é admin do SGDP.
- * Exceção do art. 13 (registro de uso e aviso de incidente): abertas a qualquer
- * autenticado — o backend restringe pelo órgão resolvido (PodeRegistrarUso).
+ * Área /pgia: entra quem tem acesso ao módulo (AcessoPgia — role "pgia" do
+ * Keycloak, atribuída ao grupo/órgão) ou é admin do SGDP. O órgão sem a role
+ * fica de fora inclusive do art. 13 (registro de uso e aviso de incidente):
+ * o acesso ao módulo é por órgão cadastrado no PGIA, não por perfil individual.
  * A autorização real é do backend; aqui é só usabilidade.
  */
 export const pgiaGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // Formulários do art. 13: dever de todo agente, com ou sem papel PGIA
-  if (state.url.startsWith('/pgia/uso') || state.url.startsWith('/pgia/incidentes')) {
-    return true; // o authGuard da rota-mãe já garantiu a autenticação
-  }
-
   return authService.getUser().pipe(
     map(user => {
-      const canAccess = !!user?.PapelPgia || user?.Perfil === 'admin';
+      const canAccess = !!user?.AcessoPgia || user?.Perfil === 'admin';
       if (!canAccess) {
-        // 'basico' é confinado a /pgia pelo authGuard: mandá-lo a '/' criaria um
-        // laço de redirecionamentos — o destino dele é o registro de uso (art. 13)
-        router.navigate([user?.Perfil === 'basico' ? '/pgia/uso' : '/']);
+        // 'basico' é confinado a /pgia pelo authGuard — mandá-lo a '/' criaria um
+        // laço de redirecionamentos. Sem a role pgia (órgão não habilitado no
+        // PGIA), o destino é o mesmo do usuário ainda não configurado.
+        router.navigate([user?.Perfil === 'basico' ? '/pending-approval' : '/']);
         return false;
       }
       return true;

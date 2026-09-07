@@ -50,7 +50,7 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
   prazoDesignacao = PRAZO_DESIGNACAO;
 
   // Card: dados do órgão
-  dadosForm: PgiaOrgaoDadosForm = { Sigla: '', Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null };
+  dadosForm: PgiaOrgaoDadosForm = { Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null };
   salvandoDados = false;
   dadosSubmetido = false;
 
@@ -125,7 +125,6 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
         this.encarregadoVigente = meu.EncarregadoDadosVigente;
         if (meu.Orgao) {
           this.dadosForm = {
-            Sigla: meu.Orgao.Sigla,
             Nome: meu.Orgao.Nome,
             NaturezaJuridica: meu.Orgao.NaturezaJuridica,
             PrestaServicoCidadao: meu.Orgao.PrestaServicoCidadao
@@ -170,7 +169,7 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
   salvarDadosOrgao(): void {
     if (!this.orgao) return;
     this.dadosSubmetido = true;
-    if (!this.dadosForm.Sigla.trim() || !this.dadosForm.Nome.trim()) {
+    if (!this.dadosForm.Nome.trim()) {
       this.notificationService.warning('Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.');
       return;
     }

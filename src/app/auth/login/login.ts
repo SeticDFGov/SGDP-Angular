@@ -64,14 +64,7 @@ export class Login {
     ).subscribe({
       next: (perfil) => {
         this.carregando = false;
-
-        if (perfil === 'centralit') {
-          this.router.navigate(['/centralit']);
-        } else if (perfil === 'parceiro') {
-          this.router.navigate(['/parceiro']);
-        } else {
-          this.router.navigate(['/demandas']);
-        }
+        this.router.navigate(['/demandas']);
       },
       error: (err) => {
 

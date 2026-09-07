@@ -13,8 +13,6 @@ export type ResourceType = 'projeto' | 'etapa' | 'entregavel';
 export const Perfis = {
   Admin: 'admin',
   Gestor: 'gestor',
-  CentralIT: 'centralit',
-  Parceiro: 'parceiro',
   Basico: 'basico'
 } as const;
 
@@ -54,6 +52,7 @@ export class AuthService {
               Email: meResponse.Email,
               Perfil: meResponse.Perfil,
               PapelPgia: meResponse.PapelPgia ?? null,
+              AcessoPgia: !!meResponse.AcessoPgia,
               Unidade: meResponse.Unidade ?? null
             };
             localStorage.setItem('user', JSON.stringify(user));
@@ -93,6 +92,7 @@ export class AuthService {
               Email: meResponse.Email,
               Perfil: meResponse.Perfil,
               PapelPgia: meResponse.PapelPgia ?? null,
+              AcessoPgia: !!meResponse.AcessoPgia,
               Unidade: meResponse.Unidade ?? null
             };
             localStorage.setItem('user', JSON.stringify(user));
@@ -159,6 +159,37 @@ export class AuthService {
     }
   }
 
+  /**
+   * Busca o perfil atual direto do backend (GET /api/Auth/me), sem confiar no
+   * cache do localStorage. Usar antes de liberar acesso a áreas sensíveis
+   * (ex. admin): o perfil vem da role do Keycloak a cada requisição — se o
+   * usuário foi rebaixado no Keycloak, o cache local ainda diria "admin".
+   */
+  refreshUser(): Observable<UserProfile | null> {
+    if (!isPlatformBrowser(this.platformId)) return of(null);
+    const token = this.getToken();
+    if (!token) return of(null);
+
+    return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
+      headers: new HttpHeaders({ Authorization: `Bearer ${token}` })
+    }).pipe(
+      map(meResponse => {
+        const user: UserProfile = {
+          Id: meResponse.Id,
+          Nome: meResponse.Nome,
+          Email: meResponse.Email,
+          Perfil: meResponse.Perfil,
+          PapelPgia: meResponse.PapelPgia ?? null,
+          Unidade: meResponse.Unidade ?? null
+        };
+        localStorage.setItem('user', JSON.stringify(user));
+        this.userSubject.next(user);
+        return user;
+      }),
+      catchError(() => of(null))
+    );
+  }
+
   updateUserUnidade(unidade: any): void {
     const userJson = localStorage.getItem('user');
     if (userJson) {
@@ -189,7 +220,6 @@ export class AuthService {
       switch (perfil) {
         case Perfis.Admin:
         case Perfis.Gestor: return true;
-        case Perfis.CentralIT: return resource === 'etapa' || resource === 'entregavel';
         default: return false;
       }
     }));
@@ -200,7 +230,6 @@ export class AuthService {
       switch (perfil) {
         case Perfis.Admin:
         case Perfis.Gestor: return true;
-        case Perfis.CentralIT: return resource === 'etapa' || resource === 'entregavel';
         default: return false;
       }
     }));
@@ -214,14 +243,6 @@ export class AuthService {
         default: return false;
       }
     }));
-  }
-
-  isReadOnly(): Observable<boolean> {
-    return this.getPerfil().pipe(map(perfil => perfil === Perfis.Parceiro));
-  }
-
-  isCentralIT(): Observable<boolean> {
-    return this.getPerfil().pipe(map(perfil => perfil === Perfis.CentralIT));
   }
 
   isGestor(): Observable<boolean> {
@@ -238,10 +259,14 @@ export class AuthService {
     return this.getPapelPgia().pipe(map(papel => !!papel));
   }
 
-  /** Acesso à área /pgia: quem tem papel PGIA ou é admin do SGDP */
+  /**
+   * Acesso à área /pgia: role "pgia" do Keycloak (atribuída ao grupo/órgão) ou
+   * admin do SGDP. Vem de AcessoPgia (GET /api/Auth/me) — a autorização real é
+   * sempre do backend; aqui é só usabilidade.
+   */
   canAccessPgia(): Observable<boolean> {
     return this.getUser().pipe(
-      map(user => !!user && (!!user.PapelPgia || user.Perfil === Perfis.Admin))
+      map(user => !!user && (!!user.AcessoPgia || user.Perfil === Perfis.Admin))
     );
   }
 
@@ -271,6 +296,7 @@ export class AuthService {
               Email: meResponse.Email,
               Perfil: meResponse.Perfil,
               PapelPgia: meResponse.PapelPgia ?? null,
+              AcessoPgia: !!meResponse.AcessoPgia,
               Unidade: meResponse.Unidade ?? null
             };
             localStorage.setItem('user', JSON.stringify(user));

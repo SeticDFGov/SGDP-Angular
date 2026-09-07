@@ -75,7 +75,7 @@ export class AdminComponent implements OnInit {
   loadingPgiaOrgaos = false;
   naturezasPgia = NATUREZAS_JURIDICAS;
   newPgiaOrgao: PgiaOrgaoCreateForm = {
-    Sigla: '', Nome: '', NaturezaJuridica: 'Administração direta',
+    Nome: '', NaturezaJuridica: 'Administração direta',
     PrestaServicoCidadao: null, UnidadeId: null
   };
   loadingPgiaOrgao = false;
@@ -255,13 +255,6 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  toggleCentralIT(id: string): void {
-    this.http.patch(`${this.URL_ESTEIRA}/${id}/centralit`, {}).subscribe({
-      next: () => { this.showMessage('Configuração atualizada!', 'success'); this.loadEsteiras(); },
-      error: () => this.showMessage('Erro ao atualizar configuração', 'error')
-    });
-  }
-
   // ── PGIA: papéis e órgãos ─────────────────────────────────────────────────
 
   atribuirPapelPgia(email: string, papel: string): void {
@@ -286,14 +279,14 @@ export class AdminComponent implements OnInit {
 
   cadastrarPgiaOrgao(event: Event): void {
     event.preventDefault();
-    if (!this.newPgiaOrgao.Sigla.trim() || !this.newPgiaOrgao.Nome.trim()) {
-      this.showMessage('Sigla e nome do órgão são obrigatórios', 'error'); return;
+    if (!this.newPgiaOrgao.Nome.trim() || !this.newPgiaOrgao.UnidadeId) {
+      this.showMessage('Nome e unidade do órgão são obrigatórios', 'error'); return;
     }
     this.loadingPgiaOrgao = true;
     this.pgiaAdminService.criarOrgao(this.newPgiaOrgao).subscribe({
       next: () => {
         this.showMessage('Órgão PGIA cadastrado! As obrigações com prazo do art. 35 foram carregadas para ele.', 'success');
-        this.newPgiaOrgao = { Sigla: '', Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null, UnidadeId: null };
+        this.newPgiaOrgao = { Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null, UnidadeId: null };
         this.loadPgiaOrgaos();
         this.loadingPgiaOrgao = false;
       },
@@ -316,10 +309,13 @@ export class AdminComponent implements OnInit {
 
   salvarVinculoOrgao(): void {
     if (!this.vinculandoOrgao) return;
+    if (!this.vinculoUnidadeId) {
+      this.showMessage('Escolha uma unidade: o órgão precisa de uma unidade vinculada.', 'error');
+      return;
+    }
     this.salvandoVinculo = true;
     const o = this.vinculandoOrgao;
     this.pgiaAdminService.editarOrgao(o.Id, {
-      Sigla: o.Sigla,
       Nome: o.Nome,
       NaturezaJuridica: o.NaturezaJuridica,
       PrestaServicoCidadao: o.PrestaServicoCidadao,

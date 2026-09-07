@@ -15,6 +15,8 @@ export interface UserProfile {
   Perfil: string;
   // Papel no módulo PGIA (Decreto nº 48.901/2026); opcional para não quebrar dados já salvos
   PapelPgia?: string | null;
+  // Acesso ao módulo PGIA: role "pgia" do Keycloak (atribuída ao grupo/órgão), ou admin
+  AcessoPgia?: boolean;
   Unidade: Unidade | null;
 }
 
