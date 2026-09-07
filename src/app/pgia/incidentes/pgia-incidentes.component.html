@@ -1,0 +1,431 @@
+<div citaDecreto class="tela-pgia max-w-5xl mx-auto">
+
+  <!-- Contexto -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
+    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
+    <ng-container *ngIf="semPapel"> Percebeu um problema com um sistema de IA? Avise o Responsável de IA do seu órgão por aqui.</ng-container>
+    <ng-container *ngIf="!semPapel"> Nesta área, o seu órgão avisa e comunica os problemas com sistemas de IA e acompanha o que a SGDI apurou.</ng-container>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <!-- Auditoria externa -->
+  <div *ngIf="!loading && isAuditoria" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-blue-500 bg-blue-50 p-4 text-sm leading-relaxed rounded-r-md">
+      Você está conectado(a) como entidade auditora externa. Esta tela é da equipe do órgão.
+      A sua área são as auditorias técnicas designadas pela SGDI (arts. 25, § 2º e 34).
+      <a routerLink="/pgia/auditoria" class="text-blue-700 font-semibold underline">Ir para as auditorias designadas</a>.
+    </div>
+  </div>
+
+  <!-- Papel de consulta -->
+  <div *ngIf="!loading && !isAuditoria && modoConsulta" class="border-l-4 border-blue-500 bg-blue-50 p-3 text-sm leading-relaxed rounded-r-md mb-5">
+    O seu papel permite apenas consultar estas informações. Quem edita é a equipe do órgão (Responsável de IA).
+  </div>
+
+  <!-- Unidade sem órgão PGIA -->
+  <div *ngIf="!loading && !isAuditoria && semOrgao" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+      A sua unidade ainda não está vinculada a um órgão do PGIA.
+      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+      Depois disso, esta página é liberada para preenchimento.
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && !isAuditoria && !semOrgao">
+
+    <!-- ── 1. Aviso do agente ───────────────────────────────────────────── -->
+    <div *ngIf="secao === 'aviso'" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Avisar sobre um problema</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Percebeu que um sistema de IA causou ou pode causar dano a alguém ou a um serviço público?
+      Avise o Responsável de IA do seu órgão (art. 13, II). Ele fará a comunicação formal à SGDI.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Qual sistema? <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="avisoForm.SistemaIaId" name="av-sistema"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errAvisoSistema"
+                  [class.border-gray-300]="!errAvisoSistema">
+            <option [ngValue]="null">Escolha o sistema</option>
+            <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">O que você percebeu? <span class="text-red-600">*</span></label>
+          <textarea rows="3" [(ngModel)]="avisoForm.Descricao" name="av-desc" placeholder="Descreva com suas palavras."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="errAvisoDescricao"
+                    [class.bg-red-50]="errAvisoDescricao"
+                    [class.border-gray-300]="!errAvisoDescricao"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button (click)="enviarAviso()" [disabled]="enviandoAviso"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ enviandoAviso ? 'Enviando...' : 'Enviar aviso' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── 2. Comunicação de incidente grave ────────────────────────────── -->
+    <div *ngIf="secao === 'comunicacao' && podeEditar" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Comunicação de incidente grave</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Aconteceu um problema grave com um sistema de IA? Registre aqui. Quem percebe o problema
+      avisa o Responsável de IA (art. 13, II). O Responsável, então, comunica a SGDI pelo SEI, no prazo definido
+      em norma complementar (art. 30). A SGDI apura e pode recomendar medidas, inclusive a suspensão do sistema.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Sistema envolvido <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="incidenteForm.SistemaIaId" name="in-sistema"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errIncSistema"
+                  [class.border-gray-300]="!errIncSistema">
+            <option [ngValue]="null">Escolha o sistema</option>
+            <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Tipo de incidente (art. 30) <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="incidenteForm.Hipotese" name="in-hipotese"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let h of hipoteses" [value]="h.valor">{{ h.rotulo }}</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">O que aconteceu? <span class="text-red-600">*</span></label>
+          <textarea rows="3" [(ngModel)]="incidenteForm.Descricao" name="in-desc"
+                    placeholder="Conte o que ocorreu, quando e como o problema foi percebido."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="errIncDescricao"
+                    [class.bg-red-50]="errIncDescricao"
+                    [class.border-gray-300]="!errIncDescricao"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data e hora da ocorrência <span class="text-red-600">*</span></label>
+          <input type="datetime-local" [(ngModel)]="incidenteForm.DataOcorrencia" name="in-dtoc"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errIncOcorrencia"
+                 [class.border-gray-300]="!errIncOcorrencia">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data e hora da detecção <span class="text-red-600">*</span></label>
+          <input type="datetime-local" [(ngModel)]="incidenteForm.DataDeteccao" name="in-dtdet"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errIncDeteccao"
+                 [class.border-gray-300]="!errIncDeteccao">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Aviso ao Responsável de IA <span class="text-red-600">*</span></label>
+          <input type="datetime-local" [(ngModel)]="incidenteForm.NotificadoResponsavelEm" name="in-dtnot"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errIncNotificado"
+                 [class.border-gray-300]="!errIncNotificado">
+          <p class="text-xs text-gray-400 italic mt-1">Art. 13, II.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data e hora da comunicação à SGDI <span class="text-red-600">*</span></label>
+          <input type="datetime-local" [(ngModel)]="incidenteForm.DataComunicacaoSgdi" name="in-dtcom"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errIncComunicacao"
+                 [class.border-gray-300]="!errIncComunicacao">
+          <p class="text-xs text-gray-400 italic mt-1">Art. 30.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Processo SEI da comunicação <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="incidenteForm.ProcessoSei" name="in-sei" placeholder="00060-00011111/2026-77" maxlength="25"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errIncSei"
+                 [class.bg-red-50]="errIncSei"
+                 [class.border-gray-300]="!errIncSei">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Medidas já adotadas pelo órgão</label>
+          <textarea rows="3" [(ngModel)]="incidenteForm.MedidasAdotadas" name="in-medidas"
+                    placeholder="Estas medidas entram no relatório semestral (art. 32, II)."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button (click)="comunicarIncidenteNovo()" [disabled]="salvandoIncidente"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoIncidente ? 'Enviando...' : 'Comunicar à SGDI' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── 3. Lista de incidentes ───────────────────────────────────────── -->
+    <div *ngIf="secao === 'acompanhamento' && !semPapel" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Incidentes do órgão</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Avisos internos e incidentes já comunicados à SGDI.
+      Abra um item para ver o que a SGDI apurou e registrar as medidas do órgão.</p>
+
+      <div *ngIf="carregandoIncidentes" class="text-sm text-gray-500 py-2">Carregando...</div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Sistema</th>
+              <th class="px-3 py-2">Tipo de incidente</th>
+              <th class="px-3 py-2">Ocorrência</th>
+              <th class="px-3 py-2">Comunicado à SGDI</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let i of incidentes">
+              <tr class="border-b border-gray-200 align-top">
+                <td class="px-3 py-2">{{ i.SistemaDenominacao }}</td>
+                <td class="px-3 py-2">{{ rotuloHipotese(i.Hipotese) }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ i.DataOcorrencia | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">
+                  {{ i.DataComunicacaoSgdi ? (i.DataComunicacaoSgdi | date:'dd/MM/yyyy HH:mm') : '—' }}
+                </td>
+                <td class="px-3 py-2">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeSituacao(i)">{{ situacao(i) }}</span>
+                </td>
+                <td class="px-3 py-2 text-right whitespace-nowrap">
+                  <button (click)="alternarDetalhe(i)"
+                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                    {{ expandido === i.Id ? 'Fechar' : 'Abrir' }}
+                  </button>
+                </td>
+              </tr>
+
+              <tr *ngIf="expandido === i.Id" class="border-b border-gray-200 bg-gray-50">
+                <td colspan="6" class="px-3 py-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-3">
+                    <div class="md:col-span-2 leading-relaxed"><strong class="text-gray-800">O que aconteceu:</strong> {{ i.Descricao }}</div>
+                    <div><strong class="text-gray-800">Detecção:</strong> {{ i.DataDeteccao | date:'dd/MM/yyyy HH:mm' }}</div>
+                    <div><strong class="text-gray-800">Aviso ao Responsável de IA:</strong> {{ i.NotificadoResponsavelEm | date:'dd/MM/yyyy HH:mm' }}</div>
+                    <div><strong class="text-gray-800">Quem comunicou:</strong> {{ i.ComunicadoPorNome }}</div>
+                    <div><strong class="text-gray-800">Processo SEI:</strong> {{ i.ProcessoSei || '—' }}</div>
+                    <div class="md:col-span-2 leading-relaxed" *ngIf="i.RecomendacoesSgdi">
+                      <strong class="text-gray-800">Recomendações da SGDI:</strong> {{ i.RecomendacoesSgdi }}
+                    </div>
+                    <div *ngIf="i.PropostaCgtic !== null">
+                      <strong class="text-gray-800">Medidas propostas ao CGTIC:</strong> {{ i.PropostaCgtic ? 'sim' : 'não' }}
+                    </div>
+                    <div *ngIf="i.EncaminhadoOrgaoCompetenteEm">
+                      <strong class="text-gray-800">Encaminhado ao órgão competente em:</strong>
+                      {{ i.EncaminhadoOrgaoCompetenteEm | date:'dd/MM/yyyy':'UTC' }}
+                    </div>
+                    <div><strong class="text-gray-800">Sistema suspenso:</strong> {{ i.SistemaSuspenso ? 'sim' : 'não' }}
+                      <span *ngIf="i.SistemaSuspenso && i.DataSuspensao"> em {{ i.DataSuspensao | date:'dd/MM/yyyy':'UTC' }}</span>
+                    </div>
+                    <div class="md:col-span-2 leading-relaxed">
+                      <strong class="text-gray-800">Medidas adotadas pelo órgão:</strong> {{ i.MedidasAdotadas || 'nenhuma registrada' }}
+                    </div>
+                  </div>
+
+                  <div class="flex gap-2 flex-wrap" *ngIf="podeEditar">
+                    <button *ngIf="!i.DataComunicacaoSgdi" (click)="abrirComunicacao(i)"
+                            class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">
+                      {{ comunicandoId === i.Id ? 'Cancelar' : 'Comunicar à SGDI' }}
+                    </button>
+                    <button *ngIf="i.DataComunicacaoSgdi" (click)="abrirMedidas(i)"
+                            class="text-sm text-blue-700 border border-blue-600 rounded px-4 py-2 hover:bg-blue-50">
+                      {{ medidasId === i.Id ? 'Cancelar' : 'Registrar medidas do órgão' }}
+                    </button>
+                  </div>
+
+                  <!-- Comunicar um aviso ainda não comunicado -->
+                  <div *ngIf="podeEditar && comunicandoId === i.Id" class="mt-3 bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-sm font-semibold mb-1">Tipo de incidente (art. 30) <span class="text-red-600">*</span></label>
+                        <select [(ngModel)]="comunicarForm.Hipotese" [name]="'com-hip-' + i.Id"
+                                class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                [class.border-red-500]="errComHipotese"
+                                [class.border-gray-300]="!errComHipotese">
+                          <option *ngFor="let h of hipoteses" [value]="h.valor">{{ h.rotulo }}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-sm font-semibold mb-1">Data e hora da comunicação à SGDI <span class="text-red-600">*</span></label>
+                        <input type="datetime-local" [(ngModel)]="comunicarForm.DataComunicacaoSgdi" [name]="'com-dt-' + i.Id"
+                               class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               [class.border-red-500]="errComData"
+                               [class.border-gray-300]="!errComData">
+                      </div>
+                      <div>
+                        <label class="block text-sm font-semibold mb-1">Data e hora da ocorrência</label>
+                        <input type="datetime-local" [(ngModel)]="comunicarForm.DataOcorrencia" [name]="'com-dtoc-' + i.Id"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="text-xs text-gray-400 italic mt-1">Corrija se o aviso trouxe uma data aproximada.</p>
+                      </div>
+                      <div>
+                        <label class="block text-sm font-semibold mb-1">Data e hora da detecção</label>
+                        <input type="datetime-local" [(ngModel)]="comunicarForm.DataDeteccao" [name]="'com-dtdet-' + i.Id"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      </div>
+                      <div>
+                        <label class="block text-sm font-semibold mb-1">Processo SEI da comunicação <span class="text-red-600">*</span></label>
+                        <input type="text" [(ngModel)]="comunicarForm.ProcessoSei" [name]="'com-sei-' + i.Id"
+                               placeholder="00060-00011111/2026-77" maxlength="25"
+                               class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               [class.border-red-500]="errComSei"
+                               [class.bg-red-50]="errComSei"
+                               [class.border-gray-300]="!errComSei">
+                      </div>
+                      <div class="md:col-span-2">
+                        <label class="block text-sm font-semibold mb-1">Medidas já adotadas pelo órgão</label>
+                        <textarea rows="3" [(ngModel)]="comunicarForm.MedidasAdotadas" [name]="'com-med-' + i.Id"
+                                  placeholder="Estas medidas entram no relatório semestral (art. 32, II)."
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                      </div>
+                    </div>
+                    <div class="mt-3">
+                      <button (click)="confirmarComunicacao(i)" [disabled]="salvandoComunicacao"
+                              class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                        {{ salvandoComunicacao ? 'Enviando...' : 'Comunicar à SGDI' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Medidas do órgão -->
+                  <div *ngIf="podeEditar && medidasId === i.Id" class="mt-3 bg-white border border-gray-200 rounded-lg p-4">
+                    <label class="block text-sm font-semibold mb-1">Medidas adotadas pelo órgão</label>
+                    <textarea rows="3" [(ngModel)]="medidasTexto" [name]="'med-' + i.Id"
+                              placeholder="Estas medidas entram no relatório semestral (art. 32, II)."
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    <div class="mt-3">
+                      <button (click)="salvarMedidas(i)" [disabled]="salvandoMedidas"
+                              class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                        {{ salvandoMedidas ? 'Salvando...' : 'Salvar medidas' }}
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+            <tr *ngIf="!carregandoIncidentes && incidentes.length === 0">
+              <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhum incidente registrado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── 4. Não conformidades ─────────────────────────────────────────── -->
+    <div *ngIf="secao === 'nao-conformidades' && !semPapel" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Não conformidades</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">O SGTIC do órgão registra aqui as situações em que a política
+      de IA não foi cumprida e reporta à SGDI (art. 9º, II). Descreva o que aconteceu e acompanhe até a situação ser sanada.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" *ngIf="podeEditar">
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">O que não foi cumprido? <span class="text-red-600">*</span></label>
+          <textarea rows="3" [(ngModel)]="ncForm.Descricao" name="nc-desc"
+                    placeholder="Descreva a situação e o sistema ou processo envolvido."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="errNcDescricao"
+                    [class.bg-red-50]="errNcDescricao"
+                    [class.border-gray-300]="!errNcDescricao"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Como foi identificada</label>
+          <input type="text" readonly value="Acompanhamento do SGTIC"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
+          <p class="text-xs text-gray-400 italic mt-1">O que a SGDI identifica na supervisão dela entra por outro caminho.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data do reporte à SGDI</label>
+          <input type="date" [(ngModel)]="ncForm.ReportadaSgdiEm" name="nc-reporte"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="text-xs text-gray-400 italic mt-1">Deixe em branco se o reporte ainda não aconteceu.</p>
+        </div>
+      </div>
+
+      <div class="mt-4" *ngIf="podeEditar">
+        <button (click)="registrarNaoConformidade()" [disabled]="salvandoNc"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvandoNc ? 'Salvando...' : 'Registrar não conformidade' }}
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">O que não foi cumprido</th>
+              <th class="px-3 py-2">Como foi identificada</th>
+              <th class="px-3 py-2">Registrada em</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2" *ngIf="podeEditar"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let nc of naoConformidades">
+              <tr class="border-b border-gray-200 align-top">
+                <td class="px-3 py-2 leading-relaxed">{{ nc.Descricao }}</td>
+                <td class="px-3 py-2 text-gray-500">{{ nc.Origem }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ nc.DataRegistro | date:'dd/MM/yyyy':'UTC' }}</td>
+                <td class="px-3 py-2">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeNaoConformidade(nc.Situacao)">{{ nc.Situacao }}</span>
+                </td>
+                <td class="px-3 py-2 text-right" *ngIf="podeEditar">
+                  <button (click)="editarNaoConformidade(nc)"
+                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                    {{ ncEmEdicao?.Id === nc.Id ? 'Cancelar' : 'Atualizar' }}
+                  </button>
+                </td>
+              </tr>
+
+              <tr *ngIf="podeEditar && ncEmEdicao?.Id === nc.Id" class="border-b border-gray-200 bg-gray-50">
+                <td [attr.colspan]="5" class="px-3 py-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-semibold mb-1">O que não foi cumprido</label>
+                      <textarea rows="3" [(ngModel)]="ncEdicao.Descricao" [name]="'nce-desc-' + nc.Id"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Situação</label>
+                      <select [(ngModel)]="ncEdicao.Situacao" [name]="'nce-sit-' + nc.Id"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option *ngFor="let s of situacoesNaoConformidade" [value]="s">{{ s }}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Data do reporte à SGDI</label>
+                      <input type="date" [(ngModel)]="ncEdicao.ReportadaSgdiEm" [name]="'nce-rep-' + nc.Id"
+                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">Comunicada ao controle interno em</label>
+                      <input type="date" [(ngModel)]="ncEdicao.ComunicadaControleInternoEm" [name]="'nce-ci-' + nc.Id"
+                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <button (click)="salvarEdicaoNaoConformidade()" [disabled]="salvandoEdicaoNc"
+                            class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                      {{ salvandoEdicaoNc ? 'Salvando...' : 'Salvar alterações' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+            <tr *ngIf="naoConformidades.length === 0">
+              <td [attr.colspan]="podeEditar ? 5 : 4" class="px-3 py-4 text-center text-gray-500">Nenhuma não conformidade registrada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Incidente de outro órgão: fora do bloco "sem órgão" para alcançar também
+       quem não tem órgão vinculado (F11); abre a página pública em nova aba (F10). -->
+  <p *ngIf="!loading && !isAuditoria && secao === 'aviso'" class="text-xs text-gray-400 italic mt-3">Presenciou um problema com um sistema de IA de outro órgão?
+    <a routerLink="/transparencia-ia" target="_blank" rel="noopener" class="text-blue-700 underline">Registre pela página pública de transparência.</a>
+  </p>
+</div>

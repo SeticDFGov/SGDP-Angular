@@ -1,0 +1,101 @@
+<div citaDecreto class="tela-pgia max-w-5xl mx-auto">
+
+  <!-- Contexto (texto do mock) -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Área da <strong>auditoria externa</strong>. O decreto exige que a entidade auditora seja externa ao fornecedor
+    (art. 25, § 2º), e as auditorias seguem a forma e a periodicidade definidas pelo CGTIC (art. 34). A FAPDF
+    pode dar suporte técnico-científico (art. 12, I). O acesso é restrito à auditoria designada pela SGDI.
+  </div>
+
+  <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <!-- Sem papel de auditoria -->
+  <div *ngIf="!loading && !temAcesso" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+      Esta área é da entidade auditora externa designada pela SGDI. O seu papel no PGIA não dá acesso a ela.
+      Use o menu lateral para voltar às suas telas.
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && temAcesso">
+
+    <!-- Sem auditorias designadas -->
+    <div *ngIf="auditorias.length === 0" class="bg-white rounded-lg shadow p-6">
+      <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+        Nenhuma auditoria designada a você no momento. A SGDI faz a designação.
+      </div>
+    </div>
+
+    <!-- Uma auditoria por card, no formato do mock -->
+    <div *ngFor="let a of auditorias" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Auditoria técnica {{ codigo(a) }}</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Os dados de identificação abaixo foram preenchidos pela SGDI. Cabe à entidade auditora
+      registrar o período e entregar o parecer.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Sistema auditado</label>
+          <input type="text" readonly [value]="a.SistemaDenominacao + ', ' + a.OrgaoSigla"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Tipo</label>
+          <input type="text" readonly [value]="tipoDescrito(a)"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Entidade auditora</label>
+          <input type="text" readonly [value]="entidadeDescrita(a)"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Suporte da FAPDF</label>
+          <input type="text" readonly [value]="apoioFapdf(a)"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
+        </div>
+        <div *ngIf="edicao[a.Id]">
+          <label class="block text-sm font-semibold mb-1">Início dos trabalhos</label>
+          <input type="date" [(ngModel)]="edicao[a.Id].DataInicio" [name]="'aud-inicio-' + a.Id"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div *ngIf="edicao[a.Id]">
+          <label class="block text-sm font-semibold mb-1">Encerramento</label>
+          <input type="date" [(ngModel)]="edicao[a.Id].DataFim" [name]="'aud-fim-' + a.Id"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2" *ngIf="edicao[a.Id]">
+          <label class="block text-sm font-semibold mb-1">Parecer <span class="text-red-600">*</span></label>
+          <textarea rows="4" [(ngModel)]="edicao[a.Id].Parecer" [name]="'aud-parecer-' + a.Id"
+                    placeholder="Registre o resultado da auditoria. Ele alimenta o Relatório Anual (art. 33, II)."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="errParecer(a)"
+                    [class.bg-red-50]="errParecer(a)"
+                    [class.border-gray-300]="!errParecer(a)"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Relatório completo (PDF)</label>
+          <input type="text" readonly value="anexo disponível em fase futura"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+        </div>
+      </div>
+
+      <div class="border-l-4 border-yellow-500 bg-yellow-50 p-3 text-sm leading-relaxed rounded-r-md mt-4">
+        Depois do encerramento, a SGDI publica o resultado no Portal da Transparência (art. 34).
+      </div>
+
+      <div *ngIf="a.PublicadoPortal" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md mt-3">
+        Resultado publicado
+        <span *ngIf="a.DataPublicacao"> em {{ a.DataPublicacao | date:'dd/MM/yyyy':'UTC' }}</span>.
+        <span *ngIf="a.Url">Endereço: {{ a.Url }}</span>
+      </div>
+
+      <div class="mt-4">
+        <button (click)="entregarParecer(a)" [disabled]="entregandoId === a.Id"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ entregandoId === a.Id ? 'Enviando...' : 'Entregar parecer' }}
+        </button>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

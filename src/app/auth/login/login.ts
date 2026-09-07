@@ -1,21 +1,25 @@
 import { Component, signal } from '@angular/core';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthRequest } from '../../../api/auth/interface';
 import { CommonModule } from '@angular/common';
 import { switchMap, timeout, catchError } from 'rxjs/operators';
 import { of, throwError } from 'rxjs';
+import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-login',
   imports: [
     CommonModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    RouterModule
   ],
   templateUrl: './login.html',
   styleUrl: './login.css'
 })
 export class Login {
+  // Link do modo local (sem Keycloak): só aparece fora do build de produção
+  modoLocalDisponivel = !environment.production;
   loginForm = new FormGroup({
     Email: new FormControl<string>('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
     Senha: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] })
@@ -60,14 +64,7 @@ export class Login {
     ).subscribe({
       next: (perfil) => {
         this.carregando = false;
-
-        if (perfil === 'centralit') {
-          this.router.navigate(['/centralit']);
-        } else if (perfil === 'parceiro') {
-          this.router.navigate(['/parceiro']);
-        } else {
-          this.router.navigate(['/demandas']);
-        }
+        this.router.navigate(['/demandas']);
       },
       error: (err) => {
 

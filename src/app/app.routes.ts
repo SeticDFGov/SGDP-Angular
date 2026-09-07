@@ -4,18 +4,20 @@ import { authGuard } from './auth/guards/auth-guard';
 import { AuthLayoutComponent } from './layouts/auth-layout/auth-layout';
 import { MainLayout } from './layouts/main-layout/main-layout';
 import { EtapaListComponent } from './projeto/etapa/etapa-list/etapa-list.component';
-import { SelecionarUnidadeComponent } from './auth/unidade/selecionar-unidade.component';
 import { AdminComponent } from './admin/admin.component';
 import { adminGuard } from './auth/guards/admin.guard';
-import { centralitGuard } from './auth/guards/centralit.guard';
-import { parceiroGuard } from './auth/guards/parceiro.guard';
 import { userConfiguredGuard } from './auth/guards/user-configured.guard';
-import { CentralITComponent } from './centralit/centralit.component';
-import { ParceiroComponent } from './parceiro/parceiro.component';
 import { PendingApprovalComponent } from './auth/pending-approval/pending-approval.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
+import { pgiaGuard } from './pgia/guards/pgia.guard';
 
 export const routes: Routes = [
+  {
+    // Transparência pública (arts. 23 e 24): fora do MainLayout e sem guard.
+    path: 'transparencia-ia',
+    loadComponent: () => import('./pgia/publico/pgia-transparencia.component')
+      .then(m => m.PgiaTransparenciaComponent)
+  },
   {
     path: 'pending-approval',
     component: PendingApprovalComponent,
@@ -25,21 +27,6 @@ export const routes: Routes = [
     path: 'admin',
     component: AdminComponent,
     canActivate: [authGuard, userConfiguredGuard, adminGuard]
-  },
-  {
-    path: 'centralit',
-    component: CentralITComponent,
-    canActivate: [authGuard, userConfiguredGuard, centralitGuard]
-  },
-  {
-    path: 'parceiro',
-    component: ParceiroComponent,
-    canActivate: [authGuard, userConfiguredGuard, parceiroGuard]
-  },
-  {
-    path: 'selecionar-unidade',
-    component: SelecionarUnidadeComponent,
-    canActivate: [authGuard]
   },
   {
     path: 'auth',
@@ -65,6 +52,11 @@ export const routes: Routes = [
         data: {
           prerender: false
         }
+      },
+      {
+        path: 'pgia',
+        canActivate: [pgiaGuard],
+        loadChildren: () => import('./pgia/pgia.routes').then(m => m.pgia_routes)
       }
     ]
   }

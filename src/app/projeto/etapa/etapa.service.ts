@@ -22,13 +22,6 @@ export class EtapaService {
     return this.http.get<Entregavel[]>(`${this.apiUrl}/${demandaId}`, { headers: this.getHeaders() });
   }
 
-  getEntregaveisCentralIT(areaExecutoraNome: string): Observable<Entregavel[]> {
-    return this.http.get<Entregavel[]>(`${this.apiUrl}/centralit`, {
-      headers: this.getHeaders(),
-      params: { areaExecutoraNome }
-    });
-  }
-
   getItemById(id: number): Observable<Entregavel> {
     return this.http.get<Entregavel>(`${this.apiUrl}/byid/${id}`, { headers: this.getHeaders() });
   }

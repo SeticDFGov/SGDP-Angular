@@ -1,0 +1,406 @@
+<div citaDecreto class="tela-pgia max-w-5xl mx-auto">
+
+  <!-- Contexto -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
+    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
+    Aqui o órgão registra as medições dos sistemas e presta contas à SGDI a cada semestre.
+  </div>
+
+  <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <!-- Auditoria externa -->
+  <div *ngIf="!loading && isAuditoria" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-blue-500 bg-blue-50 p-4 text-sm leading-relaxed rounded-r-md">
+      Você está conectado(a) como entidade auditora externa. Esta tela é da equipe do órgão.
+      A sua área são as auditorias técnicas designadas pela SGDI (arts. 25, § 2º e 34).
+      <a routerLink="/pgia/auditoria" class="text-blue-700 font-semibold underline">Ir para as auditorias designadas</a>.
+    </div>
+  </div>
+
+  <!-- Papel de consulta -->
+  <div *ngIf="!loading && !isAuditoria && modoConsulta" class="border-l-4 border-blue-500 bg-blue-50 p-3 text-sm leading-relaxed rounded-r-md mb-5">
+    O seu papel permite apenas consultar estas informações. Quem edita é a equipe do órgão (Responsável de IA).
+  </div>
+
+  <!-- Unidade sem órgão PGIA -->
+  <div *ngIf="!loading && !isAuditoria && !orgao" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+      A sua unidade ainda não está vinculada a um órgão do PGIA.
+      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+      Depois disso, esta página é liberada para preenchimento.
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && !isAuditoria && orgao">
+
+    <!-- ── 1. Indicadores ───────────────────────────────────────────────── -->
+    <div *ngIf="secao === 'indicadores'" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Indicadores de desempenho</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Meça como cada sistema está funcionando: desempenho, adoção,
+      conformidade, impacto, acurácia, equidade e disponibilidade (art. 31). Nos sistemas de Alto Risco, as medições são
+      obrigatórias no relatório semestral e podem ir ao Registro Público (art. 24, V).</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Sistema</label>
+          <select [(ngModel)]="sistemaSelecionadoId" name="ind-sistema" (ngModelChange)="aoTrocarSistema()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Escolha o sistema</option>
+            <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
+          </select>
+        </div>
+      </div>
+
+      <p *ngIf="!sistemaSelecionadoId" class="text-sm text-gray-500 mt-3">Escolha um sistema para ver e registrar as medições.</p>
+      <p *ngIf="sistemaSelecionadoId && carregandoIndicadores" class="text-sm text-gray-500 mt-3">Carregando...</p>
+
+      <ng-container *ngIf="sistemaSelecionadoId && !carregandoIndicadores">
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+                <th class="px-3 py-2">Indicador</th>
+                <th class="px-3 py-2">Categoria</th>
+                <th class="px-3 py-2">Valor</th>
+                <th class="px-3 py-2">Meta</th>
+                <th class="px-3 py-2">Período</th>
+                <th class="px-3 py-2">No Registro Público</th>
+                <th class="px-3 py-2" *ngIf="podeEditar"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let i of indicadores" class="border-b border-gray-200">
+                <td class="px-3 py-2">{{ i.Nome }}</td>
+                <td class="px-3 py-2">{{ i.Categoria }}</td>
+                <td class="px-3 py-2">{{ i.Valor }}<span class="text-gray-500" *ngIf="i.Unidade"> {{ i.Unidade }}</span></td>
+                <td class="px-3 py-2">{{ i.Meta !== null ? i.Meta : '—' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">
+                  {{ i.PeriodoInicio | date:'dd/MM/yyyy':'UTC' }} a {{ i.PeriodoFim | date:'dd/MM/yyyy':'UTC' }}
+                </td>
+                <td class="px-3 py-2">{{ i.PublicadoRegistroPublico ? 'sim' : 'não' }}</td>
+                <td class="px-3 py-2 text-right" *ngIf="podeEditar">
+                  <button (click)="editarIndicador(i)"
+                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                    Editar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="indicadores.length === 0">
+                <td [attr.colspan]="podeEditar ? 7 : 6" class="px-3 py-4 text-center text-gray-500">Nenhum indicador registrado para este sistema.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar">
+          <h3 class="text-sm font-semibold text-gray-900 mb-3">
+            {{ indicadorEmEdicao ? 'Editar indicador' : 'Registrar indicador' }}
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold mb-1">Nome do indicador <span class="text-red-600">*</span></label>
+              <input type="text" [(ngModel)]="indicadorForm.Nome" name="ind-nome" placeholder="Por exemplo: taxa de acerto da triagem"
+                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [class.border-red-500]="errIndNome" [class.bg-red-50]="errIndNome" [class.border-gray-300]="!errIndNome">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Categoria <span class="text-red-600">*</span></label>
+              <select [(ngModel)]="indicadorForm.Categoria" name="ind-categoria"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Valor medido <span class="text-red-600">*</span></label>
+              <input type="number" [(ngModel)]="indicadorForm.Valor" name="ind-valor"
+                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [class.border-red-500]="errIndValor" [class.border-gray-300]="!errIndValor">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Unidade</label>
+              <input type="text" [(ngModel)]="indicadorForm.Unidade" name="ind-unidade" placeholder="Por exemplo: %, minutos, atendimentos"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Início do período <span class="text-red-600">*</span></label>
+              <input type="date" [(ngModel)]="indicadorForm.PeriodoInicio" name="ind-inicio"
+                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [class.border-red-500]="errIndInicio" [class.border-gray-300]="!errIndInicio">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Fim do período <span class="text-red-600">*</span></label>
+              <input type="date" [(ngModel)]="indicadorForm.PeriodoFim" name="ind-fim"
+                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [class.border-red-500]="errIndFim" [class.border-gray-300]="!errIndFim">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Meta</label>
+              <input type="number" [(ngModel)]="indicadorForm.Meta" name="ind-meta"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <p class="text-xs text-gray-400 italic mt-1">Preencha quando houver nível de serviço acordado no contrato.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Publicado no Registro Público?</label>
+              <div class="flex gap-4 text-sm mt-1">
+                <label class="flex items-center gap-2"><input type="radio" name="ind-pub" [value]="true" [(ngModel)]="indicadorForm.PublicadoRegistroPublico"> Sim</label>
+                <label class="flex items-center gap-2"><input type="radio" name="ind-pub" [value]="false" [(ngModel)]="indicadorForm.PublicadoRegistroPublico"> Ainda não</label>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 flex gap-2 flex-wrap">
+            <button (click)="salvarIndicador()" [disabled]="salvandoIndicador"
+                    class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+              {{ salvandoIndicador ? 'Salvando...' : (indicadorEmEdicao ? 'Salvar alterações' : 'Registrar indicador') }}
+            </button>
+            <button *ngIf="indicadorEmEdicao" (click)="cancelarEdicaoIndicador()"
+                    class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+              Cancelar edição
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- ── 2. Relatório semestral ───────────────────────────────────────── -->
+    <div *ngIf="secao === 'semestrais'" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Relatório semestral</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">A cada semestre o órgão presta contas à SGDI pelo SEI (art. 32).
+      O sistema monta o conteúdo a partir do que já foi preenchido: sistemas e classificações, incidentes e medidas,
+      indicadores de Alto Risco, capacitação e atualizações do inventário. Confira, baixe o PDF e registre o envio.
+      Atraso muda a situação para inadimplente, com registro no painel da SGDI e comunicação ao controle interno.</p>
+
+      <div class="flex items-end gap-3 flex-wrap" *ngIf="podeEditar">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Ano</label>
+          <input type="number" [(ngModel)]="anoGeracao" name="rel-ano"
+                 class="px-3 py-2 border border-gray-300 rounded-md text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Semestre</label>
+          <select [(ngModel)]="semestreGeracao" name="rel-semestre"
+                  class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="1">1º semestre</option>
+            <option [ngValue]="2">2º semestre</option>
+          </select>
+        </div>
+        <button (click)="gerarRelatorio()" [disabled]="gerando"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ gerando ? 'Gerando...' : 'Gerar relatório do período' }}
+        </button>
+      </div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Período</th>
+              <th class="px-3 py-2">Prazo de envio</th>
+              <th class="px-3 py-2">Enviado em</th>
+              <th class="px-3 py-2">Processo SEI</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let r of relatorios">
+              <tr class="border-b border-gray-200 align-top">
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.Semestre }}º semestre de {{ r.Ano }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.PrazoEnvio | date:'dd/MM/yyyy':'UTC' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.DataEnvio ? (r.DataEnvio | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                <td class="px-3 py-2 text-gray-500">{{ r.ProcessoSei || '—' }}</td>
+                <td class="px-3 py-2">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeRelatorio(r.Status)">{{ r.Status }}</span>
+                </td>
+                <td class="px-3 py-2 text-right whitespace-nowrap">
+                  <button (click)="alternarDetalhe(r)"
+                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                    {{ expandido === r.Id ? 'Fechar' : 'Abrir' }}
+                  </button>
+                </td>
+              </tr>
+
+              <tr *ngIf="expandido === r.Id" class="border-b border-gray-200 bg-gray-50">
+                <td colspan="6" class="px-3 py-4">
+                  <div class="flex gap-2 flex-wrap mb-4">
+                    <button (click)="baixarPdf(r)" [disabled]="baixandoPdf"
+                            class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-2 hover:bg-blue-50 disabled:opacity-50">
+                      {{ baixandoPdf ? 'Baixando...' : 'Baixar PDF' }}
+                    </button>
+                    <button *ngIf="podeEditar" (click)="abrirEnvio(r)"
+                            class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">
+                      {{ envioId === r.Id ? 'Cancelar' : 'Registrar envio à SGDI' }}
+                    </button>
+                  </div>
+
+                  <!-- Registro do envio -->
+                  <div *ngIf="podeEditar && envioId === r.Id" class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-sm font-semibold mb-1">Data do envio <span class="text-red-600">*</span></label>
+                        <input type="date" [(ngModel)]="envioData" [name]="'env-data-' + r.Id"
+                               class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               [class.border-red-500]="errEnvioData" [class.border-gray-300]="!errEnvioData">
+                      </div>
+                      <div>
+                        <label class="block text-sm font-semibold mb-1">Processo SEI <span class="text-red-600">*</span></label>
+                        <input type="text" [(ngModel)]="envioSei" [name]="'env-sei-' + r.Id" maxlength="25"
+                               class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               [class.border-red-500]="errEnvioSei" [class.bg-red-50]="errEnvioSei" [class.border-gray-300]="!errEnvioSei">
+                      </div>
+                      <div class="md:col-span-2">
+                        <label class="block text-sm font-semibold mb-1">Arquivo do relatório</label>
+                        <input type="text" readonly value="o PDF gerado pelo sistema é o arquivo do envio"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+                      </div>
+                    </div>
+                    <div class="mt-3">
+                      <button (click)="confirmarEnvio(r)" [disabled]="salvandoEnvio"
+                              class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                        {{ salvandoEnvio ? 'Salvando...' : 'Registrar envio' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <p *ngIf="carregandoDetalhe" class="text-sm text-gray-500">Carregando o conteúdo...</p>
+
+                  <ng-container *ngIf="!carregandoDetalhe && detalhe && detalhe.Conteudo">
+                    <!-- Sistemas -->
+                    <h4 class="text-sm font-semibold text-gray-900 mb-1">Sistemas de IA do órgão</h4>
+                    <table class="w-full text-sm mb-4">
+                      <thead>
+                        <tr class="bg-white text-blue-900 text-left text-xs">
+                          <th class="px-3 py-2">Sistema</th>
+                          <th class="px-3 py-2">Fase</th>
+                          <th class="px-3 py-2">Classificação</th>
+                          <th class="px-3 py-2">Homologação</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let s of detalhe.Conteudo.Sistemas" class="border-b border-gray-200">
+                          <td class="px-3 py-2">{{ s.Denominacao }}</td>
+                          <td class="px-3 py-2">{{ s.StatusCicloVida }}</td>
+                          <td class="px-3 py-2">{{ s.ClassificacaoRiscoAtual || '—' }}</td>
+                          <td class="px-3 py-2">{{ s.SituacaoHomologacao }}</td>
+                        </tr>
+                        <tr *ngIf="detalhe.Conteudo.Sistemas.length === 0">
+                          <td colspan="4" class="px-3 py-3 text-center text-gray-500">Nenhum sistema no período.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <!-- Incidentes -->
+                    <h4 class="text-sm font-semibold text-gray-900 mb-1">Incidentes do período e medidas</h4>
+                    <table class="w-full text-sm mb-4">
+                      <thead>
+                        <tr class="bg-white text-blue-900 text-left text-xs">
+                          <th class="px-3 py-2">Sistema</th>
+                          <th class="px-3 py-2">Tipo</th>
+                          <th class="px-3 py-2">Comunicado à SGDI</th>
+                          <th class="px-3 py-2">Apuração</th>
+                          <th class="px-3 py-2">Medidas do órgão</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let i of detalhe.Conteudo.Incidentes" class="border-b border-gray-200 align-top">
+                          <td class="px-3 py-2">{{ i.SistemaDenominacao }}</td>
+                          <td class="px-3 py-2">{{ i.Hipotese || '—' }}</td>
+                          <td class="px-3 py-2 whitespace-nowrap">
+                            {{ i.DataComunicacaoSgdi ? (i.DataComunicacaoSgdi | date:'dd/MM/yyyy HH:mm') : '—' }}
+                          </td>
+                          <td class="px-3 py-2">{{ i.StatusApuracao }}</td>
+                          <td class="px-3 py-2 leading-relaxed">{{ i.MedidasAdotadas || '—' }}</td>
+                        </tr>
+                        <tr *ngIf="detalhe.Conteudo.Incidentes.length === 0">
+                          <td colspan="5" class="px-3 py-3 text-center text-gray-500">Nenhum incidente no período.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <!-- Indicadores de Alto Risco -->
+                    <h4 class="text-sm font-semibold text-gray-900 mb-1">Indicadores dos sistemas de Alto Risco</h4>
+                    <table class="w-full text-sm mb-4">
+                      <thead>
+                        <tr class="bg-white text-blue-900 text-left text-xs">
+                          <th class="px-3 py-2">Sistema</th>
+                          <th class="px-3 py-2">Indicador</th>
+                          <th class="px-3 py-2">Categoria</th>
+                          <th class="px-3 py-2">Valor</th>
+                          <th class="px-3 py-2">Meta</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let i of detalhe.Conteudo.IndicadoresAltoRisco" class="border-b border-gray-200">
+                          <td class="px-3 py-2">{{ i.SistemaDenominacao }}</td>
+                          <td class="px-3 py-2">{{ i.Nome }}</td>
+                          <td class="px-3 py-2">{{ i.Categoria }}</td>
+                          <td class="px-3 py-2">{{ i.Valor }}<span class="text-gray-500" *ngIf="i.Unidade"> {{ i.Unidade }}</span></td>
+                          <td class="px-3 py-2">{{ i.Meta !== null ? i.Meta : '—' }}</td>
+                        </tr>
+                        <tr *ngIf="detalhe.Conteudo.IndicadoresAltoRisco.length === 0">
+                          <td colspan="5" class="px-3 py-3 text-center text-gray-500">Nenhum indicador de Alto Risco no período.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <!-- Capacitação -->
+                    <h4 class="text-sm font-semibold text-gray-900 mb-1">Capacitação da equipe</h4>
+                    <table class="w-full text-sm mb-4">
+                      <thead>
+                        <tr class="bg-white text-blue-900 text-left text-xs">
+                          <th class="px-3 py-2">Pessoa</th>
+                          <th class="px-3 py-2">Trilha</th>
+                          <th class="px-3 py-2">Situação</th>
+                          <th class="px-3 py-2">Conclusão</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let c of detalhe.Conteudo.Capacitacoes" class="border-b border-gray-200">
+                          <td class="px-3 py-2">{{ c.AgenteNome }}</td>
+                          <td class="px-3 py-2">{{ c.Trilha }}</td>
+                          <td class="px-3 py-2">{{ c.Status }}</td>
+                          <td class="px-3 py-2 whitespace-nowrap">{{ c.DataConclusao ? (c.DataConclusao | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                        </tr>
+                        <tr *ngIf="detalhe.Conteudo.Capacitacoes.length === 0">
+                          <td colspan="4" class="px-3 py-3 text-center text-gray-500">Nenhuma capacitação no período.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <!-- Atualizações do inventário -->
+                    <h4 class="text-sm font-semibold text-gray-900 mb-1">Atualizações do inventário no período</h4>
+                    <table class="w-full text-sm">
+                      <thead>
+                        <tr class="bg-white text-blue-900 text-left text-xs">
+                          <th class="px-3 py-2">Sistema</th>
+                          <th class="px-3 py-2">Fase</th>
+                          <th class="px-3 py-2">Classificação</th>
+                          <th class="px-3 py-2">Homologação</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let s of detalhe.Conteudo.AtualizacoesInventario" class="border-b border-gray-200">
+                          <td class="px-3 py-2">{{ s.Denominacao }}</td>
+                          <td class="px-3 py-2">{{ s.StatusCicloVida }}</td>
+                          <td class="px-3 py-2">{{ s.ClassificacaoRiscoAtual || '—' }}</td>
+                          <td class="px-3 py-2">{{ s.SituacaoHomologacao }}</td>
+                        </tr>
+                        <tr *ngIf="detalhe.Conteudo.AtualizacoesInventario.length === 0">
+                          <td colspan="4" class="px-3 py-3 text-center text-gray-500">Nenhuma atualização no período.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </ng-container>
+                </td>
+              </tr>
+            </ng-container>
+            <tr *ngIf="relatorios.length === 0">
+              <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhum relatório semestral gerado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

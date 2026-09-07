@@ -1,0 +1,138 @@
+<div citaDecreto class="tela-pgia max-w-5xl mx-auto">
+
+  <!-- Contexto -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
+    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
+    Aqui chegam os pedidos que os cidadãos fazem sobre decisões tomadas com apoio de IA.
+  </div>
+
+  <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <!-- Auditoria externa -->
+  <div *ngIf="!loading && isAuditoria" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-blue-500 bg-blue-50 p-4 text-sm leading-relaxed rounded-r-md">
+      Você está conectado(a) como entidade auditora externa. Esta tela é da equipe do órgão.
+      A sua área são as auditorias técnicas designadas pela SGDI (arts. 25, § 2º e 34).
+      <a routerLink="/pgia/auditoria" class="text-blue-700 font-semibold underline">Ir para as auditorias designadas</a>.
+    </div>
+  </div>
+
+  <!-- Papel de consulta -->
+  <div *ngIf="!loading && !isAuditoria && modoConsulta" class="border-l-4 border-blue-500 bg-blue-50 p-3 text-sm leading-relaxed rounded-r-md mb-5">
+    O seu papel permite apenas consultar estas informações. Quem edita é a equipe do órgão (Responsável de IA).
+  </div>
+
+  <!-- Unidade sem órgão PGIA -->
+  <div *ngIf="!loading && !isAuditoria && !orgao" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+      A sua unidade ainda não está vinculada a um órgão do PGIA.
+      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+      Depois disso, esta página é liberada para preenchimento.
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && !isAuditoria && orgao">
+
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Solicitações do cidadão</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">O cidadão tem direito de saber que a IA foi usada, entender como
+      a decisão foi tomada, pedir revisão por um servidor e contestar erros ou discriminação (art. 23). Os pedidos sobre
+      dados pessoais vão ao Encarregado de Dados do órgão (art. 11, IV). Abra um pedido para ver o relato e responder.</p>
+
+      <div *ngIf="carregandoSolicitacoes" class="text-sm text-gray-500 py-2">Carregando...</div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Protocolo</th>
+              <th class="px-3 py-2">Tipo do pedido</th>
+              <th class="px-3 py-2">Sistema</th>
+              <th class="px-3 py-2">Aberto em</th>
+              <th class="px-3 py-2">Situação</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let s of solicitacoes">
+              <tr class="border-b border-gray-200 align-top">
+                <td class="px-3 py-2 whitespace-nowrap">{{ s.Protocolo }}</td>
+                <td class="px-3 py-2">{{ s.Tipo }}</td>
+                <td class="px-3 py-2">{{ s.SistemaDenominacao }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ s.DataAbertura | date:'dd/MM/yyyy' }}</td>
+                <td class="px-3 py-2">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeStatus(s.Status)">{{ s.Status }}</span>
+                </td>
+                <td class="px-3 py-2 text-right whitespace-nowrap">
+                  <button (click)="alternarDetalhe(s)"
+                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+                    {{ expandido === s.Id ? 'Fechar' : 'Abrir' }}
+                  </button>
+                </td>
+              </tr>
+
+              <tr *ngIf="expandido === s.Id" class="border-b border-gray-200 bg-gray-50">
+                <td colspan="6" class="px-3 py-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-3">
+                    <div><strong class="text-gray-800">Quem pediu:</strong> {{ s.SolicitanteNome }}</div>
+                    <div><strong class="text-gray-800">Como responder:</strong> {{ s.SolicitanteContato }}</div>
+                    <div *ngIf="s.ReferenciaDecisao" class="md:col-span-2">
+                      <strong class="text-gray-800">Decisão questionada:</strong> {{ s.ReferenciaDecisao }}
+                    </div>
+                    <div class="md:col-span-2 leading-relaxed">
+                      <strong class="text-gray-800">O que aconteceu:</strong> {{ s.Descricao }}
+                    </div>
+                    <div *ngIf="s.EncaminhadaDpo" class="md:col-span-2">
+                      <span class="text-xs text-purple-800 font-semibold">Pedido encaminhado ao Encarregado de Dados.</span>
+                    </div>
+                  </div>
+
+                  <div *ngIf="s.Resposta" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md mb-3">
+                    <strong class="text-gray-900">Resposta enviada</strong>
+                    <span *ngIf="s.DataResposta" class="text-gray-600"> · {{ s.DataResposta | date:'dd/MM/yyyy' }}</span>
+                    <span *ngIf="s.RespondidoPorNome" class="text-gray-600"> · por {{ s.RespondidoPorNome }}</span>
+                    <p class="mt-1">{{ s.Resposta }}</p>
+                  </div>
+
+                  <ng-container *ngIf="podeEditar">
+                    <div class="flex gap-2 flex-wrap mb-3">
+                      <button (click)="marcarEmAnalise(s)" [disabled]="acaoEmCursoId === s.Id"
+                              class="text-sm text-blue-700 border border-blue-600 rounded px-4 py-2 hover:bg-blue-50 disabled:opacity-50">
+                        Marcar em análise
+                      </button>
+                      <button (click)="encaminharDpo(s)" [disabled]="acaoEmCursoId === s.Id"
+                              class="text-sm text-blue-700 border border-blue-600 rounded px-4 py-2 hover:bg-blue-50 disabled:opacity-50">
+                        Encaminhar ao Encarregado de Dados
+                      </button>
+                    </div>
+                    <p class="text-xs text-gray-400 italic mb-3">O Encarregado de Dados cuida dos pedidos sobre dados pessoais (art. 11, IV).</p>
+
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                      <label class="block text-sm font-semibold mb-1">Resposta ao cidadão <span class="text-red-600">*</span></label>
+                      <textarea rows="4" [(ngModel)]="respostaTexto" [name]="'sol-resp-' + s.Id"
+                                class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                [class.border-red-500]="errResposta" [class.bg-red-50]="errResposta"
+                                [class.border-gray-300]="!errResposta"></textarea>
+                      <p class="text-xs text-gray-400 italic mt-1">Responda em linguagem simples e acessível (art. 23, III).</p>
+                      <div class="mt-3">
+                        <button (click)="responder(s)" [disabled]="salvandoResposta"
+                                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                          {{ salvandoResposta ? 'Enviando...' : 'Enviar resposta' }}
+                        </button>
+                      </div>
+                    </div>
+                  </ng-container>
+                </td>
+              </tr>
+            </ng-container>
+            <tr *ngIf="!carregandoSolicitacoes && solicitacoes.length === 0">
+              <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhum pedido recebido até o momento.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

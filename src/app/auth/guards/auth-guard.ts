@@ -15,19 +15,26 @@ export const authGuard: CanActivateFn = (route, state) => {
   return authService.isHaveUnidade().pipe(
     switchMap(temUnidade => {
       if (!temUnidade) {
-        router.navigate(['/auth/selecionar-unidade']);
+        router.navigate(['/pending-approval']);
         return of(false);
       }
 
-      return authService.getPerfil().pipe(
-        map(perfil => {
-          // Only redirect if we're not already on the target route
-          if (perfil === 'centralit' && state.url !== '/centralit') {
-            router.navigate(['/centralit']);
+      return authService.getUser().pipe(
+        map(user => {
+          const perfil = user?.Perfil ?? null;
+          // Perfil 'basico' fica confinado à área /pgia — mas só quando o órgão
+          // dele tem acesso ao módulo (AcessoPgia, role "pgia" do Keycloak no
+          // grupo). Sem isso, forçar /pgia criaria um laço com o pgiaGuard
+          // (que rejeita e manda a /pending-approval); esse usuário segue livre
+          // para /pending-approval, mas não para o resto do sistema.
+          const confinadoAoPgia = perfil === 'basico' && !!user?.AcessoPgia;
+          if (confinadoAoPgia && !state.url.startsWith('/pgia')) {
+            router.navigate(['/pgia']);
             return false;
           }
-          if (perfil === 'parceiro' && state.url !== '/parceiro') {
-            router.navigate(['/parceiro']);
+          if (perfil === 'basico' && !user?.AcessoPgia
+            && !state.url.startsWith('/pgia') && state.url !== '/pending-approval') {
+            router.navigate(['/pending-approval']);
             return false;
           }
           return true;

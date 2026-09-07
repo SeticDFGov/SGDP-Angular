@@ -7,12 +7,15 @@ import { AuthService } from '../auth/services/auth';
 import { AreaExecutoraService } from '../area-executora/area-executora.service';
 import { AreaExecutora } from '../../api/area-executora/interface';
 import { AreaDemandante, Esteira } from '../../api/demanda/interface';
+import { PgiaAdminService } from '../pgia/services/pgia-admin.service';
+import { NATUREZAS_JURIDICAS, PgiaOrgao, PgiaOrgaoCreateForm } from '../../api/pgia/interface';
 
 interface User {
   Id: string;
   Nome: string;
   Email: string;
   Perfil: string;
+  PapelPgia?: string | null;
   Unidade: {
     id: string;
     Nome: string;
@@ -65,6 +68,21 @@ export class AdminComponent implements OnInit {
   newEsteiraNome = '';
   loadingEsteira = false;
 
+  // PGIA — papéis e órgãos (Decreto nº 48.901/2026)
+  papeisPgia: string[] = ['pgia_orgao', 'pgia_sgdi', 'pgia_cgtic', 'pgia_auditoria'];
+  selectedPapeis: { [key: string]: string } = {};
+  pgiaOrgaos: PgiaOrgao[] = [];
+  loadingPgiaOrgaos = false;
+  naturezasPgia = NATUREZAS_JURIDICAS;
+  newPgiaOrgao: PgiaOrgaoCreateForm = {
+    Nome: '', NaturezaJuridica: 'Administração direta',
+    PrestaServicoCidadao: null, UnidadeId: null
+  };
+  loadingPgiaOrgao = false;
+  vinculandoOrgao: PgiaOrgao | null = null;
+  vinculoUnidadeId: string | null = null;
+  salvandoVinculo = false;
+
   private URL_AUTH_SERVICE = `${SERVICE_API_URL}/api`;
   private URL_DEMANDANTE = `${SERVICE_API_URL}/api/Demandante`;
   private URL_ESTEIRA = `${SERVICE_API_URL}/api/Esteira`;
@@ -72,7 +90,8 @@ export class AdminComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private authService: AuthService,
-    private areaExecutoraService: AreaExecutoraService
+    private areaExecutoraService: AreaExecutoraService,
+    private pgiaAdminService: PgiaAdminService
   ) { }
 
   ngOnInit(): void {
@@ -84,6 +103,7 @@ export class AdminComponent implements OnInit {
       this.loadAreasExecutoras();
       this.loadDemandantes();
       this.loadEsteiras();
+      this.loadPgiaOrgaos();
     });
   }
 
@@ -235,10 +255,83 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  toggleCentralIT(id: string): void {
-    this.http.patch(`${this.URL_ESTEIRA}/${id}/centralit`, {}).subscribe({
-      next: () => { this.showMessage('Configuração atualizada!', 'success'); this.loadEsteiras(); },
-      error: () => this.showMessage('Erro ao atualizar configuração', 'error')
+  // ── PGIA: papéis e órgãos ─────────────────────────────────────────────────
+
+  atribuirPapelPgia(email: string, papel: string): void {
+    this.pgiaAdminService.atribuirPapel({ Email: email, PapelPgia: papel || null }).subscribe({
+      next: () => { this.showMessage('Papel PGIA atualizado!', 'success'); this.loadUsers(); },
+      error: () => this.showMessage('Erro ao atualizar o papel PGIA', 'error')
+    });
+  }
+
+  loadPgiaOrgaos(): void {
+    this.loadingPgiaOrgaos = true;
+    this.pgiaAdminService.listarOrgaos().subscribe({
+      next: (orgaos) => { this.pgiaOrgaos = orgaos; this.loadingPgiaOrgaos = false; },
+      error: () => { this.showMessage('Erro ao carregar órgãos PGIA', 'error'); this.loadingPgiaOrgaos = false; }
+    });
+  }
+
+  get pgiaOrgaoPrestaAplicavel(): boolean {
+    return this.newPgiaOrgao.NaturezaJuridica === 'Empresa pública'
+      || this.newPgiaOrgao.NaturezaJuridica === 'Sociedade de economia mista';
+  }
+
+  cadastrarPgiaOrgao(event: Event): void {
+    event.preventDefault();
+    if (!this.newPgiaOrgao.Nome.trim() || !this.newPgiaOrgao.UnidadeId) {
+      this.showMessage('Nome e unidade do órgão são obrigatórios', 'error'); return;
+    }
+    this.loadingPgiaOrgao = true;
+    this.pgiaAdminService.criarOrgao(this.newPgiaOrgao).subscribe({
+      next: () => {
+        this.showMessage('Órgão PGIA cadastrado! As obrigações com prazo do art. 35 foram carregadas para ele.', 'success');
+        this.newPgiaOrgao = { Nome: '', NaturezaJuridica: 'Administração direta', PrestaServicoCidadao: null, UnidadeId: null };
+        this.loadPgiaOrgaos();
+        this.loadingPgiaOrgao = false;
+      },
+      error: (err) => {
+        this.showMessage(err.error?.Message || 'Erro ao cadastrar órgão PGIA', 'error');
+        this.loadingPgiaOrgao = false;
+      }
+    });
+  }
+
+  iniciarVinculoOrgao(orgao: PgiaOrgao): void {
+    this.vinculandoOrgao = orgao;
+    this.vinculoUnidadeId = orgao.UnidadeId;
+  }
+
+  cancelarVinculoOrgao(): void {
+    this.vinculandoOrgao = null;
+    this.vinculoUnidadeId = null;
+  }
+
+  salvarVinculoOrgao(): void {
+    if (!this.vinculandoOrgao) return;
+    if (!this.vinculoUnidadeId) {
+      this.showMessage('Escolha uma unidade: o órgão precisa de uma unidade vinculada.', 'error');
+      return;
+    }
+    this.salvandoVinculo = true;
+    const o = this.vinculandoOrgao;
+    this.pgiaAdminService.editarOrgao(o.Id, {
+      Nome: o.Nome,
+      NaturezaJuridica: o.NaturezaJuridica,
+      PrestaServicoCidadao: o.PrestaServicoCidadao,
+      UnidadeId: this.vinculoUnidadeId,
+      Ativo: o.Ativo
+    }).subscribe({
+      next: () => {
+        this.showMessage('Vínculo de unidade atualizado!', 'success');
+        this.salvandoVinculo = false;
+        this.cancelarVinculoOrgao();
+        this.loadPgiaOrgaos();
+      },
+      error: () => {
+        this.showMessage('Erro ao atualizar o vínculo (a unidade pode já estar vinculada a outro órgão)', 'error');
+        this.salvandoVinculo = false;
+      }
     });
   }
 

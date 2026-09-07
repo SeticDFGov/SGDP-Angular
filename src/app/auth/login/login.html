@@ -112,6 +112,13 @@
           </button>
         </form>
 
+        @if (modoLocalDisponivel) {
+          <p class="text-center text-sm text-gray-500">
+            Ambiente de desenvolvimento:
+            <a routerLink="/auth/local" class="text-blue-600 hover:underline">entrar no modo local (sem Keycloak)</a>
+          </p>
+        }
+
       </div>
     </div>
   </div>

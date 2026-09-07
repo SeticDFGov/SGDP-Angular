@@ -1,0 +1,125 @@
+<div citaDecreto class="tela-pgia max-w-5xl mx-auto">
+
+  <!-- Contexto (texto do mock do agente) -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Olá, <strong>{{ user?.Nome }}</strong><ng-container *ngIf="fontes?.OrgaoSigla">, {{ fontes?.OrgaoSigla }}</ng-container>.
+    Todo servidor, estagiário ou prestador que usa IA no
+    trabalho registra esse uso aqui (arts. 3º e 13). O registro garante a rastreabilidade e mostra que houve
+    revisão humana antes de o material ser usado.
+  </div>
+
+  <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <!-- Unidade sem órgão PGIA -->
+  <div *ngIf="!loading && !temOrgao" class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
+      A sua unidade ainda não está vinculada a um órgão do PGIA.
+      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+      Depois disso, esta página é liberada para preenchimento.
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && temOrgao">
+
+    <!-- Registrar uso -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Registrar uso de IA em um trabalho</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Usou IA para preparar um documento, um texto ou outra atividade? Registre aqui (art. 13, IV).
+      Leva menos de um minuto.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Qual sistema ou plataforma você usou? <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="fonteEscolhida" name="uso-fonte"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="errFonte"
+                  [class.border-gray-300]="!errFonte">
+            <option [ngValue]="null">Escolha o sistema ou a plataforma</option>
+            <optgroup label="Plataformas homologadas" *ngIf="fontes && fontes.Plataformas.length > 0">
+              <option *ngFor="let p of fontes.Plataformas" [ngValue]="'plataforma:' + p.Id">{{ p.Nome }}</option>
+            </optgroup>
+            <optgroup label="Sistemas do órgão" *ngIf="fontes && fontes.Sistemas.length > 0">
+              <option *ngFor="let s of fontes.Sistemas" [ngValue]="'sistema:' + s.Id">{{ s.Denominacao }}</option>
+            </optgroup>
+          </select>
+          <p class="text-xs text-gray-400 italic mt-1">Só aparecem as plataformas homologadas pela SGDI. Em plataformas de fora desta lista, use apenas informações públicas (art. 20).</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Data do uso <span class="text-red-600">*</span></label>
+          <input type="date" [(ngModel)]="dataUso" name="uso-data"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errData"
+                 [class.border-gray-300]="!errData">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Em qual documento ou produto? <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="produtoRef" name="uso-produto" placeholder="Por exemplo: minuta da nota técnica nº 15/2026"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errProduto"
+                 [class.bg-red-50]="errProduto"
+                 [class.border-gray-300]="!errProduto">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Processo SEI, se houver</label>
+          <input type="text" [(ngModel)]="processoSei" name="uso-sei" placeholder="00040-00054321/2026-90" maxlength="25"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <label class="flex items-start gap-2 text-sm mt-4 leading-relaxed">
+        <input type="checkbox" class="mt-1" [(ngModel)]="revisaoConfirmada" name="uso-revisao">
+        <span><strong>Declaro que revisei com atenção o conteúdo gerado</strong> antes de divulgar, decidir ou usar no trabalho
+        (art. 13, V). As informações que inseri e o resultado final são de minha responsabilidade (art. 13, III).</span>
+      </label>
+
+      <div class="mt-4">
+        <button (click)="registrarUso()" [disabled]="salvando"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ salvando ? 'Salvando...' : 'Registrar uso' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Meus registros -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Meus registros</h2>
+      <p class="text-sm text-gray-600 mb-4 leading-relaxed">Os usos que você já registrou. Eles ficam ligados ao seu nome e
+      compõem a rastreabilidade do órgão.</p>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Data do uso</th>
+              <th class="px-3 py-2">Sistema ou plataforma</th>
+              <th class="px-3 py-2">Documento ou produto</th>
+              <th class="px-3 py-2">Processo SEI</th>
+              <th class="px-3 py-2">Revisão confirmada</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of meusRegistros" class="border-b border-gray-200">
+              <td class="px-3 py-2 whitespace-nowrap">{{ r.DataUso | date:'dd/MM/yyyy':'UTC' }}</td>
+              <td class="px-3 py-2">{{ fonte(r) }}</td>
+              <td class="px-3 py-2">{{ r.ProdutoRef }}</td>
+              <td class="px-3 py-2 text-gray-500">{{ r.ProcessoSei || '—' }}</td>
+              <td class="px-3 py-2">{{ r.RevisaoHumanaConfirmada ? 'sim' : 'não' }}</td>
+            </tr>
+            <tr *ngIf="meusRegistros.length === 0">
+              <td colspan="5" class="px-3 py-4 text-center text-gray-500">Você ainda não registrou nenhum uso de IA.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="meusRegistros.length > 0" class="mt-3 flex items-center gap-3 flex-wrap">
+        <button *ngIf="temMaisPaginas" (click)="carregarMais()" [disabled]="carregandoMais"
+                class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50 disabled:opacity-50">
+          {{ carregandoMais ? 'Carregando...' : 'Carregar mais' }}
+        </button>
+        <span class="text-xs text-gray-500">mostrando {{ meusRegistros.length }} de {{ totalItens }}</span>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

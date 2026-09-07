@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+/*
+ * Telas do módulo PGIA, da transparência pública e do modo local de testes:
+ * o texto de exemplo dos campos (placeholder) segue o mesmo tom dos textos de
+ * apoio — cinza claro e itálico. O escopo é a classe `tela-pgia`, posta no
+ * elemento-raiz de cada uma dessas telas: as telas legadas do SGDP não mudam.
+ */
+.tela-pgia ::placeholder {
+  color: var(--color-gray-400, #99a1af);
+  font-style: italic;
+  opacity: 1; /* o Firefox clareia o placeholder por padrão */
+}
