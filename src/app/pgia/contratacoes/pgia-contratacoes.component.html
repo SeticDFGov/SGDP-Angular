@@ -126,7 +126,7 @@
         <h3 class="text-sm font-semibold text-gray-900 mb-1">Homologação técnica da SGDI (art. 25, II)
           <span class="text-red-600">*</span></h3>
         <p class="text-xs text-gray-400 italic mb-3">O contrato de Risco Moderado só é aceito com a homologação técnica registrada.
-        O arquivo em si entra como anexo em fase futura: por ora, o processo SEI comprova a homologação.</p>
+        O arquivo em si é anexado no documento gerado aqui; o processo SEI também comprova a homologação.</p>
 
         <div *ngIf="contratoForm.HomologacaoSgdiDocId" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md">
           Homologação registrada (doc #{{ contratoForm.HomologacaoSgdiDocId }}).
@@ -400,8 +400,12 @@
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Comprovação</label>
-          <input type="text" readonly value="anexo disponível em fase futura"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+          <app-pgia-anexo
+            [documentoId]="comprovacaoDocId"
+            [criarDocumento]="criarDocumentoComprovacao"
+            (documentoCriado)="aoCriarDocumentoComprovacao($event)">
+          </app-pgia-anexo>
+          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve o instrumento para guardar a comprovação nele.</p>
         </div>
       </div>
 

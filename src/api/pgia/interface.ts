@@ -54,6 +54,9 @@ export interface PgiaDesignacaoForm {
   ProcessoSeiComunicacao: string;
   DataComunicacaoSgdi: string;
   InicioVigencia: string;
+  // Cópia do ato em anexo. O documento tem de ser do MESMO órgão da
+  // designação: documento central é recusado pelo servidor.
+  DocumentoId?: number | null;
 }
 
 export interface PgiaResponsavelIaForm extends PgiaDesignacaoForm {
@@ -77,6 +80,7 @@ export interface PgiaDesignacao {
   InicioVigencia: string;
   FimVigencia: string | null;
   Ativo: boolean;
+  DocumentoId?: number | null;
 }
 
 export interface PgiaMeuOrgao {
@@ -288,6 +292,48 @@ export const MOTIVOS_CLASSIFICACAO = [
   'Reclassificação por resolução do CGTIC', 'Revisão periódica'
 ] as const;
 
+// ── Anexos (arquivo binário do pgia_documento) ──────────────────────────────
+// Upload: POST api/pgia/documento/{id}/arquivo (multipart, campo "arquivo");
+// download: GET api/pgia/documento/{id}/arquivo (blob autorizado).
+// Limites do servidor: 25 MB; extensões pdf, doc, docx, odt, xls, xlsx, ods,
+// csv, txt, png, jpg, jpeg. O arquivo é gravado em disco no caminho configurado
+// (padrão ./data; em produção, volume persistente montado pelo Kubernetes).
+
+export interface PgiaDocumentoArquivo {
+  DocumentoId: number;
+  NomeArquivo: string;
+  ContentType: string;
+  TamanhoBytes: number;
+}
+
+// POST api/pgia/documento — cria o documento que vai receber o arquivo.
+// Com SistemaIaId herda o órgão do sistema; com OrgaoId é documento do órgão;
+// sem os dois é documento CENTRAL (só sgdi, cgtic e admin).
+export interface PgiaDocumentoCreateForm {
+  Tipo: string;
+  NomeArquivo: string | null;
+  ProcessoSei?: string | null;
+  OrgaoId?: number | null;
+  SistemaIaId?: number | null;
+}
+
+// Domínio fechado do servidor (PgiaDominios.TipoDocumento): valor fora da lista
+// é recusado na criação do documento. Máximo de 40 caracteres.
+export const TIPOS_DOCUMENTO = [
+  'Ato de designação', 'AIA', 'RIPD', 'Ata ou deliberação', 'Relatório semestral',
+  'Relatório anual', 'Certificado de capacitação', 'Contrato', 'Termo aditivo',
+  'Parecer de auditoria', 'Avaliação de riscos', 'Comprovação de triagem', 'Outro'
+] as const;
+
+export interface PgiaDocumento {
+  Id: number;
+  Tipo: string;
+  NomeArquivo: string | null;
+  ProcessoSei: string | null;
+  /** Derivado do TamanhoBytes: diz se há anexo sem precisar baixar o blob. */
+  TemArquivo: boolean;
+}
+
 // ── Fase 2: governança central (SGDI e CGTIC) ──────────────────────────────
 
 export interface PgiaAiaForm {
@@ -330,7 +376,7 @@ export interface PgiaDeliberacaoForm {
   Resultado: string;
   NumeroAto: string | null;
   Ementa: string | null;
-  // Metadados da ata (anexo binário em fase futura); opcional no envio
+  // Metadados da ata; o arquivo sobe como anexo do documento. Opcional no envio
   DocumentoId?: number | null;
   // Contrato de IA objeto da deliberação (ex.: aprovação de aquisição) — fase 4
   ContratoId?: number | null;
@@ -670,6 +716,9 @@ export interface PgiaAuditoriaForm {
   ExternaFornecedor: boolean;
   ApoioFapdf: boolean | null;
   DataInicio: string;
+  // Relatório da auditoria em anexo (aceito no criar e no atualizar). Escopo:
+  // documento do órgão do sistema auditado ou central.
+  DocumentoId?: number | null;
 }
 
 export interface PgiaAuditoriaParecerForm {
@@ -701,6 +750,7 @@ export interface PgiaAuditoria {
   PublicadoPortal: boolean;
   DataPublicacao: string | null;
   Url: string | null;
+  DocumentoId?: number | null;
   CriadoEm: string;
 }
 

@@ -10,7 +10,11 @@ import { PgiaSistemaService } from '../services/pgia-sistema.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
+import { Observable } from 'rxjs';
+import { PgiaDocumentoService } from '../services/pgia-documento.service';
+import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
 import {
+  PgiaDocumento,
   CATEGORIAS_INDICADOR,
   PgiaIndicador,
   PgiaIndicadorForm,
@@ -22,7 +26,7 @@ import {
 @Component({
   selector: 'app-pgia-relatorios',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective],
+  imports: [CommonModule, FormsModule, RouterModule, CitaDecretoDirective, PgiaAnexoComponent],
   templateUrl: './pgia-relatorios.component.html'
 })
 export class PgiaRelatoriosComponent implements OnInit {
@@ -71,7 +75,8 @@ export class PgiaRelatoriosComponent implements OnInit {
     private orgaoService: PgiaOrgaoService,
     private sistemaService: PgiaSistemaService,
     private operacaoService: PgiaOperacaoService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private documentoService: PgiaDocumentoService
   ) {
     // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
     acompanharSecao(secao => this.secao = secao);
@@ -295,7 +300,24 @@ export class PgiaRelatoriosComponent implements OnInit {
     this.envioId = r.Id;
     this.envioData = r.DataEnvio ?? '';
     this.envioSei = r.ProcessoSei ?? '';
+    this.envioDocId = r.DocumentoId ?? null;
     this.envioSubmetido = false;
+  }
+
+  /** Documento do envio semestral (arquivo assinado que foi à SGDI). */
+  envioDocId: number | null = null;
+
+  /** O relatório é do órgão: o documento nasce com o OrgaoId dele. */
+  criarDocumentoSemestral = (arquivo: File): Observable<PgiaDocumento> =>
+    this.documentoService.criarDocumento({
+      Tipo: 'Relatório semestral',
+      NomeArquivo: arquivo.name,
+      ProcessoSei: this.envioSei.trim() || null,
+      OrgaoId: this.orgao?.Id ?? null
+    });
+
+  aoCriarDocumentoSemestral(documento: PgiaDocumento): void {
+    this.envioDocId = documento.Id;
   }
 
   get errEnvioData(): boolean { return this.envioSubmetido && !this.envioData; }
@@ -311,8 +333,7 @@ export class PgiaRelatoriosComponent implements OnInit {
     this.operacaoService.enviarRelatorioSemestral(r.Id, {
       DataEnvio: this.envioData,
       ProcessoSei: this.envioSei.trim(),
-      // Arquivo do relatório em anexo entra em fase futura.
-      DocumentoId: r.DocumentoId
+      DocumentoId: this.envioDocId
     }).subscribe({
       next: () => {
         this.salvandoEnvio = false;

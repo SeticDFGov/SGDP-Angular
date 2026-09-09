@@ -187,6 +187,9 @@
         Designação vigente: <strong>{{ responsavelVigente.AgenteNome }}</strong>,
         {{ responsavelVigente.AtoTipo }} nº {{ responsavelVigente.AtoNumero }},
         vigência desde {{ responsavelVigente.InicioVigencia | date:'dd/MM/yyyy':'UTC' }}.
+        <div *ngIf="responsavelVigente.DocumentoId" class="mt-2">
+          <app-pgia-anexo [documentoId]="responsavelVigente.DocumentoId" [somenteLeitura]="true"></app-pgia-anexo>
+        </div>
         Ao salvar uma nova designação, esta vai para o histórico.
       </div>
 
@@ -273,8 +276,12 @@
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Cópia do ato (PDF)</label>
-          <input type="text" readonly value="anexo disponível em fase futura" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
-          <p class="text-xs text-gray-400 italic mt-1">O processo SEI informado já comprova a comunicação. O histórico das designações anteriores fica guardado.</p>
+          <app-pgia-anexo
+            [documentoId]="riaForm.DocumentoId ?? null"
+            [criarDocumento]="criarDocumentoAto"
+            (documentoCriado)="aoCriarDocumentoRia($event)">
+          </app-pgia-anexo>
+          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve a designação para guardar a cópia do ato nela. O processo SEI informado também comprova a comunicação.</p>
         </div>
       </div>
       <div class="mt-4 flex gap-2" *ngIf="podeDesignar">
@@ -316,6 +323,9 @@
         Designação vigente: <strong>{{ encarregadoVigente.AgenteNome }}</strong>,
         {{ encarregadoVigente.AtoTipo }} nº {{ encarregadoVigente.AtoNumero }},
         vigência desde {{ encarregadoVigente.InicioVigencia | date:'dd/MM/yyyy':'UTC' }}.
+        <div *ngIf="encarregadoVigente.DocumentoId" class="mt-2">
+          <app-pgia-anexo [documentoId]="encarregadoVigente.DocumentoId" [somenteLeitura]="true"></app-pgia-anexo>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -379,6 +389,15 @@
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="dpoSubmetido && !dpoForm.InicioVigencia"
                  [class.border-gray-300]="!(dpoSubmetido && !dpoForm.InicioVigencia)">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Cópia do ato (PDF)</label>
+          <app-pgia-anexo
+            [documentoId]="dpoForm.DocumentoId ?? null"
+            [criarDocumento]="criarDocumentoAto"
+            (documentoCriado)="aoCriarDocumentoDpo($event)">
+          </app-pgia-anexo>
+          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve a designação para guardar a cópia do ato nela.</p>
         </div>
       </div>
       <div class="mt-4" *ngIf="podeDesignar">

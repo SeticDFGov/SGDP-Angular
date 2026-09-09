@@ -250,8 +250,12 @@
                       </div>
                       <div class="md:col-span-2">
                         <label class="block text-sm font-semibold mb-1">Arquivo do relatório</label>
-                        <input type="text" readonly value="o PDF gerado pelo sistema é o arquivo do envio"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
+                        <app-pgia-anexo
+                          [documentoId]="envioDocId"
+                          [criarDocumento]="criarDocumentoSemestral"
+                          (documentoCriado)="aoCriarDocumentoSemestral($event)">
+                        </app-pgia-anexo>
+                        <p class="text-xs text-gray-400 italic mt-1">Anexe o arquivo que foi à SGDI. O PDF gerado pelo sistema também serve.</p>
                       </div>
                     </div>
                     <div class="mt-3">
