@@ -1,0 +1,104 @@
+<div class="tela-pgia max-w-5xl mx-auto">
+
+  <div class="mb-4">
+    <a routerLink="/analises/processos/lista" class="text-sm text-blue-700 hover:underline">← Voltar para a lista de processos</a>
+  </div>
+
+  <div *ngIf="carregando" class="text-center py-8 text-gray-500">Carregando...</div>
+
+  <div *ngIf="!carregando && erroCarregar"
+       class="bg-white rounded-lg shadow p-6">
+    <div class="border-l-4 border-red-500 bg-red-50 p-3 text-sm text-red-800 rounded-r-md">{{ erroCarregar }}</div>
+  </div>
+
+  <ng-container *ngIf="!carregando && processo">
+
+    <!-- Cabeçalho com o estado atual do processo -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 class="text-base font-semibold text-blue-900">Processo {{ processo.NumeroProcesso }}</h2>
+          <p class="text-sm text-gray-600">{{ processo.OrgaoNome }} ({{ processo.OrgaoSigla }})<span
+            *ngIf="processo.ComplementoArea"> · {{ processo.ComplementoArea }}</span></p>
+        </div>
+        <div class="text-right">
+          <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                [ngClass]="badgeSituacao(processo.Situacao)">{{ processo.Situacao }}</span>
+          <span class="block text-xs mt-1" [ngClass]="corDiasSemMovimento(processo.DiasSemMovimento)">
+            parado há {{ processo.DiasSemMovimento }} dia(s)
+          </span>
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 italic mt-3">
+        Cadastrado por {{ processo.CriadoPor }} em {{ processo.CriadoEm | date:'dd/MM/yyyy HH:mm' }}<span
+        *ngIf="processo.AlteradoEm"> · última alteração por {{ processo.AlteradoPor }} em
+        {{ processo.AlteradoEm | date:'dd/MM/yyyy HH:mm' }}</span>.
+      </p>
+    </div>
+
+    <!-- Formulário compartilhado com a tela de cadastro -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h3 class="text-base font-semibold text-blue-900 mb-1">Dados do processo</h3>
+      <p class="text-sm text-gray-600 mb-4">A situação e o tempo parado são calculados a partir das datas abaixo.</p>
+
+      <app-ctr-processo-form
+        [valor]="valorForm"
+        [siglas]="siglas"
+        [salvando]="salvando"
+        rotuloSalvar="Salvar alterações"
+        rotaCancelar="/analises/processos/lista"
+        (salvar)="salvar($event)"
+        (cancelar)="irParaLista()"
+      ></app-ctr-processo-form>
+    </div>
+
+    <!-- Manifestações ao TCDF deste processo -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h3 class="text-base font-semibold text-blue-900 mb-1">Manifestações ao TCDF</h3>
+          <p class="text-sm text-gray-600">Cada comunicação do Tribunal de Contas do Distrito Federal (TCDF) sobre esta
+          contratação gera uma manifestação da SGDI. Ofício novo = manifestação nova.</p>
+        </div>
+        <a [routerLink]="['/analises/manifestacoes/nova']" [queryParams]="{ processo: processo.Id }"
+           class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700 whitespace-nowrap">
+          Nova manifestação
+        </a>
+      </div>
+
+      <div *ngIf="manifestacoes.length === 0" class="text-sm text-gray-500">
+        Nenhuma manifestação registrada para este processo.
+      </div>
+
+      <div *ngIf="manifestacoes.length > 0" class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Ofício TCDF</th>
+              <th class="px-3 py-2">Data</th>
+              <th class="px-3 py-2">Situação no portfólio</th>
+              <th class="px-3 py-2">Estágio</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of manifestacoes" class="border-b border-gray-200 align-top">
+              <td class="px-3 py-2">{{ m.OficioTcdf }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ m.DataOficio | date:'dd/MM/yyyy':'UTC' }}</td>
+              <td class="px-3 py-2">{{ m.SituacaoPortfolio }}</td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeEstagio(m.Estagio)">{{ m.Estagio }}</span>
+              </td>
+              <td class="px-3 py-2 text-right whitespace-nowrap">
+                <a [routerLink]="['/analises/manifestacoes/editar', m.Id]"
+                   class="text-sm text-blue-700 hover:underline">Abrir</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

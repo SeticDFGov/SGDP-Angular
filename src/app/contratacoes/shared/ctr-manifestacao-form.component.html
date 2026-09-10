@@ -1,0 +1,198 @@
+<!-- Texto de abertura do despacho: o que a SGDI afirma em toda manifestação -->
+<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-5">
+  <p class="mb-2">Em atenção à comunicação do Tribunal de Contas do Distrito Federal – TCDF acerca da contratação de TIC
+  acima identificada, manifesta-se esta SGDI, conforme abaixo, no âmbito do regime de supervisão contínua instituído
+  pelo Decreto nº 48.899/2026 e regulamentado pela Instrução Normativa SGDI nº 1/2026.</p>
+  <p>A supervisão contínua da SGDI compreende a classificação da contratação por criticidade (art. 11 da IN), a análise
+  técnica de alinhamento estratégico, arquitetura, interoperabilidade e segurança da informação (art. 25) e, quando
+  cabível, a emissão de recomendação técnica ou a adoção de medida cautelar (arts. 30 a 34).</p>
+</div>
+
+<!-- Referência da comunicação -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <label class="block text-sm font-semibold mb-1">Ofício/Comunicação TCDF nº <span class="text-red-600">*</span></label>
+    <input type="text" [(ngModel)]="form.OficioTcdf" name="ctr-oficio" maxlength="60"
+           placeholder="1234/2026 – 2ª ICE"
+           class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+           [class.border-red-500]="submetido && errOficio"
+           [class.bg-red-50]="submetido && errOficio"
+           [class.border-gray-300]="!(submetido && errOficio)">
+    <p *ngIf="submetido && errOficio" class="text-xs text-red-600 mt-1">{{ errOficio }}</p>
+  </div>
+  <div>
+    <label class="block text-sm font-semibold mb-1">Data do ofício <span class="text-red-600">*</span></label>
+    <input type="date" [(ngModel)]="form.DataOficio" name="ctr-data-oficio"
+           class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+           [class.border-red-500]="submetido && errDataOficio"
+           [class.border-gray-300]="!(submetido && errDataOficio)">
+    <p *ngIf="submetido && errDataOficio" class="text-xs text-red-600 mt-1">{{ errDataOficio }}</p>
+  </div>
+</div>
+
+<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-2">Situação no Portfólio Estratégico de Contratações de TIC</h3>
+
+<!-- I — contratação já comunicada -->
+<div class="border rounded-lg p-4 mb-3"
+     [ngClass]="incisoI ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200'">
+  <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+    <input type="radio" name="ctr-inciso" [value]="'Comunicada previamente'"
+           [ngModel]="form.SituacaoPortfolio" (ngModelChange)="aoTrocarInciso($event)"
+           class="mt-1">
+    <span><strong>I -</strong> A contratação já se encontrava comunicada a esta SGDI e inserida no monitoramento contínuo
+    desde <strong>[data]</strong>. Foi, por sua vez, classificada como de criticidade <strong>[Alta/Média/Baixa]</strong>
+    (art. 11 da IN SGDI nº 1/2026) e apresentou como resultado da análise e providência adotada:</span>
+  </label>
+
+  <div *ngIf="incisoI" class="mt-4 pl-6 space-y-4">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">Comunicada e monitorada desde <span class="text-red-600">*</span></label>
+        <input type="date" [(ngModel)]="form.ComunicadaDesde" name="ctr-comunicada-desde"
+               class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+               [class.border-red-500]="submetido && errComunicadaDesde"
+               [class.border-gray-300]="!(submetido && errComunicadaDesde)">
+        <p *ngIf="submetido && errComunicadaDesde" class="text-xs text-red-600 mt-1">{{ errComunicadaDesde }}</p>
+        <p class="text-xs text-gray-400 italic mt-1">É o "[data]" do despacho.</p>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">Criticidade <span class="text-red-600">*</span></label>
+        <select [(ngModel)]="form.Criticidade" name="ctr-criticidade"
+                class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class.border-red-500]="submetido && errCriticidade"
+                [class.border-gray-300]="!(submetido && errCriticidade)">
+          <option [ngValue]="null">Escolha...</option>
+          <option *ngFor="let c of criticidades" [ngValue]="c">{{ c }}</option>
+        </select>
+        <p *ngIf="submetido && errCriticidade" class="text-xs text-red-600 mt-1">{{ errCriticidade }}</p>
+        <p class="text-xs text-gray-400 italic mt-1">Art. 11 da IN SGDI nº 1/2026.</p>
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+        <input type="radio" name="ctr-resultado" [value]="'Alinhada'"
+               [ngModel]="form.ResultadoAnalise" (ngModelChange)="aoTrocarResultado($event)"
+               class="mt-1">
+        <span>a contratação está alinhada às diretrizes da IN e segue em acompanhamento contínuo, sem necessidade de
+        ação adicional (art. 27, I, e art. 28 da IN);</span>
+      </label>
+
+      <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+        <input type="radio" name="ctr-resultado" [value]="'Informações complementares'"
+               [ngModel]="form.ResultadoAnalise" (ngModelChange)="aoTrocarResultado($event)"
+               class="mt-1">
+        <span>foram identificadas oportunidades de melhoria ou pontos a esclarecer, desse modo, foi(foram) solicitada(s)
+        informação(ões) complementar(es) ao órgão/entidade, nos termos do art. 29 da IN;</span>
+      </label>
+
+      <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+        <input type="radio" name="ctr-resultado" [value]="'Riscos significativos'"
+               [ngModel]="form.ResultadoAnalise" (ngModelChange)="aoTrocarResultado($event)"
+               class="mt-1">
+        <span>foram identificados riscos significativos ou desvios relevantes, conforme os critérios dos arts. 11 e 25
+        da IN, tendo a SGDI:</span>
+      </label>
+
+      <!-- Os cinco itens do "tendo a SGDI:", como no papel -->
+      <div class="pl-6 space-y-2" [class.opacity-50]="!temRiscos">
+        <label class="flex items-start gap-2 text-sm leading-relaxed"
+               [class.cursor-pointer]="temRiscos">
+          <input type="checkbox" [(ngModel)]="form.RecomendouSuspensao" name="ctr-suspensao"
+                 [disabled]="!temRiscos" class="mt-1">
+          <span>recomendado a suspensão temporária da contratação para reanálise (art. 33 da IN);</span>
+        </label>
+
+        <label class="flex items-start gap-2 text-sm leading-relaxed"
+               [class.cursor-pointer]="temRiscos">
+          <input type="checkbox" [(ngModel)]="form.ComunicouControleInterno" name="ctr-controle-interno"
+                 [disabled]="!temRiscos" class="mt-1">
+          <span>comunicado o fato ao órgão de controle interno competente, mediante nota de motivação (art. 34, VI, da
+          IN c/c art. 6º, IV, do Decreto nº 48.899/2026);</span>
+        </label>
+
+        <label class="flex items-start gap-2 text-sm leading-relaxed"
+               [class.cursor-pointer]="temRiscos">
+          <input type="radio" name="ctr-desfecho" [value]="'Aguardando resposta'"
+                 [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
+          <span>Aguardando resposta da área demandante sobre os riscos e desvios identificados;</span>
+        </label>
+
+        <label class="flex items-start gap-2 text-sm leading-relaxed"
+               [class.cursor-pointer]="temRiscos">
+          <input type="radio" name="ctr-desfecho" [value]="'Risco resolvido'"
+                 [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
+          <span>Risco resolvido — após recomendações da SGDI e ações de mitigação adotadas pela área demandante, os
+          riscos foram adequadamente tratados, prosseguindo a contratação em acompanhamento contínuo;</span>
+        </label>
+
+        <label class="flex items-start gap-2 text-sm leading-relaxed"
+               [class.cursor-pointer]="temRiscos">
+          <input type="radio" name="ctr-desfecho" [value]="'Não pode prosseguir'"
+                 [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
+          <span>Não pode prosseguir — os riscos apontados não foram adequadamente tratados, tendo a SGDI determinado a
+          suspensão completa da contratação, com prazo para nova manifestação do órgão/entidade, permanecendo o feito em
+          acompanhamento contínuo.</span>
+        </label>
+
+        <p *ngIf="temRiscos" class="text-xs text-gray-400 italic">As duas primeiras opções são providências que podem
+        estar as duas marcadas. As três últimas são o ponto em que o tratamento do risco está: escolha uma.</p>
+      </div>
+
+      <p *ngIf="submetido && errResultado" class="text-xs text-red-600">{{ errResultado }}</p>
+      <p *ngIf="submetido && errDesfecho" class="text-xs text-red-600">{{ errDesfecho }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- II — contratação não comunicada -->
+<div class="border rounded-lg p-4"
+     [ngClass]="incisoII ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200'">
+  <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+    <input type="radio" name="ctr-inciso" [value]="'Não comunicada previamente'"
+           [ngModel]="form.SituacaoPortfolio" (ngModelChange)="aoTrocarInciso($event)"
+           class="mt-1">
+    <span><strong>II -</strong> A contratação não constava como previamente comunicada a esta SGDI. Diante da comunicação
+    do TCDF, o órgão/a entidade demandante será notificado para regularizar a comunicação obrigatória (Anexo I/II da IN
+    SGDI nº 1/2026), no prazo de <strong>[__]</strong> dias (art. 40 da IN).</span>
+  </label>
+
+  <div *ngIf="incisoII" class="mt-4 pl-6 max-w-xs">
+    <label class="block text-sm font-semibold mb-1">Prazo para regularizar, em dias <span class="text-red-600">*</span></label>
+    <input type="number" min="1" max="365" step="1" [(ngModel)]="form.PrazoRegularizacaoDias" name="ctr-prazo"
+           class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+           [class.border-red-500]="submetido && errPrazo"
+           [class.border-gray-300]="!(submetido && errPrazo)">
+    <p *ngIf="submetido && errPrazo" class="text-xs text-red-600 mt-1">{{ errPrazo }}</p>
+    <p class="text-xs text-gray-400 italic mt-1">É o "[__] dias" do despacho (art. 40 da IN). De 1 a 365 dias.</p>
+  </div>
+</div>
+
+<!-- Fecho fixo do despacho -->
+<div class="mt-5 border-l-4 border-gray-300 bg-gray-50 p-4 text-sm text-gray-700 leading-relaxed rounded-r-md">
+  <p class="mb-2">Cabe ressaltar que em todas as hipóteses supra descritas, a contratação é inserida e mantida no
+  portfólio estratégico de contratações de TIC, sob regime de supervisão contínua da SGDI, com acompanhamento a
+  prosseguir conforme o art. 34 da IN SGDI nº 1/2026.</p>
+  <p>Reitera-se que a supervisão exercida por esta SGDI tem natureza técnica e orientadora, não implicando aprovação,
+  validação ou substituição das competências dos órgãos de controle interno e externo (art. 9º e art. 25, §2º, da IN
+  SGDI nº 1/2026), permanecendo a SGDI à disposição para esclarecimentos adicionais.</p>
+  <p class="text-xs text-gray-400 italic mt-2">Estes dois parágrafos são fixos e entram no despacho gerado.</p>
+</div>
+
+<div class="mt-4">
+  <label class="block text-sm font-semibold mb-1">Observação interna</label>
+  <textarea rows="3" [(ngModel)]="form.Observacao" name="ctr-manifestacao-observacao"
+            placeholder="Anotações da equipe sobre esta manifestação."
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+  <p class="text-xs text-gray-400 italic mt-1">Fica só no sistema: não entra no despacho.</p>
+</div>
+
+<div class="mt-5 flex items-center gap-3">
+  <button (click)="enviar()" [disabled]="salvando"
+          class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+    {{ salvando ? 'Salvando...' : rotuloSalvar }}
+  </button>
+  <button type="button" (click)="cancelar.emit()" class="text-sm text-blue-700 hover:underline">Cancelar</button>
+  <span *ngIf="submetido && !formValido" class="text-xs text-gray-400 italic">Há campos obrigatórios para preencher acima.</span>
+</div>

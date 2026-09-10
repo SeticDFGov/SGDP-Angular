@@ -64,87 +64,32 @@
     </a>
 
     <!-- Governança de IA: árvore com os módulos do PGIA liberados ao papel -->
-    <ng-container *ngIf="arvore.length > 0">
+    <app-grupo-arvore
+      titulo="Governança de IA"
+      icone="psychology"
+      [rotaGrupo]="rotaGrupoPgia"
+      [arvore]="arvore"
+      [isExpanded]="isExpanded"
+      [aberto]="grupoPgiaAberto"
+      [dentro]="dentroPgia"
+      [sempreAberto]="soPgia"
+      [rotaAtual]="rotaAtual"
+      (alternar)="alternarGrupoPgia()"
+    ></app-grupo-arvore>
 
-      <!-- Menu minimizado: só o ícone, como nos demais itens -->
-      <a
-        *ngIf="!isExpanded"
-        [routerLink]="[rotaGrupoPgia]"
-        routerLinkActive="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30"
-        class="flex items-center justify-center py-3 mx-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
-        title="Governança de IA"
-      >
-        <span class="material-icons text-xl">psychology</span>
-      </a>
-
-      <!-- Menu aberto: cabeçalho do grupo + árvore -->
-      <ng-container *ngIf="isExpanded">
-        <div class="px-4">
-          <button
-            type="button"
-            (click)="alternarGrupoPgia()"
-            class="w-full flex items-center py-3 px-4 rounded-xl hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer text-left"
-            [ngClass]="dentroPgia ? 'text-white bg-white/5' : 'text-gray-400'"
-            [attr.aria-expanded]="mostrarArvore"
-          >
-            <span class="material-icons text-xl mr-3">psychology</span>
-            <span class="font-medium flex-1">Governança de IA</span>
-            <span *ngIf="!soPgia" class="material-icons text-base">
-              {{ mostrarArvore ? 'expand_less' : 'expand_more' }}
-            </span>
-          </button>
-        </div>
-
-        <div *ngIf="mostrarArvore" class="mx-4 mt-1 pl-3 border-l border-slate-700 space-y-1">
-          <ng-container *ngFor="let area of arvore">
-
-            <!-- Nível 1: a área. O clique abre o primeiro formulário dela. -->
-            <div
-              class="flex items-center rounded-xl transition-all duration-200"
-              [ngClass]="areaAtiva(area) ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/20' : 'text-gray-400 hover:bg-white/5'"
-            >
-              <a
-                [routerLink]="[area.rota]"
-                (click)="abrirArea(area)"
-                class="flex items-start gap-2 flex-1 py-2 px-3 text-sm hover:text-white cursor-pointer"
-              >
-                <span class="material-icons text-base leading-5">{{ area.icone }}</span>
-                <span class="leading-snug break-words">{{ area.rotulo }}</span>
-              </a>
-              <button
-                *ngIf="area.filhos"
-                type="button"
-                (click)="alternarArea(area)"
-                class="py-2 px-2 hover:text-white cursor-pointer"
-                [attr.aria-expanded]="areaAberta(area)"
-                [attr.aria-label]="areaAberta(area) ? 'Esconder formulários de ' + area.rotulo : 'Mostrar formulários de ' + area.rotulo"
-              >
-                <span class="material-icons text-base leading-5">
-                  {{ areaAberta(area) ? 'expand_less' : 'expand_more' }}
-                </span>
-              </button>
-            </div>
-
-            <!-- Nível 2: um formulário por página -->
-            <div *ngIf="area.filhos && areaAberta(area)" class="space-y-0.5 mb-1">
-              <a
-                *ngFor="let formulario of area.filhos"
-                [routerLink]="[formulario.rota]"
-                routerLinkActive
-                #ativo="routerLinkActive"
-                [routerLinkActiveOptions]="opcoesFormularioAtivo"
-                class="block py-1.5 pl-9 pr-3 rounded-lg text-xs leading-snug break-words hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-                [ngClass]="ativo.isActive ? 'bg-blue-500/20 text-white font-semibold' : 'text-gray-500'"
-              >
-                {{ formulario.rotulo }}
-              </a>
-            </div>
-
-          </ng-container>
-        </div>
-      </ng-container>
-
-    </ng-container>
+    <!-- Análises de Contratações: árvore do módulo interno da SGDI -->
+    <app-grupo-arvore
+      titulo="Análises de Contratações"
+      icone="assignment"
+      rotaGrupo="/analises"
+      [arvore]="arvoreCtr"
+      [isExpanded]="isExpanded"
+      [aberto]="grupoCtrAberto"
+      [dentro]="dentroCtr"
+      [sempreAberto]="soPgia"
+      [rotaAtual]="rotaAtual"
+      (alternar)="alternarGrupoCtr()"
+    ></app-grupo-arvore>
   </nav>
 
   <div class="mt-auto p-4 rounded-2xl bg-slate-800/50 border border-gray-700/50 relative overflow-hidden"

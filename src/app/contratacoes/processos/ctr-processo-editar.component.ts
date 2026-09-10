@@ -1,0 +1,124 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { NotificationService } from '../../core/services/notification.service';
+import { CtrProcessoService } from '../services/ctr-processo.service';
+import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
+import { badgeEstagio, badgeSituacao, corDiasSemMovimento } from '../shared/ctr-rotulos';
+import { CtrManifestacao, CtrProcesso, CtrProcessoForm } from '../../../api/contratacoes/interface';
+
+/**
+ * Página de edição de um processo (`/analises/processos/editar/:id`): o mesmo
+ * formulário compartilhado da tela de cadastro, mais as manifestações ao TCDF
+ * já registradas para ele, com atalho para registrar uma nova.
+ */
+@Component({
+  selector: 'app-ctr-processo-editar',
+  standalone: true,
+  imports: [CommonModule, RouterModule, CtrProcessoFormComponent],
+  templateUrl: './ctr-processo-editar.component.html'
+})
+export class CtrProcessoEditarComponent implements OnInit {
+  processo: CtrProcesso | null = null;
+  /** Valor inicial do formulário (separado da resposta, que traz os derivados). */
+  valorForm: CtrProcessoForm | null = null;
+  manifestacoes: CtrManifestacao[] = [];
+  siglas: string[] = [];
+
+  carregando = true;
+  salvando = false;
+  /** Falha de carregamento vira mensagem na própria página, não toast. */
+  erroCarregar: string | null = null;
+
+  badgeSituacao = badgeSituacao;
+  badgeEstagio = badgeEstagio;
+  corDiasSemMovimento = corDiasSemMovimento;
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private processoService: CtrProcessoService,
+    private notificationService: NotificationService
+  ) {}
+
+  ngOnInit(): void {
+    const id = Number(this.route.snapshot.paramMap.get('id'));
+    if (!id) {
+      this.carregando = false;
+      this.erroCarregar = 'Processo não encontrado.';
+      return;
+    }
+    this.carregar(id);
+    this.processoService.listarSiglas().subscribe({
+      next: siglas => this.siglas = siglas,
+      error: () => this.siglas = []
+    });
+  }
+
+  private carregar(id: number): void {
+    this.carregando = true;
+    this.erroCarregar = null;
+    this.processoService.getProcesso(id).subscribe({
+      next: processo => {
+        this.aplicar(processo);
+        this.carregando = false;
+        this.carregarManifestacoes(id);
+      },
+      error: () => {
+        this.carregando = false;
+        this.erroCarregar = 'Não foi possível carregar este processo. Ele pode ter sido excluído.';
+      }
+    });
+  }
+
+  private aplicar(processo: CtrProcesso): void {
+    this.processo = processo;
+    this.valorForm = {
+      NumeroProcesso: processo.NumeroProcesso,
+      OrgaoNome: processo.OrgaoNome,
+      OrgaoSigla: processo.OrgaoSigla,
+      ComplementoArea: processo.ComplementoArea ?? null,
+      Objeto: processo.Objeto,
+      CategoriaObjeto: processo.CategoriaObjeto,
+      ChegadaSgdi: processo.ChegadaSgdi ?? null,
+      ChegadaSubgd: processo.ChegadaSubgd ?? null,
+      ChegadaUgtic: processo.ChegadaUgtic ?? null,
+      UgticNaoSeAplica: processo.UgticNaoSeAplica,
+      RetornoGabSgdi: processo.RetornoGabSgdi ?? null,
+      RetornoOrgao: processo.RetornoOrgao ?? null,
+      Restituido: processo.Restituido,
+      RestituidoEm: processo.RestituidoEm ?? null,
+      RestituidoMotivo: processo.RestituidoMotivo ?? null,
+      Observacao: processo.Observacao ?? null
+    };
+  }
+
+  private carregarManifestacoes(id: number): void {
+    this.processoService.listarManifestacoes(id).subscribe({
+      next: lista => this.manifestacoes = lista ?? [],
+      error: () => this.manifestacoes = []
+    });
+  }
+
+  salvar(form: CtrProcessoForm): void {
+    if (!this.processo) return;
+    this.salvando = true;
+    this.processoService.atualizar(this.processo.Id, form).subscribe({
+      next: atualizado => {
+        this.salvando = false;
+        this.aplicar(atualizado);
+        this.notificationService.success('Processo atualizado.');
+      },
+      error: () => {
+        this.salvando = false;
+        this.notificationService.error(
+          'Não foi possível salvar. Confira se o número do processo já não está em outro cadastro e se as datas estão coerentes.'
+        );
+      }
+    });
+  }
+
+  irParaLista(): void {
+    this.router.navigate(['/analises/processos/lista']);
+  }
+}

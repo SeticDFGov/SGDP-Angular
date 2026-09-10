@@ -1,0 +1,160 @@
+<div class="tela-pgia max-w-6xl mx-auto">
+
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
+    Quando o Tribunal de Contas do Distrito Federal (TCDF) comunica uma contratação de TIC, a SGDI responde com o
+    despacho padrão da supervisão contínua (Decreto nº 48.899/2026 e Instrução Normativa SGDI nº 1/2026). Cada resposta
+    fica registrada aqui e pode ser gerada em PDF.
+  </div>
+
+  <!-- ── Lista ─────────────────────────────────────────────────────────── -->
+  <div *ngIf="secao === 'lista'" class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-start justify-between gap-4 mb-4">
+      <div>
+        <h2 class="text-base font-semibold text-blue-900 mb-1">Manifestações registradas</h2>
+        <p class="text-sm text-gray-600">Mais recentes primeiro. Manifestação de processo excluído não aparece.</p>
+      </div>
+      <a routerLink="/analises/manifestacoes/nova"
+         class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700 whitespace-nowrap">
+        Nova manifestação
+      </a>
+    </div>
+
+    <!-- Filtro por estágio -->
+    <div class="flex flex-wrap gap-2 mb-3">
+      <button (click)="filtrarPorEstagio('')"
+              class="px-3 py-1 rounded-full text-xs font-semibold border"
+              [ngClass]="filtroEstagio === '' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'">
+        Todos os estágios
+      </button>
+      <button *ngFor="let e of estagios" (click)="filtrarPorEstagio(e)"
+              class="px-3 py-1 rounded-full text-xs font-semibold border"
+              [ngClass]="filtroEstagio === e ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'">
+        {{ e }}
+      </button>
+    </div>
+
+    <div class="flex items-center gap-3 mb-4">
+      <input type="text" [(ngModel)]="filtroTexto" name="ctr-m-busca" (keyup.enter)="buscar()"
+             placeholder="Buscar por número do processo, sigla do órgão ou ofício"
+             class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <button (click)="buscar()"
+              class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700">Buscar</button>
+    </div>
+
+    <div *ngIf="carregando" class="text-center py-8 text-gray-500">Carregando...</div>
+
+    <div *ngIf="!carregando && erroCarregar"
+         class="border-l-4 border-red-500 bg-red-50 p-3 text-sm text-red-800 rounded-r-md">{{ erroCarregar }}</div>
+
+    <ng-container *ngIf="!carregando && !erroCarregar">
+      <p class="text-sm text-gray-600 mb-2">{{ totalItens }} manifestação(ões) encontrada(s).</p>
+
+      <div *ngIf="manifestacoes.length === 0" class="text-center py-8 text-gray-500 text-sm">
+        Nenhuma manifestação com esse filtro.
+      </div>
+
+      <div *ngIf="manifestacoes.length > 0" class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Processo</th>
+              <th class="px-3 py-2">Órgão</th>
+              <th class="px-3 py-2">Ofício TCDF</th>
+              <th class="px-3 py-2">Data</th>
+              <th class="px-3 py-2">Estágio</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of manifestacoes" class="border-b border-gray-200 align-top">
+              <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{{ m.NumeroProcesso }}</td>
+              <td class="px-3 py-2">
+                <span class="font-semibold">{{ m.OrgaoSigla }}</span>
+                <span class="block text-xs text-gray-500 max-w-xs truncate" [title]="m.Objeto">{{ m.Objeto }}</span>
+              </td>
+              <td class="px-3 py-2">{{ m.OficioTcdf }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ m.DataOficio | date:'dd/MM/yyyy':'UTC' }}</td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeEstagio(m.Estagio)">{{ m.Estagio }}</span>
+              </td>
+              <td class="px-3 py-2 text-right whitespace-nowrap">
+                <a [routerLink]="['/analises/manifestacoes/editar', m.Id]"
+                   class="text-sm text-blue-700 hover:underline mr-3">Abrir</a>
+                <a [routerLink]="['/analises/processos/editar', m.ProcessoId]"
+                   class="text-sm text-blue-700 hover:underline">Processo</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="temMais" class="mt-4 text-center">
+        <button (click)="carregarMais()" [disabled]="carregandoMais"
+                class="text-sm text-blue-700 border border-blue-600 rounded px-4 py-2 hover:bg-blue-50 disabled:opacity-50">
+          {{ carregandoMais ? 'Carregando...' : 'Carregar mais' }}
+        </button>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ── Nova manifestação ─────────────────────────────────────────────── -->
+  <div *ngIf="secao === 'nova'" class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-blue-900 mb-1">Nova manifestação ao TCDF</h2>
+    <p class="text-sm text-gray-600 mb-4">Escolha o processo comunicado pelo TCDF e responda ao despacho. Um ofício novo
+    do Tribunal gera sempre uma manifestação nova.</p>
+
+    <div *ngIf="carregandoProcesso" class="text-center py-8 text-gray-500">Carregando...</div>
+
+    <div *ngIf="erroProcesso" class="border-l-4 border-red-500 bg-red-50 p-3 text-sm text-red-800 rounded-r-md mb-4">
+      {{ erroProcesso }}
+    </div>
+
+    <!-- Seletor de processo -->
+    <ng-container *ngIf="!carregandoProcesso && !processo">
+      <div class="flex items-center gap-3 mb-3">
+        <input type="text" [(ngModel)]="buscaProcesso" name="ctr-sel-busca" (keyup.enter)="buscarProcessos()"
+               placeholder="Número do processo, sigla ou órgão"
+               class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button (click)="buscarProcessos()" [disabled]="buscandoProcessos"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ buscandoProcessos ? 'Buscando...' : 'Buscar' }}
+        </button>
+      </div>
+
+      <p *ngIf="buscouProcessos && resultados.length === 0" class="text-sm text-gray-500">
+        Nenhum processo encontrado. Confira o número ou cadastre o processo antes de registrar a manifestação.
+      </p>
+
+      <div *ngIf="resultados.length > 0" class="divide-y divide-gray-200 border border-gray-200 rounded-lg">
+        <button *ngFor="let p of resultados" (click)="escolherProcesso(p)"
+                class="w-full text-left p-3 hover:bg-blue-50">
+          <span class="font-medium text-gray-900">{{ p.NumeroProcesso }}</span>
+          <span class="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold"
+                [ngClass]="badgeSituacao(p.Situacao)">{{ p.Situacao }}</span>
+          <span class="block text-xs text-gray-600">{{ p.OrgaoSigla }} · {{ p.OrgaoNome }}</span>
+          <span class="block text-xs text-gray-500 truncate">{{ p.Objeto }}</span>
+        </button>
+      </div>
+
+      <p class="text-xs text-gray-400 italic mt-3">Vindo da página de um processo, ele já chega escolhido.</p>
+    </ng-container>
+
+    <!-- Formulário do despacho -->
+    <ng-container *ngIf="!carregandoProcesso && processo">
+      <div class="border border-gray-200 rounded-lg p-4 mb-5 text-sm">
+        <p class="font-semibold text-gray-900">Processo SEI nº {{ processo.NumeroProcesso }}</p>
+        <p class="text-gray-600">Contratação: {{ processo.Objeto }} — {{ processo.OrgaoNome }}
+        ({{ processo.OrgaoSigla }})<span *ngIf="processo.ComplementoArea">, {{ processo.ComplementoArea }}</span></p>
+        <button (click)="trocarProcesso()" class="text-sm text-blue-700 hover:underline mt-2">Trocar de processo</button>
+      </div>
+
+      <app-ctr-manifestacao-form
+        [salvando]="salvando"
+        rotuloSalvar="Registrar manifestação"
+        (salvar)="criar($event)"
+        (cancelar)="irParaLista()"
+      ></app-ctr-manifestacao-form>
+    </ng-container>
+  </div>
+</div>

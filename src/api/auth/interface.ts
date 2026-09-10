@@ -17,6 +17,9 @@ export interface UserProfile {
   PapelPgia?: string | null;
   // Acesso ao módulo PGIA: role "pgia" do Keycloak (atribuída ao grupo/órgão), ou admin
   AcessoPgia?: boolean;
+  // Papel no módulo Análises de Contratações (ferramenta interna da SGDI);
+  // opcional pelo mesmo motivo — usuário salvo antes do módulo não tem o campo
+  PapelContratacoes?: string | null;
   Unidade: Unidade | null;
 }
 

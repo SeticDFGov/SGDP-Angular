@@ -24,6 +24,12 @@ export const PapeisPgia = {
   Auditoria: 'pgia_auditoria'
 } as const;
 
+// Papel do módulo Análises de Contratações (campo Users.PapelContratacoes,
+// paralelo ao Perfil e independente do PapelPgia). Valor único por enquanto.
+export const PapeisContratacoes = {
+  Analise: 'ctr_analise'
+} as const;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -53,6 +59,7 @@ export class AuthService {
               Perfil: meResponse.Perfil,
               PapelPgia: meResponse.PapelPgia ?? null,
               AcessoPgia: !!meResponse.AcessoPgia,
+              PapelContratacoes: meResponse.PapelContratacoes ?? null,
               Unidade: meResponse.Unidade ?? null
             };
             localStorage.setItem('user', JSON.stringify(user));
@@ -93,6 +100,7 @@ export class AuthService {
               Perfil: meResponse.Perfil,
               PapelPgia: meResponse.PapelPgia ?? null,
               AcessoPgia: !!meResponse.AcessoPgia,
+              PapelContratacoes: meResponse.PapelContratacoes ?? null,
               Unidade: meResponse.Unidade ?? null
             };
             localStorage.setItem('user', JSON.stringify(user));
@@ -180,6 +188,8 @@ export class AuthService {
           Email: meResponse.Email,
           Perfil: meResponse.Perfil,
           PapelPgia: meResponse.PapelPgia ?? null,
+          AcessoPgia: !!meResponse.AcessoPgia,
+          PapelContratacoes: meResponse.PapelContratacoes ?? null,
           Unidade: meResponse.Unidade ?? null
         };
         localStorage.setItem('user', JSON.stringify(user));
@@ -270,6 +280,19 @@ export class AuthService {
     );
   }
 
+  // ── Módulo Análises de Contratações (métodos novos, aditivos) ─────────────
+
+  getPapelContratacoes(): Observable<string | null> {
+    return this.getUser().pipe(map(user => user?.PapelContratacoes ?? null));
+  }
+
+  /** Acesso à área /analises: quem tem o papel do módulo ou é admin do SGDP */
+  canAccessContratacoes(): Observable<boolean> {
+    return this.getUser().pipe(
+      map(user => !!user && (!!user.PapelContratacoes || user.Perfil === Perfis.Admin))
+    );
+  }
+
   // ── Modo local (execução independente, sem Keycloak — só testes) ──────────
 
   /**
@@ -280,6 +303,7 @@ export class AuthService {
   loginLocal(dados: {
     Email: string; Nome: string; Perfil: string;
     PapelPgia?: string | null; VincularAoOrgaoDeTeste?: boolean;
+    PapelContratacoes?: string | null;
   }): Observable<AuthResponse> {
     return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/authlocal/token`, dados).pipe(
       switchMap(tokenResponse => {
@@ -297,6 +321,7 @@ export class AuthService {
               Perfil: meResponse.Perfil,
               PapelPgia: meResponse.PapelPgia ?? null,
               AcessoPgia: !!meResponse.AcessoPgia,
+              PapelContratacoes: meResponse.PapelContratacoes ?? null,
               Unidade: meResponse.Unidade ?? null
             };
             localStorage.setItem('user', JSON.stringify(user));

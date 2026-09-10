@@ -1,5 +1,5 @@
 import { CanActivateFn, Router } from '@angular/router';
-import { AuthService } from '../services/auth';
+import { AuthService, PapeisContratacoes } from '../services/auth';
 import { inject } from '@angular/core';
 import { map, of, switchMap } from 'rxjs';
 
@@ -27,12 +27,17 @@ export const authGuard: CanActivateFn = (route, state) => {
           // grupo). Sem isso, forçar /pgia criaria um laço com o pgiaGuard
           // (que rejeita e manda a /pending-approval); esse usuário segue livre
           // para /pending-approval, mas não para o resto do sistema.
+          // Exceção (módulo Análises de Contratações): o confinamento admite
+          // também /analises para quem tem PapelContratacoes — os analistas da
+          // SGDI são 'basico' e precisam da área do módulo, com ou sem AcessoPgia.
+          const temAcessoContratacoes = state.url.startsWith('/analises')
+            && user?.PapelContratacoes === PapeisContratacoes.Analise;
           const confinadoAoPgia = perfil === 'basico' && !!user?.AcessoPgia;
-          if (confinadoAoPgia && !state.url.startsWith('/pgia')) {
+          if (confinadoAoPgia && !state.url.startsWith('/pgia') && !temAcessoContratacoes) {
             router.navigate(['/pgia']);
             return false;
           }
-          if (perfil === 'basico' && !user?.AcessoPgia
+          if (perfil === 'basico' && !user?.AcessoPgia && !temAcessoContratacoes
             && !state.url.startsWith('/pgia') && state.url !== '/pending-approval') {
             router.navigate(['/pending-approval']);
             return false;

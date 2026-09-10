@@ -11,6 +11,7 @@ interface PersonaLocal {
   Perfil: string;
   Descricao: string;
   PapelPgia?: string;
+  PapelContratacoes?: string;
   VincularAoOrgaoDeTeste?: boolean;
   Rota?: string; // destino pós-login; sem ela, vale a navegação padrão por perfil
 }
@@ -66,11 +67,23 @@ export class LoginLocalComponent {
     }
   ];
 
+  // Persona do módulo Análises de Contratações (papel Users.PapelContratacoes).
+  // A analista é 'basico' com o papel do módulo: o confinamento do perfil
+  // admite /analises para quem o tem.
+  personasContratacoes: PersonaLocal[] = [
+    {
+      Email: 'contratacoes@local.teste', Nome: 'Clara das Contratações', Perfil: 'basico',
+      PapelContratacoes: 'ctr_analise', Rota: '/analises',
+      Descricao: 'Analista da SGDI: processos de contratações de TIC, painel, manifestações ao TCDF e importação da planilha'
+    }
+  ];
+
   perfis = ['admin', 'gestor', 'basico'];
   papeisPgia = ['pgia_orgao', 'pgia_sgdi', 'pgia_cgtic', 'pgia_auditoria'];
+  papeisContratacoes = ['ctr_analise'];
 
-  form: { Email: string; Nome: string; Perfil: string; PapelPgia: string } =
-    { Email: '', Nome: '', Perfil: 'gestor', PapelPgia: '' };
+  form: { Email: string; Nome: string; Perfil: string; PapelPgia: string; PapelContratacoes: string } =
+    { Email: '', Nome: '', Perfil: 'gestor', PapelPgia: '', PapelContratacoes: '' };
   entrando = false;
 
   constructor(
@@ -86,6 +99,7 @@ export class LoginLocalComponent {
       Nome: persona.Nome,
       Perfil: persona.Perfil,
       PapelPgia: persona.PapelPgia ?? null,
+      PapelContratacoes: persona.PapelContratacoes ?? null,
       VincularAoOrgaoDeTeste: persona.VincularAoOrgaoDeTeste ?? false
     }).subscribe({
       next: () => {
@@ -103,17 +117,21 @@ export class LoginLocalComponent {
     }
     this.entrando = true;
     const papel = this.form.PapelPgia || null;
+    const papelCtr = this.form.PapelContratacoes || null;
     this.authService.loginLocal({
       Email: this.form.Email,
       Nome: this.form.Nome,
       Perfil: this.form.Perfil,
       PapelPgia: papel,
+      PapelContratacoes: papelCtr,
       // Papel de órgão só faz sentido dentro de um órgão de teste
       VincularAoOrgaoDeTeste: papel === 'pgia_orgao'
     }).subscribe({
       next: () => {
         this.entrando = false;
-        this.router.navigate([papel ? '/pgia' : this.rotaPadrao(this.form.Perfil)]);
+        if (papel) { this.router.navigate(['/pgia']); return; }
+        if (papelCtr) { this.router.navigate(['/analises']); return; }
+        this.router.navigate([this.rotaPadrao(this.form.Perfil)]);
       },
       error: (err) => this.tratarErro(err)
     });
