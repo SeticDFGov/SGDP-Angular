@@ -4,7 +4,15 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
-import { badgeEstagio, badgeSituacao, corDiasSemMovimento } from '../shared/ctr-rotulos';
+import {
+  badgeCriticidade,
+  badgeEstagio,
+  badgeFase,
+  badgeSituacao,
+  badgeStatusTcdf,
+  corDiasSemMovimento,
+  rotuloEtapaPlanejamento
+} from '../shared/ctr-rotulos';
 import { CtrManifestacao, CtrProcesso, CtrProcessoForm } from '../../../api/contratacoes/interface';
 
 /**
@@ -32,7 +40,11 @@ export class CtrProcessoEditarComponent implements OnInit {
 
   badgeSituacao = badgeSituacao;
   badgeEstagio = badgeEstagio;
+  badgeFase = badgeFase;
+  badgeCriticidade = badgeCriticidade;
+  badgeStatusTcdf = badgeStatusTcdf;
   corDiasSemMovimento = corDiasSemMovimento;
+  rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
 
   constructor(
     private route: ActivatedRoute,
@@ -86,6 +98,11 @@ export class CtrProcessoEditarComponent implements OnInit {
       UgticNaoSeAplica: processo.UgticNaoSeAplica,
       RetornoGabSgdi: processo.RetornoGabSgdi ?? null,
       RetornoOrgao: processo.RetornoOrgao ?? null,
+      RetornoOrgaoNaoSeAplica: processo.RetornoOrgaoNaoSeAplica,
+      EtapaPlanejamento: processo.EtapaPlanejamento ?? null,
+      DataAssinaturaContrato: processo.DataAssinaturaContrato ?? null,
+      Criticidade: processo.Criticidade ?? null,
+      Origem: processo.Origem ?? null,
       Restituido: processo.Restituido,
       RestituidoEm: processo.RestituidoEm ?? null,
       RestituidoMotivo: processo.RestituidoMotivo ?? null,

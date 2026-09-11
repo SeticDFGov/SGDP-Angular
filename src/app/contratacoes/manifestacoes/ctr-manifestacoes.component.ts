@@ -7,12 +7,21 @@ import { acompanharSecao } from '../../pgia/shared/secao-rota';
 import { CtrManifestacaoService } from '../services/ctr-manifestacao.service';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import { CtrManifestacaoFormComponent } from '../shared/ctr-manifestacao-form.component';
-import { badgeEstagio, badgeSituacao } from '../shared/ctr-rotulos';
+import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
+import {
+  badgeCriticidade,
+  badgeEstagio,
+  badgeFase,
+  badgeSituacao,
+  badgeStatusTcdf
+} from '../shared/ctr-rotulos';
 import {
   CtrManifestacao,
   CtrManifestacaoForm,
   CtrProcesso,
-  ESTAGIOS_TCDF
+  CtrProcessoForm,
+  ESTAGIOS_TCDF,
+  ORIGEM_TCDF
 } from '../../../api/contratacoes/interface';
 
 /**
@@ -20,12 +29,13 @@ import {
  * página de registro de uma manifestação nova.
  *
  * A seção "nova" lê `?processo=ID` — é assim que a página do processo manda o
- * contexto. Sem o parâmetro, a tela oferece um seletor de processo com busca.
+ * contexto. Sem o parâmetro, a tela oferece um seletor de processo com busca e
+ * o cadastro do processo do próprio TCDF, embutido, sem sair da página.
  */
 @Component({
   selector: 'app-ctr-manifestacoes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent],
+  imports: [CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent, CtrProcessoFormComponent],
   templateUrl: './ctr-manifestacoes.component.html'
 })
 export class CtrManifestacoesComponent implements OnInit {
@@ -65,8 +75,18 @@ export class CtrManifestacoesComponent implements OnInit {
   buscandoProcessos = false;
   buscouProcessos = false;
 
+  // Cadastro do processo do próprio TCDF, embutido nesta página
+  cadastroTcdfAberto = false;
+  salvandoTcdf = false;
+  siglas: string[] = [];
+  private carregouSiglas = false;
+  readonly origemTcdf = ORIGEM_TCDF;
+
   badgeEstagio = badgeEstagio;
   badgeSituacao = badgeSituacao;
+  badgeStatusTcdf = badgeStatusTcdf;
+  badgeFase = badgeFase;
+  badgeCriticidade = badgeCriticidade;
 
   constructor(
     private manifestacaoService: CtrManifestacaoService,
@@ -186,6 +206,7 @@ export class CtrManifestacoesComponent implements OnInit {
     this.buscaProcesso = '';
     this.resultados = [];
     this.buscouProcessos = false;
+    this.cadastroTcdfAberto = false;
   }
 
   buscarProcessos(): void {
@@ -214,6 +235,58 @@ export class CtrManifestacoesComponent implements OnInit {
 
   trocarProcesso(): void {
     this.router.navigate(['/analises/manifestacoes/nova']);
+  }
+
+  // ── Processo cadastrado pelo próprio TCDF ─────────────────────────────────
+
+  /**
+   * Abre o formulário de processo embutido, em modo compacto e com a origem
+   * fixada em TCDF. É o caso da contratação que chega por análise interna do
+   * Tribunal, sem ter passado pelo órgão de origem.
+   */
+  abrirCadastroTcdf(): void {
+    this.cadastroTcdfAberto = true;
+    if (this.carregouSiglas) return;
+    this.carregouSiglas = true;
+    this.processoService.listarSiglas().subscribe({
+      next: siglas => this.siglas = siglas,
+      error: () => this.siglas = []
+    });
+  }
+
+  fecharCadastroTcdf(): void {
+    this.cadastroTcdfAberto = false;
+  }
+
+  /**
+   * Cria o processo e já o deixa escolhido para a manifestação, sem sair da
+   * página: o processo criado entra direto no contexto e a URL ganha o
+   * `?processo=`, para recarregar a página manter a escolha.
+   *
+   * Erro mantém o formulário aberto com o que foi digitado (o componente do
+   * formulário guarda o próprio estado; nada é reinicializado aqui).
+   */
+  criarProcessoTcdf(form: CtrProcessoForm): void {
+    this.salvandoTcdf = true;
+    this.processoService.criar(form).subscribe({
+      next: criado => {
+        this.salvandoTcdf = false;
+        this.cadastroTcdfAberto = false;
+        this.notificationService.success('Processo do TCDF cadastrado e escolhido para a manifestação.');
+        // Entra no contexto antes da navegação: a assinatura do queryParam vê o
+        // mesmo id e não refaz o GET do processo recém-criado.
+        this.processo = criado;
+        this.erroProcesso = null;
+        this.limparSeletorProcesso();
+        this.router.navigate(['/analises/manifestacoes/nova'], { queryParams: { processo: criado.Id } });
+      },
+      error: () => {
+        this.salvandoTcdf = false;
+        this.notificationService.error(
+          'Não foi possível cadastrar o processo. Confira se o número já não está cadastrado e se as datas estão coerentes.'
+        );
+      }
+    });
   }
 
   criar(form: CtrManifestacaoForm): void {

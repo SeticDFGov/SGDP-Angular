@@ -1,3 +1,18 @@
+<!-- Origem: fixada pela tela que embute o formulário, ou só informada quando o
+     processo já está cadastrado como do TCDF -->
+<div *ngIf="origemFixa === origemTcdf"
+     class="border-l-4 border-blue-400 bg-blue-50 p-3 rounded-r-md text-sm text-blue-950 mb-4">
+  <p><strong>Origem: TCDF.</strong> Este cadastro é de contratação que chegou por análise interna do Tribunal sobre o
+  contrato, sem ter passado pelo órgão de origem.</p>
+  <p class="text-xs text-gray-400 italic mt-1">A origem já vai gravada como "TCDF" — não há campo para escolher.</p>
+</div>
+
+<div *ngIf="origemFixa !== origemTcdf && form.Origem === origemTcdf"
+     class="border-l-4 border-blue-400 bg-blue-50 p-3 rounded-r-md text-sm text-blue-950 mb-4">
+  <strong>Origem: TCDF.</strong> Processo cadastrado a partir de análise interna do Tribunal, sem ter vindo do órgão
+  comunicante.
+</div>
+
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
   <!-- Identificação -->
@@ -69,7 +84,45 @@
   </div>
 </div>
 
+<!-- Fase da contratação -->
+<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Fase da contratação</h3>
+<p class="text-xs text-gray-400 italic mb-3">A contratação fica em <strong>planejamento</strong> até o contrato ser
+assinado. Informar a data de assinatura leva o processo para a fase de <strong>execução</strong>; a etapa do
+planejamento continua registrada, porque é onde o planejamento parou.</p>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div>
+    <label class="block text-sm font-semibold mb-1">Etapa do planejamento</label>
+    <select [(ngModel)]="form.EtapaPlanejamento" name="ctr-etapa-planejamento"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <option [ngValue]="null">Não informada</option>
+      <option *ngFor="let e of etapasPlanejamento" [ngValue]="e.valor">{{ e.valor }} — {{ e.rotulo }}</option>
+    </select>
+    <p class="text-xs text-gray-400 italic mt-1">Em que documento o planejamento da contratação está.</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Assinatura do contrato</label>
+    <input type="date" [(ngModel)]="form.DataAssinaturaContrato" name="ctr-assinatura"
+           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <p class="text-xs text-gray-400 italic mt-1">Preenchida, a contratação passa a aparecer como "Execução". Pode ser
+    anterior à chegada na SGDI: o Tribunal também analisa contrato já assinado.</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Criticidade</label>
+    <select [(ngModel)]="form.Criticidade" name="ctr-processo-criticidade"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <option [ngValue]="null">Não classificada</option>
+      <option *ngFor="let c of criticidades" [ngValue]="c">{{ c }}</option>
+    </select>
+    <p class="text-xs text-gray-400 italic mt-1">Art. 11 da IN SGDI nº 1/2026. É a criticidade da contratação: a
+    manifestação do inciso I ao TCDF só reporta este valor e não é registrada sem ele.</p>
+  </div>
+</div>
+
 <!-- Tramitação -->
+<ng-container *ngIf="!compacto">
 <h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Tramitação</h3>
 <p class="text-xs text-gray-400 italic mb-3">Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; a ordem
 das datas preenchidas precisa respeitar o caminho SGDI → SUBGD → UGTIC → Gab SGDI → órgão.</p>
@@ -79,13 +132,20 @@ das datas preenchidas precisa respeitar o caminho SGDI → SUBGD → UGTIC → G
     <label class="block text-sm font-semibold mb-1">{{ c.rotulo }}</label>
     <input type="date" [ngModel]="dataDoCheckpoint(c.campo)" [name]="'ctr-' + c.campo"
            (ngModelChange)="definirCheckpoint(c.campo, $event)"
-           [disabled]="c.campo === 'ChegadaUgtic' && form.UgticNaoSeAplica"
+           [disabled]="(c.campo === 'ChegadaUgtic' && form.UgticNaoSeAplica)
+                       || (c.campo === 'RetornoOrgao' && form.RetornoOrgaoNaoSeAplica)"
            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
     <label *ngIf="c.campo === 'ChegadaUgtic'" class="flex items-center gap-2 mt-2 text-sm">
       <input type="checkbox" [ngModel]="form.UgticNaoSeAplica" name="ctr-ugtic-na"
              (ngModelChange)="aoMarcarUgticNaoSeAplica($event)"
              class="rounded border-gray-300">
       <span>Não se aplica (etapa pulada de propósito)</span>
+    </label>
+    <label *ngIf="c.campo === 'RetornoOrgao'" class="flex items-center gap-2 mt-2 text-sm">
+      <input type="checkbox" [ngModel]="form.RetornoOrgaoNaoSeAplica" name="ctr-retorno-orgao-na"
+             (ngModelChange)="aoMarcarRetornoOrgaoNaoSeAplica($event)"
+             class="rounded border-gray-300">
+      <span>Não se aplica (o processo não é devolvido ao órgão)</span>
     </label>
     <p class="text-xs text-gray-400 italic mt-1">{{ c.ajuda }}</p>
   </div>
@@ -119,6 +179,12 @@ das datas preenchidas precisa respeitar o caminho SGDI → SUBGD → UGTIC → G
     <p *ngIf="submetido && errRestituidoMotivo" class="text-xs text-red-600 mt-1">{{ errRestituidoMotivo }}</p>
   </div>
 </div>
+</ng-container>
+
+<!-- No modo compacto o trâmite fica de fora: processo cadastrado pelo TCDF
+     costuma nascer sem nenhuma data de tramitação. -->
+<p *ngIf="compacto" class="text-xs text-gray-400 italic mt-4">As datas de tramitação e a restituição ficam para a página
+do processo, quando houver — o cadastro do TCDF normalmente começa sem elas.</p>
 
 <!-- Observação -->
 <div class="mt-4">

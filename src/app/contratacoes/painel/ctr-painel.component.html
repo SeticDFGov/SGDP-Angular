@@ -38,6 +38,21 @@
           <p class="text-2xl font-bold text-gray-900 mt-2">{{ c.Quantidade }}</p>
         </div>
       </div>
+
+      <!-- Fase da contratação: planejamento até o contrato ser assinado -->
+      <div class="mt-5 pt-4 border-t border-gray-200">
+        <h3 class="text-sm font-semibold text-blue-900 mb-2">Por fase da contratação</h3>
+        <div class="flex flex-wrap gap-2">
+          <span *ngFor="let c of painel.PorFase"
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
+                [ngClass]="badgeFase(c.Chave)">
+            {{ c.Chave }}
+            <span class="text-sm font-bold">{{ c.Quantidade }}</span>
+          </span>
+        </div>
+        <p class="text-xs text-gray-400 italic mt-2">A contratação fica em planejamento até a assinatura do contrato;
+        com a data de assinatura, passa a execução.</p>
+      </div>
     </div>
 
     <!-- Tempos médios entre as instâncias -->

@@ -77,6 +77,9 @@
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeEstagio(m.Estagio)">{{ m.Estagio }}</span>
+                <!-- Status no TCDF: fato do Tribunal; tem precedência no estágio -->
+                <span *ngIf="m.StatusTcdf" class="block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold w-fit whitespace-nowrap"
+                      [ngClass]="badgeStatusTcdf(m.StatusTcdf)">{{ m.StatusTcdf }}</span>
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <a [routerLink]="['/analises/manifestacoes/editar', m.Id]"
@@ -112,32 +115,63 @@
 
     <!-- Seletor de processo -->
     <ng-container *ngIf="!carregandoProcesso && !processo">
-      <div class="flex items-center gap-3 mb-3">
+      <div class="flex items-center gap-3 mb-3 flex-wrap">
         <input type="text" [(ngModel)]="buscaProcesso" name="ctr-sel-busca" (keyup.enter)="buscarProcessos()"
                placeholder="Número do processo, sigla ou órgão"
-               class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+               class="flex-1 min-w-[12rem] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         <button (click)="buscarProcessos()" [disabled]="buscandoProcessos"
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
           {{ buscandoProcessos ? 'Buscando...' : 'Buscar' }}
         </button>
+        <button *ngIf="!cadastroTcdfAberto" (click)="abrirCadastroTcdf()"
+                class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-2 hover:bg-blue-50 whitespace-nowrap">
+          Cadastrar processo do TCDF
+        </button>
       </div>
 
-      <p *ngIf="buscouProcessos && resultados.length === 0" class="text-sm text-gray-500">
-        Nenhum processo encontrado. Confira o número ou cadastre o processo antes de registrar a manifestação.
-      </p>
+      <div *ngIf="buscouProcessos && resultados.length === 0 && !cadastroTcdfAberto"
+           class="text-sm text-gray-500 mb-3">
+        <p>Nenhum processo encontrado. Confira o número ou cadastre o processo antes de registrar a manifestação.</p>
+        <p class="mt-1">Não achou?
+          <button (click)="abrirCadastroTcdf()" class="text-blue-700 hover:underline">cadastre o processo do TCDF</button>
+          — é a contratação que chega por análise interna do Tribunal.
+        </p>
+      </div>
 
-      <div *ngIf="resultados.length > 0" class="divide-y divide-gray-200 border border-gray-200 rounded-lg">
+      <div *ngIf="resultados.length > 0 && !cadastroTcdfAberto" class="divide-y divide-gray-200 border border-gray-200 rounded-lg">
         <button *ngFor="let p of resultados" (click)="escolherProcesso(p)"
                 class="w-full text-left p-3 hover:bg-blue-50">
           <span class="font-medium text-gray-900">{{ p.NumeroProcesso }}</span>
           <span class="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold"
                 [ngClass]="badgeSituacao(p.Situacao)">{{ p.Situacao }}</span>
+          <span *ngIf="p.Origem === 'TCDF'" class="ml-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">TCDF</span>
           <span class="block text-xs text-gray-600">{{ p.OrgaoSigla }} · {{ p.OrgaoNome }}</span>
           <span class="block text-xs text-gray-500 truncate">{{ p.Objeto }}</span>
         </button>
       </div>
 
-      <p class="text-xs text-gray-400 italic mt-3">Vindo da página de um processo, ele já chega escolhido.</p>
+      <!-- Cadastro do processo do próprio TCDF, sem sair desta página -->
+      <div *ngIf="cadastroTcdfAberto" class="border border-blue-200 rounded-lg p-4 mt-1">
+        <div class="flex items-start justify-between gap-4 mb-3">
+          <div>
+            <h3 class="text-sm font-semibold text-blue-900">Cadastrar processo do TCDF</h3>
+            <p class="text-sm text-gray-600">Ao salvar, o processo já fica escolhido para esta manifestação.</p>
+          </div>
+          <button (click)="fecharCadastroTcdf()" class="text-sm text-blue-700 hover:underline whitespace-nowrap">Fechar</button>
+        </div>
+
+        <app-ctr-processo-form
+          [compacto]="true"
+          [origemFixa]="origemTcdf"
+          [siglas]="siglas"
+          [salvando]="salvandoTcdf"
+          rotuloSalvar="Cadastrar e usar nesta manifestação"
+          (salvar)="criarProcessoTcdf($event)"
+        ></app-ctr-processo-form>
+      </div>
+
+      <p *ngIf="!cadastroTcdfAberto" class="text-xs text-gray-400 italic mt-3">Vindo da página de um processo, ele já
+      chega escolhido.</p>
     </ng-container>
 
     <!-- Formulário do despacho -->
@@ -146,11 +180,21 @@
         <p class="font-semibold text-gray-900">Processo SEI nº {{ processo.NumeroProcesso }}</p>
         <p class="text-gray-600">Contratação: {{ processo.Objeto }} — {{ processo.OrgaoNome }}
         ({{ processo.OrgaoSigla }})<span *ngIf="processo.ComplementoArea">, {{ processo.ComplementoArea }}</span></p>
+        <div class="flex flex-wrap items-center gap-2 mt-2">
+          <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                [ngClass]="badgeFase(processo.Fase)">{{ processo.Fase }}</span>
+          <span *ngIf="processo.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                [ngClass]="badgeCriticidade(processo.Criticidade)">Criticidade {{ processo.Criticidade }}</span>
+          <span *ngIf="processo.Origem === 'TCDF'"
+                class="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Origem TCDF</span>
+        </div>
         <button (click)="trocarProcesso()" class="text-sm text-blue-700 hover:underline mt-2">Trocar de processo</button>
       </div>
 
       <app-ctr-manifestacao-form
         [salvando]="salvando"
+        [criticidadeProcesso]="processo.Criticidade ?? null"
+        [processoId]="processo.Id"
         rotuloSalvar="Registrar manifestação"
         (salvar)="criar($event)"
         (cancelar)="irParaLista()"

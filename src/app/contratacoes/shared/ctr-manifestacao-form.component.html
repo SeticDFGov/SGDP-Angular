@@ -56,17 +56,18 @@
         <p *ngIf="submetido && errComunicadaDesde" class="text-xs text-red-600 mt-1">{{ errComunicadaDesde }}</p>
         <p class="text-xs text-gray-400 italic mt-1">É o "[data]" do despacho.</p>
       </div>
+      <!-- A criticidade é da contratação: vem do cadastro do processo -->
       <div>
-        <label class="block text-sm font-semibold mb-1">Criticidade <span class="text-red-600">*</span></label>
-        <select [(ngModel)]="form.Criticidade" name="ctr-criticidade"
-                class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                [class.border-red-500]="submetido && errCriticidade"
-                [class.border-gray-300]="!(submetido && errCriticidade)">
-          <option [ngValue]="null">Escolha...</option>
-          <option *ngFor="let c of criticidades" [ngValue]="c">{{ c }}</option>
-        </select>
+        <label class="block text-sm font-semibold mb-1">Criticidade da contratação</label>
+        <p *ngIf="criticidadeProcesso" class="text-sm text-gray-800 py-2">
+          <strong>{{ criticidadeProcesso }}</strong> — definida no cadastro do processo.
+        </p>
+        <p *ngIf="!criticidadeProcesso" class="text-sm text-red-700 py-2">Ainda não definida no cadastro do processo.</p>
+        <a *ngIf="processoId" [routerLink]="['/analises/processos/editar', processoId]"
+           class="text-sm text-blue-700 hover:underline">Editar o processo</a>
         <p *ngIf="submetido && errCriticidade" class="text-xs text-red-600 mt-1">{{ errCriticidade }}</p>
-        <p class="text-xs text-gray-400 italic mt-1">Art. 11 da IN SGDI nº 1/2026.</p>
+        <p class="text-xs text-gray-400 italic mt-1">Art. 11 da IN SGDI nº 1/2026. É atributo da contratação: o despacho
+        só reporta o valor do cadastro.</p>
       </div>
     </div>
 
@@ -178,6 +179,18 @@
   validação ou substituição das competências dos órgãos de controle interno e externo (art. 9º e art. 25, §2º, da IN
   SGDI nº 1/2026), permanecendo a SGDI à disposição para esclarecimentos adicionais.</p>
   <p class="text-xs text-gray-400 italic mt-2">Estes dois parágrafos são fixos e entram no despacho gerado.</p>
+</div>
+
+<!-- Status no TCDF: fato do Tribunal, vale nos dois incisos -->
+<div class="mt-4 max-w-sm">
+  <label class="block text-sm font-semibold mb-1">Status no TCDF (opcional)</label>
+  <select [(ngModel)]="form.StatusTcdf" name="ctr-status-tcdf"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <option [ngValue]="null">Sem status especial</option>
+    <option *ngFor="let s of statusTcdf" [ngValue]="s">{{ s }}</option>
+  </select>
+  <p class="text-xs text-gray-400 italic mt-1">Registro de acompanhamento do que aconteceu com o processo no Tribunal.
+  Vale para os dois incisos e não altera o texto do despacho.</p>
 </div>
 
 <div class="mt-4">

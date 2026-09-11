@@ -48,6 +48,10 @@ export class CtrProcessoService {
     acrescentar('Restituidos', filtro.Restituidos);
     acrescentar('De', filtro.De);
     acrescentar('Ate', filtro.Ate);
+    acrescentar('Fase', filtro.Fase);
+    acrescentar('EtapaPlanejamento', filtro.EtapaPlanejamento);
+    acrescentar('Criticidade', filtro.Criticidade);
+    acrescentar('Origem', filtro.Origem);
     acrescentar('OrderBy', filtro.OrderBy);
     return params;
   }

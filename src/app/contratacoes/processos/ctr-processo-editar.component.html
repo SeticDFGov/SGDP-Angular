@@ -20,6 +20,24 @@
           <h2 class="text-base font-semibold text-blue-900">Processo {{ processo.NumeroProcesso }}</h2>
           <p class="text-sm text-gray-600">{{ processo.OrgaoNome }} ({{ processo.OrgaoSigla }})<span
             *ngIf="processo.ComplementoArea"> · {{ processo.ComplementoArea }}</span></p>
+          <div class="flex flex-wrap items-center gap-2 mt-2">
+            <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  [ngClass]="badgeFase(processo.Fase)">{{ processo.Fase }}</span>
+            <span *ngIf="processo.EtapaPlanejamento" class="text-xs text-gray-600"
+                  [title]="rotuloEtapaPlanejamento(processo.EtapaPlanejamento)">
+              {{ processo.EtapaPlanejamento }} — {{ rotuloEtapaPlanejamento(processo.EtapaPlanejamento) }}
+            </span>
+            <span *ngIf="processo.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  [ngClass]="badgeCriticidade(processo.Criticidade)">Criticidade {{ processo.Criticidade }}</span>
+            <span *ngIf="processo.Origem === 'TCDF'"
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Origem TCDF</span>
+          </div>
+          <p *ngIf="processo.DataAssinaturaContrato" class="text-xs text-gray-600 mt-1">
+            Contrato assinado em {{ processo.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}.
+          </p>
+          <p *ngIf="processo.RetornoOrgaoNaoSeAplica" class="text-xs text-gray-600 mt-1">
+            Retorno ao órgão comunicante: não se aplica.
+          </p>
         </div>
         <div class="text-right">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
@@ -89,6 +107,8 @@
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeEstagio(m.Estagio)">{{ m.Estagio }}</span>
+                <span *ngIf="m.StatusTcdf" class="block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold w-fit whitespace-nowrap"
+                      [ngClass]="badgeStatusTcdf(m.StatusTcdf)">{{ m.StatusTcdf }}</span>
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <a [routerLink]="['/analises/manifestacoes/editar', m.Id]"

@@ -8,13 +8,23 @@ import { NotificationService } from '../../core/services/notification.service';
 import { acompanharSecao } from '../../pgia/shared/secao-rota';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
-import { badgeSituacao, corDiasSemMovimento } from '../shared/ctr-rotulos';
+import {
+  badgeCriticidade,
+  badgeFase,
+  badgeSituacao,
+  corDiasSemMovimento,
+  rotuloEtapaPlanejamento
+} from '../shared/ctr-rotulos';
 import {
   CATEGORIAS_OBJETO,
+  CRITICIDADES,
   CtrProcesso,
   CtrProcessoFiltro,
   CtrProcessoForm,
   ETAPAS,
+  ETAPAS_PLANEJAMENTO,
+  FASES,
+  ORIGENS,
   SITUACOES
 } from '../../../api/contratacoes/interface';
 
@@ -46,9 +56,7 @@ export class CtrProcessosComponent implements OnInit {
   readonly tamanhoPagina = 25;
 
   // Filtros da lista
-  filtro: CtrProcessoFiltro = {
-    Filtro: '', Categoria: '', Situacao: '', Sigla: '', Restituidos: null, De: '', Ate: ''
-  };
+  filtro: CtrProcessoFiltro = CtrProcessosComponent.filtroVazio();
   /** Cópia dos filtros da consulta que está na tela (congelada no Buscar). */
   private filtroAplicado: CtrProcessoFiltro = {};
   /** A lista é buscada na primeira vez que a seção dela abre. */
@@ -56,6 +64,17 @@ export class CtrProcessosComponent implements OnInit {
   categorias = CATEGORIAS_OBJETO;
   situacoes = SITUACOES;
   etapas = ETAPAS;
+  fases = FASES;
+  etapasPlanejamento = ETAPAS_PLANEJAMENTO;
+  criticidades = CRITICIDADES;
+  origens = ORIGENS;
+
+  private static filtroVazio(): CtrProcessoFiltro {
+    return {
+      Filtro: '', Categoria: '', Situacao: '', Sigla: '', Restituidos: null, De: '', Ate: '',
+      Fase: '', EtapaPlanejamento: '', Criticidade: '', Origem: ''
+    };
+  }
 
   // Cadastro
   salvando = false;
@@ -71,7 +90,10 @@ export class CtrProcessosComponent implements OnInit {
   exportando = false;
 
   badgeSituacao = badgeSituacao;
+  badgeFase = badgeFase;
+  badgeCriticidade = badgeCriticidade;
   corDiasSemMovimento = corDiasSemMovimento;
+  rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
 
   constructor(
     private processoService: CtrProcessoService,
@@ -137,7 +159,7 @@ export class CtrProcessosComponent implements OnInit {
   }
 
   limparFiltros(): void {
-    this.filtro = { Filtro: '', Categoria: '', Situacao: '', Sigla: '', Restituidos: null, De: '', Ate: '' };
+    this.filtro = CtrProcessosComponent.filtroVazio();
     this.buscar();
   }
 
@@ -224,22 +246,35 @@ export class CtrProcessosComponent implements OnInit {
     this.processoCheckpoint = null;
   }
 
-  /** Sugere a primeira etapa ainda em branco (a UGTIC pulada não conta). */
+  /** Sugere a primeira etapa ainda em branco (etapa dispensada não conta). */
   private proximaEtapa(processo: CtrProcesso): string {
     for (const etapa of ETAPAS) {
       if (etapa.valor === 'ChegadaUgtic' && processo.UgticNaoSeAplica) continue;
+      if (etapa.valor === 'RetornoOrgao' && processo.RetornoOrgaoNaoSeAplica) continue;
       if (!processo[etapa.valor as keyof CtrProcesso]) return etapa.valor;
     }
     return ETAPAS[ETAPAS.length - 1].valor;
   }
 
-  get etapaEhUgtic(): boolean {
-    return this.checkpointEtapa === 'ChegadaUgtic';
+  /**
+   * As duas etapas que podem ser dispensadas: a UGTIC (etapa pulada) e o
+   * retorno ao órgão (processo que não é devolvido). Nas demais o servidor
+   * recusa o "não se aplica".
+   */
+  get etapaAceitaNaoSeAplica(): boolean {
+    return this.checkpointEtapa === 'ChegadaUgtic' || this.checkpointEtapa === 'RetornoOrgao';
+  }
+
+  /** Texto do checkbox: o motivo de dispensar muda conforme a etapa. */
+  get rotuloNaoSeAplica(): string {
+    return this.checkpointEtapa === 'RetornoOrgao'
+      ? 'Não se aplica (o processo não é devolvido ao órgão)'
+      : 'Não se aplica (etapa pulada de propósito)';
   }
 
   aoTrocarEtapaCheckpoint(valor: string): void {
     this.checkpointEtapa = valor;
-    if (!this.etapaEhUgtic) this.checkpointNaoSeAplica = false;
+    if (!this.etapaAceitaNaoSeAplica) this.checkpointNaoSeAplica = false;
   }
 
   /**
@@ -249,7 +284,7 @@ export class CtrProcessosComponent implements OnInit {
    */
   get errCheckpoint(): string | null {
     // Limpar a data ou marcar "não se aplica" dispensa a conferência.
-    if (this.checkpointLimpar || (this.etapaEhUgtic && this.checkpointNaoSeAplica)) return null;
+    if (this.checkpointLimpar || (this.etapaAceitaNaoSeAplica && this.checkpointNaoSeAplica)) return null;
     const processo = this.processoCheckpoint;
     if (!processo) return null;
     if (!this.checkpointData) return 'Informe a data.';
@@ -288,11 +323,11 @@ export class CtrProcessosComponent implements OnInit {
     if (!processo || this.errCheckpoint) return;
 
     this.salvandoCheckpoint = true;
-    const limpar = this.checkpointLimpar || (this.etapaEhUgtic && this.checkpointNaoSeAplica);
+    const limpar = this.checkpointLimpar || (this.etapaAceitaNaoSeAplica && this.checkpointNaoSeAplica);
     this.processoService.registrarCheckpoint(processo.Id, {
       Etapa: this.checkpointEtapa,
       Data: limpar ? null : this.checkpointData,
-      NaoSeAplica: this.etapaEhUgtic ? this.checkpointNaoSeAplica : false
+      NaoSeAplica: this.etapaAceitaNaoSeAplica ? this.checkpointNaoSeAplica : false
     }).subscribe({
       next: atualizado => {
         this.salvandoCheckpoint = false;

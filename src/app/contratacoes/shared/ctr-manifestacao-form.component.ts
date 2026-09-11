@@ -1,7 +1,8 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CRITICIDADES, CtrManifestacaoForm } from '../../../api/contratacoes/interface';
+import { RouterModule } from '@angular/router';
+import { CtrManifestacaoForm, STATUS_TCDF } from '../../../api/contratacoes/interface';
 
 /**
  * Formulário da manifestação da SGDI ao TCDF, reaproveitado por "nova" e por
@@ -15,22 +16,30 @@ import { CRITICIDADES, CtrManifestacaoForm } from '../../../api/contratacoes/int
  * Os blocos são exclusivos: o que não vale para o inciso escolhido é enviado
  * como nulo — o backend recusa campo de bloco inativo preenchido, e a resposta
  * de erro chega sem corpo (500), então a disciplina fica aqui.
+ *
+ * A criticidade **não é editada aqui**: ela é atributo da contratação e mora no
+ * cadastro do processo. O inciso I apenas a reporta (e não pode ser registrado
+ * sem ela).
  */
 @Component({
   selector: 'app-ctr-manifestacao-form',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './ctr-manifestacao-form.component.html'
 })
 export class CtrManifestacaoFormComponent implements OnChanges {
   @Input() valor: CtrManifestacaoForm | null = null;
   @Input() salvando = false;
   @Input() rotuloSalvar = 'Salvar manifestação';
+  /** Criticidade do processo — só leitura, vem do cadastro da contratação. */
+  @Input() criticidadeProcesso: string | null = null;
+  /** Processo da manifestação, para o link "editar o processo". */
+  @Input() processoId: number | null = null;
 
   @Output() salvar = new EventEmitter<CtrManifestacaoForm>();
   @Output() cancelar = new EventEmitter<void>();
 
-  criticidades = CRITICIDADES;
+  statusTcdf = STATUS_TCDF;
 
   form: CtrManifestacaoForm = CtrManifestacaoFormComponent.vazio();
   submetido = false;
@@ -38,9 +47,9 @@ export class CtrManifestacaoFormComponent implements OnChanges {
   static vazio(): CtrManifestacaoForm {
     return {
       OficioTcdf: '', DataOficio: '', SituacaoPortfolio: 'Comunicada previamente',
-      ComunicadaDesde: null, Criticidade: null, ResultadoAnalise: null,
+      ComunicadaDesde: null, ResultadoAnalise: null,
       RecomendouSuspensao: false, ComunicouControleInterno: false, DesfechoRisco: null,
-      PrazoRegularizacaoDias: null, Observacao: null
+      PrazoRegularizacaoDias: null, StatusTcdf: null, Observacao: null
     };
   }
 
@@ -72,7 +81,6 @@ export class CtrManifestacaoFormComponent implements OnChanges {
     this.form.SituacaoPortfolio = valor;
     if (this.incisoII) {
       this.form.ComunicadaDesde = null;
-      this.form.Criticidade = null;
       this.form.ResultadoAnalise = null;
       this.limparRiscos();
     } else {
@@ -121,9 +129,16 @@ export class CtrManifestacaoFormComponent implements OnChanges {
     return null;
   }
 
+  /**
+   * A criticidade é do processo: o inciso I não pode ser registrado enquanto o
+   * cadastro da contratação não a tiver. A mensagem é a mesma do servidor, que
+   * responde 500 sem corpo quando a regra falha.
+   */
   get errCriticidade(): string | null {
     if (!this.incisoI) return null;
-    return this.form.Criticidade ? null : 'Escolha a criticidade da contratação (art. 11 da IN).';
+    return this.criticidadeProcesso
+      ? null
+      : 'Defina a criticidade no cadastro do processo antes de registrar a manifestação do inciso I.';
   }
 
   get errResultado(): string | null {
@@ -163,8 +178,8 @@ export class CtrManifestacaoFormComponent implements OnChanges {
       DataOficio: this.form.DataOficio,
       SituacaoPortfolio: this.form.SituacaoPortfolio,
       // Bloco do inciso I — nulo quando a contratação não era comunicada.
+      // A criticidade não vai no corpo: é do processo.
       ComunicadaDesde: this.incisoI ? this.form.ComunicadaDesde : null,
-      Criticidade: this.incisoI ? this.form.Criticidade : null,
       ResultadoAnalise: this.incisoI ? this.form.ResultadoAnalise : null,
       // Bloco de risco — só existe com "riscos significativos".
       RecomendouSuspensao: this.temRiscos ? this.form.RecomendouSuspensao : false,
@@ -172,6 +187,8 @@ export class CtrManifestacaoFormComponent implements OnChanges {
       DesfechoRisco: this.temRiscos ? this.form.DesfechoRisco : null,
       // Bloco do inciso II.
       PrazoRegularizacaoDias: this.incisoII ? Number(this.form.PrazoRegularizacaoDias) : null,
+      // Fato do Tribunal: vale em qualquer inciso, não entra em bloco nenhum.
+      StatusTcdf: this.form.StatusTcdf || null,
       Observacao: observacao ? observacao : null
     });
   }

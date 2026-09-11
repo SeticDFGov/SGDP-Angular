@@ -27,6 +27,12 @@
         <div class="text-right">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
                 [ngClass]="badgeEstagio(manifestacao.Estagio)">{{ manifestacao.Estagio }}</span>
+          <span *ngIf="manifestacao.StatusTcdf"
+                class="block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold w-fit ml-auto"
+                [ngClass]="badgeStatusTcdf(manifestacao.StatusTcdf)">{{ manifestacao.StatusTcdf }}</span>
+          <span *ngIf="manifestacao.Criticidade"
+                class="block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold w-fit ml-auto"
+                [ngClass]="badgeCriticidade(manifestacao.Criticidade)">Criticidade {{ manifestacao.Criticidade }}</span>
         </div>
       </div>
 
@@ -55,6 +61,8 @@
       <app-ctr-manifestacao-form
         [valor]="valorForm"
         [salvando]="salvando"
+        [criticidadeProcesso]="manifestacao.Criticidade ?? null"
+        [processoId]="manifestacao.ProcessoId"
         rotuloSalvar="Salvar alterações"
         (salvar)="salvar($event)"
         (cancelar)="irParaLista()"
