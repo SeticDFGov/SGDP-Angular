@@ -84,6 +84,7 @@ export class CtrManifestacaoEditarComponent implements OnInit {
       ComunicouControleInterno: manifestacao.ComunicouControleInterno,
       DesfechoRisco: manifestacao.DesfechoRisco ?? null,
       PrazoRegularizacaoDias: manifestacao.PrazoRegularizacaoDias ?? null,
+      PendenciasTcdf: manifestacao.PendenciasTcdf ?? null,
       StatusTcdf: manifestacao.StatusTcdf ?? null,
       Observacao: manifestacao.Observacao ?? null
     };

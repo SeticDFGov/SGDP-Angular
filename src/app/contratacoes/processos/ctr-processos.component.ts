@@ -18,6 +18,7 @@ import {
 import {
   CATEGORIAS_OBJETO,
   CRITICIDADES,
+  CtrCheckpointForm,
   CtrProcesso,
   CtrProcessoFiltro,
   CtrProcessoForm,
@@ -72,7 +73,7 @@ export class CtrProcessosComponent implements OnInit {
   private static filtroVazio(): CtrProcessoFiltro {
     return {
       Filtro: '', Categoria: '', Situacao: '', Sigla: '', Restituidos: null, De: '', Ate: '',
-      Fase: '', EtapaPlanejamento: '', Criticidade: '', Origem: ''
+      Fase: '', EtapaPlanejamento: '', Criticidade: '', Origem: '', EsclarecimentoPendente: null
     };
   }
 
@@ -277,6 +278,31 @@ export class CtrProcessosComponent implements OnInit {
     if (!this.etapaAceitaNaoSeAplica) this.checkpointNaoSeAplica = false;
   }
 
+  /** Data já gravada na etapa que está sendo editada no modal. */
+  private get dataGravadaDaEtapa(): string | null {
+    const processo = this.processoCheckpoint;
+    if (!processo) return null;
+    return (processo[this.checkpointEtapa as keyof CtrProcesso] as string | null | undefined) ?? null;
+  }
+
+  /**
+   * Marcar "não se aplica" apaga a data gravada (o servidor limpa junto com o
+   * flag): com data preenchida, pedir confirmação antes.
+   */
+  aoMarcarCheckpointNaoSeAplica(marcado: boolean): void {
+    const gravada = this.dataGravadaDaEtapa;
+    if (marcado && gravada) {
+      const confirmou = confirm(
+        `A data já registrada nesta etapa (${this.brasileira(gravada)}) será apagada ao marcar "não se aplica".\n\nContinuar?`
+      );
+      if (!confirmou) {
+        this.checkpointNaoSeAplica = false;
+        return;
+      }
+    }
+    this.checkpointNaoSeAplica = marcado;
+  }
+
   /**
    * Mesma cronologia do formulário completo, aplicada só à data que está sendo
    * registrada: ela não pode ser anterior às etapas anteriores já preenchidas
@@ -324,11 +350,18 @@ export class CtrProcessosComponent implements OnInit {
 
     this.salvandoCheckpoint = true;
     const limpar = this.checkpointLimpar || (this.etapaAceitaNaoSeAplica && this.checkpointNaoSeAplica);
-    this.processoService.registrarCheckpoint(processo.Id, {
+    const corpo: CtrCheckpointForm = {
       Etapa: this.checkpointEtapa,
-      Data: limpar ? null : this.checkpointData,
-      NaoSeAplica: this.etapaAceitaNaoSeAplica ? this.checkpointNaoSeAplica : false
-    }).subscribe({
+      Data: limpar ? null : this.checkpointData
+    };
+    // A chave só vai quando a etapa aceita "não se aplica" E há intenção: o
+    // servidor recusa qualquer valor não nulo nas outras três etapas (mandar
+    // `false` derrubava o primeiro uso do modal, que sugere ChegadaSgdi). E só
+    // limpar a data não pode desmarcar o flag — aí a chave também é omitida.
+    if (this.etapaAceitaNaoSeAplica && (this.checkpointNaoSeAplica || !this.checkpointLimpar)) {
+      corpo.NaoSeAplica = this.checkpointNaoSeAplica;
+    }
+    this.processoService.registrarCheckpoint(processo.Id, corpo).subscribe({
       next: atualizado => {
         this.salvandoCheckpoint = false;
         this.processos = this.processos.map(p => p.Id === atualizado.Id ? atualizado : p);

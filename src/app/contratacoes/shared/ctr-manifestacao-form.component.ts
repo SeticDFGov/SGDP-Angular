@@ -49,7 +49,7 @@ export class CtrManifestacaoFormComponent implements OnChanges {
       OficioTcdf: '', DataOficio: '', SituacaoPortfolio: 'Comunicada previamente',
       ComunicadaDesde: null, ResultadoAnalise: null,
       RecomendouSuspensao: false, ComunicouControleInterno: false, DesfechoRisco: null,
-      PrazoRegularizacaoDias: null, StatusTcdf: null, Observacao: null
+      PrazoRegularizacaoDias: null, PendenciasTcdf: null, StatusTcdf: null, Observacao: null
     };
   }
 
@@ -126,6 +126,11 @@ export class CtrManifestacaoFormComponent implements OnChanges {
     if (!this.incisoI) return null;
     if (!this.form.ComunicadaDesde) return 'Informe desde quando a contratação está no monitoramento contínuo.';
     if (this.form.ComunicadaDesde > this.hoje) return 'A data está no futuro.';
+    // Mesma regra do servidor: a contratação já estava comunicada quando o
+    // ofício do TCDF chegou.
+    if (this.form.DataOficio && this.form.ComunicadaDesde > this.form.DataOficio) {
+      return 'A data não pode ser posterior à do ofício do TCDF.';
+    }
     return null;
   }
 
@@ -187,7 +192,8 @@ export class CtrManifestacaoFormComponent implements OnChanges {
       DesfechoRisco: this.temRiscos ? this.form.DesfechoRisco : null,
       // Bloco do inciso II.
       PrazoRegularizacaoDias: this.incisoII ? Number(this.form.PrazoRegularizacaoDias) : null,
-      // Fato do Tribunal: vale em qualquer inciso, não entra em bloco nenhum.
+      // Fatos do Tribunal: valem em qualquer inciso, não entram em bloco nenhum.
+      PendenciasTcdf: (this.form.PendenciasTcdf || '').trim() || null,
       StatusTcdf: this.form.StatusTcdf || null,
       Observacao: observacao ? observacao : null
     });

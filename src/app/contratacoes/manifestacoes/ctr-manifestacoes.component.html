@@ -72,7 +72,14 @@
                 <span class="font-semibold">{{ m.OrgaoSigla }}</span>
                 <span class="block text-xs text-gray-500 max-w-xs truncate" [title]="m.Objeto">{{ m.Objeto }}</span>
               </td>
-              <td class="px-3 py-2">{{ m.OficioTcdf }}</td>
+              <td class="px-3 py-2">
+                {{ m.OficioTcdf }}
+                <!-- Indicador discreto: o texto fica na página da manifestação -->
+                <span *ngIf="m.PendenciasTcdf" class="block text-xs text-amber-800 mt-1"
+                      title="Pendências identificadas pelo TCDF registradas nesta manifestação">
+                  com pendências do TCDF
+                </span>
+              </td>
               <td class="px-3 py-2 whitespace-nowrap">{{ m.DataOficio | date:'dd/MM/yyyy':'UTC' }}</td>
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
@@ -117,9 +124,12 @@
     <ng-container *ngIf="!carregandoProcesso && !processo">
       <div class="flex items-center gap-3 mb-3 flex-wrap">
         <input type="text" [(ngModel)]="buscaProcesso" name="ctr-sel-busca" (keyup.enter)="buscarProcessos()"
+               [disabled]="cadastroTcdfAberto"
                placeholder="Número do processo, sigla ou órgão"
-               class="flex-1 min-w-[12rem] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <button (click)="buscarProcessos()" [disabled]="buscandoProcessos"
+               class="flex-1 min-w-[12rem] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
+        <!-- Buscar fica inativo com o cadastro do TCDF aberto: os resultados
+             não aparecem enquanto o formulário ocupa a tela -->
+        <button (click)="buscarProcessos()" [disabled]="buscandoProcessos || cadastroTcdfAberto"
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
           {{ buscandoProcessos ? 'Buscando...' : 'Buscar' }}
         </button>

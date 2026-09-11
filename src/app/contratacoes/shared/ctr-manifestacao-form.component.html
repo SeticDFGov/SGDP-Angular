@@ -181,6 +181,16 @@
   <p class="text-xs text-gray-400 italic mt-2">Estes dois parágrafos são fixos e entram no despacho gerado.</p>
 </div>
 
+<!-- Pendências do Tribunal: valem nos dois incisos e não vão no despacho -->
+<div class="mt-4">
+  <label class="block text-sm font-semibold mb-1">Pendências identificadas pelo TCDF</label>
+  <textarea rows="3" [(ngModel)]="form.PendenciasTcdf" name="ctr-pendencias-tcdf" maxlength="4000"
+            placeholder="O que o Tribunal apontou nesta comunicação."
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+  <p class="text-xs text-gray-400 italic mt-1">Registro interno da equipe, para acompanhar o que o TCDF apontou. Vale
+  para os dois incisos e não altera o texto do despacho.</p>
+</div>
+
 <!-- Status no TCDF: fato do Tribunal, vale nos dois incisos -->
 <div class="mt-4 max-w-sm">
   <label class="block text-sm font-semibold mb-1">Status no TCDF (opcional)</label>

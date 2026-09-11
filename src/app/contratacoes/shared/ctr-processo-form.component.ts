@@ -82,6 +82,7 @@ export class CtrProcessoFormComponent implements OnChanges {
       RetornoGabSgdi: null, RetornoOrgao: null, RetornoOrgaoNaoSeAplica: false,
       EtapaPlanejamento: null, DataAssinaturaContrato: null, Criticidade: null,
       Origem: ORIGEM_PADRAO,
+      EsclarecimentoSolicitadoEm: null, EsclarecimentoDescricao: null, EsclarecimentoRespondidoEm: null,
       Restituido: false, RestituidoEm: null, RestituidoMotivo: null, Observacao: null
     };
   }
@@ -184,6 +185,19 @@ export class CtrProcessoFormComponent implements OnChanges {
     if (marcado) this.form.RetornoOrgao = null;
   }
 
+  /**
+   * Limpar a data do pedido anula a descrição e a resposta — mesma
+   * normalização da restituição, e o que o CHECK do servidor exige (resposta
+   * sem pedido não existe).
+   */
+  aoTrocarEsclarecimentoSolicitado(valor: string): void {
+    this.form.EsclarecimentoSolicitadoEm = valor || null;
+    if (!this.form.EsclarecimentoSolicitadoEm) {
+      this.form.EsclarecimentoDescricao = null;
+      this.form.EsclarecimentoRespondidoEm = null;
+    }
+  }
+
   aoMarcarRestituido(marcado: boolean): void {
     this.form.Restituido = marcado;
     if (!marcado) {
@@ -233,6 +247,14 @@ export class CtrProcessoFormComponent implements OnChanges {
 
   get errCategoria(): string | null {
     return (this.form.CategoriaObjeto || '').trim() ? null : 'Escolha a categoria do objeto.';
+  }
+
+  /** A data do pedido exige dizer o que foi pedido (CHECK do servidor). */
+  get errEsclarecimentoDescricao(): string | null {
+    if (!this.form.EsclarecimentoSolicitadoEm) return null;
+    return (this.form.EsclarecimentoDescricao || '').trim()
+      ? null
+      : 'Descreva o que foi pedido ao órgão.';
   }
 
   get errRestituidoEm(): string | null {
@@ -295,6 +317,19 @@ export class CtrProcessoFormComponent implements OnChanges {
       erros.push('A data de assinatura do contrato está no futuro.');
     }
 
+    // Esclarecimento: sinal paralelo ao trâmite, com cronologia própria.
+    const pedido = this.form.EsclarecimentoSolicitadoEm ?? null;
+    const resposta = this.form.EsclarecimentoRespondidoEm ?? null;
+    if (pedido && pedido > hoje) erros.push('A data do pedido de esclarecimento está no futuro.');
+    if (resposta) {
+      if (resposta > hoje) erros.push('A data da resposta ao esclarecimento está no futuro.');
+      if (!pedido) {
+        erros.push('Informe a data do pedido de esclarecimento antes da data da resposta.');
+      } else if (resposta < pedido) {
+        erros.push(`A resposta ao esclarecimento (${this.brasileira(resposta)}) não pode ser anterior ao pedido (${this.brasileira(pedido)}).`);
+      }
+    }
+
     return erros;
   }
 
@@ -306,6 +341,7 @@ export class CtrProcessoFormComponent implements OnChanges {
   get formValido(): boolean {
     return !this.errNumero && !this.errOrgaoNome && !this.errOrgaoSigla
       && !this.errObjeto && !this.errCategoria
+      && !this.errEsclarecimentoDescricao
       && !this.errRestituidoEm && !this.errRestituidoMotivo
       && this.errDatas.length === 0;
   }
@@ -341,6 +377,12 @@ export class CtrProcessoFormComponent implements OnChanges {
       DataAssinaturaContrato: this.form.DataAssinaturaContrato || null,
       Criticidade: this.form.Criticidade || null,
       Origem: this.origemAtual,
+      // Sem pedido não há descrição nem resposta (o servidor recusa).
+      EsclarecimentoSolicitadoEm: this.form.EsclarecimentoSolicitadoEm || null,
+      EsclarecimentoDescricao: this.form.EsclarecimentoSolicitadoEm
+        ? this.texto(this.form.EsclarecimentoDescricao) : null,
+      EsclarecimentoRespondidoEm: this.form.EsclarecimentoSolicitadoEm
+        ? (this.form.EsclarecimentoRespondidoEm || null) : null,
       Restituido: this.form.Restituido,
       RestituidoEm: this.form.Restituido ? (this.form.RestituidoEm || null) : null,
       RestituidoMotivo: this.form.Restituido ? this.texto(this.form.RestituidoMotivo) : null,

@@ -31,7 +31,17 @@
                   [ngClass]="badgeCriticidade(processo.Criticidade)">Criticidade {{ processo.Criticidade }}</span>
             <span *ngIf="processo.Origem === 'TCDF'"
                   class="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Origem TCDF</span>
+            <!-- Sinal paralelo ao trâmite: não muda a situação do processo -->
+            <span *ngIf="processo.EsclarecimentoPendente"
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+              Aguardando esclarecimento há {{ processo.DiasEsclarecimentoPendente }} dia(s)
+            </span>
           </div>
+          <p *ngIf="processo.EsclarecimentoSolicitadoEm" class="text-xs text-gray-600 mt-1">
+            Esclarecimento pedido em {{ processo.EsclarecimentoSolicitadoEm | date:'dd/MM/yyyy':'UTC' }}<span
+            *ngIf="processo.EsclarecimentoRespondidoEm">, respondido em
+            {{ processo.EsclarecimentoRespondidoEm | date:'dd/MM/yyyy':'UTC' }}</span>.
+          </p>
           <p *ngIf="processo.DataAssinaturaContrato" class="text-xs text-gray-600 mt-1">
             Contrato assinado em {{ processo.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}.
           </p>

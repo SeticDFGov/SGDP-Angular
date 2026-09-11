@@ -159,6 +159,11 @@ export interface CtrProcessoForm {
   Criticidade?: string | null;
   /** Opcional no DTO: vazia = "Órgão comunicante". */
   Origem?: string | null;
+  /** Pedido de esclarecimento ao órgão: a data exige a descrição. */
+  EsclarecimentoSolicitadoEm?: string | null;
+  EsclarecimentoDescricao?: string | null;
+  /** Resposta do órgão: exige o pedido e não pode ser anterior a ele. */
+  EsclarecimentoRespondidoEm?: string | null;
   Restituido: boolean;
   RestituidoEm?: string | null;
   RestituidoMotivo?: string | null;
@@ -172,6 +177,12 @@ export interface CtrProcesso extends CtrProcessoForm {
   Situacao: string;
   /** Derivada no backend a partir da data de assinatura, nunca gravada. */
   Fase: string;
+  /**
+   * Sinal paralelo ao trâmite (não muda a situação): há pedido de
+   * esclarecimento sem resposta. Derivados no backend, nunca gravados.
+   */
+  EsclarecimentoPendente: boolean;
+  DiasEsclarecimentoPendente?: number | null;
   UltimaMovimentacao?: string | null;
   DiasSemMovimento: number;
   TotalManifestacoes: number;
@@ -211,6 +222,8 @@ export interface CtrProcessoFiltro {
   EtapaPlanejamento?: string | null;
   Criticidade?: string | null;
   Origem?: string | null;
+  /** true = só os que aguardam esclarecimento; false = só os sem pendência. */
+  EsclarecimentoPendente?: boolean | null;
   OrderBy?: string | null;
 }
 
@@ -232,6 +245,8 @@ export interface CtrManifestacaoForm {
   ComunicouControleInterno: boolean;
   DesfechoRisco?: string | null;
   PrazoRegularizacaoDias?: number | null;
+  /** O que o Tribunal apontou; vale em qualquer inciso. Não entra no despacho. */
+  PendenciasTcdf?: string | null;
   /** Um dos STATUS_TCDF; vale em qualquer inciso. Não entra no despacho. */
   StatusTcdf?: string | null;
   Observacao?: string | null;
@@ -283,6 +298,8 @@ export interface CtrPainel {
   PorSituacao: CtrContagem[];
   /** As duas fases sempre presentes, mesmo com zero. */
   PorFase: CtrContagem[];
+  /** Ativos com pedido de esclarecimento ainda sem resposta. */
+  TotalEsclarecimentoPendente: number;
   PorCategoria: CtrContagem[];
   PorOrgao: CtrContagem[];
   TemposMedios: CtrTemposMedios;

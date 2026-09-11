@@ -212,6 +212,9 @@ export class CtrManifestacoesComponent implements OnInit {
   buscarProcessos(): void {
     const termo = this.buscaProcesso.trim();
     if (!termo) return;
+    // Com o cadastro do TCDF aberto a lista de resultados nem aparece: buscar
+    // ali não produziria nada visível.
+    if (this.cadastroTcdfAberto) return;
     this.buscandoProcessos = true;
     this.processoService.listar({ Filtro: termo, Page: 1, PageSize: 20 }).subscribe({
       next: pagina => {
@@ -247,9 +250,13 @@ export class CtrManifestacoesComponent implements OnInit {
   abrirCadastroTcdf(): void {
     this.cadastroTcdfAberto = true;
     if (this.carregouSiglas) return;
-    this.carregouSiglas = true;
     this.processoService.listarSiglas().subscribe({
-      next: siglas => this.siglas = siglas,
+      // Só marca no sucesso: falhando, abrir de novo tenta de novo (o
+      // autocompletar de siglas é conveniência, não bloqueia o cadastro).
+      next: siglas => {
+        this.siglas = siglas;
+        this.carregouSiglas = true;
+      },
       error: () => this.siglas = []
     });
   }

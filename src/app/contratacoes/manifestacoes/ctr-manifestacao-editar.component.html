@@ -36,6 +36,14 @@
         </div>
       </div>
 
+      <!-- Registro interno: não entra no despacho -->
+      <div *ngIf="manifestacao.PendenciasTcdf"
+           class="mt-4 border-l-4 border-amber-400 bg-amber-50 p-3 rounded-r-md">
+        <p class="text-xs font-semibold text-amber-900 mb-1">Pendências identificadas pelo TCDF</p>
+        <p class="text-sm text-gray-800 whitespace-pre-line">{{ manifestacao.PendenciasTcdf }}</p>
+        <p class="text-xs text-gray-400 italic mt-1">Registro interno da equipe: não entra no texto do despacho.</p>
+      </div>
+
       <div class="mt-4 flex items-center gap-3 flex-wrap">
         <button (click)="abrirModalPdf()"
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">

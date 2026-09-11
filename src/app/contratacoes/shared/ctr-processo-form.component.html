@@ -151,6 +151,44 @@ das datas preenchidas precisa respeitar o caminho SGDI → SUBGD → UGTIC → G
   </div>
 </div>
 
+<!-- Esclarecimentos: sinal paralelo ao trâmite, não é etapa -->
+<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Esclarecimentos ao órgão comunicante</h3>
+<p class="text-xs text-gray-400 italic mb-3">Quando a SGDI pede esclarecimentos ao órgão, registre aqui. Enquanto não
+houver a data da resposta, o processo aparece sinalizado na lista como aguardando esclarecimento. A situação do trâmite
+não muda por causa disso.</p>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div>
+    <label class="block text-sm font-semibold mb-1">Pedido de esclarecimento em</label>
+    <input type="date" [ngModel]="form.EsclarecimentoSolicitadoEm" name="ctr-esclarecimento-em"
+           (ngModelChange)="aoTrocarEsclarecimentoSolicitado($event)"
+           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <p class="text-xs text-gray-400 italic mt-1">Limpar esta data apaga o que foi pedido e a data da resposta.</p>
+  </div>
+
+  <div class="md:col-span-2">
+    <label class="block text-sm font-semibold mb-1">O que foi pedido
+      <span *ngIf="form.EsclarecimentoSolicitadoEm" class="text-red-600">*</span>
+    </label>
+    <textarea rows="2" [(ngModel)]="form.EsclarecimentoDescricao" name="ctr-esclarecimento-descricao"
+              [disabled]="!form.EsclarecimentoSolicitadoEm"
+              placeholder="Que informação foi solicitada ao órgão comunicante."
+              class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+              [class.border-red-500]="submetido && errEsclarecimentoDescricao"
+              [class.bg-red-50]="submetido && errEsclarecimentoDescricao"
+              [class.border-gray-300]="!(submetido && errEsclarecimentoDescricao)"></textarea>
+    <p *ngIf="submetido && errEsclarecimentoDescricao" class="text-xs text-red-600 mt-1">{{ errEsclarecimentoDescricao }}</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-semibold mb-1">Resposta do órgão em</label>
+    <input type="date" [(ngModel)]="form.EsclarecimentoRespondidoEm" name="ctr-esclarecimento-resposta"
+           [disabled]="!form.EsclarecimentoSolicitadoEm"
+           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
+    <p class="text-xs text-gray-400 italic mt-1">Preenchida, a sinalização sai da lista. Não pode ser anterior ao pedido.</p>
+  </div>
+</div>
+
 <!-- Restituição -->
 <h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Restituição ao órgão</h3>
 <label class="flex items-center gap-2 text-sm mb-3">

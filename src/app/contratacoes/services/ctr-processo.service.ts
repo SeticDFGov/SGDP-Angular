@@ -52,6 +52,7 @@ export class CtrProcessoService {
     acrescentar('EtapaPlanejamento', filtro.EtapaPlanejamento);
     acrescentar('Criticidade', filtro.Criticidade);
     acrescentar('Origem', filtro.Origem);
+    acrescentar('EsclarecimentoPendente', filtro.EsclarecimentoPendente);
     acrescentar('OrderBy', filtro.OrderBy);
     return params;
   }
