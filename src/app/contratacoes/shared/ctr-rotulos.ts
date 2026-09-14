@@ -1,9 +1,11 @@
 /**
  * Cores e rótulos das telas do módulo Análises de Contratações.
  *
- * Só apresentação: a situação do processo e o estágio da manifestação são
- * derivados no backend (nunca gravados) e chegam prontos nos DTOs.
+ * Só apresentação: a situação do processo, a fase da contratação e o estágio da
+ * manifestação são derivados no backend (nunca gravados) e chegam prontos nos
+ * DTOs.
  */
+import { ETAPAS_PLANEJAMENTO } from '../../../api/contratacoes/interface';
 
 /** Badge da situação derivada do processo. */
 export function badgeSituacao(situacao: string | null | undefined): string {
@@ -18,7 +20,7 @@ export function badgeSituacao(situacao: string | null | undefined): string {
   }
 }
 
-/** Badge do estágio da manifestação ao TCDF. */
+/** Badge do estágio da manifestação ao TCDF (inclui os status do Tribunal). */
 export function badgeEstagio(estagio: string | null | undefined): string {
   switch (estagio) {
     case 'Alinhada': return 'bg-green-100 text-green-800';
@@ -27,8 +29,45 @@ export function badgeEstagio(estagio: string | null | undefined): string {
     case 'Aguardando resposta': return 'bg-yellow-100 text-yellow-800';
     case 'Não pode prosseguir': return 'bg-red-100 text-red-800';
     case 'Notificação para regularizar': return 'bg-amber-100 text-amber-800';
+    // Os dois status do TCDF têm precedência no cálculo do estágio.
+    case 'Suspenso por irregularidades': return 'bg-red-100 text-red-800';
+    case 'Edital revogado': return 'bg-amber-100 text-amber-800';
     default: return 'bg-gray-100 text-gray-600';
   }
+}
+
+/** Badge do status do processo no TCDF (fato do Tribunal, não da análise). */
+export function badgeStatusTcdf(status: string | null | undefined): string {
+  switch (status) {
+    case 'Suspenso por irregularidades': return 'bg-red-100 text-red-800';
+    case 'Edital revogado': return 'bg-amber-100 text-amber-800';
+    default: return 'bg-gray-100 text-gray-600';
+  }
+}
+
+/** Badge da fase derivada da contratação. */
+export function badgeFase(fase: string | null | undefined): string {
+  switch (fase) {
+    case 'Execução': return 'bg-green-100 text-green-800';
+    case 'Planejamento': return 'bg-slate-100 text-slate-700';
+    default: return 'bg-gray-100 text-gray-600';
+  }
+}
+
+/** Badge da criticidade da contratação (art. 11 da IN SGDI nº 1/2026). */
+export function badgeCriticidade(criticidade: string | null | undefined): string {
+  switch (criticidade) {
+    case 'Alta': return 'bg-red-100 text-red-800';
+    case 'Média': return 'bg-amber-100 text-amber-800';
+    case 'Baixa': return 'bg-green-100 text-green-800';
+    default: return 'bg-gray-100 text-gray-600';
+  }
+}
+
+/** Nome por extenso da etapa do planejamento; a sigla é o que fica gravado. */
+export function rotuloEtapaPlanejamento(etapa: string | null | undefined): string {
+  const achada = ETAPAS_PLANEJAMENTO.find(e => e.valor === etapa);
+  return achada ? achada.rotulo : (etapa || '');
 }
 
 /** Realce do tempo parado: quanto mais dias, mais forte. */

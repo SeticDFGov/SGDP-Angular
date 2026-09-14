@@ -1,7 +1,15 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CATEGORIAS_OBJETO, CtrProcessoForm, REGEX_NUMERO_SEI } from '../../../api/contratacoes/interface';
+import {
+  CATEGORIAS_OBJETO,
+  CRITICIDADES,
+  CtrProcessoForm,
+  ETAPAS_PLANEJAMENTO,
+  ORIGEM_PADRAO,
+  ORIGEM_TCDF,
+  REGEX_NUMERO_SEI
+} from '../../../api/contratacoes/interface';
 
 /** Os cinco checkpoints, na ordem cronológica em que o processo tramita. */
 interface CampoCheckpoint {
@@ -34,18 +42,33 @@ export class CtrProcessoFormComponent implements OnChanges {
   @Input() rotuloSalvar = 'Salvar processo';
   /** Rota de "Cancelar"; sem ela o botão não aparece. */
   @Input() rotaCancelar: string | null = null;
+  /**
+   * Modo compacto: o formulário é usado embutido em outra tela (o cadastro do
+   * processo do TCDF, dentro da nova manifestação). Fica só o essencial —
+   * identificação, fase e observação: processo de origem TCDF costuma nascer
+   * sem nenhuma data de trâmite e sem restituição.
+   */
+  @Input() compacto = false;
+  /**
+   * Origem imposta pela tela que embute o formulário (hoje só `TCDF`). Com ela
+   * o campo não é escolhido pelo usuário: é fixado e explicado num hint.
+   */
+  @Input() origemFixa: string | null = null;
 
   @Output() salvar = new EventEmitter<CtrProcessoForm>();
   @Output() cancelar = new EventEmitter<void>();
 
   categorias = CATEGORIAS_OBJETO;
+  criticidades = CRITICIDADES;
+  etapasPlanejamento = ETAPAS_PLANEJAMENTO;
+  readonly origemTcdf = ORIGEM_TCDF;
 
   readonly checkpoints: CampoCheckpoint[] = [
     { campo: 'ChegadaSgdi', rotulo: 'Chegada da análise · SGDI', ajuda: 'Quando o processo chegou para análise na SGDI.' },
     { campo: 'ChegadaSubgd', rotulo: 'Chegada da análise · SUBGD', ajuda: 'Quando seguiu para a SUBGD.' },
     { campo: 'ChegadaUgtic', rotulo: 'Chegada da análise · UGTIC', ajuda: 'Quando seguiu para a UGTIC. Marque "não se aplica" se a etapa foi pulada.' },
     { campo: 'RetornoGabSgdi', rotulo: 'Retorno ao Gab SGDI', ajuda: 'Quando o processo voltou ao gabinete da SGDI.' },
-    { campo: 'RetornoOrgao', rotulo: 'Retorno ao órgão comunicante', ajuda: 'Quando o processo foi devolvido ao órgão de origem.' }
+    { campo: 'RetornoOrgao', rotulo: 'Retorno ao órgão comunicante', ajuda: 'Quando o processo foi devolvido ao órgão de origem. Marque "não se aplica" quando o processo não é devolvido.' }
   ];
 
   form: CtrProcessoForm = CtrProcessoFormComponent.vazio();
@@ -56,7 +79,10 @@ export class CtrProcessoFormComponent implements OnChanges {
       NumeroProcesso: '', OrgaoNome: '', OrgaoSigla: '', ComplementoArea: null,
       Objeto: '', CategoriaObjeto: 'Sem objeto / Indefinido',
       ChegadaSgdi: null, ChegadaSubgd: null, ChegadaUgtic: null, UgticNaoSeAplica: false,
-      RetornoGabSgdi: null, RetornoOrgao: null,
+      RetornoGabSgdi: null, RetornoOrgao: null, RetornoOrgaoNaoSeAplica: false,
+      EtapaPlanejamento: null, DataAssinaturaContrato: null, Criticidade: null,
+      Origem: ORIGEM_PADRAO,
+      EsclarecimentoSolicitadoEm: null, EsclarecimentoDescricao: null, EsclarecimentoRespondidoEm: null,
       Restituido: false, RestituidoEm: null, RestituidoMotivo: null, Observacao: null
     };
   }
@@ -68,6 +94,14 @@ export class CtrProcessoFormComponent implements OnChanges {
         ? { ...CtrProcessoFormComponent.vazio(), ...this.valor }
         : CtrProcessoFormComponent.vazio();
     }
+    if (changes['origemFixa'] && this.origemFixa) {
+      this.form.Origem = this.origemFixa;
+    }
+  }
+
+  /** Origem que vai no envio: a imposta pela tela ou a que já estava gravada. */
+  get origemAtual(): string {
+    return this.origemFixa ?? this.form.Origem ?? ORIGEM_PADRAO;
   }
 
   // ── Máscara do número SEI ─────────────────────────────────────────────────
@@ -141,6 +175,29 @@ export class CtrProcessoFormComponent implements OnChanges {
     if (marcado) this.form.ChegadaUgtic = null;
   }
 
+  /**
+   * Mesma simetria no retorno ao órgão: nem todo processo é devolvido, e marcar
+   * "não se aplica" com a data preenchida é recusado pelo servidor. Desmarcar
+   * não apaga nada — quem decide é o usuário.
+   */
+  aoMarcarRetornoOrgaoNaoSeAplica(marcado: boolean): void {
+    this.form.RetornoOrgaoNaoSeAplica = marcado;
+    if (marcado) this.form.RetornoOrgao = null;
+  }
+
+  /**
+   * Limpar a data do pedido anula a descrição e a resposta — mesma
+   * normalização da restituição, e o que o CHECK do servidor exige (resposta
+   * sem pedido não existe).
+   */
+  aoTrocarEsclarecimentoSolicitado(valor: string): void {
+    this.form.EsclarecimentoSolicitadoEm = valor || null;
+    if (!this.form.EsclarecimentoSolicitadoEm) {
+      this.form.EsclarecimentoDescricao = null;
+      this.form.EsclarecimentoRespondidoEm = null;
+    }
+  }
+
   aoMarcarRestituido(marcado: boolean): void {
     this.form.Restituido = marcado;
     if (!marcado) {
@@ -155,6 +212,9 @@ export class CtrProcessoFormComponent implements OnChanges {
 
   definirCheckpoint(campo: CampoCheckpoint['campo'], valor: string): void {
     this.form[campo] = valor || null;
+    // Informar a data do retorno ao órgão desmarca o "não se aplica", como o
+    // servidor faz: os dois juntos são recusados.
+    if (campo === 'RetornoOrgao' && valor) this.form.RetornoOrgaoNaoSeAplica = false;
   }
 
   // ── Validações ────────────────────────────────────────────────────────────
@@ -187,6 +247,14 @@ export class CtrProcessoFormComponent implements OnChanges {
 
   get errCategoria(): string | null {
     return (this.form.CategoriaObjeto || '').trim() ? null : 'Escolha a categoria do objeto.';
+  }
+
+  /** A data do pedido exige dizer o que foi pedido (CHECK do servidor). */
+  get errEsclarecimentoDescricao(): string | null {
+    if (!this.form.EsclarecimentoSolicitadoEm) return null;
+    return (this.form.EsclarecimentoDescricao || '').trim()
+      ? null
+      : 'Descreva o que foi pedido ao órgão.';
   }
 
   get errRestituidoEm(): string | null {
@@ -238,6 +306,30 @@ export class CtrProcessoFormComponent implements OnChanges {
       erros.push('Na UGTIC, marque "não se aplica" ou informe a data — não os dois.');
     }
 
+    if (this.form.RetornoOrgaoNaoSeAplica && this.form.RetornoOrgao) {
+      erros.push('No retorno ao órgão, marque "não se aplica" ou informe a data — não os dois.');
+    }
+
+    // A assinatura NÃO entra na cronologia do trâmite: o TCDF também analisa
+    // contrato já assinado, então assinatura anterior à chegada é legítima.
+    // A única regra é não ser futura.
+    if (this.form.DataAssinaturaContrato && this.form.DataAssinaturaContrato > hoje) {
+      erros.push('A data de assinatura do contrato está no futuro.');
+    }
+
+    // Esclarecimento: sinal paralelo ao trâmite, com cronologia própria.
+    const pedido = this.form.EsclarecimentoSolicitadoEm ?? null;
+    const resposta = this.form.EsclarecimentoRespondidoEm ?? null;
+    if (pedido && pedido > hoje) erros.push('A data do pedido de esclarecimento está no futuro.');
+    if (resposta) {
+      if (resposta > hoje) erros.push('A data da resposta ao esclarecimento está no futuro.');
+      if (!pedido) {
+        erros.push('Informe a data do pedido de esclarecimento antes da data da resposta.');
+      } else if (resposta < pedido) {
+        erros.push(`A resposta ao esclarecimento (${this.brasileira(resposta)}) não pode ser anterior ao pedido (${this.brasileira(pedido)}).`);
+      }
+    }
+
     return erros;
   }
 
@@ -249,6 +341,7 @@ export class CtrProcessoFormComponent implements OnChanges {
   get formValido(): boolean {
     return !this.errNumero && !this.errOrgaoNome && !this.errOrgaoSigla
       && !this.errObjeto && !this.errCategoria
+      && !this.errEsclarecimentoDescricao
       && !this.errRestituidoEm && !this.errRestituidoMotivo
       && this.errDatas.length === 0;
   }
@@ -276,7 +369,20 @@ export class CtrProcessoFormComponent implements OnChanges {
       ChegadaUgtic: this.form.UgticNaoSeAplica ? null : (this.form.ChegadaUgtic || null),
       UgticNaoSeAplica: this.form.UgticNaoSeAplica,
       RetornoGabSgdi: this.form.RetornoGabSgdi || null,
-      RetornoOrgao: this.form.RetornoOrgao || null,
+      RetornoOrgao: this.form.RetornoOrgaoNaoSeAplica ? null : (this.form.RetornoOrgao || null),
+      RetornoOrgaoNaoSeAplica: this.form.RetornoOrgaoNaoSeAplica,
+      // A etapa do planejamento continua registrada depois da assinatura: é
+      // onde o planejamento parou. Não anular.
+      EtapaPlanejamento: this.form.EtapaPlanejamento || null,
+      DataAssinaturaContrato: this.form.DataAssinaturaContrato || null,
+      Criticidade: this.form.Criticidade || null,
+      Origem: this.origemAtual,
+      // Sem pedido não há descrição nem resposta (o servidor recusa).
+      EsclarecimentoSolicitadoEm: this.form.EsclarecimentoSolicitadoEm || null,
+      EsclarecimentoDescricao: this.form.EsclarecimentoSolicitadoEm
+        ? this.texto(this.form.EsclarecimentoDescricao) : null,
+      EsclarecimentoRespondidoEm: this.form.EsclarecimentoSolicitadoEm
+        ? (this.form.EsclarecimentoRespondidoEm || null) : null,
       Restituido: this.form.Restituido,
       RestituidoEm: this.form.Restituido ? (this.form.RestituidoEm || null) : null,
       RestituidoMotivo: this.form.Restituido ? this.texto(this.form.RestituidoMotivo) : null,

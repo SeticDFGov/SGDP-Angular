@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CtrProcessoService } from '../services/ctr-processo.service';
-import { badgeSituacao, corDiasSemMovimento } from '../shared/ctr-rotulos';
+import { badgeFase, badgeSituacao, corDiasSemMovimento } from '../shared/ctr-rotulos';
 import { CtrPainel } from '../../../api/contratacoes/interface';
 
 /**
@@ -29,6 +29,7 @@ export class CtrPainelComponent implements OnInit {
   limiteDias = 15;
 
   badgeSituacao = badgeSituacao;
+  badgeFase = badgeFase;
   corDiasSemMovimento = corDiasSemMovimento;
 
   constructor(private processoService: CtrProcessoService) {}

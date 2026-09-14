@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { CtrManifestacaoService } from '../services/ctr-manifestacao.service';
 import { CtrManifestacaoFormComponent } from '../shared/ctr-manifestacao-form.component';
-import { badgeEstagio } from '../shared/ctr-rotulos';
+import { badgeCriticidade, badgeEstagio, badgeStatusTcdf } from '../shared/ctr-rotulos';
 import { CtrManifestacao, CtrManifestacaoForm } from '../../../api/contratacoes/interface';
 
 /**
@@ -37,6 +37,8 @@ export class CtrManifestacaoEditarComponent implements OnInit {
   submetidoPdf = false;
 
   badgeEstagio = badgeEstagio;
+  badgeStatusTcdf = badgeStatusTcdf;
+  badgeCriticidade = badgeCriticidade;
 
   constructor(
     private route: ActivatedRoute,
@@ -77,12 +79,13 @@ export class CtrManifestacaoEditarComponent implements OnInit {
       DataOficio: manifestacao.DataOficio,
       SituacaoPortfolio: manifestacao.SituacaoPortfolio,
       ComunicadaDesde: manifestacao.ComunicadaDesde ?? null,
-      Criticidade: manifestacao.Criticidade ?? null,
       ResultadoAnalise: manifestacao.ResultadoAnalise ?? null,
       RecomendouSuspensao: manifestacao.RecomendouSuspensao,
       ComunicouControleInterno: manifestacao.ComunicouControleInterno,
       DesfechoRisco: manifestacao.DesfechoRisco ?? null,
       PrazoRegularizacaoDias: manifestacao.PrazoRegularizacaoDias ?? null,
+      PendenciasTcdf: manifestacao.PendenciasTcdf ?? null,
+      StatusTcdf: manifestacao.StatusTcdf ?? null,
       Observacao: manifestacao.Observacao ?? null
     };
   }

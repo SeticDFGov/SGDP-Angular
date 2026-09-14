@@ -67,6 +67,47 @@
         </select>
       </div>
       <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Fase</label>
+        <select [(ngModel)]="filtro.Fase" name="ctr-f-fase"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Todas</option>
+          <option *ngFor="let f of fases" [value]="f">{{ f }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Etapa do planejamento</label>
+        <select [(ngModel)]="filtro.EtapaPlanejamento" name="ctr-f-etapa-planejamento"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Todas</option>
+          <option *ngFor="let e of etapasPlanejamento" [value]="e.valor">{{ e.valor }} — {{ e.rotulo }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Criticidade</label>
+        <select [(ngModel)]="filtro.Criticidade" name="ctr-f-criticidade"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Todas</option>
+          <option *ngFor="let c of criticidades" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Origem</label>
+        <select [(ngModel)]="filtro.Origem" name="ctr-f-origem"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Todas</option>
+          <option *ngFor="let o of origens" [value]="o">{{ o }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Esclarecimento</label>
+        <select [(ngModel)]="filtro.EsclarecimentoPendente" name="ctr-f-esclarecimento"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option [ngValue]="null">Tanto faz</option>
+          <option [ngValue]="true">Só aguardando esclarecimento</option>
+          <option [ngValue]="false">Sem esclarecimento pendente</option>
+        </select>
+      </div>
+      <div>
         <label class="block text-xs font-semibold text-gray-600 mb-1">Chegada na SGDI de</label>
         <input type="date" [(ngModel)]="filtro.De" name="ctr-f-de"
                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -104,6 +145,7 @@
               <th class="px-3 py-2">Processo</th>
               <th class="px-3 py-2">Órgão</th>
               <th class="px-3 py-2">Objeto</th>
+              <th class="px-3 py-2">Fase e criticidade</th>
               <th class="px-3 py-2">Situação</th>
               <th class="px-3 py-2">Última movimentação</th>
               <th class="px-3 py-2">Parado há</th>
@@ -116,6 +158,9 @@
               <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{{ p.NumeroProcesso }}</td>
               <td class="px-3 py-2">
                 <span class="font-semibold">{{ p.OrgaoSigla }}</span>
+                <span *ngIf="p.Origem === 'TCDF'"
+                      class="ml-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800"
+                      title="Processo cadastrado a partir de análise interna do Tribunal">TCDF</span>
                 <span class="block text-xs text-gray-500">{{ p.OrgaoNome }}</span>
                 <span *ngIf="p.ComplementoArea" class="block text-xs text-gray-400 italic">{{ p.ComplementoArea }}</span>
               </td>
@@ -125,9 +170,31 @@
               </td>
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeFase(p.Fase)">{{ p.Fase }}</span>
+                <span *ngIf="p.EtapaPlanejamento" class="block text-xs text-gray-500 mt-1"
+                      [title]="rotuloEtapaPlanejamento(p.EtapaPlanejamento)">{{ p.EtapaPlanejamento }}</span>
+                <span *ngIf="p.Criticidade" class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeCriticidade(p.Criticidade)">{{ p.Criticidade }}</span>
+                <span *ngIf="!p.Criticidade" class="block text-xs text-gray-400 italic mt-1">sem criticidade</span>
+              </td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeSituacao(p.Situacao)">{{ p.Situacao }}</span>
                 <span *ngIf="p.Restituido && p.RestituidoEm" class="block text-xs text-gray-500 mt-1">
                   em {{ p.RestituidoEm | date:'dd/MM/yyyy':'UTC' }}
+                </span>
+                <!-- Sinal paralelo ao trâmite: a situação acima não muda -->
+                <span *ngIf="p.EsclarecimentoPendente"
+                      class="block w-fit mt-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"
+                      [title]="p.EsclarecimentoDescricao || ''">
+                  Aguardando esclarecimento há {{ p.DiasEsclarecimentoPendente }} dia(s)
+                </span>
+                <!-- No lugar da data do retorno ao órgão, quando a etapa é dispensada -->
+                <span *ngIf="p.RetornoOrgaoNaoSeAplica" class="block text-xs text-gray-500 mt-1">
+                  retorno ao órgão: não se aplica
+                </span>
+                <span *ngIf="!p.RetornoOrgaoNaoSeAplica && p.RetornoOrgao" class="block text-xs text-gray-500 mt-1">
+                  retorno ao órgão: {{ p.RetornoOrgao | date:'dd/MM/yyyy':'UTC' }}
                 </span>
               </td>
               <td class="px-3 py-2 whitespace-nowrap">
@@ -195,13 +262,14 @@
 
       <label class="block text-sm font-semibold mb-1">Data</label>
       <input type="date" [(ngModel)]="checkpointData" name="ctr-cp-data"
-             [disabled]="checkpointLimpar || (etapaEhUgtic && checkpointNaoSeAplica)"
+             [disabled]="checkpointLimpar || (etapaAceitaNaoSeAplica && checkpointNaoSeAplica)"
              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
       <p class="text-xs text-gray-400 italic mt-1">Vem preenchida com a data de hoje; troque se a chegada foi em outro dia.</p>
 
-      <label *ngIf="etapaEhUgtic" class="flex items-center gap-2 mt-3 text-sm">
-        <input type="checkbox" [(ngModel)]="checkpointNaoSeAplica" name="ctr-cp-na" class="rounded border-gray-300">
-        <span>Não se aplica (etapa pulada de propósito)</span>
+      <label *ngIf="etapaAceitaNaoSeAplica" class="flex items-center gap-2 mt-3 text-sm">
+        <input type="checkbox" [ngModel]="checkpointNaoSeAplica" name="ctr-cp-na"
+               (ngModelChange)="aoMarcarCheckpointNaoSeAplica($event)" class="rounded border-gray-300">
+        <span>{{ rotuloNaoSeAplica }}</span>
       </label>
 
       <label class="flex items-center gap-2 mt-2 text-sm">
