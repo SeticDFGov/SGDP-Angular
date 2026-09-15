@@ -2,7 +2,7 @@
 
   <!-- Contexto -->
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
-    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>. Esta é a área de acompanhamento das análises de contratações de TIC
+    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>. Esta é a área de Supervisão Contínua das Contratações de TIC
     da SGDI. Cada linha é um processo SEI que chega para análise e percorre as instâncias
     SGDI → SUBGD → UGTIC, retornando ao gabinete e ao órgão comunicante.
   </div>
@@ -91,6 +91,27 @@
         </select>
       </div>
       <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Risco classificado</label>
+        <select [(ngModel)]="filtro.RiscoClassificado" name="ctr-f-risco-classificado"
+                title="Resultado dos quesitos da classificação de riscos do processo"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Todos</option>
+          <option *ngFor="let r of riscosClassificados" [value]="r">{{ r }}</option>
+          <option [value]="naoClassificado">{{ naoClassificado }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Nível dos riscos declarados</label>
+        <select [(ngModel)]="filtro.NivelRiscoDeclarado" name="ctr-f-nivel-risco"
+                title="Pelo maior nível entre os riscos declarados do processo"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Todos</option>
+          <option *ngFor="let n of niveisRisco" [value]="n">Maior nível: {{ n }}</option>
+          <option [value]="semRiscosDeclarados">{{ semRiscosDeclarados }}</option>
+        </select>
+        <p class="text-xs text-gray-400 italic mt-1">"Sem riscos declarados" inclui os processos ainda não classificados.</p>
+      </div>
+      <div>
         <label class="block text-xs font-semibold text-gray-600 mb-1">Origem</label>
         <select [(ngModel)]="filtro.Origem" name="ctr-f-origem"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -146,6 +167,7 @@
               <th class="px-3 py-2">Órgão</th>
               <th class="px-3 py-2">Objeto</th>
               <th class="px-3 py-2">Fase e criticidade</th>
+              <th class="px-3 py-2">Riscos</th>
               <th class="px-3 py-2">Situação</th>
               <th class="px-3 py-2">Última movimentação</th>
               <th class="px-3 py-2">Parado há</th>
@@ -176,6 +198,18 @@
                 <span *ngIf="p.Criticidade" class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeCriticidade(p.Criticidade)">{{ p.Criticidade }}</span>
                 <span *ngIf="!p.Criticidade" class="block text-xs text-gray-400 italic mt-1">sem criticidade</span>
+              </td>
+              <!-- Classificação de riscos: as duas escalas, independentes da criticidade -->
+              <td class="px-3 py-2">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeRiscoClassificado(p.RiscoClassificado)">{{ p.RiscoClassificado || naoClassificado }}</span>
+                <span *ngIf="p.NivelMaximoRiscoDeclarado"
+                      class="block w-fit mt-1 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeNivelRisco(p.NivelMaximoRiscoDeclarado)"
+                      title="Maior nível entre os riscos declarados, pelo mapa de riscos da CGDF">Maior nível: {{ p.NivelMaximoRiscoDeclarado }}</span>
+                <!-- Nulo também nos não classificados: mesma semântica do filtro e do painel -->
+                <span *ngIf="!p.NivelMaximoRiscoDeclarado"
+                      class="block text-xs text-gray-400 italic mt-1">{{ semRiscosDeclarados }}</span>
               </td>
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"

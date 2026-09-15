@@ -121,6 +121,11 @@ planejamento continua registrada, porque é onde o planejamento parou.</p>
   </div>
 </div>
 
+<!-- Classificação de riscos: fora do modo compacto (fica para a página do processo) -->
+<app-ctr-classificacao-risco *ngIf="!compacto" [edicao]="risco"></app-ctr-classificacao-risco>
+<p *ngIf="compacto" class="text-xs text-gray-400 italic mt-4">A classificação de riscos fica para a página do processo,
+depois do cadastro.</p>
+
 <!-- Tramitação -->
 <ng-container *ngIf="!compacto">
 <h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Tramitação</h3>
@@ -240,12 +245,15 @@ do processo, quando houver — o cadastro do TCDF normalmente começa sem elas.<
   </ul>
 </div>
 
-<div class="mt-5 flex items-center gap-3">
-  <button (click)="enviar()" [disabled]="salvando"
+<div class="mt-5 flex items-center gap-3 flex-wrap">
+  <!-- Com a classificação de riscos aberta, o envio espera ela ficar completa -->
+  <button (click)="enviar()" [disabled]="salvando || !classificacaoPronta"
           class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
     {{ salvando ? 'Salvando...' : rotuloSalvar }}
   </button>
   <button *ngIf="rotaCancelar" type="button" (click)="cancelar.emit()"
           class="text-sm text-blue-700 hover:underline">Cancelar</button>
-  <span *ngIf="submetido && !formValido" class="text-xs text-gray-400 italic">Há campos obrigatórios ou datas para corrigir acima.</span>
+  <span *ngIf="faltaNaClassificacao" class="text-xs text-gray-400 italic">Classificação de riscos incompleta.
+    {{ faltaNaClassificacao }}</span>
+  <span *ngIf="!faltaNaClassificacao && submetido && !formValido" class="text-xs text-gray-400 italic">Há campos obrigatórios ou datas para corrigir acima.</span>
 </div>

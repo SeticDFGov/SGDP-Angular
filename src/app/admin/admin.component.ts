@@ -17,7 +17,7 @@ interface User {
   Email: string;
   Perfil: string;
   PapelPgia?: string | null;
-  // Papel do módulo Análises de Contratações (vem do /auth/usuarios)
+  // Papel do módulo Supervisão Contínua das Contratações (vem do /auth/usuarios)
   PapelContratacoes?: string | null;
   Unidade: {
     id: string;
@@ -86,11 +86,12 @@ export class AdminComponent implements OnInit {
   vinculoUnidadeId: string | null = null;
   salvandoVinculo = false;
 
-  // Análises de Contratações — papel do módulo interno da SGDI
+  // Supervisão Contínua das Contratações — papel do módulo interno da SGDI
   // A constante vem do AuthService (já eager): importar o interface.ts do
   // módulo aqui traria as constantes de domínio dele para o bundle inicial.
+  // Só o rótulo mudou com o nome do módulo; o valor continua `ctr_analise`.
   papeisContratacoes: string[] = [PapeisContratacoes.Analise];
-  rotulosPapelContratacoes: Record<string, string> = { [PapeisContratacoes.Analise]: 'Análise de contratações' };
+  rotulosPapelContratacoes: Record<string, string> = { [PapeisContratacoes.Analise]: 'Supervisão contínua das contratações' };
   selectedPapeisContratacoes: { [key: string]: string } = {};
 
   private URL_AUTH_SERVICE = `${SERVICE_API_URL}/api`;
@@ -282,7 +283,7 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  // ── Análises de Contratações: papel do módulo ─────────────────────────────
+  // ── Supervisão Contínua das Contratações: papel do módulo ─────────────────
 
   /** Rótulo amigável do papel; valor cru como reserva. */
   rotuloPapelContratacoes(papel: string | null | undefined): string {
@@ -292,8 +293,8 @@ export class AdminComponent implements OnInit {
 
   atribuirPapelContratacoes(email: string, papel: string): void {
     this.ctrAdminService.atribuirPapel({ Email: email, PapelContratacoes: papel || null }).subscribe({
-      next: () => { this.showMessage('Papel de Análises de Contratações atualizado!', 'success'); this.loadUsers(); },
-      error: () => this.showMessage('Erro ao atualizar o papel de Análises de Contratações', 'error')
+      next: () => { this.showMessage('Papel de Supervisão Contínua das Contratações atualizado!', 'success'); this.loadUsers(); },
+      error: () => this.showMessage('Erro ao atualizar o papel de Supervisão Contínua das Contratações', 'error')
     });
   }
 

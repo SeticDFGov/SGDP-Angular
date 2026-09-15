@@ -6,7 +6,7 @@ import { AuthService } from '../../auth/services/auth';
 import { AtribuirPapelContratacoesForm } from '../../../api/contratacoes/interface';
 
 /**
- * Papel do módulo Análises de Contratações (`api/contratacoes/admin`), no mesmo
+ * Papel do módulo Supervisão Contínua das Contratações (`api/contratacoes/admin`), no mesmo
  * desenho do `PgiaAdminService`. Só o `admin` do SGDP chama estes endpoints; o
  * `Perfil` do usuário nunca é tocado por aqui.
  */

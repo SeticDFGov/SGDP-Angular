@@ -33,9 +33,9 @@ export class Sidebar implements OnInit {
   /** O usuário está numa tela da área /pgia. */
   dentroPgia: boolean = false;
 
-  /** Árvore do módulo Análises de Contratações (vazia sem acesso). */
+  /** Árvore do módulo Supervisão Contínua das Contratações (vazia sem acesso). */
   arvoreCtr: ItemNavPgia[] = [];
-  /** Grupo "Análises de Contratações" aberto no menu. */
+  /** Grupo "Supervisão Contínua das Contratações" aberto no menu. */
   grupoCtrAberto: boolean = false;
   /** O usuário está numa tela da área /analises. */
   dentroCtr: boolean = false;

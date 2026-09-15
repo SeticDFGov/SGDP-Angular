@@ -1,0 +1,231 @@
+<!-- Classificação de riscos do processo: quesitos dos arts. 15 a 17 do Decreto nº 48.901/2026 (fontes do PGIA) e
+     riscos da contratação no mapa completo da CGDF. Citações em texto simples: citaDecreto não entra neste módulo. -->
+<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Classificação de riscos</h3>
+<p class="text-xs text-gray-400 italic mb-3">Os mesmos quesitos da classificação de riscos de sistemas de IA (arts. 15 a 17
+do Decreto nº 48.901/2026), com os pesos, e os riscos próprios da contratação no mapa de riscos da CGDF. É independente da
+criticidade: uma não deriva da outra. Fica fora do CSV e do despacho em PDF.</p>
+
+<!-- ── Sem classificação (ou com a gravada removida, esperando o salvamento) ── -->
+<div *ngIf="!edicao.aberta" class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+            [ngClass]="badgeRiscoClassificado(null)">{{ naoClassificado }}</span>
+      <span *ngIf="!edicao.removida" class="text-sm text-gray-600">Este processo ainda não tem classificação de riscos.</span>
+      <span *ngIf="edicao.removida" class="text-sm text-gray-600">A classificação será removida ao salvar o processo.</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button *ngIf="edicao.removida" type="button" (click)="desfazerRemocao()"
+              class="text-sm text-blue-700 hover:underline">Desfazer a remoção</button>
+      <button type="button" (click)="classificar()"
+              class="text-sm text-blue-700 border border-blue-600 bg-white rounded px-3 py-1 hover:bg-blue-50">
+        Classificar riscos
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="edicao.removida && edicao.gravada"
+       class="mt-3 border-l-4 border-amber-400 bg-amber-50 p-3 rounded-r-md text-sm text-amber-900">
+    A classificação gravada (<strong>{{ edicao.gravada.RiscoClassificado }}</strong><span
+    *ngIf="edicao.gravada.EnquadramentoRisco">, {{ edicao.gravada.EnquadramentoRisco }}</span>) e os riscos declarados
+    serão apagados quando você salvar o processo.
+  </div>
+
+  <p *ngIf="!edicao.removida" class="text-xs text-gray-400 italic mt-2">A classificação é opcional. Depois de aberta, o
+  processo só é salvo com ela completa — ou descartada.</p>
+</div>
+
+<!-- ── Classificação aberta ─────────────────────────────────────────────── -->
+<div *ngIf="edicao.aberta" class="border border-gray-200 rounded-lg p-4">
+
+  <!-- Resumo ao vivo: as duas escalas lado a lado, sem mistura -->
+  <div class="border-l-4 border-blue-400 bg-blue-50 p-3 rounded-r-md text-sm text-blue-950 mb-4">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div class="leading-relaxed">
+        <p>
+          Risco classificado:
+          <span class="px-2 py-0.5 rounded-full text-xs font-bold"
+                [ngClass]="badgeRiscoClassificado(edicao.resultado)">{{ edicao.resultado }}</span>
+          <ng-container *ngIf="edicao.enquadramento"> ({{ edicao.enquadramento }})</ng-container>
+          · pontuação {{ edicao.pontuacao }}
+          <span *ngIf="!edicao.todosRespondidos" class="text-xs text-gray-400 italic">— prévia, ainda há grupo sem resposta</span>
+        </p>
+        <p class="mt-1">
+          Maior nível entre os riscos declarados:
+          <span *ngIf="edicao.nivelMaximo" class="px-2 py-0.5 rounded-full text-xs font-bold"
+                [ngClass]="badgeNivelRisco(edicao.nivelMaximo)">{{ edicao.nivelMaximo }}</span>
+          <span *ngIf="!edicao.nivelMaximo" class="text-gray-600">nenhum risco declarado</span>
+        </p>
+      </div>
+      <button *ngIf="edicao.gravada" type="button" (click)="remover()"
+              class="text-sm text-red-700 border border-red-300 bg-white rounded px-3 py-1 hover:bg-red-50 whitespace-nowrap">
+        Remover classificação
+      </button>
+      <button *ngIf="!edicao.gravada" type="button" (click)="descartar()"
+              class="text-sm text-gray-700 border border-gray-300 bg-white rounded px-3 py-1 hover:bg-gray-50 whitespace-nowrap">
+        Descartar classificação
+      </button>
+    </div>
+
+    <p *ngIf="edicao.falta" class="text-xs font-semibold text-amber-800 mt-2">Para salvar: {{ edicao.falta }}</p>
+
+    <p *ngIf="edicao.gravada" class="text-xs text-gray-400 italic mt-2">
+      Classificada por {{ edicao.gravada.ClassificadoPor }} em {{ edicao.gravada.ClassificadoEm | date:'dd/MM/yyyy HH:mm' }}.
+    </p>
+  </div>
+
+  <!-- Três grupos de quesitos, na ordem dos artigos -->
+  <div *ngFor="let g of grupos; let gi = index"
+       class="border rounded-lg p-4 mb-4 bg-gray-50"
+       [ngClass]="edicao.grupoRespondido(gi) ? 'border-gray-200' : 'border-amber-300'">
+    <div class="flex items-start justify-between gap-3 flex-wrap mb-2">
+      <h4 class="text-sm font-semibold text-gray-900">{{ g.titulo }}</h4>
+      <span class="text-xs text-gray-500 whitespace-nowrap">subtotal {{ edicao.subtotal(gi) }}</span>
+    </div>
+
+    <label *ngFor="let q of g.quesitos; let i = index" class="flex items-start gap-2 text-sm py-1 leading-relaxed">
+      <input type="checkbox" class="mt-1"
+             [(ngModel)]="edicao.respostas[gi].marcados[i]"
+             [name]="'ctr-risco-q' + g.artigo + '-' + q.inciso"
+             [disabled]="edicao.respostas[gi].nenhuma"
+             (ngModelChange)="edicao.aoMarcarQuesito(gi)">
+      <span class="flex-1" [ngClass]="edicao.respostas[gi].nenhuma ? 'text-gray-400' : 'text-gray-900'">
+        <span class="font-semibold" [ngClass]="edicao.respostas[gi].nenhuma ? 'text-gray-400' : 'text-gray-500'">{{ q.inciso }}.</span>
+        {{ q.texto }}
+      </span>
+      <span class="text-xs font-semibold whitespace-nowrap mt-0.5"
+            [ngClass]="edicao.respostas[gi].nenhuma ? 'text-gray-400' : 'text-gray-600'">peso {{ q.peso }}</span>
+    </label>
+
+    <label class="flex items-start gap-2 text-sm py-1 mt-2 pt-2 border-t border-gray-200 leading-relaxed">
+      <input type="checkbox" class="mt-1"
+             [(ngModel)]="edicao.respostas[gi].nenhuma"
+             [name]="'ctr-risco-nenhuma-' + g.artigo"
+             (ngModelChange)="edicao.aoMarcarNenhuma(gi)">
+      <span class="font-semibold">Nenhuma das alternativas acima</span>
+    </label>
+
+    <p *ngIf="!edicao.grupoRespondido(gi)" class="text-xs text-gray-400 italic mt-2">
+      Marque as situações que se aplicam à contratação ou "Nenhuma das alternativas acima".
+    </p>
+  </div>
+
+  <!-- Riscos da contratação: escala completa da CGDF -->
+  <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+    <h4 class="text-sm font-semibold text-gray-900 mb-1">Riscos da contratação
+      <span *ngIf="edicao.riscosObrigatorios" class="text-red-600">*</span>
+    </h4>
+    <p class="text-sm text-gray-600 mb-1 leading-relaxed">Registre cada risco com a ação que vai reduzi-lo, quem responde
+    por ela e onde ele cai no mapa da CGDF (probabilidade × consequência).
+    <ng-container *ngIf="!edicao.riscosObrigatorios">Este grupo pode ficar vazio.</ng-container></p>
+    <p *ngIf="edicao.riscosObrigatorios" class="text-xs text-gray-400 italic mb-1">
+      Obrigatório quando nenhuma das situações dos três grupos se aplica: declare ao menos um risco.
+    </p>
+    <p class="text-xs text-gray-400 italic mb-3">Os riscos declarados não entram na pontuação dos quesitos.</p>
+
+    <!-- Mapa completo da CGDF, sempre visível: as 25 células ativas -->
+    <div class="bg-white border border-gray-200 rounded-lg p-3 mb-4">
+      <p class="text-xs font-semibold text-gray-900 mb-2">Mapa de riscos da CGDF</p>
+      <div class="overflow-x-auto">
+        <table class="text-[11px] border-collapse">
+          <tbody>
+            <tr *ngFor="let linha of mapa; let li = index">
+              <th class="pr-2 py-1 text-right font-semibold text-gray-700 whitespace-nowrap">{{ consequenciasMapa[li] }}</th>
+              <td *ngFor="let celula of linha; let ci = index"
+                  class="w-16 h-9 text-center align-middle border-2 border-white"
+                  [ngClass]="corCelula(celula)"
+                  [class.ring-2]="contagem(li, ci) > 0"
+                  [class.ring-inset]="contagem(li, ci) > 0"
+                  [class.ring-gray-900]="contagem(li, ci) > 0"
+                  [attr.title]="tituloCelula(li, ci, celula)">
+                <span *ngIf="contagem(li, ci) > 0" class="text-sm font-bold">{{ contagem(li, ci) }}</span>
+              </td>
+            </tr>
+            <tr>
+              <th></th>
+              <th *ngFor="let p of probabilidades"
+                  class="pt-1 text-[10px] font-semibold text-gray-700 leading-tight">{{ p }}</th>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mt-2">
+        <span class="text-xs text-gray-600">Legenda:</span>
+        <span *ngFor="let n of niveis" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+              [ngClass]="badgeNivelRisco(n)">{{ n }}</span>
+      </div>
+      <p class="text-xs text-gray-400 italic mt-2">Linhas: consequência. Colunas: probabilidade. O número na célula é quantos
+      riscos declarados caem nela.</p>
+    </div>
+
+    <div *ngFor="let r of edicao.riscos; let i = index"
+         class="border border-gray-200 rounded-lg p-3 mb-3 bg-white">
+      <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h5 class="text-sm font-semibold text-gray-900">Risco {{ i + 1 }}</h5>
+          <span *ngIf="nivel(r) as n" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                [ngClass]="badgeNivelRisco(n)">Nível {{ n }}</span>
+          <span *ngIf="!nivel(r)" class="text-xs text-gray-400 italic">O nível aparece ao escolher a probabilidade e a consequência.</span>
+        </div>
+        <button type="button" (click)="edicao.removerRisco(i)"
+                class="text-xs text-red-700 border border-red-300 rounded px-2 py-1 hover:bg-red-50">
+          Remover
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Descrição do risco <span class="text-red-600">*</span></label>
+          <textarea rows="2" [(ngModel)]="r.DescricaoRisco" [name]="'ctr-risco-descricao-' + i" maxlength="4000"
+                    placeholder="O que pode dar errado nesta contratação?"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-1">Ação de mitigação <span class="text-red-600">*</span></label>
+          <textarea rows="2" [(ngModel)]="r.AcaoMitigacao" [name]="'ctr-risco-mitigacao-' + i" maxlength="4000"
+                    placeholder="O que será feito para reduzir esse risco?"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Responsável <span class="text-red-600">*</span></label>
+          <input type="text" [(ngModel)]="r.ResponsavelNome" [name]="'ctr-risco-responsavel-' + i" maxlength="200"
+                 placeholder="Nome de quem acompanha a ação"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">E-mail do responsável <span class="text-red-600">*</span></label>
+          <input type="email" [(ngModel)]="r.ResponsavelEmail" [name]="'ctr-risco-email-' + i" maxlength="200"
+                 (blur)="aoSairDoEmail(r)"
+                 placeholder="nome.sobrenome@orgao.df.gov.br"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="emailInvalido(r) ? 'border-red-500 bg-red-50' : 'border-gray-300'">
+          <p *ngIf="emailInvalido(r)" class="text-xs text-red-600 mt-1">Informe um e-mail válido, como nome@orgao.df.gov.br.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Probabilidade <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="r.Probabilidade" [name]="'ctr-risco-probabilidade-' + i"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Escolha a probabilidade</option>
+            <option *ngFor="let p of probabilidades" [value]="p">{{ p }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Consequência <span class="text-red-600">*</span></label>
+          <select [(ngModel)]="r.Consequencia" [name]="'ctr-risco-consequencia-' + i"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Escolha a consequência</option>
+            <option *ngFor="let c of consequencias" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 flex-wrap">
+      <button type="button" (click)="edicao.adicionarRisco()" [disabled]="edicao.riscos.length >= maxRiscos"
+              class="text-sm text-blue-700 border border-blue-600 bg-white rounded px-3 py-1 hover:bg-blue-50 disabled:opacity-50">
+        Adicionar risco
+      </button>
+      <span class="text-xs text-gray-400 italic">{{ edicao.riscos.length }} de até {{ maxRiscos }} riscos.</span>
+    </div>
+  </div>
+</div>

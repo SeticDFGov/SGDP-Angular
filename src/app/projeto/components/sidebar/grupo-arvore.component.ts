@@ -8,7 +8,8 @@ import { ItemNavPgia } from './pgia-nav';
  * áreas (nível 1) e formulários (nível 2).
  *
  * Extraído do `Sidebar` sem mudar comportamento, para os dois grupos ("Governança
- * de IA" e "Análises de Contratações") usarem exatamente a mesma renderização.
+ * de IA" e "Supervisão Contínua das Contratações") usarem exatamente a mesma
+ * renderização.
  * Só configuração e rotas entram aqui — nada de `src/app/pgia` ou
  * `src/app/contratacoes`, que continuam lazy.
  */

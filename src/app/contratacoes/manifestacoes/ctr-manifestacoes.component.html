@@ -75,9 +75,9 @@
               <td class="px-3 py-2">
                 {{ m.OficioTcdf }}
                 <!-- Indicador discreto: o texto fica na página da manifestação -->
-                <span *ngIf="m.PendenciasTcdf" class="block text-xs text-amber-800 mt-1"
-                      title="Pendências identificadas pelo TCDF registradas nesta manifestação">
-                  com pendências do TCDF
+                <span *ngIf="m.EsclarecimentosAdicionais" class="block text-xs text-amber-800 mt-1"
+                      title="Esclarecimentos Adicionais registrados nesta manifestação">
+                  com esclarecimentos adicionais
                 </span>
               </td>
               <td class="px-3 py-2 whitespace-nowrap">{{ m.DataOficio | date:'dd/MM/yyyy':'UTC' }}</td>

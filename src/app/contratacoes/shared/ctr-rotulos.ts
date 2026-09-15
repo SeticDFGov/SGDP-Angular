@@ -1,5 +1,5 @@
 /**
- * Cores e rótulos das telas do módulo Análises de Contratações.
+ * Cores e rótulos das telas do módulo Supervisão Contínua das Contratações.
  *
  * Só apresentação: a situação do processo, a fase da contratação e o estágio da
  * manifestação são derivados no backend (nunca gravados) e chegam prontos nos
@@ -84,5 +84,35 @@ export function corAcaoImportacao(acao: string | null | undefined): string {
     case 'Criar': return 'bg-green-100 text-green-800';
     case 'Atualizar': return 'bg-blue-100 text-blue-800';
     default: return 'bg-red-100 text-red-800'; // Rejeitar
+  }
+}
+
+/**
+ * Badge do risco classificado pelos quesitos (mesmas cores dos badges de risco
+ * do PGIA): Excessivo vermelho, Alto laranja, Moderado amarelo, Baixo verde e,
+ * sem classificação, cinza.
+ */
+export function badgeRiscoClassificado(risco: string | null | undefined): string {
+  switch (risco) {
+    case 'Risco Excessivo': return 'bg-red-100 text-red-800';
+    case 'Alto Risco': return 'bg-orange-100 text-orange-800';
+    case 'Risco Moderado': return 'bg-yellow-100 text-yellow-800';
+    case 'Baixo Risco': return 'bg-green-100 text-green-800';
+    default: return 'bg-gray-100 text-gray-600'; // Não classificado
+  }
+}
+
+/**
+ * Badge do nível de um risco declarado: a cor cheia da célula do mapa da CGDF
+ * (a mesma do mapa desenhado na classificação). O tom diferente do badge do
+ * risco classificado é proposital — são duas escalas que não se misturam.
+ */
+export function badgeNivelRisco(nivel: string | null | undefined): string {
+  switch (nivel) {
+    case 'Baixo': return 'bg-green-500 text-white';
+    case 'Médio': return 'bg-yellow-300 text-gray-900';
+    case 'Alto': return 'bg-orange-400 text-gray-900';
+    case 'Extremo': return 'bg-red-500 text-white';
+    default: return 'bg-gray-100 text-gray-600'; // Sem riscos declarados
   }
 }

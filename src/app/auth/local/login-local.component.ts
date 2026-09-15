@@ -69,14 +69,14 @@ export class LoginLocalComponent {
     }
   ];
 
-  // Persona do módulo Análises de Contratações (papel Users.PapelContratacoes).
-  // A analista é 'basico' com o papel do módulo: o confinamento do perfil
-  // admite /analises para quem o tem.
+  // Persona do módulo Supervisão Contínua das Contratações (papel
+  // Users.PapelContratacoes). A analista é 'basico' com o papel do módulo: o
+  // confinamento do perfil admite /analises para quem o tem.
   personasContratacoes: PersonaLocal[] = [
     {
       Email: 'contratacoes@local.teste', Nome: 'Clara das Contratações', Perfil: 'basico',
       PapelContratacoes: 'ctr_analise', Rota: '/analises',
-      Descricao: 'Analista da SGDI: processos de contratações de TIC, painel, manifestações ao TCDF e importação da planilha'
+      Descricao: 'Analista da SGDI na Supervisão Contínua das Contratações: processos de TIC, painel, manifestações ao TCDF e importação da planilha'
     }
   ];
 

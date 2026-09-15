@@ -49,7 +49,7 @@ export class CtrManifestacaoFormComponent implements OnChanges {
       OficioTcdf: '', DataOficio: '', SituacaoPortfolio: 'Comunicada previamente',
       ComunicadaDesde: null, ResultadoAnalise: null,
       RecomendouSuspensao: false, ComunicouControleInterno: false, DesfechoRisco: null,
-      PrazoRegularizacaoDias: null, PendenciasTcdf: null, StatusTcdf: null, Observacao: null
+      PrazoRegularizacaoDias: null, EsclarecimentosAdicionais: null, StatusTcdf: null, Observacao: null
     };
   }
 
@@ -192,8 +192,9 @@ export class CtrManifestacaoFormComponent implements OnChanges {
       DesfechoRisco: this.temRiscos ? this.form.DesfechoRisco : null,
       // Bloco do inciso II.
       PrazoRegularizacaoDias: this.incisoII ? Number(this.form.PrazoRegularizacaoDias) : null,
-      // Fatos do Tribunal: valem em qualquer inciso, não entram em bloco nenhum.
-      PendenciasTcdf: (this.form.PendenciasTcdf || '').trim() || null,
+      // Registros de acompanhamento: valem em qualquer inciso, não entram em
+      // bloco nenhum (nem no despacho). Vazio vira nulo.
+      EsclarecimentosAdicionais: (this.form.EsclarecimentosAdicionais || '').trim() || null,
       StatusTcdf: this.form.StatusTcdf || null,
       Observacao: observacao ? observacao : null
     });

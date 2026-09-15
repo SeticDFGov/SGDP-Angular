@@ -69,6 +69,45 @@
       </div>
     </div>
 
+    <!-- Classificação de riscos: as duas escalas em blocos separados, sem mistura -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-blue-900 mb-1">Por risco classificado</h2>
+        <p class="text-xs text-gray-400 italic mb-3">Resultado dos quesitos dos arts. 15 a 17 do Decreto nº 48.901/2026 na
+        classificação de riscos de cada processo. Independente da criticidade.</p>
+        <p *ngIf="porRiscoClassificado.length === 0" class="text-sm text-gray-500">Sem dados.</p>
+        <div *ngFor="let c of porRiscoClassificado" class="mb-2">
+          <div class="flex items-center justify-between gap-3 text-sm mb-1">
+            <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  [ngClass]="badgeRiscoClassificado(c.Chave)">{{ c.Chave }}</span>
+            <span class="font-semibold text-gray-900">{{ c.Quantidade }}</span>
+          </div>
+          <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-2 bg-blue-500 rounded-full"
+                 [style.width.%]="proporcao(c.Quantidade, porRiscoClassificado)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-blue-900 mb-1">Por nível dos riscos declarados</h2>
+        <p class="text-xs text-gray-400 italic mb-3">Maior nível entre os riscos declarados de cada processo, pela célula do
+        mapa de riscos da CGDF. "Sem riscos declarados" inclui os processos ainda não classificados.</p>
+        <p *ngIf="porNivelRiscoDeclarado.length === 0" class="text-sm text-gray-500">Sem dados.</p>
+        <div *ngFor="let c of porNivelRiscoDeclarado" class="mb-2">
+          <div class="flex items-center justify-between gap-3 text-sm mb-1">
+            <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  [ngClass]="badgeNivelRisco(c.Chave)">{{ c.Chave }}</span>
+            <span class="font-semibold text-gray-900">{{ c.Quantidade }}</span>
+          </div>
+          <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-2 bg-indigo-500 rounded-full"
+                 [style.width.%]="proporcao(c.Quantidade, porNivelRiscoDeclarado)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Tempos médios entre as instâncias -->
     <div class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Tempo médio entre as instâncias</h2>

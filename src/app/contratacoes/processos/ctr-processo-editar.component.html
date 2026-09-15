@@ -29,6 +29,19 @@
             </span>
             <span *ngIf="processo.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
                   [ngClass]="badgeCriticidade(processo.Criticidade)">Criticidade {{ processo.Criticidade }}</span>
+            <!-- Classificação de riscos: duas escalas lado a lado, independentes da criticidade -->
+            <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  [ngClass]="badgeRiscoClassificado(processo.RiscoClassificado)"
+                  title="Risco classificado pelos quesitos dos arts. 15 a 17 do Decreto nº 48.901/2026">{{
+                    processo.RiscoClassificado || 'Risco não classificado' }}</span>
+            <span *ngIf="processo.NivelMaximoRiscoDeclarado" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  [ngClass]="badgeNivelRisco(processo.NivelMaximoRiscoDeclarado)"
+                  title="Maior nível entre os riscos declarados, pelo mapa de riscos da CGDF">Maior nível declarado:
+              {{ processo.NivelMaximoRiscoDeclarado }}</span>
+            <!-- Nulo também no processo não classificado: mesma semântica do filtro e do painel -->
+            <span *ngIf="!processo.NivelMaximoRiscoDeclarado"
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  [ngClass]="badgeNivelRisco(null)">Sem riscos declarados</span>
             <span *ngIf="processo.Origem === 'TCDF'"
                   class="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Origem TCDF</span>
             <!-- Sinal paralelo ao trâmite: não muda a situação do processo -->
@@ -69,8 +82,10 @@
       <h3 class="text-base font-semibold text-blue-900 mb-1">Dados do processo</h3>
       <p class="text-sm text-gray-600 mb-4">A situação e o tempo parado são calculados a partir das datas abaixo.</p>
 
+      <!-- A classificação vem aninhada só no GET/PUT: a seção abre preenchida com ela -->
       <app-ctr-processo-form
         [valor]="valorForm"
+        [classificacao]="processo.ClassificacaoRisco ?? null"
         [siglas]="siglas"
         [salvando]="salvando"
         rotuloSalvar="Salvar alterações"
