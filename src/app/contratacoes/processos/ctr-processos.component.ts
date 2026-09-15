@@ -11,6 +11,8 @@ import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component'
 import {
   badgeCriticidade,
   badgeFase,
+  badgeNivelRisco,
+  badgeRiscoClassificado,
   badgeSituacao,
   corDiasSemMovimento,
   rotuloEtapaPlanejamento
@@ -25,7 +27,11 @@ import {
   ETAPAS,
   ETAPAS_PLANEJAMENTO,
   FASES,
+  NAO_CLASSIFICADO,
+  NIVEIS_RISCO,
   ORIGENS,
+  RISCOS_CLASSIFICADOS,
+  SEM_RISCOS_DECLARADOS,
   SITUACOES
 } from '../../../api/contratacoes/interface';
 
@@ -69,11 +75,16 @@ export class CtrProcessosComponent implements OnInit {
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
   criticidades = CRITICIDADES;
   origens = ORIGENS;
+  riscosClassificados = RISCOS_CLASSIFICADOS;
+  niveisRisco = NIVEIS_RISCO;
+  readonly naoClassificado = NAO_CLASSIFICADO;
+  readonly semRiscosDeclarados = SEM_RISCOS_DECLARADOS;
 
   private static filtroVazio(): CtrProcessoFiltro {
     return {
       Filtro: '', Categoria: '', Situacao: '', Sigla: '', Restituidos: null, De: '', Ate: '',
-      Fase: '', EtapaPlanejamento: '', Criticidade: '', Origem: '', EsclarecimentoPendente: null
+      Fase: '', EtapaPlanejamento: '', Criticidade: '', Origem: '', EsclarecimentoPendente: null,
+      RiscoClassificado: '', NivelRiscoDeclarado: ''
     };
   }
 
@@ -93,6 +104,8 @@ export class CtrProcessosComponent implements OnInit {
   badgeSituacao = badgeSituacao;
   badgeFase = badgeFase;
   badgeCriticidade = badgeCriticidade;
+  badgeRiscoClassificado = badgeRiscoClassificado;
+  badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
   rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
 
@@ -196,7 +209,7 @@ export class CtrProcessosComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'analises-contratacoes.csv';
+        link.download = 'supervisao-continua-contratacoes.csv';
         link.click();
         // Revogar na hora corre com o início do download em alguns navegadores.
         setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -388,7 +401,8 @@ export class CtrProcessosComponent implements OnInit {
       error: () => {
         this.salvando = false;
         this.notificationService.error(
-          'Não foi possível cadastrar. Confira se o número do processo já não está cadastrado e se as datas estão coerentes.'
+          'Não foi possível cadastrar. Confira se o número do processo já não está cadastrado, se as datas estão coerentes '
+          + 'e se a classificação de riscos está correta.'
         );
       }
     });

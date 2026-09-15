@@ -60,7 +60,8 @@ export const routes: Routes = [
         loadChildren: () => import('./pgia/pgia.routes').then(m => m.pgia_routes)
       },
       {
-        // Análises de Contratações: módulo interno da SGDI (lazy)
+        // Supervisão Contínua das Contratações: módulo interno da SGDI (lazy).
+        // O nome exibido mudou; a rota /analises continua a mesma.
         path: 'analises',
         canActivate: [contratacoesGuard],
         loadChildren: () => import('./contratacoes/contratacoes.routes').then(m => m.contratacoes_routes)

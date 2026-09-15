@@ -53,6 +53,9 @@ export class CtrProcessoService {
     acrescentar('Criticidade', filtro.Criticidade);
     acrescentar('Origem', filtro.Origem);
     acrescentar('EsclarecimentoPendente', filtro.EsclarecimentoPendente);
+    // Classificação de riscos: valor fora do domínio devolve lista vazia.
+    acrescentar('RiscoClassificado', filtro.RiscoClassificado);
+    acrescentar('NivelRiscoDeclarado', filtro.NivelRiscoDeclarado);
     acrescentar('OrderBy', filtro.OrderBy);
     return params;
   }

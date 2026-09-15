@@ -1,5 +1,5 @@
-// Tipos do módulo Análises de Contratações (Decreto nº 48.899/2026 + IN SGDI nº 1/2026),
-// em PascalCase espelhando os DTOs da API (a API serializa PascalCase).
+// Tipos do módulo Supervisão Contínua das Contratações (Decreto nº 48.899/2026 + IN SGDI
+// nº 1/2026), em PascalCase espelhando os DTOs da API (a API serializa PascalCase).
 // Datas puras (DateOnly no backend) trafegam como string 'AAAA-MM-DD' — exibir
 // sempre com `| date:'dd/MM/yyyy':'UTC'` para não deslocar um dia no fuso.
 
@@ -133,6 +133,97 @@ export const ESTAGIOS_TCDF = [
 /** Formato do número SEI: 00000-00000000/AAAA-DD. */
 export const REGEX_NUMERO_SEI = /^\d{5}-\d{8}\/\d{4}-\d{2}$/;
 
+// ── Classificação de riscos do processo ─────────────────────────────────────
+// Os quesitos e os pesos (arts. 15 a 17 do Decreto nº 48.901/2026) e a escala
+// 5×5 da CGDF são os do PGIA, lidos das fontes estáticas de lá pela seção
+// `shared/ctr-classificacao-risco.component.ts`. Aqui ficam os domínios
+// próprios do módulo e os tipos do contrato.
+
+/**
+ * Risco classificado pelos quesitos — os mesmos valores do PGIA
+ * (`PgiaDominios.ResultadoRisco`), na ordem do domínio.
+ */
+export const RISCOS_CLASSIFICADOS = [
+  'Risco Excessivo',
+  'Alto Risco',
+  'Risco Moderado',
+  'Baixo Risco'
+] as const;
+
+/** Filtro e painel: processo sem classificação de riscos. */
+export const NAO_CLASSIFICADO = 'Não classificado';
+
+/**
+ * Nível de um risco declarado (`CtrDominios.NivelRisco`), em ordem crescente —
+ * é a cor da célula do mapa da CGDF: v Baixo, a Médio, l Alto, r Extremo.
+ */
+export const NIVEIS_RISCO = ['Baixo', 'Médio', 'Alto', 'Extremo'] as const;
+
+/** Filtro e painel: processo sem nenhum risco declarado. */
+export const SEM_RISCOS_DECLARADOS = 'Sem riscos declarados';
+
+/** Limite de riscos declarados por processo (`[MaxLength(20)]` no DTO). */
+export const MAX_RISCOS_DECLARADOS = 20;
+
+/** Um risco da contratação no corpo do POST/PUT. */
+export interface CtrRiscoDeclaradoForm {
+  /** Até 4000. */
+  DescricaoRisco: string;
+  /** Até 4000. */
+  AcaoMitigacao: string;
+  ResponsavelNome: string;
+  /** Mesma validação de e-mail do PGIA. */
+  ResponsavelEmail: string;
+  /** Escala completa da CGDF: Improvável, Raro, Possível, Provável, Quase certo. */
+  Probabilidade: string;
+  /** Escala completa da CGDF: Desprezível, Menor, Moderada, Maior, Catastrófica. */
+  Consequencia: string;
+}
+
+/**
+ * Classificação de riscos enviada no POST/PUT do processo. Opcional no todo,
+ * completa quando presente: cada grupo com incisos XOR "nenhuma"; os três em
+ * "nenhuma" exigem ao menos um risco declarado; no máximo 20 riscos. Mesmo
+ * formato do checklist do PGIA (`Q15`/`Q16`/`Q17` + os três "nenhuma").
+ */
+export interface CtrClassificacaoRiscoForm {
+  Q15: string[];
+  Q16: string[];
+  Q17: string[];
+  Q15Nenhuma: boolean;
+  Q16Nenhuma: boolean;
+  Q17Nenhuma: boolean;
+  RiscosDeclarados: CtrRiscoDeclaradoForm[];
+}
+
+/** Risco declarado na resposta, com o nível derivado da célula (nunca gravado). */
+export interface CtrRiscoDeclarado extends CtrRiscoDeclaradoForm {
+  Id: number;
+  /** Um dos NIVEIS_RISCO. */
+  Nivel: string;
+}
+
+/** Classificação aninhada na resposta — só em GET {id}, POST e PUT. */
+export interface CtrClassificacaoRisco {
+  Q15: string[];
+  Q16: string[];
+  Q17: string[];
+  Q15Nenhuma: boolean;
+  Q16Nenhuma: boolean;
+  Q17Nenhuma: boolean;
+  /** Um dos RISCOS_CLASSIFICADOS. */
+  RiscoClassificado: string;
+  /** "art. 16, II" (primeiro inciso na ordem do artigo); nulo em Baixo Risco. */
+  EnquadramentoRisco?: string | null;
+  /** Soma dos pesos; "nenhuma" e riscos declarados não pontuam. */
+  PontuacaoRisco: number;
+  /** Instante da última classificação enviada — exibir sem `:'UTC'`. */
+  ClassificadoEm: string;
+  /** E-mail de quem classificou. */
+  ClassificadoPor: string;
+  RiscosDeclarados: CtrRiscoDeclarado[];
+}
+
 // ── Processos ───────────────────────────────────────────────────────────────
 
 /** Corpo de POST e PUT do processo (CtrProcessoCreateDTO/CtrProcessoUpdateDTO). */
@@ -168,10 +259,25 @@ export interface CtrProcessoForm {
   RestituidoEm?: string | null;
   RestituidoMotivo?: string | null;
   Observacao?: string | null;
+  /**
+   * Classificação de riscos. POST: nula = não classificado. PUT: nula
+   * **preserva** a gravada e seus riscos; enviada, recalcula tudo, substitui a
+   * lista de riscos declarados e registra quem classificou e quando.
+   */
+  ClassificacaoRisco?: CtrClassificacaoRiscoForm | null;
+  /**
+   * Só no PUT: `true` apaga a classificação e os riscos declarados. Nunca vai
+   * junto com `ClassificacaoRisco` (o servidor recusa os dois).
+   */
+  LimparClassificacaoRisco?: boolean;
 }
 
-/** Resposta do processo (CtrProcessoResponse): o form + os campos derivados. */
-export interface CtrProcesso extends CtrProcessoForm {
+/**
+ * Resposta do processo (CtrProcessoResponse): o form + os campos derivados.
+ * A classificação de riscos da resposta tem forma própria (resultado,
+ * auditoria e nível de cada risco), por isso sai do `extends`.
+ */
+export interface CtrProcesso extends Omit<CtrProcessoForm, 'ClassificacaoRisco' | 'LimparClassificacaoRisco'> {
   Id: number;
   /** Derivada no backend, nunca gravada. */
   Situacao: string;
@@ -187,6 +293,12 @@ export interface CtrProcesso extends CtrProcessoForm {
   DiasSemMovimento: number;
   TotalManifestacoes: number;
   UltimoEstagioTcdf?: string | null;
+  /** Plano, em todas as leituras (inclusive a lista): um dos RISCOS_CLASSIFICADOS; nulo = não classificado. */
+  RiscoClassificado?: string | null;
+  /** Plano, em todas as leituras: maior nível entre os riscos declarados; nulo sem nenhum. */
+  NivelMaximoRiscoDeclarado?: string | null;
+  /** Aninhado: só em GET {id}, POST e PUT (nulo quando não classificado). */
+  ClassificacaoRisco?: CtrClassificacaoRisco | null;
   CriadoEm: string;
   CriadoPor: string;
   AlteradoEm?: string | null;
@@ -224,6 +336,13 @@ export interface CtrProcessoFiltro {
   Origem?: string | null;
   /** true = só os que aguardam esclarecimento; false = só os sem pendência. */
   EsclarecimentoPendente?: boolean | null;
+  /** Um dos RISCOS_CLASSIFICADOS ou NAO_CLASSIFICADO. Fora do domínio = lista vazia. */
+  RiscoClassificado?: string | null;
+  /**
+   * Nível MÁXIMO dos riscos declarados do processo: um dos NIVEIS_RISCO ou
+   * SEM_RISCOS_DECLARADOS. Fora do domínio = lista vazia.
+   */
+  NivelRiscoDeclarado?: string | null;
   OrderBy?: string | null;
 }
 
@@ -245,8 +364,12 @@ export interface CtrManifestacaoForm {
   ComunicouControleInterno: boolean;
   DesfechoRisco?: string | null;
   PrazoRegularizacaoDias?: number | null;
-  /** O que o Tribunal apontou; vale em qualquer inciso. Não entra no despacho. */
-  PendenciasTcdf?: string | null;
+  /**
+   * "Esclarecimentos Adicionais" (até 4000; era `PendenciasTcdf`). Registro de
+   * acompanhamento: vale em qualquer inciso, vazio vira nulo e não entra no
+   * despacho. Não confundir com `Esclarecimento*` do processo (o pedido ao órgão).
+   */
+  EsclarecimentosAdicionais?: string | null;
   /** Um dos STATUS_TCDF; vale em qualquer inciso. Não entra no despacho. */
   StatusTcdf?: string | null;
   Observacao?: string | null;
@@ -300,6 +423,13 @@ export interface CtrPainel {
   PorFase: CtrContagem[];
   /** Ativos com pedido de esclarecimento ainda sem resposta. */
   TotalEsclarecimentoPendente: number;
+  /**
+   * Os 4 RISCOS_CLASSIFICADOS + NAO_CLASSIFICADO, sempre presentes (quantidade
+   * desc, empate pela ordem do domínio).
+   */
+  PorRiscoClassificado: CtrContagem[];
+  /** Os 4 NIVEIS_RISCO (pelo nível máximo) + SEM_RISCOS_DECLARADOS, mesma regra. */
+  PorNivelRiscoDeclarado: CtrContagem[];
   PorCategoria: CtrContagem[];
   PorOrgao: CtrContagem[];
   TemposMedios: CtrTemposMedios;

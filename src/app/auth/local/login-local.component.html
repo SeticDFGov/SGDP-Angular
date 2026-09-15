@@ -36,8 +36,8 @@
         </button>
       </div>
 
-      <h2 class="text-sm font-semibold text-gray-900 mb-2">Análises de Contratações</h2>
-      <p class="text-xs text-gray-400 italic mb-2">Módulo interno da SGDI: acompanhamento das análises de contratações de TIC e manifestações ao TCDF.</p>
+      <h2 class="text-sm font-semibold text-gray-900 mb-2">Supervisão Contínua das Contratações</h2>
+      <p class="text-xs text-gray-400 italic mb-2">Módulo interno da SGDI: supervisão contínua das contratações de TIC — acompanhamento das análises e manifestações ao TCDF.</p>
       <div class="space-y-2 mb-6">
         <button *ngFor="let p of personasContratacoes" (click)="entrarComo(p)" [disabled]="entrando"
           class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-left disabled:opacity-50">
@@ -80,7 +80,7 @@
         </select>
         <select [(ngModel)]="form.PapelContratacoes"
           class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">sem papel de análise de contratações</option>
+          <option value="">sem papel de supervisão contínua das contratações</option>
           <option *ngFor="let p of papeisContratacoes" [value]="p">{{ p }}</option>
         </select>
       </div>

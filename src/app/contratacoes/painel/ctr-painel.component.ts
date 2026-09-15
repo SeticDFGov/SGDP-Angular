@@ -3,12 +3,19 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CtrProcessoService } from '../services/ctr-processo.service';
-import { badgeFase, badgeSituacao, corDiasSemMovimento } from '../shared/ctr-rotulos';
-import { CtrPainel } from '../../../api/contratacoes/interface';
+import {
+  badgeFase,
+  badgeNivelRisco,
+  badgeRiscoClassificado,
+  badgeSituacao,
+  corDiasSemMovimento
+} from '../shared/ctr-rotulos';
+import { CtrContagem, CtrPainel } from '../../../api/contratacoes/interface';
 
 /**
- * Painel da área: contagens por situação, categoria e órgão, tempos médios
- * entre as instâncias e a lista de processos parados (gargalos).
+ * Painel da área: contagens por situação, fase, classificação de riscos,
+ * categoria e órgão, tempos médios entre as instâncias e a lista de processos
+ * parados (gargalos).
  *
  * Os números vêm prontos do backend, sobre os mesmos processos ativos da
  * listagem — nada é recalculado aqui.
@@ -30,6 +37,8 @@ export class CtrPainelComponent implements OnInit {
 
   badgeSituacao = badgeSituacao;
   badgeFase = badgeFase;
+  badgeRiscoClassificado = badgeRiscoClassificado;
+  badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
 
   constructor(private processoService: CtrProcessoService) {}
@@ -55,6 +64,19 @@ export class CtrPainelComponent implements OnInit {
         this.erroCarregar = 'Não foi possível carregar o painel. Tente de novo em instantes.';
       }
     });
+  }
+
+  /**
+   * Os 4 resultados dos quesitos + "Não classificado", sempre presentes, na
+   * ordem do servidor (quantidade desc, empate pela ordem do domínio).
+   */
+  get porRiscoClassificado(): CtrContagem[] {
+    return this.painel?.PorRiscoClassificado ?? [];
+  }
+
+  /** Baixo, Médio, Alto, Extremo + "Sem riscos declarados", mesma regra. */
+  get porNivelRiscoDeclarado(): CtrContagem[] {
+    return this.painel?.PorNivelRiscoDeclarado ?? [];
   }
 
   /** Tempo médio em dias, com um decimal; sem amostra mostra travessão. */

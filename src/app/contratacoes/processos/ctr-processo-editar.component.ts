@@ -8,6 +8,8 @@ import {
   badgeCriticidade,
   badgeEstagio,
   badgeFase,
+  badgeNivelRisco,
+  badgeRiscoClassificado,
   badgeSituacao,
   badgeStatusTcdf,
   corDiasSemMovimento,
@@ -43,6 +45,8 @@ export class CtrProcessoEditarComponent implements OnInit {
   badgeFase = badgeFase;
   badgeCriticidade = badgeCriticidade;
   badgeStatusTcdf = badgeStatusTcdf;
+  badgeRiscoClassificado = badgeRiscoClassificado;
+  badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
   rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
 
@@ -132,7 +136,8 @@ export class CtrProcessoEditarComponent implements OnInit {
       error: () => {
         this.salvando = false;
         this.notificationService.error(
-          'Não foi possível salvar. Confira se o número do processo já não está em outro cadastro e se as datas estão coerentes.'
+          'Não foi possível salvar. Confira se o número do processo já não está em outro cadastro, se as datas estão coerentes '
+          + 'e se a classificação de riscos está correta.'
         );
       }
     });

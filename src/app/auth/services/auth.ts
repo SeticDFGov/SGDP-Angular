@@ -24,7 +24,7 @@ export const PapeisPgia = {
   Auditoria: 'pgia_auditoria'
 } as const;
 
-// Papel do módulo Análises de Contratações (campo Users.PapelContratacoes,
+// Papel do módulo Supervisão Contínua das Contratações (campo Users.PapelContratacoes,
 // paralelo ao Perfil e independente do PapelPgia). Valor único por enquanto.
 export const PapeisContratacoes = {
   Analise: 'ctr_analise'
@@ -280,7 +280,7 @@ export class AuthService {
     );
   }
 
-  // ── Módulo Análises de Contratações (métodos novos, aditivos) ─────────────
+  // ── Módulo Supervisão Contínua das Contratações (métodos novos, aditivos) ─
 
   getPapelContratacoes(): Observable<string | null> {
     return this.getUser().pipe(map(user => user?.PapelContratacoes ?? null));

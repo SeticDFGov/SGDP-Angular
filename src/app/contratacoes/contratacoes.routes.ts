@@ -28,9 +28,10 @@ function secoes(base: string, componente: Type<unknown>, nomes: readonly string[
 }
 
 /**
- * Rotas do módulo Análises de Contratações (lazy, montadas como filhas do
- * MainLayout em app.routes.ts). O acesso é controlado pelo `contratacoesGuard`
- * na rota-mãe.
+ * Rotas do módulo Supervisão Contínua das Contratações (lazy, montadas como
+ * filhas do MainLayout em app.routes.ts). O acesso é controlado pelo
+ * `contratacoesGuard` na rota-mãe. O nome exibido do módulo mudou, mas a rota
+ * `/analises`, a pasta e os identificadores `Ctr*` continuam os mesmos.
  */
 export const contratacoes_routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'processos/lista' },

@@ -1,6 +1,6 @@
 /**
- * Árvore de navegação do módulo Análises de Contratações, exibida no menu
- * lateral sob o item "Análises de Contratações".
+ * Árvore de navegação do módulo Supervisão Contínua das Contratações, exibida no
+ * menu lateral sob o item "Supervisão Contínua das Contratações".
  *
  * Como a do PGIA, é só configuração (rótulos e rotas): nada aqui importa
  * componentes de `src/app/contratacoes`, para o módulo continuar lazy. O tipo
