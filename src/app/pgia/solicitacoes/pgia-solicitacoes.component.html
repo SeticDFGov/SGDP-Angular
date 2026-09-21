@@ -1,11 +1,5 @@
 <div citaDecreto class="tela-pgia max-w-5xl mx-auto">
 
-  <!-- Contexto -->
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
-    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
-    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
-    Aqui chegam os pedidos que os cidadãos fazem sobre decisões tomadas com apoio de IA.
-  </div>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 

@@ -2,7 +2,7 @@
  * Quesitos da classificação de risco (arts. 15 a 17 do Decreto nº 48.901/2026).
  *
  * A tela do órgão exibe os quesitos em **três grupos rotulados** (Risco Excessivo,
- * Alto Risco, Risco Moderado) — ver `GRUPOS_QUESITOS`. O rótulo do grupo é a única
+ * Alto Risco, Risco Moderado); ver `GRUPOS_QUESITOS`. O rótulo do grupo é a única
  * pista permitida: nenhum texto de consequência ("vedado", "passa pelo comitê",
  * prévia de risco) pode aparecer no momento do preenchimento.
  * As telas centrais (SGDI e CGTIC) mostram os mesmos grupos com os pesos.
@@ -41,7 +41,7 @@ export const ROMANOS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
 
 export interface PgiaGrupoQuesitos {
   artigo: 15 | 16 | 17;
-  /** Rótulo do grupo — permitido; texto de consequência, não. */
+  /** Rótulo do grupo: permitido; texto de consequência, não. */
   rotulo: string;
   quesitos: PgiaQuesitoTexto[];
 }
@@ -55,7 +55,7 @@ function doArtigo(artigo: 15 | 16 | 17): PgiaQuesitoTexto[] {
 /** Os três grupos do questionário, na ordem em que a tela os exibe. */
 export const GRUPOS_QUESITOS: PgiaGrupoQuesitos[] = [
   // Sem "(art. N)" no rótulo de propósito: o chip de citação expandiria o
-  // caput — e o do art. 15 diz "ficam vedados", consequência que não pode
+  // caput, e o do art. 15 diz "ficam vedados", consequência que não pode
   // aparecer no preenchimento (decisão do dono do produto)
   { artigo: 15, rotulo: 'Risco Excessivo', quesitos: doArtigo(15) },
   { artigo: 16, rotulo: 'Alto Risco', quesitos: doArtigo(16) },

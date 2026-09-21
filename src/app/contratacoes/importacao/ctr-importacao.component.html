@@ -2,7 +2,7 @@
 
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
     Traga a planilha de acompanhamento para dentro do sistema. O arquivo é lido e conferido antes de qualquer gravação:
-    você vê o que vai acontecer com cada linha e só então confirma. A importação usa o número do processo como chave —
+    você vê o que vai acontecer com cada linha e só então confirma. A importação usa o número do processo como chave:
     importar de novo atualiza, não duplica.
   </div>
 
@@ -90,7 +90,7 @@
         <tbody>
           <tr *ngFor="let l of linhasVisiveis" class="border-b border-gray-200 align-top">
             <td class="px-3 py-2 text-gray-500">{{ l.Linha }}</td>
-            <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{{ l.NumeroProcesso || '—' }}</td>
+            <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{{ l.NumeroProcesso || '-' }}</td>
             <td class="px-3 py-2">{{ l.OrgaoSigla }}</td>
             <td class="px-3 py-2">{{ l.CategoriaObjeto }}</td>
             <td class="px-3 py-2">{{ l.Situacao }}</td>
@@ -98,7 +98,7 @@
               <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                     [ngClass]="corAcaoImportacao(l.Acao)">{{ l.Acao }}</span>
             </td>
-            <td class="px-3 py-2 text-gray-600">{{ l.Motivo || '—' }}</td>
+            <td class="px-3 py-2 text-gray-600">{{ l.Motivo || '-' }}</td>
           </tr>
         </tbody>
       </table>

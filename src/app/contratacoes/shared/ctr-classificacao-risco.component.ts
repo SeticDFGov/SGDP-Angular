@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-// Fontes estáticas de domínio do PGIA — só dados puros, nada de tela: os
+// Fontes estáticas de domínio do PGIA (só dados puros, nada de tela): os
 // quesitos e os pesos dos arts. 15 a 17 do Decreto nº 48.901/2026 e a escala
 // 5×5 da CGDF. Nenhum dos dois arquivos importa o texto do decreto
 // (`pgia/shared/decreto-48901.ts`) nem a diretiva `citaDecreto`: o decreto não
@@ -46,14 +46,14 @@ export interface CtrGrupoRisco {
   titulo: string;
   /** Risco classificado quando este é o primeiro grupo com inciso marcado. */
   resultado: string;
-  /** Incisos na ordem do artigo — o primeiro marcado é o enquadramento. */
+  /** Incisos na ordem do artigo; o primeiro marcado é o enquadramento. */
   quesitos: CtrQuesitoRisco[];
 }
 
 const TITULOS_GRUPOS: Record<Artigo, string> = {
-  15: 'Risco Excessivo — art. 15 do Decreto nº 48.901/2026',
-  16: 'Alto Risco — art. 16',
-  17: 'Risco Moderado — art. 17'
+  15: 'Risco Excessivo (art. 15 do Decreto nº 48.901/2026)',
+  16: 'Alto Risco (art. 16)',
+  17: 'Risco Moderado (art. 17)'
 };
 
 /** Precedência do servidor: art. 15 → Excessivo; 16 → Alto; 17 → Moderado. */
@@ -116,7 +116,7 @@ export function nivelDoRisco(
 /**
  * Normaliza o e-mail do responsável como ele vai ser gravado (o servidor
  * também grava em minúsculas): apara, tira um `;` ou `,` final e os `< >` que
- * envolvem o endereço — o que vem junto ao colar um endereço do Outlook.
+ * envolvem o endereço, o que vem junto ao colar um endereço do Outlook.
  */
 export function normalizarEmail(valor: string | null | undefined): string {
   let email = (valor || '').trim();
@@ -126,7 +126,7 @@ export function normalizarEmail(valor: string | null | undefined): string {
 }
 
 /**
- * E-mail válido, aplicado DEPOIS de `normalizarEmail` — espelha o servidor
+ * E-mail válido, aplicado DEPOIS de `normalizarEmail`; espelha o servidor
  * (`System.Net.Mail.MailAddress` + domínio com ponto): um só `@`; usuário e
  * domínio não vazios e sem começar com ponto; ponto no domínio; e nenhum
  * espaço, caractere de controle ou `( ) , ; : < > [ ] \ "` em ponto algum.
@@ -143,14 +143,14 @@ interface RespostaGrupo {
 /**
  * Estado de edição da classificação de riscos de um processo.
  *
- * Pertence ao formulário do processo — é ele que monta o corpo do POST/PUT e
- * decide se o botão de salvar fica liberado — e é entregue à seção
+ * Pertence ao formulário do processo: é ele que monta o corpo do POST/PUT e
+ * decide se o botão de salvar fica liberado, e é entregue à seção
  * (`app-ctr-classificacao-risco`), que o altera pelos métodos daqui. Assim a
  * completude é lida ao vivo pelos dois lados, sem `@ViewChild` e sem evento
  * emitido durante a detecção de mudanças.
  *
- * Rastreia alteração: cada instância nasce de uma carga — a da página ou a
- * resposta de um salvamento bem-sucedido — e guarda o retrato dela; `envio()`
+ * Rastreia alteração: cada instância nasce de uma carga (a da página ou a
+ * resposta de um salvamento bem-sucedido) e guarda o retrato dela; `envio()`
  * só manda a classificação quando a tela difere desse retrato.
  */
 export class CtrClassificacaoRiscoEdicao {
@@ -161,8 +161,8 @@ export class CtrClassificacaoRiscoEdicao {
   respostas: RespostaGrupo[] = CtrClassificacaoRiscoEdicao.respostasVazias();
   riscos: CtrRiscoDeclaradoForm[] = [];
   /**
-   * Retrato normalizado da classificação carregada — checklist + riscos
-   * declarados, sem Ids nem derivados —, serializado na forma do envio, com os
+   * Retrato normalizado da classificação carregada (checklist + riscos
+   * declarados, sem Ids nem derivados), serializado na forma do envio, com os
    * riscos em ordem canônica. Nulo = o processo chegou sem classificação.
    */
   private readonly retrato: string | null;
@@ -226,7 +226,7 @@ export class CtrClassificacaoRiscoEdicao {
     this.aberta = false;
   }
 
-  /** Remove a classificação gravada — vale quando o processo for salvo. */
+  /** Remove a classificação gravada; vale quando o processo for salvo. */
   remover(): void {
     this.respostas = CtrClassificacaoRiscoEdicao.respostasVazias();
     this.riscos = [];
@@ -328,7 +328,7 @@ export class CtrClassificacaoRiscoEdicao {
     return this.riscos.filter(r => r.Consequencia === consequencia && r.Probabilidade === probabilidade).length;
   }
 
-  /** Valida o e-mail já normalizado — o mesmo valor que `montar()` envia. */
+  /** Valida o e-mail já normalizado, o mesmo valor que `montar()` envia. */
   static emailValido(email: string | null | undefined): boolean {
     return REGEX_EMAIL.test(normalizarEmail(email));
   }
@@ -396,7 +396,7 @@ export class CtrClassificacaoRiscoEdicao {
   }
 
   /**
-   * Corpo `ClassificacaoRisco` do POST/PUT — e também a normalização do
+   * Corpo `ClassificacaoRisco` do POST/PUT, e também a normalização do
    * retrato: incisos na ordem do artigo, "nenhuma" como booleano, textos
    * aparados, e-mail normalizado (minúsculas) e nenhum Id ou campo derivado.
    * Os riscos vão na ordem da tela; só o retrato os põe em ordem canônica.
@@ -456,13 +456,13 @@ export class CtrClassificacaoRiscoEdicao {
   }
 
   /**
-   * Chaves da classificação no corpo do POST/PUT — nunca as duas juntas:
+   * Chaves da classificação no corpo do POST/PUT, nunca as duas juntas:
    * - gravada removida pelo usuário: só `LimparClassificacaoRisco: true`;
    * - aberta e diferente do retrato (inclui a primeira classificação):
-   *   `ClassificacaoRisco` completa — o servidor recalcula, substitui os riscos
+   *   `ClassificacaoRisco` completa: o servidor recalcula, substitui os riscos
    *   e registra quem classificou e quando;
    * - sem mudança (inclusive depois de "Desfazer a remoção" ou de descartar):
-   *   `ClassificacaoRisco: null` — no PUT preserva a gravada, os Ids dos riscos
+   *   `ClassificacaoRisco: null`: no PUT preserva a gravada, os Ids dos riscos
    *   e `ClassificadoEm/Por`; no POST o processo nasce não classificado.
    */
   envio(): Pick<CtrProcessoForm, 'ClassificacaoRisco' | 'LimparClassificacaoRisco'> {
@@ -489,7 +489,7 @@ export class CtrClassificacaoRiscoEdicao {
   templateUrl: './ctr-classificacao-risco.component.html'
 })
 export class CtrClassificacaoRiscoComponent {
-  /** Estado de edição — pertence ao formulário do processo, que lê dele o envio. */
+  /** Estado de edição; pertence ao formulário do processo, que lê dele o envio. */
   @Input({ required: true }) edicao!: CtrClassificacaoRiscoEdicao;
 
   readonly grupos = GRUPOS_RISCO;
@@ -538,7 +538,7 @@ export class CtrClassificacaoRiscoComponent {
     return nivelDoRisco(risco.Probabilidade, risco.Consequencia);
   }
 
-  /** O e-mail só acusa erro depois de digitado — vazio é tratado no "o que falta". */
+  /** O e-mail só acusa erro depois de digitado; vazio é tratado no "o que falta". */
   emailInvalido(risco: CtrRiscoDeclaradoForm): boolean {
     return !!normalizarEmail(risco.ResponsavelEmail) && !CtrClassificacaoRiscoEdicao.emailValido(risco.ResponsavelEmail);
   }
@@ -564,6 +564,6 @@ export class CtrClassificacaoRiscoComponent {
   tituloCelula(linha: number, coluna: number, cor: CorCelula): string {
     const quantidade = this.contagem(linha, coluna);
     return `Consequência ${this.consequenciasMapa[linha]} × probabilidade ${this.probabilidades[coluna]}: `
-      + `nível ${NIVEL_DA_COR[cor]}` + (quantidade > 0 ? ` — ${quantidade} risco(s) declarado(s)` : '');
+      + `nível ${NIVEL_DA_COR[cor]}` + (quantidade > 0 ? `, ${quantidade} risco(s) declarado(s)` : '');
   }
 }

@@ -23,7 +23,7 @@ export const ACEITA_ANEXO = EXTENSOES_ANEXO.map(e => '.' + e).join(',');
 /**
  * Nome original do arquivo, tirado do `Content-Disposition` da resposta.
  * Prefere o `filename*` (UTF-8, com acentos) e cai no `filename` simples.
- * Devolve `null` quando o cabeçalho não veio — em chamada cross-origin ele só
+ * Devolve `null` quando o cabeçalho não veio: em chamada cross-origin ele só
  * chega se o servidor o expuser em `Access-Control-Expose-Headers`.
  */
 export function nomeDoContentDisposition(cabecalho: string | null): string | null {

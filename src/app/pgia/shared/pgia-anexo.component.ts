@@ -86,7 +86,7 @@ export class PgiaAnexoComponent {
     }
 
     // Sem documento ainda: cria um e sobe o arquivo nele. O documento só é
-    // devolvido à tela DEPOIS que o arquivo subiu — ver `subir`.
+    // devolvido à tela DEPOIS que o arquivo subiu (ver `subir`).
     if (!this.documentoId && this.criarDocumento) {
       this.enviando = true;
       this.criarDocumento(arquivo).subscribe({
@@ -134,7 +134,7 @@ export class PgiaAnexoComponent {
         this.enviando = false;
         input.value = '';
         this.notificationService.error(documentoNovo
-          ? 'O documento foi preparado, mas o arquivo não subiu — tente enviar de novo.'
+          ? 'O documento foi preparado, mas o arquivo não subiu. Tente enviar de novo.'
           : 'Não foi possível enviar o arquivo.');
       }
     });

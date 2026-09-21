@@ -1,17 +1,10 @@
-<div class="min-h-screen bg-gray-100">
-  <!-- Header -->
-  <header class="bg-white shadow-sm border-b">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center py-4">
-        <h1 class="text-2xl font-bold text-gray-900">Painel de Administração</h1>
-        <div class="text-sm text-gray-600" *ngIf="user">
-          Logado como: <span class="font-medium">{{ user.Email }}</span>
-        </div>
-      </div>
+<div class="max-w-7xl mx-auto">
+  <div>
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h1 class="text-xl font-bold text-gray-900">Cadastros</h1>
+      <p class="text-sm text-gray-600 mt-1">Unidades, órgãos do PGIA e as tabelas de apoio das demandas. Quem enxerga cada módulo se define na aba "Gestão de acessos".</p>
     </div>
-  </header>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Mensagem de feedback -->
     <div *ngIf="message" [ngClass]="{
       'bg-green-50 text-green-800 border border-green-200': messageType === 'success',
@@ -20,7 +13,7 @@
       {{ message }}
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 gap-8">
       <!-- Seção de Cadastro de Unidade -->
       <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Gerenciar Unidades</h2>
@@ -83,127 +76,6 @@
         </div>
       </div>
 
-      <!-- Seção de Gerenciamento de Usuários -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-semibold text-gray-900">Gerenciar Usuários</h2>
-          <button
-            (click)="loadUsers()"
-            [disabled]="loadingUsers"
-            class="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
-          >
-            {{ loadingUsers ? 'Carregando...' : 'Atualizar' }}
-          </button>
-        </div>
-
-        <div *ngIf="loadingUsers" class="text-center py-4">Carregando usuários...</div>
-
-        <div *ngIf="!loadingUsers" class="space-y-4 max-h-96 overflow-y-auto">
-          <div *ngIf="users.length > 0; else noUsers">
-            <div *ngFor="let user of users" class="border border-gray-200 rounded-lg p-4">
-              <div class="flex justify-between items-start mb-2">
-                <div>
-                  <h3 class="font-medium text-gray-900">{{ user.Nome }}</h3>
-                  <p class="text-sm text-gray-500">{{ user.Email }}</p>
-                  <p class="text-sm text-gray-500">
-                    Unidade Atual: <span class="font-semibold">{{ user.Unidade?.Nome || 'Não definida' }}</span>
-                  </p>
-                </div>
-                <div class="flex-shrink-0">
-                  <span [ngClass]="{
-                    'bg-red-100 text-red-800': user.Perfil === 'admin',
-                    'bg-purple-100 text-purple-800': user.Perfil === 'gestor',
-                    'bg-gray-100 text-gray-800': user.Perfil === 'basico'
-                  }" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
-                    {{ user.Perfil }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="mt-4 pt-4 border-t border-gray-200 space-y-4">
-                <!-- Alterar Unidade -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Alterar Unidade</label>
-                  <div class="flex items-center space-x-2">
-                    <select
-                      [(ngModel)]="selectedUnits[user.Id]"
-                      (ngModelChange)="$event"
-                      class="flex-grow w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="" disabled>Selecione uma unidade</option>
-                      <option *ngFor="let unit of units" [value]="unit.id">{{ unit.Nome }}</option>
-                    </select>
-                    <button
-                      (click)="alterarUnidade(user.Email, selectedUnits[user.Id])"
-                      [disabled]="!selectedUnits[user.Id] || selectedUnits[user.Id] === user.Unidade?.id"
-                      class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                    >
-                      Alterar
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Papel PGIA -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Papel PGIA
-                    <span *ngIf="user.PapelPgia" class="ml-2 px-2 py-0.5 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full">{{ user.PapelPgia }}</span>
-                    <span *ngIf="!user.PapelPgia" class="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded-full">sem papel</span>
-                  </label>
-                  <div class="flex items-center space-x-2">
-                    <select
-                      [(ngModel)]="selectedPapeis[user.Id]"
-                      class="flex-grow w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Sem papel (remover)</option>
-                      <option *ngFor="let papel of papeisPgia" [value]="papel">{{ papel }}</option>
-                    </select>
-                    <button
-                      (click)="atribuirPapelPgia(user.Email, selectedPapeis[user.Id])"
-                      [disabled]="selectedPapeis[user.Id] === undefined || (selectedPapeis[user.Id] || null) === (user.PapelPgia || null)"
-                      class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
-                    >
-                      Atualizar
-                    </button>
-                  </div>
-                  <p class="text-xs text-gray-500 mt-1">O papel PGIA é independente do perfil e não altera nada no Keycloak.</p>
-                </div>
-
-                <!-- Papel · Supervisão Contínua das Contratações -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Papel · Supervisão Contínua das Contratações
-                    <span *ngIf="user.PapelContratacoes" class="ml-2 px-2 py-0.5 text-xs font-semibold bg-teal-100 text-teal-800 rounded-full">{{ rotuloPapelContratacoes(user.PapelContratacoes) }}</span>
-                    <span *ngIf="!user.PapelContratacoes" class="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded-full">sem papel</span>
-                  </label>
-                  <div class="flex items-center space-x-2">
-                    <select
-                      [(ngModel)]="selectedPapeisContratacoes[user.Id]"
-                      class="flex-grow w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Sem papel (remover)</option>
-                      <option *ngFor="let papel of papeisContratacoes" [value]="papel">{{ rotuloPapelContratacoes(papel) }}</option>
-                    </select>
-                    <button
-                      (click)="atribuirPapelContratacoes(user.Email, selectedPapeisContratacoes[user.Id])"
-                      [disabled]="selectedPapeisContratacoes[user.Id] === undefined || (selectedPapeisContratacoes[user.Id] || null) === (user.PapelContratacoes || null)"
-                      class="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50"
-                    >
-                      Salvar
-                    </button>
-                  </div>
-                  <p class="text-xs text-gray-400 italic mt-1">Módulo interno da SGDI. O papel é independente do perfil e não altera nada no Keycloak.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <ng-template #noUsers>
-            <div class="text-center py-4 text-gray-500">
-              Nenhum usuário encontrado
-            </div>
-          </ng-template>
-        </div>
-      </div>
     </div>
 
     <!-- Seção de Áreas Executoras -->
@@ -381,7 +253,7 @@
       </div>
       <p class="text-sm text-gray-500 mb-4">Cadastre os órgãos e entidades alcançados pelo Decreto nº 48.901/2026 e
       vincule cada um à unidade correspondente do SGDP. Ao cadastrar, o sistema carrega as obrigações e datas-limite
-      do órgão (art. 35). O papel PGIA das pessoas é atribuído na seção "Gerenciar Usuários".</p>
+      do órgão (art. 35). O acesso das pessoas ao PGIA (e o papel delas) é definido na aba "Gestão de acessos".</p>
 
       <!-- Formulário de cadastro -->
       <form (ngSubmit)="cadastrarPgiaOrgao($event)" class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -48,7 +48,7 @@
             <td class="px-3 py-2">
               <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeClasse(p.Situacao)">{{ p.Situacao }}</span>
             </td>
-            <td class="px-3 py-2">{{ p.CumpridoEm ? (p.CumpridoEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+            <td class="px-3 py-2">{{ p.CumpridoEm ? (p.CumpridoEm | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
             <td class="px-3 py-2 text-right" *ngIf="podeMarcar">
               <button (click)="iniciarMarcacao(p)"
                       class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
@@ -90,7 +90,7 @@
             <td class="px-3 py-2">
               <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeClasse(p.Situacao)">{{ p.Situacao }}</span>
             </td>
-            <td class="px-3 py-2">{{ p.CumpridoEm ? (p.CumpridoEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+            <td class="px-3 py-2">{{ p.CumpridoEm ? (p.CumpridoEm | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
             <td class="px-3 py-2 text-right" *ngIf="podeMarcar">
               <button (click)="iniciarMarcacao(p)"
                       class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">

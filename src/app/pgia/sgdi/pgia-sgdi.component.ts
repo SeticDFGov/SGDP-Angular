@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService, PapeisPgia, Perfis } from '../../auth/services/auth';
@@ -13,6 +13,8 @@ import { PgiaOperacaoService } from '../services/pgia-operacao.service';
 import { PgiaChecklistAbertoComponent } from '../shared/pgia-checklist-aberto.component';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
+import { PgiaTrilhaEstadoService } from '../trilha/pgia-trilha-estado.service';
+import { PedidosAcessoFilaComponent } from '../../core/acessos/pedidos-acesso-fila.component';
 import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
 import { PgiaDocumentoService } from '../services/pgia-documento.service';
 import {
@@ -60,10 +62,13 @@ import {
 @Component({
   selector: 'app-pgia-sgdi',
   standalone: true,
-  imports: [CommonModule, FormsModule, PgiaChecklistAbertoComponent, CitaDecretoDirective, PgiaAnexoComponent],
+  imports: [CommonModule, FormsModule, PgiaChecklistAbertoComponent, CitaDecretoDirective, PgiaAnexoComponent,
+    PedidosAcessoFilaComponent],
   templateUrl: './pgia-sgdi.component.html'
 })
 export class PgiaSgdiComponent implements OnInit {
+  private readonly trilhaEstado = inject(PgiaTrilhaEstadoService);
+
   /** Formulário mostrado nesta página (vem do parâmetro `:secao` da rota). */
   secao: string = '';
   user: UserProfile | null = null;
@@ -129,6 +134,8 @@ export class PgiaSgdiComponent implements OnInit {
   /** Pessoa com o mini-formulário de acesso aberto. */
   pessoaEmAcesso: PgiaPessoaAcesso | null = null;
   vinculoForm: PgiaPessoaVinculoForm = { PapelPgia: null, UnidadeId: null };
+  /** Pessoa cujo acesso ao módulo está sendo alterado (desabilita o botão da linha). */
+  alternandoAcessoModulo: string | null = null;
   orgaoVinculoId: number | null = null;
   salvandoVinculo = false;
   // Pré-cadastro por e-mail (antes do primeiro login no Keycloak)
@@ -315,7 +322,7 @@ export class PgiaSgdiComponent implements OnInit {
 
   /**
    * Unidade que já é o elo de outro órgão (ativo OU inativo) não pode ser
-   * reaproveitada — o backend rejeita, então a checagem precisa enxergar os
+   * reaproveitada: o backend rejeita, então a checagem precisa enxergar os
    * inativos, que não estão em `orgaos`.
    */
   unidadeJaVinculada(unidade: Unidade): boolean {
@@ -362,7 +369,7 @@ export class PgiaSgdiComponent implements OnInit {
       return;
     }
     // Unidade obrigatória na criação via SGDI (F7). A sigla nasce sozinha do
-    // grupo Keycloak da unidade escolhida — não é mais digitada nem checada
+    // grupo Keycloak da unidade escolhida; não é mais digitada nem checada
     // por duplicidade aqui (a unicidade é da própria unidade).
     if (!this.novoOrgaoForm.UnidadeId) {
       this.notificationService.warning('Escolha a unidade do SGDP que será o elo do órgão.');
@@ -446,6 +453,12 @@ export class PgiaSgdiComponent implements OnInit {
   }
 
   // ── Pessoas e acessos ─────────────────────────────────────────────────────
+
+  /** Pedido de acesso ao PGIA decidido na fila: a lista de pessoas e a trilha mostram o novo acesso. */
+  aoDecidirPedido(): void {
+    if (this.buscouPessoas) this.buscarPessoas();
+    this.trilhaEstado.atualizarStatus(true);
+  }
 
   buscarPessoas(): void {
     this.buscandoPessoas = true;
@@ -555,11 +568,11 @@ export class PgiaSgdiComponent implements OnInit {
   salvarVinculo(): void {
     const pessoa = this.pessoaEmAcesso;
     if (!pessoa) return;
-    // Remover a unidade tira o acesso da pessoa ao restante do SGDP (o
-    // userConfiguredGuard exige unidade). Confirma antes de fazer isso (F2).
+    // Remover a unidade tira a pessoa do órgão (é a unidade que resolve o órgão)
+    // e muda o que ela vê nas demandas. Confirma antes de fazer isso (F2).
     const removendoUnidade = !this.vinculoForm.UnidadeId && !!pessoa.UnidadeId;
     if (removendoUnidade && typeof window !== 'undefined'
-        && !window.confirm('Remover o vínculo também tira o acesso desta pessoa ao restante do SGDP e a leva de volta à tela de aprovação pendente. Confirmar?')) {
+        && !window.confirm('Remover o vínculo tira esta pessoa do órgão: ela deixa de ver as telas do órgão no PGIA. Confirmar?')) {
       return;
     }
     this.salvandoVinculo = true;
@@ -584,6 +597,35 @@ export class PgiaSgdiComponent implements OnInit {
       error: () => {
         this.salvandoVinculo = false;
         this.notificationService.error('Não foi possível salvar o acesso desta pessoa.');
+      }
+    });
+  }
+
+  /**
+   * Libera (ou retira) o acesso da pessoa ao módulo PGIA sem papel: o agente
+   * público do art. 13, que registra uso de IA e avisa incidentes. Papel PGIA e a
+   * role "pgia" do grupo no Keycloak dão acesso por si e não mudam por aqui.
+   */
+  alternarAcessoModulo(pessoa: PgiaPessoaAcesso, ativo: boolean): void {
+    if (!ativo && typeof window !== 'undefined'
+        && !window.confirm(`Retirar o acesso de ${pessoa.Nome} ao PGIA? Ela deixa de registrar uso de IA e de avisar incidentes por aqui.`)) {
+      return;
+    }
+    this.alternandoAcessoModulo = pessoa.UserId;
+    this.governancaService.definirAcessoModuloPessoa(pessoa.UserId, ativo).subscribe({
+      next: (acesso) => {
+        this.alternandoAcessoModulo = null;
+        const i = this.pessoas.findIndex(p => p.UserId === pessoa.UserId);
+        if (i >= 0) {
+          this.pessoas[i] = { ...this.pessoas[i], AcessoModulo: acesso.AcessoModulo, AcessoModuloKeycloak: acesso.AcessoModuloKeycloak };
+        }
+        this.notificationService.success(ativo
+          ? `${pessoa.Nome} já pode registrar uso de IA e avisar incidentes.`
+          : `Acesso de ${pessoa.Nome} ao PGIA retirado.`);
+      },
+      error: () => {
+        this.alternandoAcessoModulo = null;
+        this.notificationService.error('Não foi possível alterar o acesso desta pessoa ao PGIA.');
       }
     });
   }

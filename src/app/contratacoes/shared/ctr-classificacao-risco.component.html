@@ -32,7 +32,7 @@ criticidade: uma não deriva da outra. Fica fora do CSV e do despacho em PDF.</p
   </div>
 
   <p *ngIf="!edicao.removida" class="text-xs text-gray-400 italic mt-2">A classificação é opcional. Depois de aberta, o
-  processo só é salvo com ela completa — ou descartada.</p>
+  processo só é salvo com ela completa, ou descartada.</p>
 </div>
 
 <!-- ── Classificação aberta ─────────────────────────────────────────────── -->
@@ -48,7 +48,7 @@ criticidade: uma não deriva da outra. Fica fora do CSV e do despacho em PDF.</p
                 [ngClass]="badgeRiscoClassificado(edicao.resultado)">{{ edicao.resultado }}</span>
           <ng-container *ngIf="edicao.enquadramento"> ({{ edicao.enquadramento }})</ng-container>
           · pontuação {{ edicao.pontuacao }}
-          <span *ngIf="!edicao.todosRespondidos" class="text-xs text-gray-400 italic">— prévia, ainda há grupo sem resposta</span>
+          <span *ngIf="!edicao.todosRespondidos" class="text-xs text-gray-400 italic">(prévia: ainda há grupo sem resposta)</span>
         </p>
         <p class="mt-1">
           Maior nível entre os riscos declarados:

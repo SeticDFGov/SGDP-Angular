@@ -25,7 +25,7 @@
                   [ngClass]="badgeFase(processo.Fase)">{{ processo.Fase }}</span>
             <span *ngIf="processo.EtapaPlanejamento" class="text-xs text-gray-600"
                   [title]="rotuloEtapaPlanejamento(processo.EtapaPlanejamento)">
-              {{ processo.EtapaPlanejamento }} — {{ rotuloEtapaPlanejamento(processo.EtapaPlanejamento) }}
+              {{ processo.EtapaPlanejamento }} ({{ rotuloEtapaPlanejamento(processo.EtapaPlanejamento) }})
             </span>
             <span *ngIf="processo.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
                   [ngClass]="badgeCriticidade(processo.Criticidade)">Criticidade {{ processo.Criticidade }}</span>

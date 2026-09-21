@@ -76,17 +76,17 @@ export class PgiaSistemasComponent implements OnInit {
   // O valor gravado é o do domínio; o rótulo traz exemplos para quem não é da área.
   private static readonly EXEMPLOS_TECNOLOGIA: Record<string, string> = {
     'IA generativa':
-      'IA generativa — ex.: ChatGPT, Claude, Gemini, ferramentas que criam textos e imagens',
+      'IA generativa (ex.: ChatGPT, Claude, Gemini, ferramentas que criam textos e imagens)',
     'IA preditiva ou aprendizado de máquina':
-      'IA preditiva ou aprendizado de máquina — ex.: previsão de demanda, escore de risco, detecção de fraude',
+      'IA preditiva ou aprendizado de máquina (ex.: previsão de demanda, escore de risco, detecção de fraude)',
     'Visão computacional':
-      'Visão computacional — ex.: leitura de placas, reconhecimento de imagens de câmeras',
+      'Visão computacional (ex.: leitura de placas, reconhecimento de imagens de câmeras)',
     'Processamento de linguagem natural':
-      'Processamento de linguagem natural — ex.: análise e classificação de textos e documentos',
+      'Processamento de linguagem natural (ex.: análise e classificação de textos e documentos)',
     'Biometria':
-      'Biometria — ex.: reconhecimento facial ou por digital',
+      'Biometria (ex.: reconhecimento facial ou por digital)',
     'Outra':
-      'Outra — tecnologia que não se encaixa nas anteriores'
+      'Outra (tecnologia que não se encaixa nas anteriores)'
   };
 
   tecnologias = TECNOLOGIAS.map(v => ({
@@ -564,7 +564,7 @@ export class PgiaSistemasComponent implements OnInit {
 
   /**
    * Se nenhuma situação dos arts. 15 a 17 se aplica, o órgão precisa declarar
-   * ao menos um risco próprio — senão o registro não diz nada sobre o sistema.
+   * ao menos um risco próprio; senão o registro não diz nada sobre o sistema.
    */
   get outrosObrigatorio(): boolean {
     return this.todosNenhuma;
@@ -605,7 +605,7 @@ export class PgiaSistemasComponent implements OnInit {
 
   /**
    * Clique (e toque) prendem a matriz aberta; o clique seguinte fecha. Sem isso
-   * o mouse abriria no hover e o clique logo em seguida fecharia — o contrário
+   * o mouse abriria no hover e o clique logo em seguida fecharia, o contrário
    * do que o usuário espera.
    */
   fixarMatriz(): void {

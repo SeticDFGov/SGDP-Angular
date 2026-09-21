@@ -14,7 +14,7 @@ import { CtrManifestacaoForm, STATUS_TCDF } from '../../../api/contratacoes/inte
  * `citaDecreto` é exclusiva do Decreto nº 48.901/2026 (PGIA).
  *
  * Os blocos são exclusivos: o que não vale para o inciso escolhido é enviado
- * como nulo — o backend recusa campo de bloco inativo preenchido, e a resposta
+ * como nulo: o backend recusa campo de bloco inativo preenchido, e a resposta
  * de erro chega sem corpo (500), então a disciplina fica aqui.
  *
  * A criticidade **não é editada aqui**: ela é atributo da contratação e mora no
@@ -31,7 +31,7 @@ export class CtrManifestacaoFormComponent implements OnChanges {
   @Input() valor: CtrManifestacaoForm | null = null;
   @Input() salvando = false;
   @Input() rotuloSalvar = 'Salvar manifestação';
-  /** Criticidade do processo — só leitura, vem do cadastro da contratação. */
+  /** Criticidade do processo: só leitura, vem do cadastro da contratação. */
   @Input() criticidadeProcesso: string | null = null;
   /** Processo da manifestação, para o link "editar o processo". */
   @Input() processoId: number | null = null;
@@ -182,11 +182,11 @@ export class CtrManifestacaoFormComponent implements OnChanges {
       OficioTcdf: this.form.OficioTcdf.trim(),
       DataOficio: this.form.DataOficio,
       SituacaoPortfolio: this.form.SituacaoPortfolio,
-      // Bloco do inciso I — nulo quando a contratação não era comunicada.
+      // Bloco do inciso I: nulo quando a contratação não era comunicada.
       // A criticidade não vai no corpo: é do processo.
       ComunicadaDesde: this.incisoI ? this.form.ComunicadaDesde : null,
       ResultadoAnalise: this.incisoI ? this.form.ResultadoAnalise : null,
-      // Bloco de risco — só existe com "riscos significativos".
+      // Bloco de risco: só existe com "riscos significativos".
       RecomendouSuspensao: this.temRiscos ? this.form.RecomendouSuspensao : false,
       ComunicouControleInterno: this.temRiscos ? this.form.ComunicouControleInterno : false,
       DesfechoRisco: this.temRiscos ? this.form.DesfechoRisco : null,

@@ -40,7 +40,7 @@ export class PgiaIncidentesComponent implements OnInit {
   modoConsulta = false;
   /**
    * Agente sem papel no PGIA: só pode avisar o Responsável de IA (art. 13, II).
-   * Nesse caso a página carrega apenas as fontes de uso — os demais GETs são negados.
+   * Nesse caso a página carrega apenas as fontes de uso; os demais GETs são negados.
    */
   semPapel = false;
 
@@ -234,7 +234,7 @@ export class PgiaIncidentesComponent implements OnInit {
   // ── Rótulos e badges ──────────────────────────────────────────────────────
 
   rotuloHipotese(valor: string | null): string {
-    if (!valor) return '— aviso sem hipótese';
+    if (!valor) return '(aviso sem hipótese)';
     return this.hipoteses.find(h => h.valor === valor)?.rotulo ?? valor;
   }
 

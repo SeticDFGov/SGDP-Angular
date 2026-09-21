@@ -105,7 +105,7 @@ export function badgeRiscoClassificado(risco: string | null | undefined): string
 /**
  * Badge do nível de um risco declarado: a cor cheia da célula do mapa da CGDF
  * (a mesma do mapa desenhado na classificação). O tom diferente do badge do
- * risco classificado é proposital — são duas escalas que não se misturam.
+ * risco classificado é proposital: são duas escalas que não se misturam.
  */
 export function badgeNivelRisco(nivel: string | null | undefined): string {
   switch (nivel) {

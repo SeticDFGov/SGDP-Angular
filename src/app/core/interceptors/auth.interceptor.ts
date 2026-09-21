@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError, switchMap } from 'rxjs';
 import { AuthService } from '../../auth/services/auth';
+import { NotificationService } from '../services/notification.service';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 
@@ -10,6 +11,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const platformId = inject(PLATFORM_ID);
+  const notificacoes = inject(NotificationService);
 
   let modifiedReq = req;
 
@@ -61,8 +63,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             break;
 
           case 403:
-            // Proibido - usuário não tem permissão
-            router.navigate(['/']);
+            // Proibido: a API recusou pelo módulo ou pelo papel (isolamento entre
+            // módulos). Volta para a tela inicial explicando o porquê.
+            notificacoes.warning('Você não tem acesso a esta área. Se precisar dela, peça acesso pelo card do módulo na tela inicial.');
+            router.navigate(['/inicio']);
             break;
 
           case 404:

@@ -67,7 +67,7 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
   // Card: Responsável de IA
   /**
    * Cópia do ato das designações. O documento tem de ser do MESMO órgão da
-   * designação — documento central é recusado pelo servidor.
+   * designação; documento central é recusado pelo servidor.
    */
   criarDocumentoAto = (arquivo: File): Observable<PgiaDocumento> =>
     this.documentoService.criarDocumento({

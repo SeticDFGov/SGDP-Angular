@@ -1,12 +1,5 @@
 <div citaDecreto class="tela-pgia max-w-5xl mx-auto">
 
-  <!-- Contexto -->
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
-    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
-    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
-    <ng-container *ngIf="semPapel"> Percebeu um problema com um sistema de IA? Avise o Responsável de IA do seu órgão por aqui.</ng-container>
-    <ng-container *ngIf="!semPapel"> Nesta área, o seu órgão avisa e comunica os problemas com sistemas de IA e acompanha o que a SGDI apurou.</ng-container>
-  </div>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
@@ -185,7 +178,7 @@
                 <td class="px-3 py-2">{{ rotuloHipotese(i.Hipotese) }}</td>
                 <td class="px-3 py-2 whitespace-nowrap">{{ i.DataOcorrencia | date:'dd/MM/yyyy HH:mm' }}</td>
                 <td class="px-3 py-2 whitespace-nowrap">
-                  {{ i.DataComunicacaoSgdi ? (i.DataComunicacaoSgdi | date:'dd/MM/yyyy HH:mm') : '—' }}
+                  {{ i.DataComunicacaoSgdi ? (i.DataComunicacaoSgdi | date:'dd/MM/yyyy HH:mm') : '-' }}
                 </td>
                 <td class="px-3 py-2">
                   <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeSituacao(i)">{{ situacao(i) }}</span>
@@ -205,7 +198,7 @@
                     <div><strong class="text-gray-800">Detecção:</strong> {{ i.DataDeteccao | date:'dd/MM/yyyy HH:mm' }}</div>
                     <div><strong class="text-gray-800">Aviso ao Responsável de IA:</strong> {{ i.NotificadoResponsavelEm | date:'dd/MM/yyyy HH:mm' }}</div>
                     <div><strong class="text-gray-800">Quem comunicou:</strong> {{ i.ComunicadoPorNome }}</div>
-                    <div><strong class="text-gray-800">Processo SEI:</strong> {{ i.ProcessoSei || '—' }}</div>
+                    <div><strong class="text-gray-800">Processo SEI:</strong> {{ i.ProcessoSei || '-' }}</div>
                     <div class="md:col-span-2 leading-relaxed" *ngIf="i.RecomendacoesSgdi">
                       <strong class="text-gray-800">Recomendações da SGDI:</strong> {{ i.RecomendacoesSgdi }}
                     </div>

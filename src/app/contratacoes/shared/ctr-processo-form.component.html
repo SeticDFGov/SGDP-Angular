@@ -4,7 +4,7 @@
      class="border-l-4 border-blue-400 bg-blue-50 p-3 rounded-r-md text-sm text-blue-950 mb-4">
   <p><strong>Origem: TCDF.</strong> Este cadastro é de contratação que chegou por análise interna do Tribunal sobre o
   contrato, sem ter passado pelo órgão de origem.</p>
-  <p class="text-xs text-gray-400 italic mt-1">A origem já vai gravada como "TCDF" — não há campo para escolher.</p>
+  <p class="text-xs text-gray-400 italic mt-1">A origem já vai gravada como "TCDF"; não há campo para escolher.</p>
 </div>
 
 <div *ngIf="origemFixa !== origemTcdf && form.Origem === origemTcdf"
@@ -96,7 +96,7 @@ planejamento continua registrada, porque é onde o planejamento parou.</p>
     <select [(ngModel)]="form.EtapaPlanejamento" name="ctr-etapa-planejamento"
             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
       <option [ngValue]="null">Não informada</option>
-      <option *ngFor="let e of etapasPlanejamento" [ngValue]="e.valor">{{ e.valor }} — {{ e.rotulo }}</option>
+      <option *ngFor="let e of etapasPlanejamento" [ngValue]="e.valor">{{ e.valor }} ({{ e.rotulo }})</option>
     </select>
     <p class="text-xs text-gray-400 italic mt-1">Em que documento o planejamento da contratação está.</p>
   </div>
@@ -227,7 +227,7 @@ não muda por causa disso.</p>
 <!-- No modo compacto o trâmite fica de fora: processo cadastrado pelo TCDF
      costuma nascer sem nenhuma data de tramitação. -->
 <p *ngIf="compacto" class="text-xs text-gray-400 italic mt-4">As datas de tramitação e a restituição ficam para a página
-do processo, quando houver — o cadastro do TCDF normalmente começa sem elas.</p>
+do processo, quando houver. O cadastro do TCDF normalmente começa sem elas.</p>
 
 <!-- Observação -->
 <div class="mt-4">

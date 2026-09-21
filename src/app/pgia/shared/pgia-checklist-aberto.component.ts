@@ -28,7 +28,7 @@ interface GrupoQuesitos {
 
 /**
  * Questionário aberto: mostra os quesitos marcados agrupados por artigo, com o peso
- * de cada um e a pontuação total. Só é usado nas telas centrais (SGDI e CGTIC) —
+ * de cada um e a pontuação total. Só é usado nas telas centrais (SGDI e CGTIC);
  * a tela do órgão nunca revela o enquadramento durante o preenchimento.
  */
 @Component({
@@ -55,9 +55,9 @@ export class PgiaChecklistAbertoComponent {
   }
 
   private static readonly TITULOS: Record<number, string> = {
-    15: 'Art. 15 — usos proibidos',
-    16: 'Art. 16 — Alto Risco',
-    17: 'Art. 17 — Risco Moderado'
+    15: 'Art. 15: usos proibidos',
+    16: 'Art. 16: Alto Risco',
+    17: 'Art. 17: Risco Moderado'
   };
 
   /** Cor da célula da matriz da CGDF para o par probabilidade × consequência. */

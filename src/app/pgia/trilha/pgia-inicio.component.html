@@ -1,0 +1,106 @@
+<div citaDecreto class="tela-pgia max-w-5xl mx-auto space-y-5">
+  <ng-container *ngIf="estado as e">
+
+    <!-- Como funciona -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">O que o decreto pede de você</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">{{ e.trilha.descricao }}</p>
+      <ol class="mt-3 text-sm text-gray-600 list-decimal ml-5 space-y-1 leading-relaxed">
+        <li>As etapas estão numeradas na ordem em que o trabalho acontece. Comece pela etapa 1.</li>
+        <li>Cada passo mostra o que fazer, a base legal e, quando há, o prazo. Passe o mouse sobre um artigo para ler o texto do decreto.</li>
+        <li>No fim de cada tela, o botão "Próximo passo" leva adiante, sem precisar procurar em menus.</li>
+      </ol>
+    </div>
+
+    <!-- Próximo passo recomendado -->
+    <div *ngIf="recomendado as r" class="bg-indigo-600 text-white rounded-lg shadow p-5 flex flex-col md:flex-row md:items-center gap-4">
+      <div class="flex-1">
+        <p class="text-xs uppercase tracking-wide text-indigo-200 font-semibold">Seu próximo passo</p>
+        <p class="text-lg font-bold mt-0.5">{{ r.numero }} · {{ r.titulo }}</p>
+        <p class="text-sm text-indigo-100 mt-1 leading-relaxed">{{ r.oQueFazer }}</p>
+        <p *ngIf="status(r) as s" class="inline-flex items-center gap-1 mt-2 text-xs font-semibold bg-white/15 rounded-full px-2 py-0.5">
+          {{ s.texto }}
+        </p>
+      </div>
+      <button type="button" (click)="irPara(r)"
+              class="inline-flex items-center justify-center gap-2 bg-white text-indigo-700 font-semibold px-5 py-2.5 rounded-lg hover:bg-indigo-50 whitespace-nowrap">
+        Ir para o passo {{ r.numero }}
+        <span class="material-icons text-lg" aria-hidden="true">arrow_forward</span>
+      </button>
+    </div>
+
+    <div *ngIf="!recomendado && !carregandoStatus" class="bg-green-50 border border-green-200 rounded-lg p-5 flex items-start gap-3">
+      <span class="material-icons text-green-600" aria-hidden="true">task_alt</span>
+      <p class="text-sm text-green-900 leading-relaxed">
+        <strong>Tudo em dia.</strong> Nenhuma obrigação com prazo está pendente. Use as etapas abaixo para as rotinas do dia a dia.
+      </p>
+    </div>
+
+    <p *ngIf="carregandoStatus" class="text-sm text-gray-500">Conferindo a situação dos passos...</p>
+
+    <!-- Etapas e passos numerados -->
+    <div *ngFor="let etapa of e.trilha.etapas; let i = index" class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="px-5 py-4 flex items-start gap-4 border-b border-gray-100">
+        <span class="w-10 h-10 rounded-full bg-indigo-600 text-white text-base font-bold flex items-center justify-center shrink-0">{{ i + 1 }}</span>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+            <span class="material-icons text-indigo-600 text-xl" aria-hidden="true">{{ etapa.icone }}</span>
+            {{ etapa.titulo }}
+          </h3>
+          <p class="text-sm text-gray-600 mt-0.5">{{ etapa.resumo }}</p>
+        </div>
+      </div>
+      <ul>
+        <li *ngFor="let p of passosDaEtapa(i)"
+            class="px-5 py-3 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+          <span class="text-sm font-bold text-indigo-700 w-10 shrink-0">{{ p.numero }}</span>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-gray-900">{{ p.titulo }}</p>
+            <p class="text-xs text-gray-500 leading-relaxed">{{ p.oQueFazer }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">Base legal: {{ p.baseLegal }}</p>
+          </div>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center"
+                [ngClass]="classeEstado(status(p)?.estado)">
+            {{ status(p)?.texto || (p.status ? 'Conferindo...' : 'Rotina, sem prazo') }}
+          </span>
+          <button type="button" (click)="irPara(p)"
+                  class="inline-flex items-center gap-1 text-sm font-semibold text-indigo-700 hover:underline whitespace-nowrap self-start md:self-center">
+            Abrir <span class="material-icons text-base" aria-hidden="true">arrow_forward</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Prazos do decreto -->
+    <div *ngIf="prazos.length > 0" class="bg-white rounded-lg shadow p-6">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h2 class="text-base font-semibold text-blue-900">Prazos do decreto</h2>
+        <a *ngIf="e.trilha.atalhos.length > 0" routerLink="/pgia/prazos" class="text-sm font-semibold text-indigo-700 hover:underline">
+          Ver e registrar cumprimento
+        </a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th class="px-3 py-2">Obrigação</th>
+              <th class="px-3 py-2">Base legal</th>
+              <th class="px-3 py-2">Data-limite</th>
+              <th class="px-3 py-2">Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let prazo of prazos" class="border-b border-gray-100">
+              <td class="px-3 py-2">{{ prazo.Obrigacao }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ prazo.BaseLegal }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ prazo.DataLimite | date:'dd/MM/yyyy':'UTC' }}</td>
+              <td class="px-3 py-2">
+                <span class="inline-flex px-2 py-0.5 rounded-full border text-xs font-semibold" [ngClass]="classePrazo(prazo)">{{ prazo.Situacao }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+</div>

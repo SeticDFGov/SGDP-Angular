@@ -67,7 +67,7 @@ export class CtrProcessoService {
     });
   }
 
-  /** Siglas já usadas nos processos ativos — alimenta o autocompletar. */
+  /** Siglas já usadas nos processos ativos; alimenta o autocompletar. */
   listarSiglas(): Observable<string[]> {
     return this.http.get<string[]>(`${this.apiUrl}/processo/siglas`, { headers: this.getHeaders() });
   }

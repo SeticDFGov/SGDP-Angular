@@ -9,7 +9,7 @@ import { CtrImportacaoComponent } from './importacao/ctr-importacao.component';
 
 /**
  * Mesmo desenho canônico do PGIA: **uma rota com parâmetro** (`area/:secao`),
- * não N rotas irmãs apontando para o mesmo componente — com rotas irmãs o
+ * não N rotas irmãs apontando para o mesmo componente: com rotas irmãs o
  * Angular destrói e recria a instância a cada clique e o `ngOnInit` refaz todas
  * as chamadas da área. Com o parâmetro, o componente é reaproveitado e só o
  * campo `secao` muda (ver `acompanharSecao`, reaproveitado de `pgia/shared`).
@@ -30,7 +30,7 @@ function secoes(base: string, componente: Type<unknown>, nomes: readonly string[
 /**
  * Rotas do módulo Supervisão Contínua das Contratações (lazy, montadas como
  * filhas do MainLayout em app.routes.ts). O acesso é controlado pelo
- * `contratacoesGuard` na rota-mãe. O nome exibido do módulo mudou, mas a rota
+ * `moduloGuard('contratacoes')` na rota-mãe (isolamento entre módulos). O nome exibido do módulo mudou, mas a rota
  * `/analises`, a pasta e os identificadores `Ctr*` continuam os mesmos.
  */
 export const contratacoes_routes: Routes = [

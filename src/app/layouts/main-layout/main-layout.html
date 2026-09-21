@@ -1,8 +1,99 @@
-<div class="min-h-screen bg-gray-100">
-  <app-sidebar></app-sidebar>
-  <main class="h-screen p-6 overflow-auto transition-all duration-300"
-        [class.ml-72]="isSidebarExpanded"
-        [class.ml-20]="!isSidebarExpanded">
+<div class="min-h-screen bg-gray-100 flex flex-col">
+
+  <header class="sticky top-0 z-30 shadow-md">
+    <!-- Barra principal -->
+    <div class="bg-slate-900 text-white">
+      <div class="h-16 px-4 md:px-6 flex items-center gap-3 md:gap-5">
+        <a routerLink="/inicio" class="flex items-center gap-3 shrink-0" title="Ir para a tela inicial">
+          <img src="assets/Marca_GDF_Reduzida_Horizontal.png" alt="Governo do Distrito Federal" class="h-9 w-auto object-contain" />
+          <span class="text-lg font-bold tracking-wide">SGDP</span>
+        </a>
+
+        <!-- Onde o usuário está -->
+        <nav aria-label="Você está em" class="hidden sm:flex items-center gap-1.5 text-sm text-slate-300 min-w-0">
+          <span class="text-slate-600" aria-hidden="true">|</span>
+          <a routerLink="/inicio" class="px-1 hover:text-white" [class.text-white]="naInicio" [class.font-medium]="naInicio">Início</a>
+          <ng-container *ngIf="modulo">
+            <span class="material-icons text-base text-slate-500" aria-hidden="true">chevron_right</span>
+            <span class="flex items-center gap-1.5 text-white font-medium truncate">
+              <span class="material-icons text-lg" aria-hidden="true">{{ modulo.icone }}</span>
+              <span class="truncate">{{ modulo.nomeCurto }}</span>
+            </span>
+          </ng-container>
+        </nav>
+
+        <div class="ml-auto flex items-center gap-2 md:gap-3">
+          <a *ngIf="!naInicio" routerLink="/inicio"
+             class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors">
+            <span class="material-icons text-lg" aria-hidden="true">home</span>
+            <span class="hidden md:inline">Voltar ao início</span>
+          </a>
+
+          <!-- Menu do usuário -->
+          <div class="relative">
+            <button type="button" (click)="menuAberto = !menuAberto"
+                    class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
+                    aria-haspopup="menu" [attr.aria-expanded]="menuAberto" title="Conta">
+              <span class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-500 flex items-center justify-center text-sm font-bold">
+                {{ iniciais }}
+              </span>
+              <span class="hidden lg:block text-left leading-tight max-w-52">
+                <span class="block text-sm font-semibold truncate">{{ user?.Nome }}</span>
+                <span class="block text-xs text-slate-400 truncate">{{ user?.Email }}</span>
+              </span>
+              <span class="material-icons text-slate-400 text-lg" aria-hidden="true">expand_more</span>
+            </button>
+
+            <div *ngIf="menuAberto" class="fixed inset-0 z-30" (click)="menuAberto = false" aria-hidden="true"></div>
+            <div *ngIf="menuAberto" role="menu"
+                 class="absolute right-0 mt-2 w-64 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 py-1 z-40">
+              <div class="px-4 py-2 border-b border-gray-100 lg:hidden">
+                <p class="text-sm font-semibold truncate">{{ user?.Nome }}</p>
+                <p class="text-xs text-gray-500 truncate">{{ user?.Email }}</p>
+              </div>
+              <a routerLink="/inicio" role="menuitem" (click)="menuAberto = false"
+                 class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50">
+                <span class="material-icons text-base text-gray-500" aria-hidden="true">apps</span>
+                Meus módulos
+              </a>
+              <button type="button" role="menuitem" (click)="sair()"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left">
+                <span class="material-icons text-base" aria-hidden="true">logout</span>
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Abas do módulo aberto (o PGIA tem a trilha própria) -->
+    <div *ngIf="modulo && modulo.abas.length" class="bg-white border-b border-gray-200">
+      <nav class="px-4 md:px-6 flex items-center gap-1 overflow-x-auto" [attr.aria-label]="'Telas de ' + modulo.nome">
+        <a *ngFor="let aba of modulo.abas" [routerLink]="aba.rota"
+           class="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors"
+           [ngClass]="abaAtiva(aba) ? modulo.tom.aba : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'"
+           [attr.aria-current]="abaAtiva(aba) ? 'page' : null">
+          <span *ngIf="aba.icone" class="material-icons text-lg" aria-hidden="true">{{ aba.icone }}</span>
+          {{ aba.rotulo }}
+          <span *ngIf="contadorDa(aba) > 0"
+                class="min-w-5 h-5 px-1.5 rounded-full bg-red-600 text-white text-xs font-bold inline-flex items-center justify-center"
+                [attr.aria-label]="contadorDa(aba) + (contadorDa(aba) === 1 ? ' pedido aguardando' : ' pedidos aguardando')">
+            {{ contadorDa(aba) }}
+          </span>
+        </a>
+      </nav>
+      <nav *ngIf="filhosAtivos.length" class="px-4 md:px-6 pb-3 pt-1 flex flex-wrap gap-2" aria-label="Formulários da aba">
+        <a *ngFor="let filho of filhosAtivos" [routerLink]="filho.rota"
+           class="px-3 py-1 rounded-full border text-xs font-medium transition-colors"
+           [ngClass]="subAbaAtiva(filho.rota) ? modulo.tom.chip : 'border-gray-200 text-gray-600 hover:bg-gray-50'">
+          {{ filho.rotulo }}
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 md:p-6">
     <router-outlet></router-outlet>
   </main>
 </div>

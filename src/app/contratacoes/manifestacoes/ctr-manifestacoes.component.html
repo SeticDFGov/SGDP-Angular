@@ -144,7 +144,7 @@
         <p>Nenhum processo encontrado. Confira o número ou cadastre o processo antes de registrar a manifestação.</p>
         <p class="mt-1">Não achou?
           <button (click)="abrirCadastroTcdf()" class="text-blue-700 hover:underline">cadastre o processo do TCDF</button>
-          — é a contratação que chega por análise interna do Tribunal.
+          (é a contratação que chega por análise interna do Tribunal).
         </p>
       </div>
 
@@ -188,7 +188,7 @@
     <ng-container *ngIf="!carregandoProcesso && processo">
       <div class="border border-gray-200 rounded-lg p-4 mb-5 text-sm">
         <p class="font-semibold text-gray-900">Processo SEI nº {{ processo.NumeroProcesso }}</p>
-        <p class="text-gray-600">Contratação: {{ processo.Objeto }} — {{ processo.OrgaoNome }}
+        <p class="text-gray-600">Contratação: {{ processo.Objeto }} · {{ processo.OrgaoNome }}
         ({{ processo.OrgaoSigla }})<span *ngIf="processo.ComplementoArea">, {{ processo.ComplementoArea }}</span></p>
         <div class="flex flex-wrap items-center gap-2 mt-2">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold"

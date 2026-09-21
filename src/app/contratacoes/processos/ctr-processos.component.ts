@@ -119,7 +119,7 @@ export class CtrProcessosComponent implements OnInit {
       this.secao = secao;
       // O modal é da lista: trocar de seção (inclusive pelo histórico) o fecha.
       this.fecharCheckpoint();
-      // A lista só é buscada quando é ela que está na tela — a mensagem de erro
+      // A lista só é buscada quando é ela que está na tela: a mensagem de erro
       // dela mora na própria seção e ficaria muda em "Novo processo".
       if (secao === 'lista' && !this.carregouLista) this.buscar();
     });
@@ -370,7 +370,7 @@ export class CtrProcessosComponent implements OnInit {
     // A chave só vai quando a etapa aceita "não se aplica" E há intenção: o
     // servidor recusa qualquer valor não nulo nas outras três etapas (mandar
     // `false` derrubava o primeiro uso do modal, que sugere ChegadaSgdi). E só
-    // limpar a data não pode desmarcar o flag — aí a chave também é omitida.
+    // limpar a data não pode desmarcar o flag; aí a chave também é omitida.
     if (this.etapaAceitaNaoSeAplica && (this.checkpointNaoSeAplica || !this.checkpointLimpar)) {
       corpo.NaoSeAplica = this.checkpointNaoSeAplica;
     }

@@ -12,7 +12,8 @@ import { PgiaAuditoriaComponent } from './auditoria/pgia-auditoria.component';
 import { PgiaSgdiComponent } from './sgdi/pgia-sgdi.component';
 import { PgiaCgticComponent } from './cgtic/pgia-cgtic.component';
 import { PgiaPrazosComponent } from './prazos/pgia-prazos.component';
-import { pgiaRaizGuard } from './guards/pgia-raiz.guard';
+import { PgiaShellComponent } from './trilha/pgia-shell.component';
+import { PgiaInicioComponent } from './trilha/pgia-inicio.component';
 
 /**
  * Cada formulário/seção de uma área tem a sua própria URL e a sua própria
@@ -22,7 +23,7 @@ import { pgiaRaizGuard } from './guards/pgia-raiz.guard';
  * diferentes apontando para o mesmo componente fariam o Angular destruir e
  * recriar a instância a cada troca de seção, e o `ngOnInit` refaria todas as
  * chamadas da área (na SGDI são 13 GETs por clique). Com o parâmetro, o
- * componente é reaproveitado e só o campo `secao` muda — ver `acompanharSecao`.
+ * componente é reaproveitado e só o campo `secao` muda (ver `acompanharSecao`).
  *
  * A raiz da área redireciona para a primeira seção.
  */
@@ -39,39 +40,41 @@ function secoes(base: string, componente: Type<unknown>, nomes: readonly string[
 
 /**
  * Rotas do módulo PGIA (lazy, montadas como filhas do MainLayout em app.routes.ts).
- * O acesso é controlado pelo pgiaGuard na rota-mãe.
+ * A entrada é controlada pelo moduloGuard('pgia') na rota-mãe (isolamento entre
+ * módulos). Todas as telas ficam dentro da moldura da trilha (PgiaShellComponent),
+ * que mostra as etapas e os passos numerados do papel do usuário; a raiz /pgia é a
+ * visão geral da trilha.
  */
 export const pgia_routes: Routes = [
-  // /pgia abre a primeira tela do papel do usuário (o pgiaRaizGuard sempre
-  // devolve um UrlTree; o componente aqui é só o destino histórico de fallback).
   {
     path: '',
-    pathMatch: 'full',
-    canActivate: [pgiaRaizGuard],
-    component: PgiaOrgaoEtapa1Component
-  },
+    component: PgiaShellComponent,
+    children: [
+      { path: '', pathMatch: 'full', component: PgiaInicioComponent },
 
-  // Áreas com um formulário por página
-  ...secoes('orgao', PgiaOrgaoEtapa1Component,
-    ['dados', 'pessoas', 'responsavel-ia', 'encarregado-dados']),
-  ...secoes('sistemas', PgiaSistemasComponent,
-    ['lista', 'cadastro']),
-  ...secoes('incidentes', PgiaIncidentesComponent,
-    ['aviso', 'comunicacao', 'acompanhamento', 'nao-conformidades']),
-  ...secoes('contratacoes', PgiaContratacoesComponent,
-    ['contratos', 'legados']),
-  ...secoes('relatorios', PgiaRelatoriosComponent,
-    ['indicadores', 'semestrais']),
-  ...secoes('sgdi', PgiaSgdiComponent,
-    ['fila', 'orgaos-dados', 'pessoas', 'plataformas', 'apuracao', 'registro-publico', 'aia', 'semestrais',
-     'anual', 'auditorias', 'nao-conformidades', 'normas', 'autorizacoes']),
-  ...secoes('cgtic', PgiaCgticComponent,
-    ['casos', 'deliberacoes', 'historico']),
+      // Áreas com um formulário por página
+      ...secoes('orgao', PgiaOrgaoEtapa1Component,
+        ['dados', 'pessoas', 'responsavel-ia', 'encarregado-dados']),
+      ...secoes('sistemas', PgiaSistemasComponent,
+        ['lista', 'cadastro']),
+      ...secoes('incidentes', PgiaIncidentesComponent,
+        ['aviso', 'comunicacao', 'acompanhamento', 'nao-conformidades']),
+      ...secoes('contratacoes', PgiaContratacoesComponent,
+        ['contratos', 'legados']),
+      ...secoes('relatorios', PgiaRelatoriosComponent,
+        ['indicadores', 'semestrais']),
+      ...secoes('sgdi', PgiaSgdiComponent,
+        ['fila', 'orgaos-dados', 'pessoas', 'plataformas', 'apuracao', 'registro-publico', 'aia', 'semestrais',
+         'anual', 'auditorias', 'nao-conformidades', 'normas', 'autorizacoes']),
+      ...secoes('cgtic', PgiaCgticComponent,
+        ['casos', 'deliberacoes', 'historico']),
 
-  // Áreas de tela única
-  { path: 'uso', component: PgiaUsoComponent },
-  { path: 'capacitacao', component: PgiaCapacitacaoComponent },
-  { path: 'solicitacoes', component: PgiaSolicitacoesComponent },
-  { path: 'auditoria', component: PgiaAuditoriaComponent },
-  { path: 'prazos', component: PgiaPrazosComponent },
+      // Áreas de tela única
+      { path: 'uso', component: PgiaUsoComponent },
+      { path: 'capacitacao', component: PgiaCapacitacaoComponent },
+      { path: 'solicitacoes', component: PgiaSolicitacoesComponent },
+      { path: 'auditoria', component: PgiaAuditoriaComponent },
+      { path: 'prazos', component: PgiaPrazosComponent },
+    ]
+  }
 ];

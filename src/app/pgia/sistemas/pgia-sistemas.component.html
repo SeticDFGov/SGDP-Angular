@@ -1,12 +1,5 @@
 <div citaDecreto class="tela-pgia max-w-5xl mx-auto">
 
-  <!-- Contexto -->
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
-    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
-    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
-    Nesta área, você registra as informações que o Decreto nº 48.901/2026 pede ao seu órgão.
-    Siga as etapas na ordem. O sistema avisa você sobre os prazos.
-  </div>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
@@ -71,7 +64,7 @@
                 </td>
                 <td class="px-3 py-2">
                   <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                        [ngClass]="badgeHomologacao(s.SituacaoHomologacao)">{{ s.SituacaoHomologacao || '—' }}</span>
+                        [ngClass]="badgeHomologacao(s.SituacaoHomologacao)">{{ s.SituacaoHomologacao || '-' }}</span>
                 </td>
                 <td class="px-3 py-2 text-right">
                   <button *ngIf="temAia(s) && podeEditar" (click)="alternarAia(s)"
@@ -107,7 +100,7 @@
                       <tr *ngFor="let a of aias" class="border-b border-gray-200">
                         <td class="px-3 py-2">{{ a.Status }}</td>
                         <td class="px-3 py-2">{{ a.DataInicio | date:'dd/MM/yyyy':'UTC' }}</td>
-                        <td class="px-3 py-2">{{ a.DataConclusao ? (a.DataConclusao | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                        <td class="px-3 py-2">{{ a.DataConclusao ? (a.DataConclusao | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
                         <td class="px-3 py-2">{{ a.DeliberacaoResultado || 'aguardando' }}</td>
                         <td class="px-3 py-2">
                           <span *ngIf="a.PublicadaPortal">
@@ -259,7 +252,7 @@
         <span class="text-xs text-gray-500">mostrando {{ sistemas.length }} de {{ totalItens }}</span>
       </div>
 
-      <p class="text-xs text-gray-400 italic mt-3">Para incluir um sistema, abra "Cadastrar sistema no inventário" e salve. Ele passa a aparecer nesta lista.</p>
+      <p class="text-xs text-gray-400 italic mt-3">Para incluir um sistema, use o botão "Cadastrar sistema no inventário" (passo 2.1 da trilha) e salve. Ele passa a aparecer nesta lista.</p>
 
       <div *ngIf="podeCadastrar" class="mt-4">
         <a routerLink="/pgia/sistemas/cadastro"
@@ -272,7 +265,7 @@
     <!-- Sem Responsável de IA vigente não há quem assine o registro do inventário -->
     <div *ngIf="secao === 'cadastro' && !responsavelVigente" class="bg-white rounded-lg shadow p-6 mb-5">
       <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
-        Antes de cadastrar sistemas, conclua as Informações do Órgão Responsável: designe e comunique o
+        Antes de cadastrar sistemas, conclua a etapa 1 da trilha: designe e comunique o
         Responsável de IA do órgão (art. 10). O registro do inventário fica assinado por ele.
       </div>
     </div>
@@ -574,7 +567,7 @@
                 </table>
               </div>
               <p class="text-xs text-gray-400 italic mt-2">Linhas: consequência. Colunas: probabilidade.
-              Neste grupo você escolhe apenas as opções em destaque — as demais ficam esmaecidas.</p>
+              Neste grupo você escolhe apenas as opções em destaque; as demais ficam esmaecidas.</p>
             </div>
           </div>
         </div>

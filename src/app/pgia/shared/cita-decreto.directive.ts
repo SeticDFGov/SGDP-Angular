@@ -43,7 +43,7 @@ export const REGEX_CITACAO = new RegExp(
   '\\b[Aa]rts?\\.\\s*' +                       // "art." ou "arts."
   '\\d+(?:\\s*[º°])?' +                        // primeiro artigo
   '(?:' +
-    // inciso, parágrafo ou parágrafo único — a alínea só vem depois de um deles
+    // inciso, parágrafo ou parágrafo único; a alínea só vem depois de um deles
     '\\s*,\\s*(?:§\\s*(?:\\d+(?:\\s*[º°])?|[úu]nico)|[Pp]ar[áa]grafo\\s+[úu]nico|[IVXLCDM]+\\b)(?:\\s*,\\s*[a-z]\\b)?' +
     '|\\s*,\\s*\\d+(?:\\s*[º°])?' +            // outro artigo, separado por vírgula
     '|\\s+[ea]\\s+\\d+(?:\\s*[º°])?' +         // outro artigo ("e") ou faixa ("a")
@@ -116,7 +116,7 @@ export function analisarCitacao(citacao: string): ReferenciaArtigo[] {
 }
 
 /**
- * Resolve o texto de uma citação nos dispositivos a exibir. Função pura —
+ * Resolve o texto de uma citação nos dispositivos a exibir. Função pura,
  * separada da diretiva de propósito, para conferir à mão o que cada forma
  * de citação devolve.
  */
@@ -138,7 +138,7 @@ export function resolverCitacao(citacao: string): DispositivoExibido[] {
           .find(p => normalizar(p.rotulo) === normalizar(parte.valor));
         if (paragrafo) itens.push({ rotulo: paragrafo.rotulo, texto: paragrafo.texto });
       }
-      // Alínea: o decreto transcrito não separa alíneas — o texto do inciso
+      // Alínea: o decreto transcrito não separa alíneas: o texto do inciso
       // ou do parágrafo já as contém.
     }
 
@@ -207,7 +207,7 @@ class PainelCitacao {
         const linha = document.createElement('p');
         linha.className = 'pl-3 mt-1';
         const marca = document.createElement('strong');
-        marca.textContent = item.rotulo + ' — ';
+        marca.textContent = item.rotulo + ': ';
         linha.appendChild(marca);
         linha.appendChild(document.createTextNode(item.texto));
         bloco.appendChild(linha);
@@ -275,7 +275,7 @@ class PainelCitacao {
 const MARCA_CHIP = 'data-cita-decreto';
 /**
  * Filtro barato antes da regex completa. Precisa aceitar o plural: "arts." não
- * contém "art." — procurar só por "art." deixaria de fora toda citação de mais
+ * contém "art."; procurar só por "art." deixaria de fora toda citação de mais
  * de um artigo. Sem a flag `g`: `test` não pode guardar posição entre chamadas.
  */
 const PREFILTRO_CITACAO = /[Aa]rts?\./;
@@ -286,7 +286,7 @@ const TAGS_IGNORADAS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'SELECT'
  *
  * Invariante: os derivados (chips e caudas) são **cache do sufixo** que estava
  * naquele nó. O Angular guarda a referência do primeiro fragmento e, quando a
- * interpolação muda, reescreve a string INTEIRA nele — o sufixo antigo, que
+ * interpolação muda, reescreve a string INTEIRA nele: o sufixo antigo, que
  * virou nós irmãos, fica órfão e o texto aparece duplicado. Por isso, texto da
  * cabeça diferente do registrado = cache inválido: apagar os derivados antes
  * de reprocessar.
@@ -352,7 +352,7 @@ export class CitaDecretoDirective implements AfterViewInit, OnDestroy {
   /** Varre o conteúdo da página e transforma as citações em chips. */
   private processar(): void {
     // Desligar o observador evita que as próprias marcações reiniciem a
-    // varredura — e que a limpeza abaixo se apague sozinha.
+    // varredura, e que a limpeza abaixo se apague sozinha.
     this.observador?.disconnect();
     try {
       this.invalidarDerivados();

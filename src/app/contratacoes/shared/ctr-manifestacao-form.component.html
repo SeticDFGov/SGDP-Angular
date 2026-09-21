@@ -1,6 +1,6 @@
 <!-- Texto de abertura do despacho: o que a SGDI afirma em toda manifestação -->
 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-5">
-  <p class="mb-2">Em atenção à comunicação do Tribunal de Contas do Distrito Federal – TCDF acerca da contratação de TIC
+  <p class="mb-2">Em atenção à comunicação do Tribunal de Contas do Distrito Federal (TCDF) acerca da contratação de TIC
   acima identificada, manifesta-se esta SGDI, conforme abaixo, no âmbito do regime de supervisão contínua instituído
   pelo Decreto nº 48.899/2026 e regulamentado pela Instrução Normativa SGDI nº 1/2026.</p>
   <p>A supervisão contínua da SGDI compreende a classificação da contratação por criticidade (art. 11 da IN), a análise
@@ -13,7 +13,7 @@
   <div>
     <label class="block text-sm font-semibold mb-1">Ofício/Comunicação TCDF nº <span class="text-red-600">*</span></label>
     <input type="text" [(ngModel)]="form.OficioTcdf" name="ctr-oficio" maxlength="60"
-           placeholder="1234/2026 – 2ª ICE"
+           placeholder="1234/2026 (2ª ICE)"
            class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
            [class.border-red-500]="submetido && errOficio"
            [class.bg-red-50]="submetido && errOficio"
@@ -32,7 +32,7 @@
 
 <h3 class="text-sm font-semibold text-blue-900 mt-6 mb-2">Situação no Portfólio Estratégico de Contratações de TIC</h3>
 
-<!-- I — contratação já comunicada -->
+<!-- I: contratação já comunicada -->
 <div class="border rounded-lg p-4 mb-3"
      [ngClass]="incisoI ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200'">
   <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
@@ -60,7 +60,7 @@
       <div>
         <label class="block text-sm font-semibold mb-1">Criticidade da contratação</label>
         <p *ngIf="criticidadeProcesso" class="text-sm text-gray-800 py-2">
-          <strong>{{ criticidadeProcesso }}</strong> — definida no cadastro do processo.
+          <strong>{{ criticidadeProcesso }}</strong>, definida no cadastro do processo.
         </p>
         <p *ngIf="!criticidadeProcesso" class="text-sm text-red-700 py-2">Ainda não definida no cadastro do processo.</p>
         <a *ngIf="processoId" [routerLink]="['/analises/processos/editar', processoId]"
@@ -124,7 +124,7 @@
                [class.cursor-pointer]="temRiscos">
           <input type="radio" name="ctr-desfecho" [value]="'Risco resolvido'"
                  [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
-          <span>Risco resolvido — após recomendações da SGDI e ações de mitigação adotadas pela área demandante, os
+          <span>Risco resolvido: após recomendações da SGDI e ações de mitigação adotadas pela área demandante, os
           riscos foram adequadamente tratados, prosseguindo a contratação em acompanhamento contínuo;</span>
         </label>
 
@@ -132,7 +132,7 @@
                [class.cursor-pointer]="temRiscos">
           <input type="radio" name="ctr-desfecho" [value]="'Não pode prosseguir'"
                  [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
-          <span>Não pode prosseguir — os riscos apontados não foram adequadamente tratados, tendo a SGDI determinado a
+          <span>Não pode prosseguir: os riscos apontados não foram adequadamente tratados, tendo a SGDI determinado a
           suspensão completa da contratação, com prazo para nova manifestação do órgão/entidade, permanecendo o feito em
           acompanhamento contínuo.</span>
         </label>
@@ -147,7 +147,7 @@
   </div>
 </div>
 
-<!-- II — contratação não comunicada -->
+<!-- II: contratação não comunicada -->
 <div class="border rounded-lg p-4"
      [ngClass]="incisoII ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200'">
   <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
