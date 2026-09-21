@@ -1,21 +1,21 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Params, RouterModule } from '@angular/router';
 import { CtrProcessoService } from '../services/ctr-processo.service';
+import { parametrosDaLista } from '../shared/ctr-filtro-lista';
 import {
   badgeFase,
   badgeNivelRisco,
-  badgeRiscoClassificado,
   badgeSituacao,
   corDiasSemMovimento
 } from '../shared/ctr-rotulos';
-import { CtrContagem, CtrPainel } from '../../../api/contratacoes/interface';
+import { CtrContagem, CtrPainel, CtrProcessoFiltro } from '../../../api/contratacoes/interface';
 
 /**
- * Painel da área: contagens por situação, fase, classificação de riscos,
+ * Painel da área: contagens por situação, fase, maior risco da contratação,
  * categoria e órgão, tempos médios entre as instâncias e a lista de processos
- * parados (gargalos).
+ * parados (gargalos). Cada contagem abre a lista de processos já filtrada.
  *
  * Os números vêm prontos do backend, sobre os mesmos processos ativos da
  * listagem; nada é recalculado aqui.
@@ -37,7 +37,6 @@ export class CtrPainelComponent implements OnInit {
 
   badgeSituacao = badgeSituacao;
   badgeFase = badgeFase;
-  badgeRiscoClassificado = badgeRiscoClassificado;
   badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
 
@@ -67,19 +66,32 @@ export class CtrPainelComponent implements OnInit {
   }
 
   /**
-   * Os 4 resultados dos quesitos + "Não classificado", sempre presentes, na
+   * Baixo, Médio, Alto, Extremo + "Sem riscos declarados", sempre presentes, na
    * ordem do servidor (quantidade desc, empate pela ordem do domínio).
    */
-  get porRiscoClassificado(): CtrContagem[] {
-    return this.painel?.PorRiscoClassificado ?? [];
-  }
-
-  /** Baixo, Médio, Alto, Extremo + "Sem riscos declarados", mesma regra. */
   get porNivelRiscoDeclarado(): CtrContagem[] {
     return this.painel?.PorNivelRiscoDeclarado ?? [];
   }
 
-  /** Tempo médio em dias, com um decimal; sem amostra mostra travessão. */
+  /** Links já montados, um por filtro (ver `lista`). */
+  private readonly links = new Map<string, Params>();
+
+  /**
+   * Parâmetros da lista de processos já filtrada pela contagem clicada. Devolve
+   * sempre o MESMO objeto para o mesmo filtro: um objeto novo a cada detecção de
+   * mudanças faria o `[queryParams]` mudar sem parar (NG0100 em desenvolvimento).
+   */
+  lista(filtro: CtrProcessoFiltro): Params {
+    const chave = JSON.stringify(filtro);
+    let params = this.links.get(chave);
+    if (!params) {
+      params = parametrosDaLista(filtro);
+      this.links.set(chave, params);
+    }
+    return params;
+  }
+
+  /** Tempo médio em dias, com um decimal; sem amostra mostra "-". */
   media(valor: number | null | undefined): string {
     if (valor === null || valor === undefined) return '-';
     return `${(Math.round(valor * 10) / 10).toLocaleString('pt-BR')} dia(s)`;

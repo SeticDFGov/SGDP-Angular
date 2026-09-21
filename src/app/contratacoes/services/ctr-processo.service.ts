@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Params } from '@angular/router';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
@@ -24,6 +25,13 @@ import {
 })
 export class CtrProcessoService {
   private apiUrl = `${SERVICE_API_URL}/api/contratacoes`;
+
+  /**
+   * Parâmetros de URL dos últimos filtros aplicados na lista de processos (a
+   * lista grava ao aplicar). O "Voltar para a lista" da página do processo usa,
+   * para não perder a busca. Só na memória: recarregar a página começa do zero.
+   */
+  filtrosDaLista: Params = {};
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
@@ -53,8 +61,7 @@ export class CtrProcessoService {
     acrescentar('Criticidade', filtro.Criticidade);
     acrescentar('Origem', filtro.Origem);
     acrescentar('EsclarecimentoPendente', filtro.EsclarecimentoPendente);
-    // Classificação de riscos: valor fora do domínio devolve lista vazia.
-    acrescentar('RiscoClassificado', filtro.RiscoClassificado);
+    // Maior nível dos riscos da contratação: valor fora do domínio devolve lista vazia.
     acrescentar('NivelRiscoDeclarado', filtro.NivelRiscoDeclarado);
     acrescentar('OrderBy', filtro.OrderBy);
     return params;

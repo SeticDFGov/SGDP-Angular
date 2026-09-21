@@ -1,150 +1,163 @@
-<div class="tela-pgia max-w-6xl mx-auto">
-
-  <!-- Contexto -->
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
-    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>. Esta é a área de Supervisão Contínua das Contratações de TIC
-    da SGDI. Cada linha é um processo SEI que chega para análise e percorre as instâncias
-    SGDI → SUBGD → UGTIC, retornando ao gabinete e ao órgão comunicante.
-  </div>
+<div class="tela-pgia max-w-7xl mx-auto">
 
   <!-- ── Lista de processos ────────────────────────────────────────────── -->
   <div *ngIf="secao === 'lista'" class="bg-white rounded-lg shadow p-6">
-    <div class="flex items-start justify-between gap-4 mb-4">
-      <div>
-        <h2 class="text-base font-semibold text-blue-900 mb-1">Lista de processos</h2>
-        <p class="text-sm text-gray-600">Busque por número, órgão, sigla ou objeto e acompanhe em que instância cada
-        processo está.</p>
+    <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+      <div class="flex-1 min-w-0">
+        <h2 class="text-base font-semibold text-blue-900 mb-1">Processos em análise</h2>
+        <p class="text-sm text-gray-600">Cada linha é um processo SEI de contratação de TIC que chegou para análise e
+        percorre SGDI, SUBGD e UGTIC até voltar ao gabinete e ao órgão comunicante.</p>
       </div>
       <div class="flex items-center gap-2 whitespace-nowrap">
-        <button (click)="exportarCsv()" [disabled]="exportando"
-                class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-2 hover:bg-blue-50 disabled:opacity-50">
+        <button (click)="exportarCsv()" [disabled]="exportando" title="Baixa a lista filtrada em planilha (CSV)"
+                class="inline-flex items-center gap-1 text-sm text-blue-700 border border-blue-600 rounded-md px-3 py-2 hover:bg-blue-50 disabled:opacity-50">
+          <span class="material-icons text-base leading-none" aria-hidden="true">download</span>
           {{ exportando ? 'Gerando...' : 'Exportar CSV' }}
         </button>
         <a routerLink="/analises/processos/novo"
-           class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">Novo processo</a>
+           class="inline-flex items-center gap-1 bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">
+          <span class="material-icons text-base leading-none" aria-hidden="true">add</span>
+          Novo processo
+        </a>
       </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-      <div class="md:col-span-3">
-        <input type="text" [(ngModel)]="filtro.Filtro" name="ctr-busca" (keyup.enter)="buscar()"
-               placeholder="Buscar por número do processo, órgão, sigla ou objeto"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-      </div>
+    <!-- Busca e filtros principais: valem assim que escolhidos -->
+    <div class="flex gap-2 mb-3">
+      <input type="search" [(ngModel)]="filtro.Filtro" name="ctr-busca" (keyup.enter)="buscar()"
+             aria-label="Buscar processos"
+             placeholder="Buscar por número do processo, órgão, sigla ou objeto"
+             class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <button (click)="buscar()"
+              class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700">Buscar</button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3 items-end">
       <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Categoria</label>
-        <select [(ngModel)]="filtro.Categoria" name="ctr-f-categoria"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Todas</option>
-          <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Situação</label>
-        <select [(ngModel)]="filtro.Situacao" name="ctr-f-situacao"
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-situacao">Situação</label>
+        <select id="ctr-f-situacao" [(ngModel)]="filtro.Situacao" name="ctr-f-situacao" (ngModelChange)="buscar()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todas</option>
           <option *ngFor="let s of situacoes" [value]="s">{{ s }}</option>
         </select>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Sigla do órgão</label>
-        <input type="text" [(ngModel)]="filtro.Sigla" name="ctr-f-sigla" list="ctr-siglas-filtro"
-               placeholder="Todas" (keyup.enter)="buscar()"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <datalist id="ctr-siglas-filtro">
-          <option *ngFor="let s of siglas" [value]="s"></option>
-        </datalist>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Restituídos</label>
-        <select [(ngModel)]="filtro.Restituidos" name="ctr-f-restituidos"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option [ngValue]="null">Tanto faz</option>
-          <option [ngValue]="true">Só os restituídos</option>
-          <option [ngValue]="false">Sem os restituídos</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Fase</label>
-        <select [(ngModel)]="filtro.Fase" name="ctr-f-fase"
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-fase">Fase</label>
+        <select id="ctr-f-fase" [(ngModel)]="filtro.Fase" name="ctr-f-fase" (ngModelChange)="buscar()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todas</option>
           <option *ngFor="let f of fases" [value]="f">{{ f }}</option>
         </select>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Etapa do planejamento</label>
-        <select [(ngModel)]="filtro.EtapaPlanejamento" name="ctr-f-etapa-planejamento"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Todas</option>
-          <option *ngFor="let e of etapasPlanejamento" [value]="e.valor">{{ e.valor }} ({{ e.rotulo }})</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Criticidade</label>
-        <select [(ngModel)]="filtro.Criticidade" name="ctr-f-criticidade"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Todas</option>
-          <option *ngFor="let c of criticidades" [value]="c">{{ c }}</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Risco classificado</label>
-        <select [(ngModel)]="filtro.RiscoClassificado" name="ctr-f-risco-classificado"
-                title="Resultado dos quesitos da classificação de riscos do processo"
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-nivel-risco">Maior risco da contratação</label>
+        <select id="ctr-f-nivel-risco" [(ngModel)]="filtro.NivelRiscoDeclarado" name="ctr-f-nivel-risco" (ngModelChange)="buscar()"
+                title="Pelo maior nível entre os riscos da contratação registrados no processo"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todos</option>
-          <option *ngFor="let r of riscosClassificados" [value]="r">{{ r }}</option>
-          <option [value]="naoClassificado">{{ naoClassificado }}</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Nível dos riscos declarados</label>
-        <select [(ngModel)]="filtro.NivelRiscoDeclarado" name="ctr-f-nivel-risco"
-                title="Pelo maior nível entre os riscos declarados do processo"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Todos</option>
-          <option *ngFor="let n of niveisRisco" [value]="n">Maior nível: {{ n }}</option>
+          <option *ngFor="let n of niveisRisco" [value]="n">{{ n }}</option>
           <option [value]="semRiscosDeclarados">{{ semRiscosDeclarados }}</option>
         </select>
-        <p class="text-xs text-gray-400 italic mt-1">"Sem riscos declarados" inclui os processos ainda não classificados.</p>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Origem</label>
-        <select [(ngModel)]="filtro.Origem" name="ctr-f-origem"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Todas</option>
-          <option *ngFor="let o of origens" [value]="o">{{ o }}</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Esclarecimento</label>
-        <select [(ngModel)]="filtro.EsclarecimentoPendente" name="ctr-f-esclarecimento"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option [ngValue]="null">Tanto faz</option>
-          <option [ngValue]="true">Só aguardando esclarecimento</option>
-          <option [ngValue]="false">Sem esclarecimento pendente</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Chegada na SGDI de</label>
-        <input type="date" [(ngModel)]="filtro.De" name="ctr-f-de"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">até</label>
-        <input type="date" [(ngModel)]="filtro.Ate" name="ctr-f-ate"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button type="button" (click)="filtrosAbertos = !filtrosAbertos" [attr.aria-expanded]="filtrosAbertos"
+                class="w-full inline-flex items-center justify-center gap-1 text-sm text-gray-700 border border-gray-300 bg-white rounded-md px-3 py-2 hover:bg-gray-50">
+          <span class="material-icons text-base leading-none" aria-hidden="true">tune</span>
+          Mais filtros
+          <span *ngIf="totalFiltrosAvancados > 0"
+                class="ml-1 px-1.5 rounded-full bg-blue-600 text-white text-xs font-semibold">{{ totalFiltrosAvancados }}</span>
+          <span class="material-icons text-base leading-none" aria-hidden="true">{{ filtrosAbertos ? 'expand_less' : 'expand_more' }}</span>
+        </button>
       </div>
     </div>
 
-    <div class="flex items-center gap-3 mb-4">
-      <button (click)="buscar()"
-              class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700">Buscar</button>
-      <button (click)="limparFiltros()" class="text-sm text-blue-700 hover:underline">Limpar filtros</button>
-      <span class="text-xs text-gray-400 italic">O período usa a data de chegada na SGDI.</span>
+    <!-- Mais filtros -->
+    <div *ngIf="filtrosAbertos" class="border border-gray-200 bg-gray-50 rounded-lg p-4 mb-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-categoria">Categoria do objeto</label>
+          <select id="ctr-f-categoria" [(ngModel)]="filtro.Categoria" name="ctr-f-categoria" (ngModelChange)="buscar()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todas</option>
+            <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-sigla">Sigla do órgão</label>
+          <input id="ctr-f-sigla" type="text" [(ngModel)]="filtro.Sigla" name="ctr-f-sigla" list="ctr-siglas-filtro"
+                 placeholder="Todas" (keyup.enter)="buscar()" (change)="buscar()"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm uppercase bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <datalist id="ctr-siglas-filtro">
+            <option *ngFor="let s of siglas" [value]="s"></option>
+          </datalist>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-criticidade">Criticidade</label>
+          <select id="ctr-f-criticidade" [(ngModel)]="filtro.Criticidade" name="ctr-f-criticidade" (ngModelChange)="buscar()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todas</option>
+            <option *ngFor="let c of criticidades" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-etapa-planejamento">Etapa do planejamento</label>
+          <select id="ctr-f-etapa-planejamento" [(ngModel)]="filtro.EtapaPlanejamento" name="ctr-f-etapa-planejamento" (ngModelChange)="buscar()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todas</option>
+            <option *ngFor="let e of etapasPlanejamento" [value]="e.valor">{{ e.valor }} ({{ e.rotulo }})</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-origem">Origem</label>
+          <select id="ctr-f-origem" [(ngModel)]="filtro.Origem" name="ctr-f-origem" (ngModelChange)="buscar()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todas</option>
+            <option *ngFor="let o of origens" [value]="o">{{ o }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-esclarecimento">Esclarecimento ao órgão</label>
+          <select id="ctr-f-esclarecimento" [(ngModel)]="filtro.EsclarecimentoPendente" name="ctr-f-esclarecimento" (ngModelChange)="buscar()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Todos</option>
+            <option [ngValue]="true">Só os que aguardam esclarecimento</option>
+            <option [ngValue]="false">Sem esclarecimento pendente</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-restituidos">Restituição</label>
+          <select id="ctr-f-restituidos" [(ngModel)]="filtro.Restituidos" name="ctr-f-restituidos" (ngModelChange)="buscar()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option [ngValue]="null">Todos</option>
+            <option [ngValue]="true">Só os restituídos</option>
+            <option [ngValue]="false">Sem os restituídos</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-de">Chegada na SGDI a partir de</label>
+          <input id="ctr-f-de" type="date" [(ngModel)]="filtro.De" name="ctr-f-de" (ngModelChange)="buscar()"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-ate">Chegada na SGDI até</label>
+          <input id="ctr-f-ate" type="date" [(ngModel)]="filtro.Ate" name="ctr-f-ate" (ngModelChange)="buscar()"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros valendo, em palavras; o x tira cada um -->
+    <div *ngIf="filtrosAtivos.length > 0" class="flex flex-wrap items-center gap-2 mb-3">
+      <span class="text-xs text-gray-500">Filtrando por:</span>
+      <span *ngFor="let f of filtrosAtivos"
+            class="inline-flex items-center gap-1 pl-3 pr-1 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-900 border border-blue-200">
+        {{ f.rotulo }}
+        <button type="button" (click)="removerFiltro(f.campo)" [attr.aria-label]="'Tirar o filtro ' + f.rotulo"
+                class="rounded-full hover:bg-blue-100 p-0.5 leading-none">
+          <span class="material-icons text-sm leading-none" aria-hidden="true">close</span>
+        </button>
+      </span>
+      <button type="button" (click)="limparFiltros()" class="text-xs text-blue-700 hover:underline">Limpar todos</button>
     </div>
 
     <div *ngIf="carregando" class="text-center py-8 text-gray-500">Carregando...</div>
@@ -153,63 +166,60 @@
          class="border-l-4 border-red-500 bg-red-50 p-3 text-sm text-red-800 rounded-r-md">{{ erroCarregar }}</div>
 
     <ng-container *ngIf="!carregando && !erroCarregar">
-      <p class="text-sm text-gray-600 mb-2">{{ totalItens }} processo(s) encontrado(s).</p>
+      <p *ngIf="totalItens > 0" class="text-sm text-gray-600 mb-2">
+        <strong>{{ totalItens }}</strong> {{ totalItens === 1 ? 'processo encontrado' : 'processos encontrados' }}<span
+        *ngIf="processos.length < totalItens">, mostrando {{ processos.length }}</span>.
+      </p>
 
-      <div *ngIf="processos.length === 0" class="text-center py-8 text-gray-500 text-sm">
-        Nenhum processo encontrado com esses filtros.
+      <!-- Nenhum processo cadastrado ainda -->
+      <div *ngIf="semNenhumProcesso" class="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+        <span class="material-icons text-4xl text-gray-300" aria-hidden="true">folder_open</span>
+        <p class="text-sm text-gray-700 mt-2">Ainda não há processos cadastrados.</p>
+        <p class="text-xs text-gray-400 italic mt-1">Cadastre um processo ou traga a planilha de acompanhamento da equipe.</p>
+        <div class="mt-4 flex items-center justify-center gap-3">
+          <a routerLink="/analises/processos/novo"
+             class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">Cadastrar processo</a>
+          <a routerLink="/analises/importacao"
+             class="text-sm text-blue-700 border border-blue-600 rounded-md py-2 px-4 hover:bg-blue-50">Importar planilha</a>
+        </div>
+      </div>
+
+      <!-- Filtro que não encontra nada -->
+      <div *ngIf="processos.length === 0 && !semNenhumProcesso" class="text-center py-8 text-sm text-gray-500">
+        <p>Nenhum processo encontrado com esses filtros.</p>
+        <button type="button" (click)="limparFiltros()" class="mt-2 text-blue-700 hover:underline">Limpar os filtros</button>
       </div>
 
       <div *ngIf="processos.length > 0" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-blue-50 text-blue-900 text-left text-xs">
-              <th class="px-3 py-2">Processo</th>
-              <th class="px-3 py-2">Órgão</th>
+              <th class="px-3 py-2">Processo e órgão</th>
               <th class="px-3 py-2">Objeto</th>
-              <th class="px-3 py-2">Fase e criticidade</th>
-              <th class="px-3 py-2">Riscos</th>
               <th class="px-3 py-2">Situação</th>
-              <th class="px-3 py-2">Última movimentação</th>
               <th class="px-3 py-2">Parado há</th>
-              <th class="px-3 py-2">TCDF</th>
-              <th class="px-3 py-2"></th>
+              <th class="px-3 py-2">Fase e criticidade</th>
+              <th class="px-3 py-2">Maior risco</th>
+              <th class="px-3 py-2" aria-label="Ações"></th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let p of processos" class="border-b border-gray-200 align-top">
-              <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{{ p.NumeroProcesso }}</td>
+            <tr *ngFor="let p of processos" class="border-b border-gray-200 align-top hover:bg-gray-50">
               <td class="px-3 py-2">
-                <span class="font-semibold">{{ p.OrgaoSigla }}</span>
-                <span *ngIf="p.Origem === 'TCDF'"
-                      class="ml-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800"
-                      title="Processo cadastrado a partir de análise interna do Tribunal">TCDF</span>
+                <a [routerLink]="['/analises/processos/editar', p.Id]"
+                   class="whitespace-nowrap font-semibold text-blue-800 hover:underline">{{ p.NumeroProcesso }}</a>
+                <span class="block mt-0.5">
+                  <span class="font-semibold text-gray-900">{{ p.OrgaoSigla }}</span>
+                  <span *ngIf="p.Origem === 'TCDF'"
+                        class="ml-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800"
+                        title="Processo cadastrado a partir de análise interna do Tribunal">TCDF</span>
+                </span>
                 <span class="block text-xs text-gray-500">{{ p.OrgaoNome }}</span>
                 <span *ngIf="p.ComplementoArea" class="block text-xs text-gray-400 italic">{{ p.ComplementoArea }}</span>
               </td>
-              <td class="px-3 py-2 max-w-xs">
-                <span class="block truncate" [title]="p.Objeto">{{ p.Objeto }}</span>
-                <span class="block text-xs text-gray-500">{{ p.CategoriaObjeto }}</span>
-              </td>
               <td class="px-3 py-2">
-                <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                      [ngClass]="badgeFase(p.Fase)">{{ p.Fase }}</span>
-                <span *ngIf="p.EtapaPlanejamento" class="block text-xs text-gray-500 mt-1"
-                      [title]="rotuloEtapaPlanejamento(p.EtapaPlanejamento)">{{ p.EtapaPlanejamento }}</span>
-                <span *ngIf="p.Criticidade" class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                      [ngClass]="badgeCriticidade(p.Criticidade)">{{ p.Criticidade }}</span>
-                <span *ngIf="!p.Criticidade" class="block text-xs text-gray-400 italic mt-1">sem criticidade</span>
-              </td>
-              <!-- Classificação de riscos: as duas escalas, independentes da criticidade -->
-              <td class="px-3 py-2">
-                <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                      [ngClass]="badgeRiscoClassificado(p.RiscoClassificado)">{{ p.RiscoClassificado || naoClassificado }}</span>
-                <span *ngIf="p.NivelMaximoRiscoDeclarado"
-                      class="block w-fit mt-1 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                      [ngClass]="badgeNivelRisco(p.NivelMaximoRiscoDeclarado)"
-                      title="Maior nível entre os riscos declarados, pelo mapa de riscos da CGDF">Maior nível: {{ p.NivelMaximoRiscoDeclarado }}</span>
-                <!-- Nulo também nos não classificados: mesma semântica do filtro e do painel -->
-                <span *ngIf="!p.NivelMaximoRiscoDeclarado"
-                      class="block text-xs text-gray-400 italic mt-1">{{ semRiscosDeclarados }}</span>
+                <span class="block w-64 truncate" [title]="p.Objeto">{{ p.Objeto }}</span>
+                <span class="block text-xs text-gray-500 mt-0.5">{{ p.CategoriaObjeto }}</span>
               </td>
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
@@ -230,25 +240,46 @@
                 <span *ngIf="!p.RetornoOrgaoNaoSeAplica && p.RetornoOrgao" class="block text-xs text-gray-500 mt-1">
                   retorno ao órgão: {{ p.RetornoOrgao | date:'dd/MM/yyyy':'UTC' }}
                 </span>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap">
-                {{ p.UltimaMovimentacao ? (p.UltimaMovimentacao | date:'dd/MM/yyyy':'UTC') : '-' }}
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap" [ngClass]="corDiasSemMovimento(p.DiasSemMovimento)">
-                {{ p.DiasSemMovimento }} dia(s)
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap">
-                <span *ngIf="p.TotalManifestacoes > 0" class="text-xs text-gray-700">
-                  {{ p.TotalManifestacoes }} manifestação(ões)
-                  <span *ngIf="p.UltimoEstagioTcdf" class="block text-gray-500">{{ p.UltimoEstagioTcdf }}</span>
+                <!-- Manifestações ao TCDF: quantas e o estágio da mais recente -->
+                <span *ngIf="p.TotalManifestacoes > 0" class="block text-xs text-gray-600 mt-1">
+                  TCDF: {{ p.TotalManifestacoes }} manifestação(ões)<ng-container
+                  *ngIf="p.UltimoEstagioTcdf">, {{ p.UltimoEstagioTcdf }}</ng-container>
                 </span>
-                <span *ngIf="!p.TotalManifestacoes" class="text-xs text-gray-400 italic">-</span>
+              </td>
+              <td class="px-3 py-2 whitespace-nowrap">
+                <span [ngClass]="corDiasSemMovimento(p.DiasSemMovimento)">{{ p.DiasSemMovimento }} dia(s)</span>
+                <span class="block text-xs text-gray-500">
+                  {{ p.UltimaMovimentacao ? ('desde ' + (p.UltimaMovimentacao | date:'dd/MM/yyyy':'UTC')) : 'sem datas de trâmite' }}
+                </span>
+              </td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeFase(p.Fase)">{{ p.Fase }}</span>
+                <span *ngIf="p.EtapaPlanejamento" class="block text-xs text-gray-500 mt-1"
+                      [title]="rotuloEtapaPlanejamento(p.EtapaPlanejamento)">{{ p.EtapaPlanejamento }}</span>
+                <span *ngIf="p.Criticidade" class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeCriticidade(p.Criticidade)">{{ p.Criticidade }}</span>
+                <span *ngIf="!p.Criticidade" class="block text-xs text-gray-400 italic mt-1">sem criticidade</span>
+              </td>
+              <td class="px-3 py-2">
+                <span *ngIf="p.NivelMaximoRiscoDeclarado"
+                      class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeNivelRisco(p.NivelMaximoRiscoDeclarado)"
+                      title="Maior nível entre os riscos da contratação, pelo mapa de riscos da CGDF">{{ p.NivelMaximoRiscoDeclarado }}</span>
+                <span *ngIf="!p.NivelMaximoRiscoDeclarado" class="text-xs text-gray-400 italic">sem riscos</span>
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
-                <a [routerLink]="['/analises/processos/editar', p.Id]"
-                   class="text-sm text-blue-700 hover:underline mr-3">Editar</a>
-                <button (click)="abrirCheckpoint(p)" class="text-sm text-blue-700 hover:underline mr-3">Registrar chegada</button>
-                <button (click)="excluir(p)" class="text-sm text-red-700 hover:underline">Excluir</button>
+                <div class="inline-flex items-center gap-1">
+                  <a [routerLink]="['/analises/processos/editar', p.Id]"
+                     class="text-xs font-semibold text-blue-700 border border-blue-200 rounded-md px-2 py-1 hover:bg-blue-50">Abrir</a>
+                  <button (click)="abrirCheckpoint(p)" title="Registrar a chegada ou o retorno numa etapa do trâmite"
+                          [attr.aria-label]="'Registrar andamento do processo ' + p.NumeroProcesso"
+                          class="text-xs font-semibold text-blue-700 border border-blue-200 rounded-md px-2 py-1 hover:bg-blue-50">Andamento</button>
+                  <button (click)="excluir(p)" [attr.aria-label]="'Excluir o processo ' + p.NumeroProcesso" title="Excluir o processo"
+                          class="text-red-600 rounded-md p-1 hover:bg-red-50 leading-none">
+                    <span class="material-icons text-lg leading-none" aria-hidden="true">delete_outline</span>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -257,7 +288,7 @@
 
       <div *ngIf="temMais" class="mt-4 text-center">
         <button (click)="carregarMais()" [disabled]="carregandoMais"
-                class="text-sm text-blue-700 border border-blue-600 rounded px-4 py-2 hover:bg-blue-50 disabled:opacity-50">
+                class="text-sm text-blue-700 border border-blue-600 rounded-md px-4 py-2 hover:bg-blue-50 disabled:opacity-50">
           {{ carregandoMais ? 'Carregando...' : 'Carregar mais' }}
         </button>
       </div>
@@ -265,10 +296,10 @@
   </div>
 
   <!-- ── Novo processo ─────────────────────────────────────────────────── -->
-  <div *ngIf="secao === 'novo'" class="bg-white rounded-lg shadow p-6">
+  <div *ngIf="secao === 'novo'" class="bg-white rounded-lg shadow p-6 max-w-5xl mx-auto">
     <h2 class="text-base font-semibold text-blue-900 mb-1">Novo processo</h2>
-    <p class="text-sm text-gray-600 mb-4">Cadastre o processo SEI que chegou para análise. As datas podem ser preenchidas
-    agora ou depois, conforme o processo caminha.</p>
+    <p class="text-sm text-gray-600 mb-6">Cadastre o processo SEI que chegou para análise. Só a identificação é
+    obrigatória; as datas e os riscos podem ser preenchidos agora ou depois, conforme o processo caminha.</p>
 
     <app-ctr-processo-form
       [siglas]="siglas"
@@ -280,22 +311,22 @@
     ></app-ctr-processo-form>
   </div>
 
-  <!-- ── Modal: registrar chegada em uma etapa ─────────────────────────── -->
+  <!-- ── Modal: registrar andamento em uma etapa ───────────────────────── -->
   <div *ngIf="secao === 'lista' && processoCheckpoint"
        class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-      <h3 class="text-base font-semibold text-blue-900 mb-1">Registrar andamento</h3>
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6" role="dialog" aria-modal="true" aria-labelledby="ctr-cp-titulo">
+      <h3 id="ctr-cp-titulo" class="text-base font-semibold text-blue-900 mb-1">Registrar andamento</h3>
       <p class="text-sm text-gray-600 mb-4">Processo {{ processoCheckpoint.NumeroProcesso }} ·
       {{ processoCheckpoint.OrgaoSigla }}</p>
 
-      <label class="block text-sm font-semibold mb-1">Etapa</label>
-      <select [ngModel]="checkpointEtapa" name="ctr-cp-etapa" (ngModelChange)="aoTrocarEtapaCheckpoint($event)"
+      <label class="block text-sm font-semibold mb-1" for="ctr-cp-etapa">Etapa</label>
+      <select id="ctr-cp-etapa" [ngModel]="checkpointEtapa" name="ctr-cp-etapa" (ngModelChange)="aoTrocarEtapaCheckpoint($event)"
               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
         <option *ngFor="let e of etapas" [value]="e.valor">{{ e.rotulo }}</option>
       </select>
 
-      <label class="block text-sm font-semibold mb-1">Data</label>
-      <input type="date" [(ngModel)]="checkpointData" name="ctr-cp-data"
+      <label class="block text-sm font-semibold mb-1" for="ctr-cp-data">Data</label>
+      <input id="ctr-cp-data" type="date" [(ngModel)]="checkpointData" name="ctr-cp-data"
              [disabled]="checkpointLimpar || (etapaAceitaNaoSeAplica && checkpointNaoSeAplica)"
              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
       <p class="text-xs text-gray-400 italic mt-1">Vem preenchida com a data de hoje; troque se a chegada foi em outro dia.</p>
