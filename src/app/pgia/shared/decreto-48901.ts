@@ -1,7 +1,7 @@
 /**
  * Texto integral do Decreto nº 48.901, de 03 de julho de 2026 (PGIA/DF),
  * transcrito do PDF oficial para os tooltips de citação das telas.
- * Ato normativo público — sem restrição de reprodução (Lei 9.610/98, art. 8º, IV).
+ * Ato normativo público, sem restrição de reprodução (Lei 9.610/98, art. 8º, IV).
  */
 export interface DispositivoDecreto {
   rotulo: string;                                    // "Art. 23"

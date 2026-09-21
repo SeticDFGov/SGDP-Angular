@@ -18,7 +18,7 @@ import { CtrContagem, CtrPainel } from '../../../api/contratacoes/interface';
  * parados (gargalos).
  *
  * Os números vêm prontos do backend, sobre os mesmos processos ativos da
- * listagem — nada é recalculado aqui.
+ * listagem; nada é recalculado aqui.
  */
 @Component({
   selector: 'app-ctr-painel',
@@ -81,7 +81,7 @@ export class CtrPainelComponent implements OnInit {
 
   /** Tempo médio em dias, com um decimal; sem amostra mostra travessão. */
   media(valor: number | null | undefined): string {
-    if (valor === null || valor === undefined) return '—';
+    if (valor === null || valor === undefined) return '-';
     return `${(Math.round(valor * 10) / 10).toLocaleString('pt-BR')} dia(s)`;
   }
 

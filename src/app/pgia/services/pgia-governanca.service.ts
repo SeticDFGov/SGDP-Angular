@@ -27,7 +27,8 @@ import {
   PgiaPlataformaForm,
   PgiaRegistroPublicoForm,
   PgiaRelatorioAnual,
-  PgiaRelatorioAnualForm
+  PgiaRelatorioAnualForm,
+  PgiaAcessoModuloPessoa
 } from '../../../api/pgia/interface';
 
 /**
@@ -134,6 +135,12 @@ export class PgiaGovernancaService {
   /** Define papel PGIA e unidade da pessoa; `null` limpa o campo. */
   definirVinculoPessoa(userId: string, form: PgiaPessoaVinculoForm): Observable<PgiaPessoaAcesso> {
     return this.http.put<PgiaPessoaAcesso>(`${this.apiUrl}/pessoa/${userId}/vinculo`, form,
+      { headers: this.getHeaders() });
+  }
+
+  /** Liga/desliga o acesso da pessoa ao módulo PGIA (agente do art. 13 sem papel). */
+  definirAcessoModuloPessoa(userId: string, ativo: boolean): Observable<PgiaAcessoModuloPessoa> {
+    return this.http.put<PgiaAcessoModuloPessoa>(`${this.apiUrl}/pessoa/${userId}/acesso-modulo`, { Ativo: ativo },
       { headers: this.getHeaders() });
   }
 

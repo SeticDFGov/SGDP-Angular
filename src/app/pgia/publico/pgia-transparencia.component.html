@@ -44,7 +44,7 @@
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
                 [ngClass]="badgeClasse(s.ClassificacaoRiscoAtual)">{{ s.ClassificacaoRiscoAtual || 'Sem classificação' }}</span>
         </div>
-        <p class="text-xs text-gray-500 mb-2">{{ s.OrgaoSigla }} — {{ s.OrgaoNome }}</p>
+        <p class="text-xs text-gray-500 mb-2">{{ s.OrgaoSigla }} · {{ s.OrgaoNome }}</p>
         <p class="text-sm text-gray-700 leading-relaxed mb-2">{{ s.Finalidade }}</p>
 
         <div *ngIf="s.NaturezaDecisoes" class="text-sm text-gray-700 leading-relaxed mb-1">

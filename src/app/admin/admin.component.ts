@@ -3,27 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { SERVICE_API_URL } from '../../api/consts';
-import { AuthService, PapeisContratacoes } from '../auth/services/auth';
+import { AuthService } from '../auth/services/auth';
 import { AreaExecutoraService } from '../area-executora/area-executora.service';
 import { AreaExecutora } from '../../api/area-executora/interface';
 import { AreaDemandante, Esteira } from '../../api/demanda/interface';
 import { PgiaAdminService } from '../pgia/services/pgia-admin.service';
 import { NATUREZAS_JURIDICAS, PgiaOrgao, PgiaOrgaoCreateForm } from '../../api/pgia/interface';
-import { CtrAdminService } from '../contratacoes/services/ctr-admin.service';
-
-interface User {
-  Id: string;
-  Nome: string;
-  Email: string;
-  Perfil: string;
-  PapelPgia?: string | null;
-  // Papel do módulo Supervisão Contínua das Contratações (vem do /auth/usuarios)
-  PapelContratacoes?: string | null;
-  Unidade: {
-    id: string;
-    Nome: string;
-  };
-}
 
 interface Unit {
   id: number;
@@ -38,15 +23,12 @@ interface Unit {
   styleUrls: ['./admin.component.css']
 })
 export class AdminComponent implements OnInit {
-  users: User[] = [];
-  loadingUsers = false;
   units: Unit[] = [];
   loadingUnits = false;
   newUnitName = '';
   loadingUnit = false;
   message = '';
   messageType = '';
-  selectedUnits: { [key: string]: string } = {};
   user: any;
   email: any;
 
@@ -71,9 +53,7 @@ export class AdminComponent implements OnInit {
   newEsteiraNome = '';
   loadingEsteira = false;
 
-  // PGIA — papéis e órgãos (Decreto nº 48.901/2026)
-  papeisPgia: string[] = ['pgia_orgao', 'pgia_sgdi', 'pgia_cgtic', 'pgia_auditoria'];
-  selectedPapeis: { [key: string]: string } = {};
+  // PGIA: órgãos (Decreto nº 48.901/2026); o papel das pessoas fica na Gestão de acessos
   pgiaOrgaos: PgiaOrgao[] = [];
   loadingPgiaOrgaos = false;
   naturezasPgia = NATUREZAS_JURIDICAS;
@@ -86,14 +66,6 @@ export class AdminComponent implements OnInit {
   vinculoUnidadeId: string | null = null;
   salvandoVinculo = false;
 
-  // Supervisão Contínua das Contratações — papel do módulo interno da SGDI
-  // A constante vem do AuthService (já eager): importar o interface.ts do
-  // módulo aqui traria as constantes de domínio dele para o bundle inicial.
-  // Só o rótulo mudou com o nome do módulo; o valor continua `ctr_analise`.
-  papeisContratacoes: string[] = [PapeisContratacoes.Analise];
-  rotulosPapelContratacoes: Record<string, string> = { [PapeisContratacoes.Analise]: 'Supervisão contínua das contratações' };
-  selectedPapeisContratacoes: { [key: string]: string } = {};
-
   private URL_AUTH_SERVICE = `${SERVICE_API_URL}/api`;
   private URL_DEMANDANTE = `${SERVICE_API_URL}/api/Demandante`;
   private URL_ESTEIRA = `${SERVICE_API_URL}/api/Esteira`;
@@ -102,40 +74,18 @@ export class AdminComponent implements OnInit {
     private http: HttpClient,
     private authService: AuthService,
     private areaExecutoraService: AreaExecutoraService,
-    private pgiaAdminService: PgiaAdminService,
-    private ctrAdminService: CtrAdminService
+    private pgiaAdminService: PgiaAdminService
   ) { }
 
   ngOnInit(): void {
     this.authService.getUser().subscribe(user => {
       this.user = user;
       this.email = user?.Email;
-      this.loadUsers();
       this.loadUnits();
       this.loadAreasExecutoras();
       this.loadDemandantes();
       this.loadEsteiras();
       this.loadPgiaOrgaos();
-    });
-  }
-
-  // ── Usuários ──────────────────────────────────────────────────────────────
-
-  loadUsers(): void {
-    this.loadingUsers = true;
-    this.http.get<User[]>(`${this.URL_AUTH_SERVICE}/auth/usuarios`).subscribe({
-      next: (data) => { this.users = data; this.loadingUsers = false; },
-      error: () => { this.showMessage('Erro ao carregar usuários', 'error'); this.loadingUsers = false; }
-    });
-  }
-
-  alterarUnidade(email: string, unidadeId: string): void {
-    this.http.put(`${this.URL_AUTH_SERVICE}/auth/modificar-unidade`,
-      { email, unidadeId },
-      { responseType: 'text' as 'json' }
-    ).subscribe({
-      next: () => { this.showMessage('Unidade alterada com sucesso!', 'success'); this.loadUsers(); },
-      error: (err) => this.showMessage(err.error?.message || 'Erro ao alterar unidade', 'error')
     });
   }
 
@@ -267,29 +217,7 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  // ── PGIA: papéis e órgãos ─────────────────────────────────────────────────
-
-  atribuirPapelPgia(email: string, papel: string): void {
-    this.pgiaAdminService.atribuirPapel({ Email: email, PapelPgia: papel || null }).subscribe({
-      next: () => { this.showMessage('Papel PGIA atualizado!', 'success'); this.loadUsers(); },
-      error: () => this.showMessage('Erro ao atualizar o papel PGIA', 'error')
-    });
-  }
-
-  // ── Supervisão Contínua das Contratações: papel do módulo ─────────────────
-
-  /** Rótulo amigável do papel; valor cru como reserva. */
-  rotuloPapelContratacoes(papel: string | null | undefined): string {
-    if (!papel) return '';
-    return this.rotulosPapelContratacoes[papel] ?? papel;
-  }
-
-  atribuirPapelContratacoes(email: string, papel: string): void {
-    this.ctrAdminService.atribuirPapel({ Email: email, PapelContratacoes: papel || null }).subscribe({
-      next: () => { this.showMessage('Papel de Supervisão Contínua das Contratações atualizado!', 'success'); this.loadUsers(); },
-      error: () => this.showMessage('Erro ao atualizar o papel de Supervisão Contínua das Contratações', 'error')
-    });
-  }
+  // ── PGIA: órgãos ─────────────────────────────────────────────────
 
   loadPgiaOrgaos(): void {
     this.loadingPgiaOrgaos = true;

@@ -1,11 +1,5 @@
 <div citaDecreto class="tela-pgia max-w-5xl mx-auto">
 
-  <!-- Contexto -->
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
-    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
-    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
-    Aqui o órgão registra as medições dos sistemas e presta contas à SGDI a cada semestre.
-  </div>
 
   <div *ngIf="loading" class="text-center py-8 text-gray-500">Carregando...</div>
 
@@ -74,7 +68,7 @@
                 <td class="px-3 py-2">{{ i.Nome }}</td>
                 <td class="px-3 py-2">{{ i.Categoria }}</td>
                 <td class="px-3 py-2">{{ i.Valor }}<span class="text-gray-500" *ngIf="i.Unidade"> {{ i.Unidade }}</span></td>
-                <td class="px-3 py-2">{{ i.Meta !== null ? i.Meta : '—' }}</td>
+                <td class="px-3 py-2">{{ i.Meta !== null ? i.Meta : '-' }}</td>
                 <td class="px-3 py-2 whitespace-nowrap">
                   {{ i.PeriodoInicio | date:'dd/MM/yyyy':'UTC' }} a {{ i.PeriodoFim | date:'dd/MM/yyyy':'UTC' }}
                 </td>
@@ -207,8 +201,8 @@
               <tr class="border-b border-gray-200 align-top">
                 <td class="px-3 py-2 whitespace-nowrap">{{ r.Semestre }}º semestre de {{ r.Ano }}</td>
                 <td class="px-3 py-2 whitespace-nowrap">{{ r.PrazoEnvio | date:'dd/MM/yyyy':'UTC' }}</td>
-                <td class="px-3 py-2 whitespace-nowrap">{{ r.DataEnvio ? (r.DataEnvio | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
-                <td class="px-3 py-2 text-gray-500">{{ r.ProcessoSei || '—' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.DataEnvio ? (r.DataEnvio | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
+                <td class="px-3 py-2 text-gray-500">{{ r.ProcessoSei || '-' }}</td>
                 <td class="px-3 py-2">
                   <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeRelatorio(r.Status)">{{ r.Status }}</span>
                 </td>
@@ -284,7 +278,7 @@
                         <tr *ngFor="let s of detalhe.Conteudo.Sistemas" class="border-b border-gray-200">
                           <td class="px-3 py-2">{{ s.Denominacao }}</td>
                           <td class="px-3 py-2">{{ s.StatusCicloVida }}</td>
-                          <td class="px-3 py-2">{{ s.ClassificacaoRiscoAtual || '—' }}</td>
+                          <td class="px-3 py-2">{{ s.ClassificacaoRiscoAtual || '-' }}</td>
                           <td class="px-3 py-2">{{ s.SituacaoHomologacao }}</td>
                         </tr>
                         <tr *ngIf="detalhe.Conteudo.Sistemas.length === 0">
@@ -308,12 +302,12 @@
                       <tbody>
                         <tr *ngFor="let i of detalhe.Conteudo.Incidentes" class="border-b border-gray-200 align-top">
                           <td class="px-3 py-2">{{ i.SistemaDenominacao }}</td>
-                          <td class="px-3 py-2">{{ i.Hipotese || '—' }}</td>
+                          <td class="px-3 py-2">{{ i.Hipotese || '-' }}</td>
                           <td class="px-3 py-2 whitespace-nowrap">
-                            {{ i.DataComunicacaoSgdi ? (i.DataComunicacaoSgdi | date:'dd/MM/yyyy HH:mm') : '—' }}
+                            {{ i.DataComunicacaoSgdi ? (i.DataComunicacaoSgdi | date:'dd/MM/yyyy HH:mm') : '-' }}
                           </td>
                           <td class="px-3 py-2">{{ i.StatusApuracao }}</td>
-                          <td class="px-3 py-2 leading-relaxed">{{ i.MedidasAdotadas || '—' }}</td>
+                          <td class="px-3 py-2 leading-relaxed">{{ i.MedidasAdotadas || '-' }}</td>
                         </tr>
                         <tr *ngIf="detalhe.Conteudo.Incidentes.length === 0">
                           <td colspan="5" class="px-3 py-3 text-center text-gray-500">Nenhum incidente no período.</td>
@@ -339,7 +333,7 @@
                           <td class="px-3 py-2">{{ i.Nome }}</td>
                           <td class="px-3 py-2">{{ i.Categoria }}</td>
                           <td class="px-3 py-2">{{ i.Valor }}<span class="text-gray-500" *ngIf="i.Unidade"> {{ i.Unidade }}</span></td>
-                          <td class="px-3 py-2">{{ i.Meta !== null ? i.Meta : '—' }}</td>
+                          <td class="px-3 py-2">{{ i.Meta !== null ? i.Meta : '-' }}</td>
                         </tr>
                         <tr *ngIf="detalhe.Conteudo.IndicadoresAltoRisco.length === 0">
                           <td colspan="5" class="px-3 py-3 text-center text-gray-500">Nenhum indicador de Alto Risco no período.</td>
@@ -363,7 +357,7 @@
                           <td class="px-3 py-2">{{ c.AgenteNome }}</td>
                           <td class="px-3 py-2">{{ c.Trilha }}</td>
                           <td class="px-3 py-2">{{ c.Status }}</td>
-                          <td class="px-3 py-2 whitespace-nowrap">{{ c.DataConclusao ? (c.DataConclusao | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                          <td class="px-3 py-2 whitespace-nowrap">{{ c.DataConclusao ? (c.DataConclusao | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
                         </tr>
                         <tr *ngIf="detalhe.Conteudo.Capacitacoes.length === 0">
                           <td colspan="4" class="px-3 py-3 text-center text-gray-500">Nenhuma capacitação no período.</td>
@@ -386,7 +380,7 @@
                         <tr *ngFor="let s of detalhe.Conteudo.AtualizacoesInventario" class="border-b border-gray-200">
                           <td class="px-3 py-2">{{ s.Denominacao }}</td>
                           <td class="px-3 py-2">{{ s.StatusCicloVida }}</td>
-                          <td class="px-3 py-2">{{ s.ClassificacaoRiscoAtual || '—' }}</td>
+                          <td class="px-3 py-2">{{ s.ClassificacaoRiscoAtual || '-' }}</td>
                           <td class="px-3 py-2">{{ s.SituacaoHomologacao }}</td>
                         </tr>
                         <tr *ngIf="detalhe.Conteudo.AtualizacoesInventario.length === 0">

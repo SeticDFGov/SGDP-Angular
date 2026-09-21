@@ -18,8 +18,12 @@ export interface UserProfile {
   // Acesso ao módulo PGIA: role "pgia" do Keycloak (atribuída ao grupo/órgão), ou admin
   AcessoPgia?: boolean;
   // Papel no módulo Supervisão Contínua das Contratações (ferramenta interna da SGDI);
-  // opcional pelo mesmo motivo — usuário salvo antes do módulo não tem o campo
+  // opcional pelo mesmo motivo: usuário salvo antes do módulo não tem o campo
   PapelContratacoes?: string | null;
+  // Módulos que o usuário enxerga (GET /api/Auth/me, calculado no backend: roles do
+  // Keycloak + acessos concedidos no sistema). Vazio = não enxerga módulo algum.
+  // Opcional porque o usuário guardado antes do isolamento não tem o campo.
+  Modulos?: string[];
   Unidade: Unidade | null;
 }
 

@@ -13,7 +13,7 @@
   <div *ngIf="!loading && !temAcesso" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
       Esta área é da secretaria do CGTIC. O seu papel no PGIA não dá acesso a ela.
-      Use o menu lateral para voltar às telas do seu órgão.
+      Use a trilha acima para voltar às telas do seu papel.
     </div>
   </div>
 
@@ -180,7 +180,7 @@
               </td>
               <td class="px-3 py-2">
                 <span *ngIf="d.NumeroAto">{{ d.NumeroAto }}</span>
-                <span *ngIf="!d.NumeroAto" class="text-gray-500">—</span>
+                <span *ngIf="!d.NumeroAto" class="text-gray-500">-</span>
                 <div *ngIf="d.Ementa" class="text-xs text-gray-500 leading-relaxed">{{ d.Ementa }}</div>
               </td>
               <td class="px-3 py-2 w-72">
@@ -250,7 +250,7 @@
               <ng-container *ngFor="let caso of casosFiltrados">
                 <tr class="border-b border-gray-200 align-top">
                   <td class="px-3 py-2">{{ caso.Denominacao }}</td>
-                  <td class="px-3 py-2">{{ caso.OrgaoSigla }} — {{ caso.OrgaoNome }}</td>
+                  <td class="px-3 py-2">{{ caso.OrgaoSigla }} · {{ caso.OrgaoNome }}</td>
                   <td class="px-3 py-2">
                     <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
                           [ngClass]="badgeClasse(caso.ClassificacaoRiscoAtual)">
@@ -264,7 +264,7 @@
                   </td>
                   <td class="px-3 py-2 whitespace-nowrap">
                     <span *ngIf="caso.DataEntrada">{{ caso.DataEntrada | date:'dd/MM/yyyy':'UTC' }}</span>
-                    <span *ngIf="!caso.DataEntrada" class="text-gray-500">—</span>
+                    <span *ngIf="!caso.DataEntrada" class="text-gray-500">-</span>
                   </td>
                   <td class="px-3 py-2">
                     <button (click)="alternarCaso(caso)" type="button"
@@ -331,7 +331,7 @@
                 </td>
                 <td class="px-3 py-2">
                   <span *ngIf="d.NumeroAto">{{ d.NumeroAto }}</span>
-                  <span *ngIf="!d.NumeroAto" class="text-gray-500">—</span>
+                  <span *ngIf="!d.NumeroAto" class="text-gray-500">-</span>
                   <div *ngIf="d.Ementa" class="text-xs text-gray-500 leading-relaxed">{{ d.Ementa }}</div>
                 </td>
               </tr>

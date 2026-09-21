@@ -79,7 +79,7 @@
         <select [(ngModel)]="filtro.EtapaPlanejamento" name="ctr-f-etapa-planejamento"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todas</option>
-          <option *ngFor="let e of etapasPlanejamento" [value]="e.valor">{{ e.valor }} — {{ e.rotulo }}</option>
+          <option *ngFor="let e of etapasPlanejamento" [value]="e.valor">{{ e.valor }} ({{ e.rotulo }})</option>
         </select>
       </div>
       <div>
@@ -232,7 +232,7 @@
                 </span>
               </td>
               <td class="px-3 py-2 whitespace-nowrap">
-                {{ p.UltimaMovimentacao ? (p.UltimaMovimentacao | date:'dd/MM/yyyy':'UTC') : '—' }}
+                {{ p.UltimaMovimentacao ? (p.UltimaMovimentacao | date:'dd/MM/yyyy':'UTC') : '-' }}
               </td>
               <td class="px-3 py-2 whitespace-nowrap" [ngClass]="corDiasSemMovimento(p.DiasSemMovimento)">
                 {{ p.DiasSemMovimento }} dia(s)
@@ -242,7 +242,7 @@
                   {{ p.TotalManifestacoes }} manifestação(ões)
                   <span *ngIf="p.UltimoEstagioTcdf" class="block text-gray-500">{{ p.UltimoEstagioTcdf }}</span>
                 </span>
-                <span *ngIf="!p.TotalManifestacoes" class="text-xs text-gray-400 italic">—</span>
+                <span *ngIf="!p.TotalManifestacoes" class="text-xs text-gray-400 italic">-</span>
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <a [routerLink]="['/analises/processos/editar', p.Id]"

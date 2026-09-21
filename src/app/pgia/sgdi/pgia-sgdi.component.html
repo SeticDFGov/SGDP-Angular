@@ -13,7 +13,7 @@
   <div *ngIf="!loading && !temAcesso" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
       Esta área é da equipe da SGDI. O seu papel no PGIA não dá acesso a ela.
-      Use o menu lateral para voltar às telas do seu órgão.
+      Use a trilha acima para voltar às telas do seu papel.
     </div>
   </div>
 
@@ -263,7 +263,21 @@
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Aqui a SGDI define quem faz o quê no PGIA: procure a pessoa pelo
       nome ou pelo e-mail, escolha o papel dela e o órgão em que ela trabalha. Quem ainda não acessou o sistema pode ser
       pré-cadastrada pelo e-mail, no botão ao lado.</p>
-      <p class="text-xs text-gray-400 italic mb-4">O perfil do SGDP (admin, gestor…) vem do Keycloak; papel PGIA e órgão são definidos aqui.</p>
+      <p class="text-xs text-gray-400 italic mb-4">O perfil do SGDP (admin, gestor…) vem do Keycloak; papel PGIA e órgão são definidos aqui.
+      Quem tem papel já entra no PGIA. Sem papel, a pessoa precisa de acesso ao módulo para registrar uso de IA e avisar
+      incidentes (art. 13): ele vem do grupo do órgão no Keycloak ou é liberado aqui.</p>
+
+      <!-- Pedidos de acesso ao PGIA, feitos no card da tela inicial -->
+      <div class="border border-indigo-200 rounded-lg bg-indigo-50/40 p-4 mb-6">
+        <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <span class="material-icons text-base text-indigo-600" aria-hidden="true">how_to_reg</span>
+          Pedidos de acesso ao PGIA
+        </h3>
+        <p class="text-xs text-gray-600 mt-1 mb-3 leading-relaxed">Quem ainda não entra no PGIA pede pelo card do módulo na
+        tela inicial. Ao aprovar, escolha o papel da pessoa; sem papel, ela entra como agente público. Ao recusar, escreva o
+        motivo: a pessoa lê no card e pode pedir de novo.</p>
+        <app-pedidos-acesso-fila moduloFixo="pgia" (decidiu)="aoDecidirPedido()"></app-pedidos-acesso-fila>
+      </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mb-4">
         <div class="md:col-span-2">
@@ -364,8 +378,8 @@
             <tr class="bg-blue-50 text-blue-900 text-left text-xs">
               <th class="px-3 py-2">Nome</th>
               <th class="px-3 py-2">E-mail</th>
-              <th class="px-3 py-2">Perfil SGDP</th>
               <th class="px-3 py-2">Papel PGIA</th>
+              <th class="px-3 py-2">Entra no PGIA?</th>
               <th class="px-3 py-2">Órgão / unidade</th>
               <th class="px-3 py-2"></th>
             </tr>
@@ -375,10 +389,25 @@
               <tr class="border-b border-gray-200 align-top">
                 <td class="px-3 py-2">{{ p.Nome }}</td>
                 <td class="px-3 py-2 text-gray-600">{{ p.Email }}</td>
-                <td class="px-3 py-2">{{ p.Perfil }}</td>
                 <td class="px-3 py-2">
                   <span *ngIf="p.PapelPgia">{{ rotuloPapel(p.PapelPgia) }}</span>
                   <span *ngIf="!p.PapelPgia" class="text-gray-500">sem papel</span>
+                </td>
+                <td class="px-3 py-2">
+                  <span *ngIf="p.PapelPgia" class="text-green-700">Sim, pelo papel</span>
+                  <ng-container *ngIf="!p.PapelPgia">
+                    <span *ngIf="p.AcessoModulo" class="text-green-700">Sim, como agente</span>
+                    <span *ngIf="!p.AcessoModulo && p.AcessoModuloKeycloak" class="text-green-700">Sim, pelo Keycloak (grupo do órgão ou admin)</span>
+                    <span *ngIf="!p.AcessoModulo && !p.AcessoModuloKeycloak" class="text-gray-500">Não</span>
+                    <button *ngIf="!p.AcessoModulo && !p.AcessoModuloKeycloak" (click)="alternarAcessoModulo(p, true)" [disabled]="alternandoAcessoModulo === p.UserId"
+                            class="block mt-1 text-xs text-blue-700 border border-blue-600 rounded px-2 py-0.5 hover:bg-blue-50 disabled:opacity-50">
+                      Liberar como agente
+                    </button>
+                    <button *ngIf="p.AcessoModulo" (click)="alternarAcessoModulo(p, false)" [disabled]="alternandoAcessoModulo === p.UserId"
+                            class="block mt-1 text-xs text-red-700 border border-red-300 rounded px-2 py-0.5 hover:bg-red-50 disabled:opacity-50">
+                      Retirar acesso
+                    </button>
+                  </ng-container>
                 </td>
                 <td class="px-3 py-2">
                   <span *ngIf="p.OrgaoSigla">{{ p.OrgaoSigla }}</span>
@@ -561,12 +590,12 @@
           <tbody>
             <tr *ngFor="let p of plataformas" class="border-b border-gray-200">
               <td class="px-3 py-2">{{ p.Nome }}</td>
-              <td class="px-3 py-2 text-gray-500">{{ p.Fornecedor || '—' }}</td>
+              <td class="px-3 py-2 text-gray-500">{{ p.Fornecedor || '-' }}</td>
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgePlataforma(p.StatusHomologacao)">{{ p.StatusHomologacao }}</span>
               </td>
               <td class="px-3 py-2">{{ p.AptaDadosPessoaisSigilosos ? 'apta' : 'não apta' }}</td>
-              <td class="px-3 py-2">{{ p.PublicadaRelacaoEm ? (p.PublicadaRelacaoEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+              <td class="px-3 py-2">{{ p.PublicadaRelacaoEm ? (p.PublicadaRelacaoEm | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
               <td class="px-3 py-2 text-right">
                 <button (click)="editarPlataforma(p)"
                         class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
@@ -835,13 +864,13 @@
               <tr class="border-b border-gray-200 align-top">
                 <td class="px-3 py-2 whitespace-nowrap">{{ r.Semestre }}º semestre de {{ r.Ano }}</td>
                 <td class="px-3 py-2 whitespace-nowrap">{{ r.PrazoEnvio | date:'dd/MM/yyyy':'UTC' }}</td>
-                <td class="px-3 py-2 whitespace-nowrap">{{ r.DataEnvio ? (r.DataEnvio | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
-                <td class="px-3 py-2 text-gray-500">{{ r.ProcessoSei || '—' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.DataEnvio ? (r.DataEnvio | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
+                <td class="px-3 py-2 text-gray-500">{{ r.ProcessoSei || '-' }}</td>
                 <td class="px-3 py-2">
                   <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeRelatorio(r.Status)">{{ r.Status }}</span>
                 </td>
-                <td class="px-3 py-2 whitespace-nowrap">{{ r.RegistradoPainelEm ? (r.RegistradoPainelEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
-                <td class="px-3 py-2 whitespace-nowrap">{{ r.ComunicadoControleInternoEm ? (r.ComunicadoControleInternoEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.RegistradoPainelEm ? (r.RegistradoPainelEm | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ r.ComunicadoControleInternoEm ? (r.ComunicadoControleInternoEm | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
                 <td class="px-3 py-2 text-right">
                   <button (click)="editarSituacaoRelatorio(r)"
                           class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
@@ -964,9 +993,9 @@
           <tbody>
             <tr *ngFor="let r of relatoriosAnuais" class="border-b border-gray-200">
               <td class="px-3 py-2">{{ r.Ano }}</td>
-              <td class="px-3 py-2 whitespace-nowrap">{{ r.DataPublicacao ? (r.DataPublicacao | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
-              <td class="px-3 py-2 text-gray-500">{{ r.UrlPublicacao || '—' }}</td>
-              <td class="px-3 py-2 whitespace-nowrap">{{ r.ApreciadoCgticEm ? (r.ApreciadoCgticEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ r.DataPublicacao ? (r.DataPublicacao | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
+              <td class="px-3 py-2 text-gray-500">{{ r.UrlPublicacao || '-' }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">{{ r.ApreciadoCgticEm ? (r.ApreciadoCgticEm | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
               <td class="px-3 py-2 text-right">
                 <button (click)="editarAnual(r)"
                         class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
@@ -1175,7 +1204,7 @@
                 <td class="px-3 py-2 leading-relaxed">{{ nc.Descricao }}</td>
                 <td class="px-3 py-2 text-gray-500">{{ nc.Origem }}</td>
                 <td class="px-3 py-2 whitespace-nowrap">{{ nc.DataRegistro | date:'dd/MM/yyyy':'UTC' }}</td>
-                <td class="px-3 py-2 whitespace-nowrap">{{ nc.ReportadaSgdiEm ? (nc.ReportadaSgdiEm | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap">{{ nc.ReportadaSgdiEm ? (nc.ReportadaSgdiEm | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
                 <td class="px-3 py-2">
                   <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeNaoConformidade(nc.Situacao)">{{ nc.Situacao }}</span>
                 </td>
@@ -1318,7 +1347,7 @@
           <tbody>
             <tr *ngFor="let n of normas" class="border-b border-gray-200">
               <td class="px-3 py-2">{{ n.Tipo }}</td>
-              <td class="px-3 py-2">{{ n.Numero || '—' }}</td>
+              <td class="px-3 py-2">{{ n.Numero || '-' }}</td>
               <td class="px-3 py-2">{{ n.Ementa }}</td>
               <td class="px-3 py-2">{{ n.DataPublicacao | date:'dd/MM/yyyy':'UTC' }}</td>
               <td class="px-3 py-2">{{ n.Vigente ? 'sim' : 'não' }}</td>
@@ -1453,7 +1482,7 @@
             <tr *ngFor="let a of autorizacoes" class="border-b border-gray-200">
               <td class="px-3 py-2">{{ a.Tipo }}</td>
               <td class="px-3 py-2">{{ a.OrgaoSigla }}</td>
-              <td class="px-3 py-2">{{ a.PlataformaNome || '—' }}</td>
+              <td class="px-3 py-2">{{ a.PlataformaNome || '-' }}</td>
               <td class="px-3 py-2">{{ a.DataAutorizacao | date:'dd/MM/yyyy':'UTC' }}</td>
               <td class="px-3 py-2">{{ a.VigenciaFim ? (a.VigenciaFim | date:'dd/MM/yyyy':'UTC') : 'sem prazo' }}</td>
               <td class="px-3 py-2">{{ a.Ativo ? 'ativa' : 'encerrada' }}</td>

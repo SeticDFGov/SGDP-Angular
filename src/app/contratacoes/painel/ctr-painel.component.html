@@ -202,7 +202,7 @@
                       [ngClass]="badgeSituacao(p.Situacao)">{{ p.Situacao }}</span>
               </td>
               <td class="px-3 py-2 whitespace-nowrap">
-                {{ p.UltimaMovimentacao ? (p.UltimaMovimentacao | date:'dd/MM/yyyy':'UTC') : '—' }}
+                {{ p.UltimaMovimentacao ? (p.UltimaMovimentacao | date:'dd/MM/yyyy':'UTC') : '-' }}
               </td>
               <td class="px-3 py-2 whitespace-nowrap" [ngClass]="corDiasSemMovimento(p.DiasSemMovimento)">
                 {{ p.DiasSemMovimento }} dia(s)

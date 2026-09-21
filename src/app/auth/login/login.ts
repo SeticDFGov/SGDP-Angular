@@ -4,8 +4,7 @@ import { AuthService } from '../services/auth';
 import { Router, RouterModule } from '@angular/router';
 import { AuthRequest } from '../../../api/auth/interface';
 import { CommonModule } from '@angular/common';
-import { switchMap, timeout, catchError } from 'rxjs/operators';
-import { of, throwError } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-login',
@@ -46,33 +45,19 @@ export class Login {
 
     const credentials: AuthRequest = this.loginForm.getRawValue();
     this.authService.login(credentials).pipe(
-      timeout(10000), // 10 segundos de timeout
-      switchMap(() => {
-        return this.authService.isUserFullyConfigured();
-      }),
-      switchMap((isConfigured) => {
-
-        if (!isConfigured) {
-          this.carregando = false;
-          this.router.navigate(['/pending-approval']);
-          throw new Error('User not configured');
-        }
-
-        return this.authService.getPerfil();
-      }),
       timeout(15000) // Timeout total de 15 segundos
     ).subscribe({
-      next: (perfil) => {
+      next: () => {
         this.carregando = false;
-        this.router.navigate(['/demandas']);
+        // Todo mundo entra pela tela inicial, com os cards dos módulos: os
+        // liberados ficam ativos e os demais em cinza (isolamento entre módulos)
+        this.router.navigate(['/inicio']);
       },
       error: (err) => {
-
-        // Não mostra erro se for apenas "User not configured"
-        if (err.message === 'User not configured') {
-          // Usuário já redirecionado para pending-approval
-        } else if (err.name === 'TimeoutError') {
+        if (err.name === 'TimeoutError') {
           this.mensagem = 'Timeout: A operação demorou muito. Tente novamente.';
+        } else if (err.status === 401) {
+          this.mensagem = 'E-mail ou senha inválidos.';
         } else {
           this.mensagem = `Problemas internos com o servidor cod: ${err.status || 'desconhecido'}`;
         }

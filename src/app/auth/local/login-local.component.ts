@@ -13,11 +13,12 @@ interface PersonaLocal {
   PapelPgia?: string;
   PapelContratacoes?: string;
   VincularAoOrgaoDeTeste?: boolean;
-  Rota?: string; // destino pós-login; sem ela, vale a navegação padrão por perfil
+  // Acessos concedidos no sistema (como a tela de Gestão de acessos faria)
+  ConcederModulos?: string[];
 }
 
 /**
- * MODO LOCAL (execução independente, sem Keycloak) — somente testes.
+ * MODO LOCAL (execução independente, sem Keycloak): somente testes.
  * Só funciona quando o backend sobe com Auth:ModoLocal=true (Development);
  * fora disso o endpoint devolve 404 e esta tela avisa.
  * O backend provisiona papel PGIA, unidade e o Órgão de Teste na emissão do
@@ -30,10 +31,27 @@ interface PersonaLocal {
   templateUrl: './login-local.component.html'
 })
 export class LoginLocalComponent {
+  // Isolamento entre módulos: o que cada um enxerga na tela inicial depende só dos
+  // acessos dele (roles do token + concessões do sistema + papéis de módulo).
+  personasIsolamento: PersonaLocal[] = [
+    {
+      Email: 'basico@local.teste', Nome: 'Bruna Básico', Perfil: 'basico',
+      Descricao: 'Entrou só pelo login, sem nenhum acesso: vê os três módulos em cinza (a Administração nem aparece) e pede acesso pelo card'
+    },
+    {
+      Email: 'demandas@local.teste', Nome: 'Débora Demandas', Perfil: 'basico', ConcederModulos: ['demandas'],
+      Descricao: 'Só Demandas e Projetos, em modo consulta, com acesso concedido pela tela de Gestão de acessos'
+    },
+    {
+      Email: 'multi@local.teste', Nome: 'Marina Multimódulo', Perfil: 'gestor',
+      PapelPgia: 'pgia_orgao', VincularAoOrgaoDeTeste: true, PapelContratacoes: 'ctr_analise',
+      Descricao: 'Três módulos: Demandas (perfil gestor), PGIA (papel de órgão) e Supervisão Contínua'
+    }
+  ];
+
   personas: PersonaLocal[] = [
-    { Email: 'admin@local.teste', Nome: 'Ana Admin', Perfil: 'admin', Descricao: 'Administra unidades, órgãos e papéis PGIA' },
-    { Email: 'gestor@local.teste', Nome: 'Gabriel Gestor', Perfil: 'gestor', Descricao: 'Perfil gestor do SGDP' },
-    { Email: 'basico@local.teste', Nome: 'Bruna Básico', Perfil: 'basico', Descricao: 'Sem perfil válido: cai no pending-approval até ganhar papel PGIA' }
+    { Email: 'admin@local.teste', Nome: 'Ana Admin', Perfil: 'admin', Descricao: 'Todos os módulos, inclusive a Administração (pedidos de acesso, gestão de acessos e cadastros)' },
+    { Email: 'gestor@local.teste', Nome: 'Gabriel Gestor', Perfil: 'gestor', Descricao: 'Perfil gestor do Keycloak: só Demandas e Projetos, criando e editando' }
   ];
 
   // Uma persona por papel do Decreto 48.901/2026, já entrando na tela do papel.
@@ -42,27 +60,27 @@ export class LoginLocalComponent {
   personasPgia: PersonaLocal[] = [
     {
       Email: 'orgao@local.teste', Nome: 'Otávio do Órgão', Perfil: 'basico',
-      PapelPgia: 'pgia_orgao', VincularAoOrgaoDeTeste: true, Rota: '/pgia',
+      PapelPgia: 'pgia_orgao', VincularAoOrgaoDeTeste: true,
       Descricao: 'Órgão responsável: informações do órgão, inventário e risco, incidentes, prazos, capacitação, contratações, relatórios e solicitações do cidadão'
     },
     {
       Email: 'sgdi@local.teste', Nome: 'Sofia da SGDI', Perfil: 'basico',
-      PapelPgia: 'pgia_sgdi', Rota: '/pgia/sgdi',
-      Descricao: 'Governança central: homologação com pesos e pontuação, plataformas, Registro Público, AIAs, apurações e auditorias'
+      PapelPgia: 'pgia_sgdi',
+      Descricao: 'Governança central: pedidos de acesso ao PGIA, homologação com pesos e pontuação, plataformas, Registro Público, AIAs, apurações e auditorias'
     },
     {
       Email: 'cgtic@local.teste', Nome: 'Caio do CGTIC', Perfil: 'basico',
-      PapelPgia: 'pgia_cgtic', Rota: '/pgia/cgtic',
+      PapelPgia: 'pgia_cgtic',
       Descricao: 'Comitê: casos delegados de Alto Risco e Risco Excessivo, deliberações e autorizações'
     },
     {
       Email: 'agente@local.teste', Nome: 'Alice Agente Pública', Perfil: 'basico',
-      VincularAoOrgaoDeTeste: true, Rota: '/pgia/uso',
-      Descricao: 'Servidora do órgão SEM papel PGIA: vê somente o registro de uso de IA (art. 13)'
+      VincularAoOrgaoDeTeste: true,
+      Descricao: 'Servidora do órgão SEM papel PGIA (entra pelo grupo do órgão): trilha do agente para registrar uso de IA e avisar incidentes (art. 13)'
     },
     {
       Email: 'auditoria@local.teste', Nome: 'Aurélio Auditor', Perfil: 'basico',
-      PapelPgia: 'pgia_auditoria', Rota: '/pgia/auditoria',
+      PapelPgia: 'pgia_auditoria',
       Descricao: 'Auditoria externa: enxerga somente as auditorias designadas a ela'
     }
   ];
@@ -73,7 +91,7 @@ export class LoginLocalComponent {
   personasContratacoes: PersonaLocal[] = [
     {
       Email: 'contratacoes@local.teste', Nome: 'Clara das Contratações', Perfil: 'basico',
-      PapelContratacoes: 'ctr_analise', Rota: '/analises',
+      PapelContratacoes: 'ctr_analise',
       Descricao: 'Analista da SGDI na Supervisão Contínua das Contratações: processos de TIC, painel, manifestações ao TCDF e importação da planilha'
     }
   ];
@@ -82,8 +100,10 @@ export class LoginLocalComponent {
   papeisPgia = ['pgia_orgao', 'pgia_sgdi', 'pgia_cgtic', 'pgia_auditoria'];
   papeisContratacoes = ['ctr_analise'];
 
-  form: { Email: string; Nome: string; Perfil: string; PapelPgia: string; PapelContratacoes: string } =
-    { Email: '', Nome: '', Perfil: 'gestor', PapelPgia: '', PapelContratacoes: '' };
+  form: {
+    Email: string; Nome: string; Perfil: string; PapelPgia: string; PapelContratacoes: string;
+    ConcederDemandas: boolean; ConcederPgia: boolean;
+  } = { Email: '', Nome: '', Perfil: 'gestor', PapelPgia: '', PapelContratacoes: '', ConcederDemandas: false, ConcederPgia: false };
   entrando = false;
 
   constructor(
@@ -100,11 +120,13 @@ export class LoginLocalComponent {
       Perfil: persona.Perfil,
       PapelPgia: persona.PapelPgia ?? null,
       PapelContratacoes: persona.PapelContratacoes ?? null,
-      VincularAoOrgaoDeTeste: persona.VincularAoOrgaoDeTeste ?? false
+      VincularAoOrgaoDeTeste: persona.VincularAoOrgaoDeTeste ?? false,
+      ConcederModulos: persona.ConcederModulos ?? null
     }).subscribe({
       next: () => {
         this.entrando = false;
-        this.router.navigate([persona.Rota ?? this.rotaPadrao(persona.Perfil)]);
+        // Como no login normal: todo mundo entra pela tela inicial dos módulos
+        this.router.navigate(['/inicio']);
       },
       error: (err) => this.tratarErro(err)
     });
@@ -118,6 +140,10 @@ export class LoginLocalComponent {
     this.entrando = true;
     const papel = this.form.PapelPgia || null;
     const papelCtr = this.form.PapelContratacoes || null;
+    const concessoes = [
+      ...(this.form.ConcederDemandas ? ['demandas'] : []),
+      ...(this.form.ConcederPgia ? ['pgia'] : [])
+    ];
     this.authService.loginLocal({
       Email: this.form.Email,
       Nome: this.form.Nome,
@@ -125,13 +151,12 @@ export class LoginLocalComponent {
       PapelPgia: papel,
       PapelContratacoes: papelCtr,
       // Papel de órgão só faz sentido dentro de um órgão de teste
-      VincularAoOrgaoDeTeste: papel === 'pgia_orgao'
+      VincularAoOrgaoDeTeste: papel === 'pgia_orgao',
+      ConcederModulos: concessoes.length > 0 ? concessoes : null
     }).subscribe({
       next: () => {
         this.entrando = false;
-        if (papel) { this.router.navigate(['/pgia']); return; }
-        if (papelCtr) { this.router.navigate(['/analises']); return; }
-        this.router.navigate([this.rotaPadrao(this.form.Perfil)]);
+        this.router.navigate(['/inicio']);
       },
       error: (err) => this.tratarErro(err)
     });
@@ -139,10 +164,6 @@ export class LoginLocalComponent {
 
   abrirPaginaPublica(): void {
     this.router.navigate(['/transparencia-ia']);
-  }
-
-  private rotaPadrao(perfil: string): string {
-    return '/demandas';
   }
 
   private tratarErro(err: any): void {

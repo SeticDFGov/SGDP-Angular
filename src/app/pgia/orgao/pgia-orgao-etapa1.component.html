@@ -1,12 +1,5 @@
 ﻿<div citaDecreto class="tela-pgia max-w-5xl mx-auto">
 
-  <!-- Contexto -->
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
-    Bem-vindo(a), <strong>{{ user?.Nome }}</strong>.
-    <ng-container *ngIf="orgao"> Você está conectado(a) à área da {{ orgao.Nome }} ({{ orgao.Sigla }}).</ng-container>
-    Nesta área, você registra as informações que o Decreto nº 48.901/2026 pede ao seu órgão.
-    Siga as etapas na ordem. O sistema avisa você sobre os prazos.
-  </div>
 
   <!-- Glossário -->
   <details class="mb-5 text-sm text-gray-600">
@@ -305,7 +298,7 @@
             <tr *ngFor="let d of historicoRia" class="border-b border-gray-200">
               <td class="px-3 py-2">{{ d.AgenteNome }}</td>
               <td class="px-3 py-2">{{ d.AtoTipo }} nº {{ d.AtoNumero }}</td>
-              <td class="px-3 py-2">{{ d.InicioVigencia | date:'dd/MM/yyyy':'UTC' }} a {{ d.FimVigencia ? (d.FimVigencia | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+              <td class="px-3 py-2">{{ d.InicioVigencia | date:'dd/MM/yyyy':'UTC' }} a {{ d.FimVigencia ? (d.FimVigencia | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
             </tr>
           </tbody>
         </table>
@@ -421,7 +414,7 @@
             <tr *ngFor="let d of historicoDpo" class="border-b border-gray-200">
               <td class="px-3 py-2">{{ d.AgenteNome }}</td>
               <td class="px-3 py-2">{{ d.AtoTipo }} nº {{ d.AtoNumero }}</td>
-              <td class="px-3 py-2">{{ d.InicioVigencia | date:'dd/MM/yyyy':'UTC' }} a {{ d.FimVigencia ? (d.FimVigencia | date:'dd/MM/yyyy':'UTC') : '—' }}</td>
+              <td class="px-3 py-2">{{ d.InicioVigencia | date:'dd/MM/yyyy':'UTC' }} a {{ d.FimVigencia ? (d.FimVigencia | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
             </tr>
           </tbody>
         </table>

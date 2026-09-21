@@ -1,0 +1,171 @@
+<div class="max-w-screen-2xl mx-auto">
+
+  <!-- Saudação -->
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-2 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Olá, {{ primeiroNome }}</h1>
+      <p class="text-sm text-gray-600 mt-1">Escolha o módulo em que você vai trabalhar. Os módulos em cinza ainda não foram liberados para você: peça acesso pelo botão do card.</p>
+    </div>
+    <p *ngIf="!carregando && !semAcessoAlgum" class="text-sm text-gray-500">
+      {{ totalLiberados }} de {{ modulos.length }} módulos liberados para você
+    </p>
+  </div>
+
+  <!-- Sem acesso a módulo algum -->
+  <div *ngIf="semAcessoAlgum" class="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4">
+    <span class="material-icons text-amber-600" aria-hidden="true">lock</span>
+    <div class="text-sm leading-relaxed">
+      <p class="font-semibold">Seu usuário ainda não tem acesso a nenhum módulo.</p>
+      <p>Use o botão <strong>Pedir acesso</strong> no card do módulo de que você precisa. O pedido vai para os
+        administradores do sistema, e a resposta aparece aqui, no próprio card.</p>
+    </div>
+  </div>
+
+  <!-- Cards dos módulos, lado a lado (a Administração só para quem é administrador) -->
+  <div class="grid gap-6 sm:grid-cols-2" [ngClass]="modulos.length > 3 ? 'xl:grid-cols-4' : 'xl:grid-cols-3'">
+    <div *ngFor="let modulo of modulos"
+         (click)="abrir(modulo)"
+         class="group relative flex flex-col rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer"
+         [ngClass]="liberado(modulo)
+           ? 'bg-white border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5'
+           : 'bg-gray-100 border-gray-200 border-dashed hover:border-gray-300'"
+         [attr.aria-disabled]="!liberado(modulo)">
+
+      <!-- Conteúdo do módulo (em cinza enquanto não liberado) -->
+      <div class="flex-1 flex flex-col" [ngClass]="liberado(modulo) ? '' : 'grayscale opacity-70 group-hover:opacity-90'">
+        <div class="h-1.5" [ngClass]="liberado(modulo) ? modulo.tom.faixa : 'bg-gray-300'"></div>
+
+        <div class="flex-1 p-6 pb-0 flex flex-col">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <span class="w-12 h-12 rounded-xl flex items-center justify-center"
+                  [ngClass]="liberado(modulo) ? modulo.tom.icone : 'bg-gray-200 text-gray-500'">
+              <span class="material-icons text-2xl" aria-hidden="true">{{ modulo.icone }}</span>
+            </span>
+            <span *ngIf="liberado(modulo)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
+                  [ngClass]="modulo.tom.chip">
+              <span class="material-icons text-sm" aria-hidden="true">check_circle</span> Acesso liberado
+            </span>
+            <span *ngIf="!liberado(modulo)"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap bg-gray-200 text-gray-600 border-gray-300">
+              <span class="material-icons text-sm" aria-hidden="true">lock</span> Sem acesso
+            </span>
+          </div>
+
+          <h2 class="text-lg font-bold leading-snug" [ngClass]="liberado(modulo) ? 'text-gray-900' : 'text-gray-600'">{{ modulo.nome }}</h2>
+          <p class="text-sm mt-2 leading-relaxed" [ngClass]="liberado(modulo) ? 'text-gray-600' : 'text-gray-500'">{{ modulo.descricao }}</p>
+
+          <ul class="mt-4 space-y-1.5 text-sm" [ngClass]="liberado(modulo) ? 'text-gray-700' : 'text-gray-500'">
+            <li *ngFor="let item of modulo.itens" class="flex items-center gap-2">
+              <span class="material-icons text-base text-gray-400" aria-hidden="true">arrow_right</span>
+              {{ item }}
+            </li>
+          </ul>
+
+          <p *ngIf="liberado(modulo)" class="mt-4 text-xs text-gray-500">
+            <span class="font-semibold text-gray-700">Seu acesso:</span> {{ comoEntra(modulo) }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Andamento e ação (fora do cinza, para dar para ler) -->
+      <div class="p-6 pt-4 mt-auto">
+
+        <!-- Quem decide: pedidos esperando -->
+        <a *ngIf="pedidosParaDecidirNo(modulo) > 0" [routerLink]="rotaDaFila(modulo)" (click)="$event.stopPropagation()"
+           class="mb-3 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-100">
+          <span class="min-w-6 h-6 px-1.5 rounded-full bg-red-600 text-white text-xs font-bold inline-flex items-center justify-center">{{ pedidosParaDecidirNo(modulo) }}</span>
+          {{ pedidosParaDecidirNo(modulo) === 1 ? 'pedido de acesso aguardando você' : 'pedidos de acesso aguardando você' }}
+          <span class="material-icons text-base ml-auto" aria-hidden="true">arrow_forward</span>
+        </a>
+
+        <!-- Pedido enviado -->
+        <div *ngIf="aguardando(modulo)" class="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <span class="material-icons text-base text-amber-600 mt-0.5" aria-hidden="true">schedule</span>
+          <span><strong>Pedido enviado em {{ dataCurta(pedidoDe(modulo)!.CriadoEm) }}</strong>, aguardando a decisão dos administradores.</span>
+        </div>
+
+        <!-- Pedido recusado -->
+        <div *ngIf="recusado(modulo)" class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+          <p class="flex items-center gap-2 font-semibold">
+            <span class="material-icons text-base text-red-600" aria-hidden="true">block</span>
+            Pedido recusado em {{ dataCurta(pedidoDe(modulo)!.DecididoEm) }}
+          </p>
+          <p class="mt-1 whitespace-pre-line break-words"><span class="font-medium">Motivo:</span> {{ pedidoDe(modulo)!.MotivoRecusa }}</p>
+        </div>
+
+        <button type="button" (click)="abrir(modulo); $event.stopPropagation()"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                [ngClass]="liberado(modulo) ? ('text-white ' + modulo.tom.botao)
+                  : aguardando(modulo) ? 'bg-amber-100 text-amber-900 border border-amber-200 cursor-default focus-visible:ring-amber-400'
+                  : 'bg-gray-300 text-gray-700 hover:bg-gray-400/60 focus-visible:ring-gray-400'"
+                [attr.aria-label]="liberado(modulo) ? 'Acessar ' + modulo.nome
+                  : aguardando(modulo) ? 'Pedido de acesso a ' + modulo.nome + ' aguardando decisão'
+                  : 'Pedir acesso a ' + modulo.nome">
+          <ng-container *ngIf="liberado(modulo)">
+            Acessar
+            <span class="material-icons text-lg" aria-hidden="true">arrow_forward</span>
+          </ng-container>
+          <ng-container *ngIf="!liberado(modulo) && aguardando(modulo)">
+            <span class="material-icons text-lg" aria-hidden="true">hourglass_top</span>
+            Aguardando resposta
+          </ng-container>
+          <ng-container *ngIf="!liberado(modulo) && !aguardando(modulo)">
+            <span class="material-icons text-lg" aria-hidden="true">{{ recusado(modulo) ? 'refresh' : 'lock' }}</span>
+            {{ recusado(modulo) ? 'Pedir de novo' : 'Pedir acesso' }}
+          </ng-container>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <p class="mt-8 text-xs text-gray-500">
+    Informação pública sobre o uso de IA no GDF:
+    <a routerLink="/transparencia-ia" target="_blank" rel="noopener" class="text-blue-700 hover:underline">Registro Público de Sistemas de IA</a>
+    (não precisa de login).
+  </p>
+</div>
+
+<!-- Janela do pedido de acesso -->
+<div *ngIf="dialogo" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" (click)="fecharDialogo()">
+  <div role="dialog" aria-modal="true" aria-labelledby="titulo-pedido" aria-describedby="texto-pedido"
+       class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden" (click)="$event.stopPropagation()">
+    <div class="h-1.5" [ngClass]="dialogo.modulo.tom.faixa"></div>
+    <form (ngSubmit)="enviarPedido()" class="p-6">
+      <div class="flex items-start gap-3">
+        <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" [ngClass]="dialogo.modulo.tom.icone">
+          <span class="material-icons" aria-hidden="true">{{ dialogo.modulo.icone }}</span>
+        </span>
+        <div>
+          <h2 id="titulo-pedido" class="text-lg font-bold text-gray-900">Pedir acesso</h2>
+          <p class="text-sm text-gray-600">{{ dialogo.modulo.nome }}</p>
+        </div>
+      </div>
+
+      <p id="texto-pedido" class="text-sm text-gray-700 mt-4 leading-relaxed">
+        O pedido vai para os administradores do sistema<ng-container *ngIf="dialogo.modulo.id === 'pgia'"> e para a SGDI</ng-container>.
+        A resposta aparece aqui, no card do módulo. Se o pedido for aprovado, o módulo abre na hora.
+      </p>
+
+      <label for="justificativa-pedido" class="block text-sm font-semibold text-gray-800 mt-4 mb-1">
+        Por que você precisa deste módulo? <span class="font-normal text-gray-500">(opcional)</span>
+      </label>
+      <textarea #campoJustificativa id="justificativa-pedido" [(ngModel)]="dialogo.justificativa" name="justificativa" rows="4" [maxlength]="tamanhoJustificativa"
+                [placeholder]="exemploJustificativa(dialogo.modulo)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+      <p class="text-xs text-gray-400 text-right mt-1">{{ dialogo.justificativa.length }}/{{ tamanhoJustificativa }}</p>
+
+      <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
+        <button type="button" (click)="fecharDialogo()" [disabled]="enviandoPedido"
+                class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          Cancelar
+        </button>
+        <button type="submit" [disabled]="enviandoPedido"
+                class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-60"
+                [ngClass]="dialogo.modulo.tom.botao">
+          <span class="material-icons text-lg" aria-hidden="true">send</span>
+          {{ enviandoPedido ? 'Enviando...' : 'Enviar pedido' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

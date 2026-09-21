@@ -28,7 +28,7 @@ import {
  * Área "Manifestações ao TCDF": a lista geral (com filtro por estágio) e a
  * página de registro de uma manifestação nova.
  *
- * A seção "nova" lê `?processo=ID` — é assim que a página do processo manda o
+ * A seção "nova" lê `?processo=ID`: é assim que a página do processo manda o
  * contexto. Sem o parâmetro, a tela oferece um seletor de processo com busca e
  * o cadastro do processo do próprio TCDF, embutido, sem sair da página.
  */
@@ -99,7 +99,7 @@ export class CtrManifestacoesComponent implements OnInit {
       this.secao = secao;
       // Sair de "nova" limpa a busca de processo: voltar depois começa do zero.
       if (secao !== 'nova') this.limparSeletorProcesso();
-      // A lista só é buscada quando é ela que está na tela — a mensagem de erro
+      // A lista só é buscada quando é ela que está na tela: a mensagem de erro
       // dela mora na própria seção e ficaria muda em "nova manifestação".
       if (secao === 'lista' && !this.carregouLista) this.buscar();
     });

@@ -46,8 +46,8 @@ export class CtrProcessoFormComponent implements OnChanges {
   @Input() rotaCancelar: string | null = null;
   /**
    * Modo compacto: o formulário é usado embutido em outra tela (o cadastro do
-   * processo do TCDF, dentro da nova manifestação). Fica só o essencial —
-   * identificação, fase e observação: processo de origem TCDF costuma nascer
+   * processo do TCDF, dentro da nova manifestação). Fica só o essencial
+   * (identificação, fase e observação): processo de origem TCDF costuma nascer
    * sem nenhuma data de trâmite, sem restituição e sem classificação de riscos.
    */
   @Input() compacto = false;
@@ -109,7 +109,7 @@ export class CtrProcessoFormComponent implements OnChanges {
     }
     // Valor novo do servidor (carga da página ou resposta de um PUT
     // bem-sucedido): a seção de riscos recomeça do que está gravado, com o
-    // retrato tirado dele — depois de salvar, o retrato passa a ser o estado
+    // retrato tirado dele; depois de salvar, o retrato passa a ser o estado
     // salvo. Erro no envio não passa por aqui: o que foi preenchido e a
     // alteração pendente continuam valendo para a nova tentativa.
     if (changes['valor'] || changes['classificacao']) {
@@ -190,7 +190,7 @@ export class CtrProcessoFormComponent implements OnChanges {
     this.form.OrgaoSigla = saida;
   }
 
-  /** "Não se aplica" na UGTIC limpa a data — os dois juntos são recusados. */
+  /** "Não se aplica" na UGTIC limpa a data: os dois juntos são recusados. */
   aoMarcarUgticNaoSeAplica(marcado: boolean): void {
     this.form.UgticNaoSeAplica = marcado;
     if (marcado) this.form.ChegadaUgtic = null;
@@ -199,7 +199,7 @@ export class CtrProcessoFormComponent implements OnChanges {
   /**
    * Mesma simetria no retorno ao órgão: nem todo processo é devolvido, e marcar
    * "não se aplica" com a data preenchida é recusado pelo servidor. Desmarcar
-   * não apaga nada — quem decide é o usuário.
+   * não apaga nada; quem decide é o usuário.
    */
   aoMarcarRetornoOrgaoNaoSeAplica(marcado: boolean): void {
     this.form.RetornoOrgaoNaoSeAplica = marcado;
@@ -207,7 +207,7 @@ export class CtrProcessoFormComponent implements OnChanges {
   }
 
   /**
-   * Limpar a data do pedido anula a descrição e a resposta — mesma
+   * Limpar a data do pedido anula a descrição e a resposta, mesma
    * normalização da restituição, e o que o CHECK do servidor exige (resposta
    * sem pedido não existe).
    */
@@ -289,7 +289,7 @@ export class CtrProcessoFormComponent implements OnChanges {
   }
 
   /**
-   * Cronologia e datas futuras — as mesmas regras do `ValidarProcesso` do
+   * Cronologia e datas futuras: as mesmas regras do `ValidarProcesso` do
    * backend: cada checkpoint preenchido tem de ser maior ou igual a todos os
    * anteriores preenchidos (lacunas são permitidas) e nenhuma data pode estar
    * no futuro.
@@ -324,11 +324,11 @@ export class CtrProcessoFormComponent implements OnChanges {
     }
 
     if (this.form.UgticNaoSeAplica && this.form.ChegadaUgtic) {
-      erros.push('Na UGTIC, marque "não se aplica" ou informe a data — não os dois.');
+      erros.push('Na UGTIC, marque "não se aplica" ou informe a data, não os dois.');
     }
 
     if (this.form.RetornoOrgaoNaoSeAplica && this.form.RetornoOrgao) {
-      erros.push('No retorno ao órgão, marque "não se aplica" ou informe a data — não os dois.');
+      erros.push('No retorno ao órgão, marque "não se aplica" ou informe a data, não os dois.');
     }
 
     // A assinatura NÃO entra na cronologia do trâmite: o TCDF também analisa
@@ -389,8 +389,8 @@ export class CtrProcessoFormComponent implements OnChanges {
 
   /**
    * Chaves da classificação no corpo. Quem decide é o rastreio de alteração
-   * (`CtrClassificacaoRiscoEdicao.envio()`): só a classificação alterada — ou a
-   * primeira — vai; sem mudança, `ClassificacaoRisco: null`; removida, só
+   * (`CtrClassificacaoRiscoEdicao.envio()`): só a classificação alterada (ou a
+   * primeira) vai; sem mudança, `ClassificacaoRisco: null`; removida, só
    * `LimparClassificacaoRisco: true`. O cadastro rápido do TCDF nasce não
    * classificado.
    */

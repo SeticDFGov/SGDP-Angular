@@ -4,11 +4,13 @@ Front do SGDP, sistema em **produção** da SUBGD/GDF. Angular 20 **standalone**
 
 ## Regras invioláveis (sistema em produção)
 
-1. **Guards: só as mudanças autorizadas pelo usuário.**
-   - `src/app/auth/guards/auth-guard.ts`: (a) o redirecionamento forçado de `centralit`/`parceiro` **não dispara** quando `state.url` começa com `/pgia`; (b) **confinamento (ampliado a pedido do usuário na rodada de usabilidade)**: TODO perfil `basico` — com **ou sem** `PapelPgia` — é redirecionado para `/pgia` fora dessa área (a sidebar esconde Dashboard/Demandas via `soPgia = basico`). Nada além disso.
-   - `src/app/auth/guards/user-configured.guard.ts`: usuário configurado = **tem unidade** (definição ampliada na mesma rodada: `basico` com unidade não fica mais no `pending-approval` — entra confinado em `/pgia` para cumprir o art. 13; sem unidade, `pending-approval` como antes). **Efeito em produção registrado**: usuários `basico` já existentes com unidade ganham acesso confinado ao registro de uso de IA.
-   - `pgia.guard.ts`: sem papel e não-admin → `basico` vai a `/pgia/uso` (evita laço com o confinamento); demais perfis vão a `/` como antes. Exceção do art. 13 (`/pgia/uso`, `/pgia/incidentes`) continua.
-   - Os demais guards existentes (`admin`, `centralit`, `parceiro`) não mudam.
+1. **Guards e navegação (modelo reescrito a pedido do usuário em 2026-09-21 — isolamento entre módulos).** A navegação não depende mais de perfil nem de unidade:
+   - `authGuard` só exige sessão válida.
+   - Depois do login **todo mundo** cai na tela inicial `/inicio`, com os cards dos módulos: os liberados em cores, os demais em cinza com o botão **Pedir acesso** (abre a janela do pedido). O card da **Administração só aparece para administradores**.
+   - Cada módulo tem `moduloGuard(modulo)` (`auth/guards/modulo.guard.ts`). Ele revalida o `/me` a cada entrada e, sem acesso, volta para `/inicio` com o toast.
+   - `adminGuard` segue revalidando o perfil admin.
+   - **Não existe mais** confinamento do `basico`, `userConfiguredGuard`, `pgiaGuard`, `pgiaRaizGuard`, `contratacoesGuard` nem a tela `pending-approval`; `/pending-approval` redireciona para `/inicio`.
+   - A fonte da verdade é o campo `Modulos` do `/me`, calculado no backend (Keycloak + concessões do sistema). A API recusa pela política `modulo:*`, então o guard é usabilidade.
 2. Papéis PGIA **não** são perfis nem roles do Keycloak: chegam no campo `PapelPgia` do `GET /api/Auth/me` (`pgia_orgao`, `pgia_sgdi`, `pgia_cgtic`, `pgia_auditoria` ou `null`). O perfil `admin` do SGDP tem acesso total ao PGIA. A checagem de permissão no front é **usabilidade**; a autorização real é do backend.
 3. Rota pública (`/transparencia-ia`) somente na fase 5, fora do MainLayout e sem guard.
 4. **Sem dependências novas** salvo estritamente necessário e justificado.
@@ -20,6 +22,7 @@ Front do SGDP, sistema em **produção** da SUBGD/GDF. Angular 20 **standalone**
 - Tipos da API em `src/api/<contexto>/interface.ts`, **PascalCase espelhando os DTOs** (a API serializa PascalCase). Tipos PGIA em `src/api/pgia/interface.ts`.
 - Estado de auth: `AuthService` (`src/app/auth/services/auth.ts`) guarda `token`/`refreshToken`/`user` no `localStorage`; **todo acesso a `localStorage` protegido por `isPlatformBrowser`** (SSR quebra sem isso). `authInterceptor` injeta Bearer e faz refresh em 401.
 - Feedback ao usuário: `NotificationService` (`src/app/core/services/notification.service.ts`) — `success`/`error`/`warning`/`info`.
+- **Sem travessão em `src/`** (pedido do usuário em 2026-09-21, limpeza feita em todo o front): nem `—` nem `–`, em texto de tela, rótulo, placeholder, toast ou comentário. Use dois-pontos, vírgula, ponto ou parênteses conforme a frase; separador entre dois valores é ` · `; faixa numérica é "1 a 10"; célula sem valor mostra `-`. Conferir antes de entregar: nenhum U+2014/U+2013 em `src/`.
 - Visual: Tailwind puro seguindo o restante — cards brancos `bg-white rounded-lg shadow p-6`, sidebar escura (`src/app/projeto/components/sidebar/`), botões azuis `bg-blue-600`, Material Icons via `<span class="material-icons">`.
 - Rotas com dado dinâmico: `data: { prerender: false }` (padrão de `demandas/:id/entregaveis`). `angular.json` tem `prerender: false` e `app.routes.server.ts` usa `RenderMode.Prerender` em `**`.
 - Textos das telas PGIA: **idênticos aos do `mock_formulario_pgia.html`** (linguagem simples: frases curtas, voz ativa, siglas explicadas na primeira ocorrência). Adaptações só onde a arquitetura difere do mock (ex.: pessoas vêm do login Keycloak, não de cadastro livre) — registrar a adaptação no resumo da fase.
@@ -30,19 +33,19 @@ Front do SGDP, sistema em **produção** da SUBGD/GDF. Angular 20 **standalone**
 src/api/pgia/interface.ts        tipos PascalCase
 src/app/pgia/
   pgia.routes.ts                 lazy, montada como filha do MainLayout em app.routes.ts
-  guards/pgia.guard.ts           entra quem tem PapelPgia ou é admin; senão redireciona '/'
+  trilha/                        moldura com a trilha numerada por papel + visão geral (rota-mãe do módulo)
   services/*.service.ts          padrão EtapaService
   orgao/                         telas do órgão (etapas do formulário, conforme o mock)
   ...                            sgdi/, cgtic/, auditoria/, publico/ nas fases seguintes
 ```
 
-- Sidebar: item "Governança de IA" visível só para quem tem `PapelPgia` ou é `admin`.
+- ~~Sidebar~~ (removida em 2026-09-21): a navegação do PGIA é a **trilha numerada** (`pgia/trilha/`), ver a seção de isolamento abaixo.
 - Tela de admin (`src/app/admin/`): seção PGIA para atribuir papel (`PUT api/pgia/admin/papel`) e cadastrar órgãos (`api/pgia/admin/orgao`), vinculando o órgão a uma `Unidade`.
 - `UserProfile` (`src/api/auth/interface.ts`) tem `PapelPgia?: string | null` (opcional, aditivo); `AuthService` ganhou métodos novos (`getPapelPgia()`, `canAccessPgia()`) sem alterar os existentes.
 
 ## Build e verificação
 
-- `npm install` (Node 24 disponível); build de produção com SSR: `npx ng build` (baseline atual: exit 0; **8 warnings pré-existentes** — 2×NG8107 e 2×NG8102 de `?.`/`??` redundantes nas telas legadas, 3×NG8113 de imports não usados em `App`/`Projeto`, e 1 de budget; bundle inicial **~685 kB** e crescendo devagar com o PGIA, mas o **erro** de budget só dispara em 1 MB — não piorar o inicial de forma relevante: PGIA é lazy e o decreto fica em chunk lazy). Ao mexer no módulo, conferir que não surge warning **novo** além desses 8.
+- **Baseline desde 2026-09-21: `npx ng build` sem nenhum warning e Initial total ~499 kB** (a barra lateral saiu; Demandas, Admin e a tela inicial passaram a carregar sob demanda; os pedidos de acesso somaram ~6 kB, quase tudo em CSS do Tailwind). **A margem para o aviso de budget (500 kB) ficou em menos de 1 kB**: mudança nova que pese no inicial precisa tirar peso de outro lugar (ou o limite precisa ser revisto com o usuário). Não reintroduzir warning. Histórico anterior: `npm install` (Node 24 disponível); build de produção com SSR: `npx ng build` (baseline antigo: exit 0; **8 warnings pré-existentes** — 2×NG8107 e 2×NG8102 de `?.`/`??` redundantes nas telas legadas, 3×NG8113 de imports não usados em `App`/`Projeto`, e 1 de budget; bundle inicial **~685 kB** e crescendo devagar com o PGIA, mas o **erro** de budget só dispara em 1 MB — não piorar o inicial de forma relevante: PGIA é lazy e o decreto fica em chunk lazy). Ao mexer no módulo, conferir que não surge warning **novo** além desses 8.
 - Regressão manual mínima a cada fase: login e navegação dos cinco perfis atuais (`admin`, `gestor`, `centralit`, `parceiro`, `basico`) — dashboards, demandas, redirecionamentos forçados e `pending-approval` idênticos ao comportamento atual fora de `/pgia`.
 
 ## Estado por fase (atualizar ao encerrar cada fase)
@@ -158,3 +161,58 @@ Segundo módulo aditivo do front, **independente do PGIA**: digitaliza a planilh
     - **E-mail do responsável**: `normalizarEmail()` (mesmo arquivo da seção) apara, tira um `;`/`,` final e os `< >` que envolvem o endereço (colagem do Outlook) e passa a minúsculas — ao sair do campo e no `montar()`; o servidor também grava em minúsculas. A validação roda sobre o valor normalizado e espelha `MailAddress` + domínio com ponto: um só `@`, usuário e domínio sem começar com ponto, ponto no domínio e nenhum espaço, caractere de controle ou `( ) , ; : < > [ ] \ "` (a regex do PGIA aceitava casos que o servidor recusa com 500 — não reaproveitar). Os toasts de erro do cadastro e da edição mandam conferir também a classificação de riscos.
   - **Exceção à regra "o módulo só importa `secao-rota.ts` de `/pgia`"**: a seção importa **dados puros** de `pgia/sistemas/quesitos.ts` (`GRUPOS_QUESITOS`, `ROMANOS`) e de `api/pgia/interface.ts` (`PROBABILIDADES_CGDF`, `CONSEQUENCIAS_CGDF`, `MATRIZ_RISCO_CGDF`, `PESOS_QUESITOS`) — nenhum dos dois arquivos importa nada. Conferido no build: o texto do decreto e o `citaDecreto` continuam só nos chunks do PGIA; o `contratacoes-routes` (~178 kB) não os importa e divide com o `pgia-routes` apenas um chunk lazy de ~3 kB (`secao-rota` + quesitos); Initial total praticamente igual (+0,15 kB de texto). Import novo de `/pgia` exige repetir a conferência (procurar no chunk um trecho do decreto); se arrastar `decreto-48901.ts` ou a diretiva, copiar os dados para `src/api/contratacoes/risco.ts` citando a origem.
 - **Build**: o módulo inteiro sai em chunk lazy próprio (`contratacoes-routes`); o inicial cresce só o que é eager (bloco do admin, `contratacoes-nav`, `grupo-arvore` e o service do papel).
+
+## Isolamento entre módulos, tela inicial e trilha do PGIA (rodada de 2026-09-21)
+
+Pedido do usuário:
+1. isolamento real: quem entra só pelo Keycloak, sem acesso, não vê nada, e cada perfil vê só os seus módulos;
+2. front sem barra lateral, com os cards dos módulos numa tela horizontal e botão de voltar à tela inicial;
+3. fluxo do PGIA numerado e amarrado ao decreto;
+4. subir tudo em localhost.
+
+Proposta do fluxo: `../proposta_fluxo_pgia.md`. Backend: seção de mesmo nome no `CLAUDE.md` do SGDP-Service.
+
+- **Catálogo** `core/modulos/modulos.ts`: ids iguais aos do backend (`demandas`, `pgia`, `contratacoes`, `administracao`), nome, descrição, itens do card, ícone, rota de entrada, prefixos de rota, tons (classes Tailwind literais) e abas. **Só configuração** — não importa telas, os módulos continuam lazy. `temModulo(user, id)` e `mensagemSemAcesso()` são a fonte única do teste e do toast.
+- **`UserProfile.Modulos`** vem do `/me`. `AuthService.guardarUsuario()` é o mapeamento único do `/me` (antes estava repetido 4 vezes). Também `getModulos()` e `temModulo()`; `canAccessPgia`/`canAccessContratacoes` passaram a ler `Modulos`. `isHaveUnidade`/`isUserFullyConfigured` saíram.
+- **Moldura** `layouts/main-layout` (a classe continua `MainLayout`): cabeçalho escuro horizontal com a marca reduzida do GDF, a trilha "Início › Módulo", o botão **Voltar ao início** (fora de `/inicio`) e o menu do usuário ("Meus módulos"/"Sair"). As **abas do módulo** vêm de `abas` do catálogo (Demandas: Painel/Demandas; Contratações: 4 abas, com sub-abas para Processos e Manifestações; Administração: Gestão de acessos/Pedidos de acesso/Cadastros). Aba com `contador: 'pedidosAcesso'` mostra o número de pedidos esperando decisão. O PGIA não usa abas: tem a trilha.
+- **Tela inicial** `inicio/` (lazy): cards lado a lado (`xl:grid-cols-4` com a Administração, `xl:grid-cols-3` sem ela).
+  - Liberado: tom do módulo, "Acesso liberado", linha "Seu acesso" (papel/nível) e botão Acessar.
+  - Sem acesso: conteúdo em `grayscale opacity-70`, borda tracejada, cadeado e "Pedir acesso" (abre a janela do pedido). A área de baixo (andamento e botão) fica fora do cinza para as cores aparecerem.
+  - Sem módulo algum: faixa âmbar mandando usar o botão Pedir acesso.
+  - Revalida o `/me` ao abrir.
+- **Rotas** (`app.routes.ts`): `''` redireciona para `inicio`. Dashboard, Demandas e Entregáveis ficam atrás de `moduloGuard('demandas')`, `/pgia` de `moduloGuard('pgia')`, `/analises` de `moduloGuard('contratacoes')` e `/admin` (filhos `acessos`, `pedidos` e `cadastros`, lazy) de `adminGuard`. O wildcard vai para `inicio`.
+- **Interceptor**: 403 mostra o toast "Você não tem acesso a esta área. Se precisar dela, peça acesso pelo card do módulo na tela inicial." e vai para `/inicio`. Antes ia para `/`, que não casava rota e deixava a tela em branco.
+- **Gestão de acessos** `admin/acessos/` (`api/acessos`):
+  - Busca por nome/e-mail e filtro por módulo ou "sem acesso a nenhum módulo".
+  - Tabela com a situação de cada módulo e a origem, com ícone de chave quando vem do Keycloak (retrato do último login).
+  - Editor na própria linha: Demandas (consulta), PGIA + papel (null = agente do art. 13), Supervisão Contínua, Administração só informativa, e a unidade usando o `modificar-unidade` já existente.
+  - Retirar o PGIA de quem tem papel pede `confirm`. O erro mostra a `Message` do 400.
+  - O bloco "Gerenciar Usuários" do antigo `/admin` **saiu**, para não haver dois lugares atribuindo papéis. `/admin/cadastros` ficou com unidades, órgãos e as tabelas de apoio.
+- **SGDI · Pessoas e acessos**: a coluna "Perfil SGDP" (o backend nunca a preenchia) virou **"Entra no PGIA?"**: pelo papel, como agente (concedido), pelo Keycloak (grupo do órgão ou admin) ou não. Tem os botões "Liberar como agente" e "Retirar acesso" (`definirAcessoModuloPessoa`).
+- **Trilha do PGIA** (`pgia/trilha/`):
+  - `pgia-trilhas.ts` é só configuração: trilhas por papel (órgão 7 etapas, SGDI 6, CGTIC 2, auditoria 1, agente 1), passos com título no imperativo, rota, "o que fazer", base legal no formato que o `citaDecreto` reconhece e a chave de status. Numeração pela posição (N.M).
+  - `PgiaShellComponent` é a **rota-mãe** de todas as telas do PGIA: barra de etapas numeradas com bolinha de situação, passos da etapa aberta, caixa "O que fazer no passo N.M" com base legal e prazo, `<router-outlet>` e "Passo anterior"/"Próximo passo". O `citaDecreto` fica **só na seção da trilha**, nunca num elemento que contenha o outlet (as telas têm o seu no raiz, e duas diretivas no mesmo texto duplicariam chips).
+  - `PgiaInicioComponent` é a raiz `/pgia`, a visão geral: o que o decreto pede, o próximo passo recomendado (vencido > fila > no prazo; "Tudo em dia" quando nada pende), etapas e passos com situação, e a tabela de prazos.
+  - `PgiaTrilhaEstadoService` guarda o estado compartilhado. O status recarrega ao entrar, ao trocar de passo (no máximo a cada 5 s) e na visão geral.
+  - `PgiaTrilhaStatusService` usa **só consultas que o papel já pode fazer** (o 403 tira o usuário da tela): órgão usa `meu-orgao` + prazos + contagem de sistemas; SGDI usa fila, incidentes a apurar, prazos centrais e os pedidos de acesso ao PGIA (passo 1.2, `contarPendentes('pgia')`); CGTIC usa a fila do comitê; auditoria usa as auditorias sem parecer; agente usa `uso/fontes` (só a sigla).
+  - **Desempate de rota**: dois passos podem usar a mesma tela (2.2 e 3.1 do órgão, na lista de sistemas). A trilha navega com `?passo=N.M` e o shell usa esse parâmetro; sem ele, vale o primeiro passo daquela rota.
+  - Admin escolhe a trilha em "Ver a trilha de" (`PgiaVisaoService`, guardada no localStorage com try/catch). Na visão de órgão do admin, a etapa 1 tem o passo extra "Confira os dados do órgão", então os passos da etapa 1 ficam deslocados em um.
+  - As telas do órgão perderam o aviso repetido "Bem-vindo(a)… Siga as etapas na ordem" (a trilha faz esse papel). Os avisos de SGDI, CGTIC, auditoria e uso ficaram. "Use o menu lateral" virou "Use a trilha acima".
+- **Modo local** (`/auth/local`): seção "Isolamento entre módulos" (Bruna sem acesso; Débora só Demandas por concessão; Marina com três módulos). Todas as personas entram por `/inicio`. O formulário livre ganhou "Conceder Demandas/PGIA" (`ConcederModulos`).
+- **Removidos** (via `git rm`): `projeto/components/sidebar/*` (sidebar, grupo-arvore, pgia-nav, contratacoes-nav, sidebar-state), `auth/pending-approval/*`, `user-configured.guard.ts`, `pgia/guards/*` e `contratacoes/guards/*`.
+
+## Pedidos de acesso (rodada de 2026-09-21, segundo pedido)
+
+Pedido do usuário: o botão "Pedir acesso" registra um pedido de verdade; a Administração aprova (no PGIA, já escolhendo o papel) ou recusa com motivo, que a pessoa lê no card; a SGDI também decide os pedidos do PGIA. No mesmo dia: quem não é administrador não vê nem o card da Administração. Backend: seção "Pedidos de acesso" no `CLAUDE.md` do SGDP-Service (`api/pedidos-acesso`).
+
+- **Tipos** em `api/acessos/interface.ts`: `SituacoesPedidoAcesso` (`pendente`/`aprovado`/`recusado`), `MeuPedidoAcesso` (visão de quem pede), `PedidoAcesso` (visão de quem decide; `DecididoPor` nulo num aprovado quer dizer que o acesso chegou por outro caminho), `PedidosAcessoConsulta`, `PaginaPedidosAcesso`.
+- **`core/acessos/`** (compartilhado entre início, Administração e PGIA):
+  - `pedidos-acesso.service.ts`: `pedir`, `meus`, `listar`, `contarPendentes(modulo?)`, `aprovar(id, papelPgia)`, `recusar(id, motivo)`. O token vai pelo interceptor. O signal `pendentes` é o contador da aba e dos cards; `atualizarPendentes()` só roda no navegador.
+  - `pedidos-acesso-fila.component`: a fila de decisão. Filtros de situação (Aguardando, o padrão; Aprovados; Recusados; Todos), de módulo e de nome/e-mail; pendentes do mais antigo para o mais novo. Aprovar abre um painel na linha (no PGIA, o select de papel com `OPCOES_PAPEL_PGIA` e o aviso quando o papel é de órgão e a pessoa não tem unidade). Recusar abre o motivo obrigatório (até 500). 409 (outra pessoa decidiu antes) recarrega a fila. `@Input() moduloFixo` restringe a um módulo (a SGDI usa `pgia`) e `@Output() decidiu` avisa a tela que embute a fila.
+  - `papeis-pgia.ts`: `OPCOES_PAPEL_PGIA` e `rotuloCurtoPapelPgia`, fonte única dos rótulos de papel (a Gestão de acessos passou a usar daqui).
+- **Tela inicial**: o botão do card sem acesso abre a janela "Pedir acesso" (justificativa opcional até 500; Esc fecha). O foco vai para a caixa por `@ViewChild` com setter: o `setTimeout` perdia a corrida com a renderização por causa do `eventCoalescing`. O card mostra o último pedido: **"Pedido enviado em dd/mm, aguardando"** (botão "Aguardando resposta") ou **recusado, com a data e o motivo** (botão "Pedir de novo"). O admin vê no card da Administração, e a SGDI no do PGIA, o aviso "N pedidos de acesso aguardando você", com link para a fila. O card da **Administração só entra na lista para quem tem o módulo** (`modulosVisiveis()`); `abrir()` ainda trata a Administração com `mensagemAdministracao()` por segurança.
+- **Administração · Pedidos de acesso** `admin/pedidos/` (lazy): texto de apresentação e a fila com todos os módulos. A aba tem contador, atualizado ao entrar no módulo e depois de cada decisão.
+- **SGDI · Pessoas e acessos**: bloco "Pedidos de acesso ao PGIA" no topo da seção, com a fila (`moduloFixo="pgia"`). Decidir atualiza a lista de pessoas (se já foi buscada) e força o status da trilha.
+- **Trilha**: o passo 1.2 da SGDI ("Dê acesso às pessoas") ganhou a chave de status `pedidos-acesso` (atenção com N pedidos; feito sem nenhum) e o texto "Responda aos pedidos de acesso ao PGIA e defina o papel...". Com pedido esperando, a visão geral recomenda o 1.2.
+- **Textos**: `mensagemSemAcesso` manda usar o botão "Pedir acesso" do card; a Administração tem mensagem própria (`mensagemAdministracao`: vem só do perfil admin do Keycloak). `podePedirAcesso(id)` diz se o módulo se pede pelo sistema.
+- **Dev server**: depois de muitas edições seguidas, o `ng serve` chegou a servir o template antigo do `MainLayout` (classe nova, HTML velho). Sintoma: o método novo existe no componente e o DOM não muda. Reiniciar o servidor resolve. Editar um arquivo enquanto o servidor ainda faz a primeira compilação também deixa a mudança de fora (tocar o arquivo depois não basta: é preciso mudar o conteúdo).

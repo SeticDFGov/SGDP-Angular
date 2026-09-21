@@ -1,6 +1,6 @@
 // Tipos do módulo Supervisão Contínua das Contratações (Decreto nº 48.899/2026 + IN SGDI
 // nº 1/2026), em PascalCase espelhando os DTOs da API (a API serializa PascalCase).
-// Datas puras (DateOnly no backend) trafegam como string 'AAAA-MM-DD' — exibir
+// Datas puras (DateOnly no backend) trafegam como string 'AAAA-MM-DD'; exibir
 // sempre com `| date:'dd/MM/yyyy':'UTC'` para não deslocar um dia no fuso.
 
 /** Papel do módulo (coluna Users.PapelContratacoes, paralela ao Perfil). */
@@ -8,7 +8,7 @@ export const PAPEL_CTR_ANALISE = 'ctr_analise';
 
 // ── Domínios (espelham CtrDominios.cs; valores fixos pelo contrato) ─────────
 
-/** Categoria do objeto contratado — os 12 valores observados na planilha. */
+/** Categoria do objeto contratado: os 12 valores observados na planilha. */
 export const CATEGORIAS_OBJETO = [
   'Infraestrutura de Rede',
   'Desenvolvimento / Fábrica de Software',
@@ -41,7 +41,7 @@ export const SITUACOES = [
   'Sem movimentação'
 ] as const;
 
-/** Etapas do trâmite, na ordem cronológica — chave do PUT de checkpoint. */
+/** Etapas do trâmite, na ordem cronológica; chave do PUT de checkpoint. */
 export const ETAPAS = [
   { valor: 'ChegadaSgdi', rotulo: 'Chegada da análise · SGDI' },
   { valor: 'ChegadaSubgd', rotulo: 'Chegada da análise · SUBGD' },
@@ -65,7 +65,7 @@ export const SITUACOES_PORTFOLIO = [
 export const CRITICIDADES = ['Alta', 'Média', 'Baixa'] as const;
 
 /**
- * Fase da contratação — DERIVADA no backend (`CtrProcessoService.CalcularFase`),
+ * Fase da contratação: DERIVADA no backend (`CtrProcessoService.CalcularFase`),
  * nunca gravada: `Execução` quando há data de assinatura do contrato, senão
  * `Planejamento`.
  */
@@ -82,7 +82,7 @@ export const ETAPAS_PLANEJAMENTO = [
 ] as const;
 
 /**
- * Status do processo no TCDF — fato do Tribunal, vale em qualquer inciso e com
+ * Status do processo no TCDF: fato do Tribunal, vale em qualquer inciso e com
  * qualquer resultado. Nulo = sem status especial.
  */
 export const STATUS_TCDF = [
@@ -140,7 +140,7 @@ export const REGEX_NUMERO_SEI = /^\d{5}-\d{8}\/\d{4}-\d{2}$/;
 // próprios do módulo e os tipos do contrato.
 
 /**
- * Risco classificado pelos quesitos — os mesmos valores do PGIA
+ * Risco classificado pelos quesitos: os mesmos valores do PGIA
  * (`PgiaDominios.ResultadoRisco`), na ordem do domínio.
  */
 export const RISCOS_CLASSIFICADOS = [
@@ -154,7 +154,7 @@ export const RISCOS_CLASSIFICADOS = [
 export const NAO_CLASSIFICADO = 'Não classificado';
 
 /**
- * Nível de um risco declarado (`CtrDominios.NivelRisco`), em ordem crescente —
+ * Nível de um risco declarado (`CtrDominios.NivelRisco`), em ordem crescente;
  * é a cor da célula do mapa da CGDF: v Baixo, a Médio, l Alto, r Extremo.
  */
 export const NIVEIS_RISCO = ['Baixo', 'Médio', 'Alto', 'Extremo'] as const;
@@ -203,7 +203,7 @@ export interface CtrRiscoDeclarado extends CtrRiscoDeclaradoForm {
   Nivel: string;
 }
 
-/** Classificação aninhada na resposta — só em GET {id}, POST e PUT. */
+/** Classificação aninhada na resposta, só em GET {id}, POST e PUT. */
 export interface CtrClassificacaoRisco {
   Q15: string[];
   Q16: string[];
@@ -217,7 +217,7 @@ export interface CtrClassificacaoRisco {
   EnquadramentoRisco?: string | null;
   /** Soma dos pesos; "nenhuma" e riscos declarados não pontuam. */
   PontuacaoRisco: number;
-  /** Instante da última classificação enviada — exibir sem `:'UTC'`. */
+  /** Instante da última classificação enviada; exibir sem `:'UTC'`. */
   ClassificadoEm: string;
   /** E-mail de quem classificou. */
   ClassificadoPor: string;
@@ -246,7 +246,7 @@ export interface CtrProcessoForm {
   EtapaPlanejamento?: string | null;
   /** Preenchida, leva o processo à fase de execução. Não pode ser futura. */
   DataAssinaturaContrato?: string | null;
-  /** Criticidade da contratação (art. 11 da IN) — nasce aqui, no processo. */
+  /** Criticidade da contratação (art. 11 da IN): nasce aqui, no processo. */
   Criticidade?: string | null;
   /** Opcional no DTO: vazia = "Órgão comunicante". */
   Origem?: string | null;
@@ -393,7 +393,7 @@ export interface CtrManifestacao extends CtrManifestacaoForm {
   AlteradoPor?: string | null;
 }
 
-/** Dados do fecho do despacho — informados na hora da geração, não persistem. */
+/** Dados do fecho do despacho, informados na hora da geração, não persistem. */
 export interface CtrDespachoParams {
   Local: string;
   Nome: string;

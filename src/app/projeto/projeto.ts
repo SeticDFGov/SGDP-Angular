@@ -4,7 +4,6 @@ import { AreaDemandante } from '../../api/demanda/interface';
 import { AuthService } from '../auth/services/auth';
 import { UserProfile } from '../../api/auth/interface';
 import { CommonModule } from '@angular/common';
-import { Sidebar } from './components/sidebar/sidebar';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
@@ -17,7 +16,6 @@ import { EsteiraService } from './service/esteira';
   standalone: true,
   imports: [
     CommonModule,
-    Sidebar,
     RouterLink,
     FormsModule
   ],

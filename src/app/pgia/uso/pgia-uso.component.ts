@@ -11,7 +11,7 @@ import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 /**
  * Registro de uso de IA (art. 13, IV). É a única tela do PGIA aberta a qualquer
  * agente autenticado, com ou sem papel: por isso não chama getMeuOrgao nem as
- * listagens do inventário — tudo vem de conformidade/uso/fontes.
+ * listagens do inventário; tudo vem de conformidade/uso/fontes.
  */
 @Component({
   selector: 'app-pgia-uso',
@@ -157,6 +157,6 @@ export class PgiaUsoComponent implements OnInit {
   }
 
   fonte(r: PgiaRegistroUso): string {
-    return r.PlataformaNome ?? r.SistemaDenominacao ?? '—';
+    return r.PlataformaNome ?? r.SistemaDenominacao ?? '-';
   }
 }

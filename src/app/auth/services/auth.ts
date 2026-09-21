@@ -7,6 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { map, catchError, switchMap } from 'rxjs/operators';
+import { ModuloId, Modulos } from '../../core/modulos/modulos';
 
 export type ResourceType = 'projeto' | 'etapa' | 'entregavel';
 
@@ -39,6 +40,28 @@ export class AuthService {
 
   constructor(private http: HttpClient, private router: Router, @Inject(PLATFORM_ID) private platformId: Object) { }
 
+  /**
+   * Resposta do GET /api/Auth/me → UserProfile, guardado no localStorage e
+   * publicado em `user$`. Fonte única do mapeamento (login, refresh do token,
+   * refreshUser e modo local).
+   */
+  private guardarUsuario(meResponse: any): UserProfile {
+    const user: UserProfile = {
+      Id: meResponse.Id,
+      Nome: meResponse.Nome,
+      Email: meResponse.Email,
+      Perfil: meResponse.Perfil,
+      PapelPgia: meResponse.PapelPgia ?? null,
+      AcessoPgia: !!meResponse.AcessoPgia,
+      PapelContratacoes: meResponse.PapelContratacoes ?? null,
+      Modulos: Array.isArray(meResponse.Modulos) ? meResponse.Modulos : [],
+      Unidade: meResponse.Unidade ?? null
+    };
+    localStorage.setItem('user', JSON.stringify(user));
+    this.userSubject.next(user);
+    return user;
+  }
+
   login(credencials: AuthRequest): Observable<AuthResponse> {
     return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/Auth/token`, {
       Email: credencials.Email,
@@ -52,18 +75,7 @@ export class AuthService {
           headers: new HttpHeaders({ Authorization: `Bearer ${keycloakResponse.access_token}` })
         }).pipe(
           map(meResponse => {
-            const user: UserProfile = {
-              Id: meResponse.Id,
-              Nome: meResponse.Nome,
-              Email: meResponse.Email,
-              Perfil: meResponse.Perfil,
-              PapelPgia: meResponse.PapelPgia ?? null,
-              AcessoPgia: !!meResponse.AcessoPgia,
-              PapelContratacoes: meResponse.PapelContratacoes ?? null,
-              Unidade: meResponse.Unidade ?? null
-            };
-            localStorage.setItem('user', JSON.stringify(user));
-            this.userSubject.next(user);
+            const user = this.guardarUsuario(meResponse);
             return { token: keycloakResponse.access_token, user } as AuthResponse;
           })
         );
@@ -93,18 +105,7 @@ export class AuthService {
           headers: new HttpHeaders({ Authorization: `Bearer ${response.access_token}` })
         }).pipe(
           map(meResponse => {
-            const user: UserProfile = {
-              Id: meResponse.Id,
-              Nome: meResponse.Nome,
-              Email: meResponse.Email,
-              Perfil: meResponse.Perfil,
-              PapelPgia: meResponse.PapelPgia ?? null,
-              AcessoPgia: !!meResponse.AcessoPgia,
-              PapelContratacoes: meResponse.PapelContratacoes ?? null,
-              Unidade: meResponse.Unidade ?? null
-            };
-            localStorage.setItem('user', JSON.stringify(user));
-            this.userSubject.next(user);
+            this.guardarUsuario(meResponse);
           })
         );
       }),
@@ -127,23 +128,6 @@ export class AuthService {
 
   isAdmin(): Observable<boolean> {
     return this.getUser().pipe(map(user => !!(user && user.Perfil === 'admin')));
-  }
-
-  isHaveUnidade(): Observable<boolean> {
-    if (!this.isAuthenticate()) return of(false);
-    return this.getUser().pipe(map(user => !!(user && user.Unidade)));
-  }
-
-  isUserFullyConfigured(): Observable<boolean> {
-    return this.getUser().pipe(
-      map(user => {
-        if (!user) return false;
-        // Mesma definição do userConfiguredGuard: configurado = tem unidade.
-        // Perfil 'basico' com unidade entra confinado a /pgia (art. 13);
-        // sem unidade, segue para o pending-approval como antes.
-        return !!user.Unidade;
-      })
-    );
   }
 
   getToken(): string | null {
@@ -170,7 +154,7 @@ export class AuthService {
   /**
    * Busca o perfil atual direto do backend (GET /api/Auth/me), sem confiar no
    * cache do localStorage. Usar antes de liberar acesso a áreas sensíveis
-   * (ex. admin): o perfil vem da role do Keycloak a cada requisição — se o
+   * (ex. admin): o perfil vem da role do Keycloak a cada requisição: se o
    * usuário foi rebaixado no Keycloak, o cache local ainda diria "admin".
    */
   refreshUser(): Observable<UserProfile | null> {
@@ -181,21 +165,7 @@ export class AuthService {
     return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
       headers: new HttpHeaders({ Authorization: `Bearer ${token}` })
     }).pipe(
-      map(meResponse => {
-        const user: UserProfile = {
-          Id: meResponse.Id,
-          Nome: meResponse.Nome,
-          Email: meResponse.Email,
-          Perfil: meResponse.Perfil,
-          PapelPgia: meResponse.PapelPgia ?? null,
-          AcessoPgia: !!meResponse.AcessoPgia,
-          PapelContratacoes: meResponse.PapelContratacoes ?? null,
-          Unidade: meResponse.Unidade ?? null
-        };
-        localStorage.setItem('user', JSON.stringify(user));
-        this.userSubject.next(user);
-        return user;
-      }),
+      map(meResponse => this.guardarUsuario(meResponse)),
       catchError(() => of(null))
     );
   }
@@ -270,14 +240,12 @@ export class AuthService {
   }
 
   /**
-   * Acesso à área /pgia: role "pgia" do Keycloak (atribuída ao grupo/órgão) ou
-   * admin do SGDP. Vem de AcessoPgia (GET /api/Auth/me) — a autorização real é
-   * sempre do backend; aqui é só usabilidade.
+   * Acesso à área /pgia: módulo "pgia" no `Modulos` do /me (role "pgia" do grupo
+   * no Keycloak, papel PGIA, acesso concedido no sistema ou admin). A autorização
+   * real é sempre do backend; aqui é só usabilidade.
    */
   canAccessPgia(): Observable<boolean> {
-    return this.getUser().pipe(
-      map(user => !!user && (!!user.AcessoPgia || user.Perfil === Perfis.Admin))
-    );
+    return this.temModulo(Modulos.Pgia);
   }
 
   // ── Módulo Supervisão Contínua das Contratações (métodos novos, aditivos) ─
@@ -286,14 +254,23 @@ export class AuthService {
     return this.getUser().pipe(map(user => user?.PapelContratacoes ?? null));
   }
 
-  /** Acesso à área /analises: quem tem o papel do módulo ou é admin do SGDP */
+  /** Acesso à área /analises: módulo "contratacoes" no `Modulos` do /me */
   canAccessContratacoes(): Observable<boolean> {
-    return this.getUser().pipe(
-      map(user => !!user && (!!user.PapelContratacoes || user.Perfil === Perfis.Admin))
-    );
+    return this.temModulo(Modulos.Contratacoes);
   }
 
-  // ── Modo local (execução independente, sem Keycloak — só testes) ──────────
+  // ── Isolamento entre módulos ──────────────────────────────────────────────
+
+  /** Módulos que o usuário enxerga (vazio = nenhum). */
+  getModulos(): Observable<string[]> {
+    return this.getUser().pipe(map(user => user?.Modulos ?? []));
+  }
+
+  temModulo(modulo: ModuloId): Observable<boolean> {
+    return this.getModulos().pipe(map(modulos => modulos.includes(modulo)));
+  }
+
+  // ── Modo local (execução independente, sem Keycloak, só testes) ──────────
 
   /**
    * Login do modo local: o backend (Auth:ModoLocal=true, só em Development)
@@ -304,6 +281,7 @@ export class AuthService {
     Email: string; Nome: string; Perfil: string;
     PapelPgia?: string | null; VincularAoOrgaoDeTeste?: boolean;
     PapelContratacoes?: string | null;
+    ConcederModulos?: string[] | null;
   }): Observable<AuthResponse> {
     return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/authlocal/token`, dados).pipe(
       switchMap(tokenResponse => {
@@ -314,18 +292,7 @@ export class AuthService {
           headers: new HttpHeaders({ Authorization: `Bearer ${tokenResponse.access_token}` })
         }).pipe(
           map(meResponse => {
-            const user: UserProfile = {
-              Id: meResponse.Id,
-              Nome: meResponse.Nome,
-              Email: meResponse.Email,
-              Perfil: meResponse.Perfil,
-              PapelPgia: meResponse.PapelPgia ?? null,
-              AcessoPgia: !!meResponse.AcessoPgia,
-              PapelContratacoes: meResponse.PapelContratacoes ?? null,
-              Unidade: meResponse.Unidade ?? null
-            };
-            localStorage.setItem('user', JSON.stringify(user));
-            this.userSubject.next(user);
+            const user = this.guardarUsuario(meResponse);
             return { token: tokenResponse.access_token, user } as AuthResponse;
           })
         );

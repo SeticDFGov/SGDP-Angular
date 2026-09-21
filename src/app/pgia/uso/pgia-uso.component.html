@@ -102,7 +102,7 @@
               <td class="px-3 py-2 whitespace-nowrap">{{ r.DataUso | date:'dd/MM/yyyy':'UTC' }}</td>
               <td class="px-3 py-2">{{ fonte(r) }}</td>
               <td class="px-3 py-2">{{ r.ProdutoRef }}</td>
-              <td class="px-3 py-2 text-gray-500">{{ r.ProcessoSei || '—' }}</td>
+              <td class="px-3 py-2 text-gray-500">{{ r.ProcessoSei || '-' }}</td>
               <td class="px-3 py-2">{{ r.RevisaoHumanaConfirmada ? 'sim' : 'não' }}</td>
             </tr>
             <tr *ngIf="meusRegistros.length === 0">

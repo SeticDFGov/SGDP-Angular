@@ -104,7 +104,7 @@ export interface AtribuirPapelPgiaForm {
   PapelPgia: string | null;
 }
 
-// D10 — natureza jurídica (mesma ordem do mock)
+// D10: natureza jurídica (mesma ordem do mock)
 export const NATUREZAS_JURIDICAS = [
   'Administração direta',
   'Autarquia',
@@ -113,7 +113,7 @@ export const NATUREZAS_JURIDICAS = [
   'Sociedade de economia mista'
 ] as const;
 
-// D11 — vínculo do agente público
+// D11: vínculo do agente público
 export const VINCULOS = [
   'Servidor efetivo',
   'Comissionado',
@@ -132,13 +132,13 @@ export interface PgiaChecklist {
   Q17: string[];
   // Resposta explícita "Nenhuma das alternativas acima" por grupo (exclusiva
   // com os incisos do grupo; o questionário só é válido com cada grupo
-  // respondido — incisos marcados OU o "nenhuma")
+  // respondido: incisos marcados OU o "nenhuma")
   Q15Nenhuma: boolean;
   Q16Nenhuma: boolean;
   Q17Nenhuma: boolean;
 }
 
-// ── Grupo "Outros" — riscos declarados pelo órgão (matriz CGDF) ─────────────
+// ── Grupo "Outros": riscos declarados pelo órgão (matriz CGDF) ─────────────
 // Restrição de domínio: probabilidade só Improvável/Raro/Possível e
 // consequência só Desprezível/Menor/Moderada (quadrante baixo da matriz).
 // Não altera o cálculo do risco do sistema (arts. 15 a 17 continuam mandando).
@@ -306,7 +306,7 @@ export interface PgiaDocumentoArquivo {
   TamanhoBytes: number;
 }
 
-// POST api/pgia/documento — cria o documento que vai receber o arquivo.
+// POST api/pgia/documento: cria o documento que vai receber o arquivo.
 // Com SistemaIaId herda o órgão do sistema; com OrgaoId é documento do órgão;
 // sem os dois é documento CENTRAL (só sgdi, cgtic e admin).
 export interface PgiaDocumentoCreateForm {
@@ -378,7 +378,7 @@ export interface PgiaDeliberacaoForm {
   Ementa: string | null;
   // Metadados da ata; o arquivo sobe como anexo do documento. Opcional no envio
   DocumentoId?: number | null;
-  // Contrato de IA objeto da deliberação (ex.: aprovação de aquisição) — fase 4
+  // Contrato de IA objeto da deliberação (ex.: aprovação de aquisição), fase 4
   ContratoId?: number | null;
 }
 
@@ -403,11 +403,22 @@ export interface PgiaPessoaAcesso {
   UnidadeNome: string | null;
   OrgaoId: number | null;
   OrgaoSigla: string | null;
-  // Dados de agente (matrícula/cargo/vínculo) — o backend acrescentou ao retorno
+  // Dados de agente (matrícula/cargo/vínculo): o backend acrescentou ao retorno
   // para o "Completar dados" abrir já preenchido. Opcional: respostas antigas os omitem.
   Matricula?: string | null;
   CargoFuncao?: string | null;
   Vinculo?: string | null;
+  // Acesso ao MÓDULO PGIA (isolamento entre módulos): concedido no sistema (a SGDI
+  // libera o agente do art. 13) ou pela role "pgia" do grupo no Keycloak. Papel PGIA
+  // também dá acesso por si. Opcionais: respostas antigas os omitem.
+  AcessoModulo?: boolean;
+  AcessoModuloKeycloak?: boolean;
+}
+
+/** Resposta do PUT .../pessoa/{userId}/acesso-modulo. */
+export interface PgiaAcessoModuloPessoa {
+  AcessoModulo: boolean;
+  AcessoModuloKeycloak: boolean;
 }
 
 // null limpa o campo correspondente (papel ou vínculo de unidade)
@@ -437,7 +448,7 @@ export interface PgiaCgticHistoricoContagens {
   Total: number;
 }
 
-// 'Pendente' | 'Aprovada' | 'Negada' — derivado da SituacaoHomologacao
+// 'Pendente' | 'Aprovada' | 'Negada', derivado da SituacaoHomologacao
 export interface PgiaCgticCasoHistorico {
   SistemaIaId: number;
   Denominacao: string;
@@ -495,7 +506,7 @@ export interface PgiaAutorizacaoForm {
   Tipo: string;
   OrgaoId: number;
   PlataformaId: number | null;
-  // Contrato de IA relacionado (autorização de treinamento) — fase 4
+  // Contrato de IA relacionado (autorização de treinamento), fase 4
   ContratoId?: number | null;
   Justificativa: string;
   AvaliacaoRiscosDocId: number | null;
@@ -807,7 +818,7 @@ export interface PgiaSolicitacaoOrgao extends PgiaSolicitacaoPublica {
   EncaminhadaDpo: boolean;
 }
 
-// D21 — com os textos exatos das opções do mock do cidadão
+// D21: com os textos exatos das opções do mock do cidadão
 export const TIPOS_SOLICITACAO = [
   { valor: 'Informação sobre uso de IA', destaque: 'Saber se a IA foi usada', resto: ' na decisão que me afetou' },
   { valor: 'Revisão de decisão', destaque: 'Pedir que um servidor revise a decisão', resto: '' },
@@ -878,7 +889,7 @@ export interface PgiaIncidenteComunicarForm {
 }
 
 // Fontes do registro de uso e do aviso (art. 13), acessíveis a qualquer
-// autenticado com órgão resolvido — sem expor o inventário completo
+// autenticado com órgão resolvido, sem expor o inventário completo
 export interface PgiaUsoFonteSistema {
   Id: number;
   Denominacao: string;
@@ -986,7 +997,7 @@ export interface PgiaRegistroUso extends PgiaRegistroUsoForm {
   CriadoEm: string;
 }
 
-// D15 — hipóteses do art. 30, com os rótulos do mock
+// D15: hipóteses do art. 30, com os rótulos do mock
 export const HIPOTESES_INCIDENTE = [
   { valor: 'I', rotulo: 'I · Risco à vida, à integridade física ou à saúde de pessoas' },
   { valor: 'II', rotulo: 'II · Violação relevante a direitos fundamentais' },

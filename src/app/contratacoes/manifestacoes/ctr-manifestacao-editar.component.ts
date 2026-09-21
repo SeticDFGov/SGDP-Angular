@@ -12,7 +12,7 @@ import { CtrManifestacao, CtrManifestacaoForm } from '../../../api/contratacoes/
  * Página de uma manifestação (`/analises/manifestacoes/editar/:id`): o mesmo
  * formulário do despacho, mais a geração do documento em PDF.
  *
- * Editar é a forma de acompanhar a evolução do caso — "Aguardando resposta"
+ * Editar é a forma de acompanhar a evolução do caso: "Aguardando resposta"
  * vira "Risco resolvido" ou "Não pode prosseguir" na mesma manifestação.
  */
 @Component({

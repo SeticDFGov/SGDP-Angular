@@ -1,0 +1,180 @@
+<div class="space-y-4">
+
+  <!-- Filtros -->
+  <div class="flex flex-col xl:flex-row xl:items-center gap-3">
+    <div class="inline-flex self-start rounded-lg border border-gray-300 bg-white p-0.5" role="group" aria-label="Situação dos pedidos">
+      <button *ngFor="let f of filtrosSituacao" type="button" (click)="trocarSituacao(f.valor)"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+              [ngClass]="situacao === f.valor ? 'bg-slate-800 text-white' : 'text-gray-600 hover:bg-gray-100'"
+              [attr.aria-pressed]="situacao === f.valor">
+        {{ f.rotulo }}
+      </button>
+    </div>
+
+    <form (ngSubmit)="buscar()" class="flex flex-1 flex-col md:flex-row md:items-center gap-2">
+      <select *ngIf="!moduloFixo" [(ngModel)]="moduloFiltro" name="pedidos-modulo" (ngModelChange)="buscar()" aria-label="Módulo"
+              class="md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Todos os módulos</option>
+        <option *ngFor="let m of modulosLiberaveis" [value]="m.id">{{ m.nome }}</option>
+      </select>
+      <input type="text" [(ngModel)]="filtro" name="pedidos-filtro" placeholder="Nome ou e-mail de quem pediu" aria-label="Nome ou e-mail de quem pediu"
+             class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <button type="submit" [disabled]="carregando"
+              class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        <span class="material-icons text-base" aria-hidden="true">search</span> Buscar
+      </button>
+    </form>
+  </div>
+
+  <p *ngIf="vendoPendentes && pagina && !erroCarga" class="text-sm text-gray-600">
+    <ng-container *ngIf="pagina.TotalItems > 0">
+      <strong>{{ pagina.TotalItems }}</strong> {{ pagina.TotalItems === 1 ? 'pedido aguardando' : 'pedidos aguardando' }} decisão,
+      do mais antigo para o mais recente.
+    </ng-container>
+  </p>
+
+  <!-- Lista -->
+  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div *ngIf="carregando && !pagina" class="p-6 text-sm text-gray-500">Carregando...</div>
+    <div *ngIf="erroCarga" class="p-6 text-sm text-red-700">Não foi possível carregar os pedidos. Tente buscar de novo.</div>
+    <div *ngIf="pagina && pagina.Items.length === 0 && !erroCarga" class="p-6 text-sm text-gray-500 flex items-center gap-2">
+      <span class="material-icons text-lg text-gray-400" aria-hidden="true">{{ vendoPendentes ? 'task_alt' : 'inbox' }}</span>
+      {{ vendoPendentes ? 'Nenhum pedido aguardando decisão.' : 'Nenhum pedido com esses filtros.' }}
+    </div>
+
+    <ul *ngIf="pagina && pagina.Items.length > 0" class="divide-y divide-gray-100">
+      <li *ngFor="let p of pagina.Items" class="p-4" [class.bg-blue-50]="decisao?.pedido?.Id === p.Id">
+        <div class="flex flex-col lg:flex-row lg:items-start gap-3 lg:gap-6">
+
+          <!-- Quem pediu -->
+          <div class="lg:w-72 shrink-0 min-w-0">
+            <p class="font-semibold text-gray-900">{{ p.Nome || '(sem nome)' }}</p>
+            <p class="text-xs text-gray-500 break-all">{{ p.Email }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">Unidade: {{ p.UnidadeNome || 'não definida' }}</p>
+          </div>
+
+          <!-- O pedido -->
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <span *ngIf="!moduloFixo && modulo(p.Modulo) as m"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold" [ngClass]="m.tom.chip">
+                <span class="material-icons text-sm" aria-hidden="true">{{ m.icone }}</span>{{ m.nome }}
+              </span>
+              <span class="text-xs text-gray-500">Pedido em {{ p.CriadoEm | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <p *ngIf="p.Justificativa" class="text-sm text-gray-700 mt-2 whitespace-pre-line break-words">"{{ p.Justificativa }}"</p>
+            <p *ngIf="!p.Justificativa" class="text-sm text-gray-400 italic mt-2">Sem justificativa.</p>
+
+            <!-- Já decidido -->
+            <div *ngIf="p.Situacao === S.Aprovado" class="mt-3 text-sm rounded-md px-3 py-2 bg-green-50 text-green-900 border border-green-100">
+              <p class="flex items-center gap-1.5 font-medium">
+                <span class="material-icons text-base text-green-600" aria-hidden="true">check_circle</span>
+                <ng-container *ngIf="p.DecididoPor; else encerradoSozinho">
+                  Aprovado em {{ p.DecididoEm | date:'dd/MM/yyyy HH:mm' }} por {{ p.DecididoPor }}
+                </ng-container>
+                <ng-template #encerradoSozinho>
+                  Encerrado em {{ p.DecididoEm | date:'dd/MM/yyyy HH:mm' }}: a pessoa recebeu o acesso por outro caminho (Keycloak ou papel no módulo)
+                </ng-template>
+              </p>
+              <p *ngIf="p.Modulo === M.Pgia && p.DecididoPor" class="text-xs mt-0.5 ml-6">Papel no PGIA: {{ rotuloPapel(p.PapelPgia) }}</p>
+            </div>
+            <div *ngIf="p.Situacao === S.Recusado" class="mt-3 text-sm rounded-md px-3 py-2 bg-red-50 text-red-900 border border-red-100">
+              <p class="flex items-center gap-1.5 font-medium">
+                <span class="material-icons text-base text-red-600" aria-hidden="true">block</span>
+                Recusado em {{ p.DecididoEm | date:'dd/MM/yyyy HH:mm' }} por {{ p.DecididoPor }}
+              </p>
+              <p class="text-xs mt-0.5 ml-6 whitespace-pre-line break-words">Motivo: {{ p.MotivoRecusa }}</p>
+            </div>
+          </div>
+
+          <!-- Ações -->
+          <div *ngIf="p.Situacao === S.Pendente" class="flex gap-2 lg:flex-col lg:w-36 shrink-0">
+            <button type="button" (click)="abrirDecisao(p, 'aprovar')"
+                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold bg-green-600 text-white hover:bg-green-700">
+              <span class="material-icons text-base" aria-hidden="true">check</span> Aprovar
+            </button>
+            <button type="button" (click)="abrirDecisao(p, 'recusar')"
+                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold border border-red-300 text-red-700 bg-white hover:bg-red-50">
+              <span class="material-icons text-base" aria-hidden="true">close</span> Recusar
+            </button>
+          </div>
+        </div>
+
+        <!-- Aprovação: libera na hora -->
+        <div *ngIf="decisao && decisao.pedido.Id === p.Id && decisao.tipo === 'aprovar'"
+             class="mt-4 rounded-lg border border-green-200 bg-white p-4">
+          <ng-container [ngSwitch]="p.Modulo">
+            <ng-container *ngSwitchCase="M.Pgia">
+              <label [attr.for]="'papel-' + p.Id" class="block text-sm font-semibold text-gray-900 mb-1">Papel de {{ p.Nome }} no PGIA</label>
+              <select [id]="'papel-' + p.Id" [(ngModel)]="decisao.papelPgia" [name]="'papel-' + p.Id"
+                      class="w-full md:w-[32rem] px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option *ngFor="let o of opcoesPapelPgia" [ngValue]="o.valor">{{ o.rotulo }}</option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">O papel define o que a pessoa faz no módulo. Dá para mudar depois, em Gestão de acessos ou na tela Pessoas e acessos da SGDI.</p>
+              <p *ngIf="papelOrgaoSemUnidade" class="text-xs text-amber-700 mt-2">
+                O papel de órgão precisa de unidade, porque é ela que liga a pessoa ao órgão. Depois de aprovar, defina a unidade de {{ p.Nome }}.
+              </p>
+            </ng-container>
+            <p *ngSwitchCase="M.Demandas" class="text-sm text-gray-700">
+              Libera Demandas e Projetos para consulta. Criar e editar demandas continua exigindo o perfil gestor no Keycloak.
+            </p>
+            <p *ngSwitchCase="M.Contratacoes" class="text-sm text-gray-700">
+              Libera a Supervisão Contínua das Contratações (papel de análise da SGDI).
+            </p>
+          </ng-container>
+
+          <div class="flex flex-wrap items-center gap-2 mt-4">
+            <button type="button" (click)="confirmar()" [disabled]="salvando"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+              <span class="material-icons text-base" aria-hidden="true">lock_open</span>
+              {{ salvando ? 'Liberando...' : 'Aprovar e liberar o acesso' }}
+            </button>
+            <button type="button" (click)="decisao = null" class="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50">
+              Cancelar
+            </button>
+          </div>
+        </div>
+
+        <!-- Recusa: com motivo -->
+        <div *ngIf="decisao && decisao.pedido.Id === p.Id && decisao.tipo === 'recusar'"
+             class="mt-4 rounded-lg border border-red-200 bg-white p-4">
+          <label [attr.for]="'motivo-' + p.Id" class="block text-sm font-semibold text-gray-900 mb-1">
+            Motivo da recusa <span class="text-red-600">*</span>
+          </label>
+          <textarea [id]="'motivo-' + p.Id" [(ngModel)]="decisao.motivo" [name]="'motivo-' + p.Id" rows="3" [maxlength]="tamanhoMotivo"
+                    placeholder="Ex.: o PGIA é liberado pelo Responsável de IA do seu órgão. Fale com ele."
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                    [ngClass]="motivoFaltando ? 'border-red-500 bg-red-50' : 'border-gray-300'"></textarea>
+          <div class="flex justify-between gap-3 text-xs mt-1">
+            <span [ngClass]="motivoFaltando ? 'text-red-600' : 'text-gray-500'">
+              {{ motivoFaltando ? 'Escreva o motivo: a pessoa vai ler no card do módulo.' : 'A pessoa vai ler o motivo no card do módulo.' }}
+            </span>
+            <span class="text-gray-400 whitespace-nowrap">{{ decisao.motivo.length }}/{{ tamanhoMotivo }}</span>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 mt-3">
+            <button type="button" (click)="confirmar()" [disabled]="salvando"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50">
+              <span class="material-icons text-base" aria-hidden="true">block</span>
+              {{ salvando ? 'Recusando...' : 'Recusar pedido' }}
+            </button>
+            <button type="button" (click)="decisao = null" class="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <!-- Paginação -->
+    <div *ngIf="pagina && pagina.TotalPages > 1" class="flex items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 text-sm text-gray-600">
+      <span>Mostrando {{ inicioPagina }} a {{ fimPagina }} de {{ pagina.TotalItems }}</span>
+      <div class="flex gap-2">
+        <button type="button" (click)="buscar(page - 1)" [disabled]="carregando || !pagina.HasPreviousPage"
+                class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-40">Anterior</button>
+        <button type="button" (click)="buscar(page + 1)" [disabled]="carregando || !pagina.HasNextPage"
+                class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-40">Próxima</button>
+      </div>
+    </div>
+  </div>
+</div>

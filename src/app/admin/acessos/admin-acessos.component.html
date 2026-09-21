@@ -1,0 +1,198 @@
+<div class="max-w-screen-2xl mx-auto space-y-5">
+
+  <!-- Apresentação -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h1 class="text-xl font-bold text-gray-900">Gestão de acessos</h1>
+    <p class="text-sm text-gray-600 mt-1 leading-relaxed max-w-4xl">
+      Aqui você define quem enxerga cada módulo. O acesso de cada pessoa soma duas fontes: o que vem do
+      <strong>Keycloak</strong> (perfis admin e gestor e a role "pgia" do grupo do órgão; só leitura aqui, porque é gerido
+      no Keycloak) e o que você <strong>concede nesta tela</strong>. Quem não tem acesso a um módulo vê o card dele em
+      cinza na tela inicial, e o sistema recusa as chamadas desse módulo.
+    </p>
+    <div class="flex flex-wrap gap-4 mt-4 text-xs text-gray-600">
+      <span class="inline-flex items-center gap-1.5"><span class="material-icons text-base text-green-600" aria-hidden="true">check_circle</span> Tem acesso (a origem aparece embaixo)</span>
+      <span class="inline-flex items-center gap-1.5"><span class="material-icons text-base text-gray-300" aria-hidden="true">remove_circle_outline</span> Sem acesso</span>
+      <span class="inline-flex items-center gap-1.5"><span class="material-icons text-base text-slate-500" aria-hidden="true">key</span> Keycloak: retrato do último login da pessoa</span>
+    </div>
+  </div>
+
+  <!-- Busca -->
+  <form (ngSubmit)="buscar()" class="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row md:items-end gap-3">
+    <div class="flex-1">
+      <label for="acessos-filtro" class="block text-sm font-semibold text-gray-700 mb-1">Nome ou e-mail</label>
+      <input id="acessos-filtro" type="text" [(ngModel)]="filtro" name="filtro" placeholder="Ex.: maria ou @seec.df.gov.br"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </div>
+    <div class="md:w-72">
+      <label for="acessos-modulo" class="block text-sm font-semibold text-gray-700 mb-1">Módulo</label>
+      <select id="acessos-modulo" [(ngModel)]="moduloFiltro" name="modulo"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Todos os usuários</option>
+        <option *ngFor="let m of modulos" [value]="m.id">Com acesso a: {{ m.nome }}</option>
+        <option [value]="filtroSemAcesso">Sem acesso a nenhum módulo</option>
+      </select>
+    </div>
+    <div class="flex gap-2">
+      <button type="submit" [disabled]="carregando"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+        <span class="material-icons text-base" aria-hidden="true">search</span> Buscar
+      </button>
+      <button type="button" (click)="limpar()" [disabled]="carregando"
+              class="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        Limpar
+      </button>
+    </div>
+  </form>
+
+  <!-- Lista -->
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div *ngIf="carregando && !pagina" class="p-6 text-sm text-gray-500">Carregando...</div>
+    <div *ngIf="erroCarga" class="p-6 text-sm text-red-700">Não foi possível carregar os usuários. Tente buscar de novo.</div>
+    <div *ngIf="pagina && pagina.Items.length === 0 && !erroCarga" class="p-6 text-sm text-gray-500">
+      Nenhum usuário encontrado com esses filtros.
+    </div>
+
+    <div *ngIf="pagina && pagina.Items.length > 0" class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+            <th class="px-4 py-3">Pessoa</th>
+            <th *ngFor="let m of modulos" class="px-4 py-3 whitespace-nowrap">
+              <span class="inline-flex items-center gap-1"><span class="material-icons text-base" aria-hidden="true">{{ m.icone }}</span>{{ m.nomeCurto }}</span>
+            </th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let u of pagina.Items">
+            <tr class="border-t border-gray-100 align-top" [class.bg-blue-50]="edicao?.usuario?.Id === u.Id">
+              <td class="px-4 py-3">
+                <p class="font-semibold text-gray-900">{{ u.Nome || '(sem nome)' }}</p>
+                <p class="text-xs text-gray-500">{{ u.Email }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">Unidade: {{ u.UnidadeNome || 'não definida' }}</p>
+              </td>
+              <td *ngFor="let m of modulos" class="px-4 py-3">
+                <ng-container *ngIf="temModulo(u, m.id); else semModulo">
+                  <span class="inline-flex items-center gap-1 text-green-700 font-medium">
+                    <span class="material-icons text-base" aria-hidden="true">check_circle</span> Sim
+                  </span>
+                  <p class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                    <span *ngIf="noKeycloak(u, m.id) || noKeycloak(u, M.Administracao)" class="material-icons text-sm text-slate-500" title="Vem do Keycloak" aria-hidden="true">key</span>
+                    {{ origem(u, m.id) }}
+                  </p>
+                </ng-container>
+                <ng-template #semModulo>
+                  <span class="inline-flex items-center gap-1 text-gray-400">
+                    <span class="material-icons text-base" aria-hidden="true">remove_circle_outline</span> Não
+                  </span>
+                </ng-template>
+              </td>
+              <td class="px-4 py-3 text-right">
+                <button type="button" (click)="editar(u)"
+                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium border"
+                        [ngClass]="edicao?.usuario?.Id === u.Id ? 'bg-gray-100 border-gray-300 text-gray-700' : 'bg-white border-blue-200 text-blue-700 hover:bg-blue-50'">
+                  <span class="material-icons text-base" aria-hidden="true">{{ edicao?.usuario?.Id === u.Id ? 'close' : 'edit' }}</span>
+                  {{ edicao?.usuario?.Id === u.Id ? 'Fechar' : 'Editar acessos' }}
+                </button>
+              </td>
+            </tr>
+
+            <!-- Editor da linha -->
+            <tr *ngIf="edicao && edicao.usuario.Id === u.Id" class="bg-blue-50/60">
+              <td [attr.colspan]="modulos.length + 2" class="px-4 pb-5 pt-1">
+                <div class="grid gap-4 lg:grid-cols-4 md:grid-cols-2">
+
+                  <!-- Demandas -->
+                  <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <label class="flex items-center gap-2 font-semibold text-gray-900">
+                      <input type="checkbox" [(ngModel)]="edicao.form.Demandas" name="acesso-demandas" class="w-4 h-4">
+                      Demandas e Projetos
+                    </label>
+                    <p class="text-xs text-gray-400 italic mt-2">Acesso de consulta. Criar e editar demandas continua exigindo o perfil gestor no Keycloak.</p>
+                    <p *ngIf="noKeycloak(u, M.Demandas)" class="text-xs text-slate-600 mt-2 flex items-center gap-1">
+                      <span class="material-icons text-sm" aria-hidden="true">key</span> Já tem pelo perfil gestor do Keycloak.
+                    </p>
+                  </div>
+
+                  <!-- PGIA -->
+                  <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <label class="flex items-center gap-2 font-semibold text-gray-900">
+                      <input type="checkbox" [ngModel]="edicao.form.Pgia" (ngModelChange)="alternarPgia($event)" name="acesso-pgia" class="w-4 h-4">
+                      Governança de IA (PGIA)
+                    </label>
+                    <label for="acesso-papel" class="block text-xs font-semibold text-gray-700 mt-3 mb-1">Papel dentro do PGIA</label>
+                    <select id="acesso-papel" [(ngModel)]="edicao.form.PapelPgia" name="acesso-papel" [disabled]="!edicao.form.Pgia"
+                            class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400">
+                      <option *ngFor="let p of opcoesPapelPgia" [ngValue]="p.valor">{{ p.rotulo }}</option>
+                    </select>
+                    <p *ngIf="papelOrgaoSemUnidade" class="text-xs text-amber-700 mt-2">
+                      O papel de órgão precisa de unidade: é a unidade que liga a pessoa ao órgão. Defina a unidade ao lado.
+                    </p>
+                    <p *ngIf="noKeycloak(u, M.Pgia)" class="text-xs text-slate-600 mt-2 flex items-center gap-1">
+                      <span class="material-icons text-sm" aria-hidden="true">key</span> Já entra pelo grupo do Keycloak; o papel define o que faz no módulo.
+                    </p>
+                  </div>
+
+                  <!-- Supervisão Contínua -->
+                  <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <label class="flex items-center gap-2 font-semibold text-gray-900">
+                      <input type="checkbox" [(ngModel)]="edicao.form.Contratacoes" name="acesso-contratacoes" class="w-4 h-4">
+                      Supervisão Contínua das Contratações
+                    </label>
+                    <p class="text-xs text-gray-400 italic mt-2">Ferramenta interna da SGDI (processos de contratação de TIC e manifestações ao TCDF).</p>
+                  </div>
+
+                  <!-- Administração + unidade -->
+                  <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <p class="font-semibold text-gray-900 flex items-center gap-2">
+                      <span class="material-icons text-base text-slate-500" aria-hidden="true">key</span> Administração
+                    </p>
+                    <p class="text-xs text-gray-400 italic mt-1">Vem só do perfil admin do Keycloak e não é concedida aqui.</p>
+
+                    <label for="acesso-unidade" class="block text-xs font-semibold text-gray-700 mt-3 mb-1">Unidade</label>
+                    <div class="flex gap-2">
+                      <select id="acesso-unidade" [(ngModel)]="edicao.unidadeId" name="acesso-unidade"
+                              class="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white">
+                        <option [ngValue]="null" disabled>Escolha a unidade</option>
+                        <option *ngFor="let un of unidades" [ngValue]="un.id">{{ un.Nome }}</option>
+                      </select>
+                      <button type="button" (click)="alterarUnidade()"
+                              [disabled]="alterandoUnidade || !edicao.unidadeId || edicao.unidadeId === edicao.usuario.UnidadeId"
+                              class="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-40">
+                        {{ alterandoUnidade ? '...' : 'Alterar' }}
+                      </button>
+                    </div>
+                    <p class="text-xs text-gray-400 italic mt-1">A unidade liga a pessoa ao órgão no PGIA e também define o que ela vê nas demandas.</p>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 mt-4">
+                  <button type="button" (click)="salvar()" [disabled]="salvando"
+                          class="inline-flex items-center gap-1.5 px-5 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+                    <span class="material-icons text-base" aria-hidden="true">save</span>
+                    {{ salvando ? 'Salvando...' : 'Salvar acessos' }}
+                  </button>
+                  <button type="button" (click)="edicao = null" class="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50">
+                    Cancelar
+                  </button>
+                  <span class="text-xs text-gray-400 italic">O que vem do Keycloak não muda por aqui.</span>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginação -->
+    <div *ngIf="pagina && pagina.TotalItems > 0" class="flex items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 text-sm text-gray-600">
+      <span>Mostrando {{ inicioPagina }} a {{ fimPagina }} de {{ pagina.TotalItems }}</span>
+      <div class="flex gap-2">
+        <button type="button" (click)="buscar(page - 1)" [disabled]="carregando || !pagina.HasPreviousPage"
+                class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-40">Anterior</button>
+        <button type="button" (click)="buscar(page + 1)" [disabled]="carregando || !pagina.HasNextPage"
+                class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-40">Próxima</button>
+      </div>
+    </div>
+  </div>
+</div>
