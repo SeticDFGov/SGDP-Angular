@@ -262,7 +262,7 @@ class PainelCitacao {
     }
 
     const pe = document.createElement('p');
-    pe.className = 'text-xs text-gray-400 italic mt-2 pt-2 border-t border-gray-200';
+    pe.className = 'text-xs text-gray-500 italic mt-2 pt-2 border-t border-gray-200';
     pe.textContent = rodape;
     this.el.appendChild(pe);
 

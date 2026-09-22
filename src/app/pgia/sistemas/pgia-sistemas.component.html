@@ -135,39 +135,39 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label class="block text-sm font-semibold mb-1">Situação da avaliação <span class="text-red-600">*</span></label>
-                        <select [(ngModel)]="aiaForm.Status" name="aia-status"
+                        <label for="aia-status" class="block text-sm font-semibold mb-1">Situação da avaliação <span class="text-red-600">*</span></label>
+                        <select id="aia-status" [(ngModel)]="aiaForm.Status" name="aia-status"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                           <option *ngFor="let st of statusAia" [value]="st">{{ st }}</option>
                         </select>
                       </div>
                       <div>
-                        <label class="block text-sm font-semibold mb-1">Data de início <span class="text-red-600">*</span></label>
-                        <input type="date" [(ngModel)]="aiaForm.DataInicio" name="aia-inicio"
+                        <label for="aia-inicio" class="block text-sm font-semibold mb-1">Data de início <span class="text-red-600">*</span></label>
+                        <input id="aia-inicio" type="date" [(ngModel)]="aiaForm.DataInicio" name="aia-inicio"
                                class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                [class.border-red-500]="errAiaInicio"
                                [class.border-gray-300]="!errAiaInicio">
                       </div>
                       <div>
-                        <label class="block text-sm font-semibold mb-1">Data de conclusão
+                        <label for="aia-conclusao" class="block text-sm font-semibold mb-1">Data de conclusão
                           <span class="text-yellow-700 text-xs font-semibold">ao concluir</span></label>
-                        <input type="date" [(ngModel)]="aiaForm.DataConclusao" name="aia-conclusao"
+                        <input id="aia-conclusao" type="date" [(ngModel)]="aiaForm.DataConclusao" name="aia-conclusao"
                                class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                [class.border-red-500]="errAiaConclusao"
                                [class.border-gray-300]="!errAiaConclusao">
                       </div>
                       <div>
-                        <label class="block text-sm font-semibold mb-1">Data da próxima revisão
+                        <label for="aia-revisao" class="block text-sm font-semibold mb-1">Data da próxima revisão
                           <span class="text-yellow-700 text-xs font-semibold">ao concluir</span></label>
-                        <input type="date" [(ngModel)]="aiaForm.ProximaRevisao" name="aia-revisao"
+                        <input id="aia-revisao" type="date" [(ngModel)]="aiaForm.ProximaRevisao" name="aia-revisao"
                                class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                [class.border-red-500]="errAiaProximaRevisao"
                                [class.border-gray-300]="!errAiaProximaRevisao">
-                        <p class="text-xs text-gray-400 italic mt-1">A avaliação é contínua: marque quando ela será revista.</p>
+                        <p class="text-xs text-gray-500 italic mt-1">A avaliação é contínua: marque quando ela será revista.</p>
                       </div>
                       <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold mb-1">Que impactos o sistema pode ter sobre direitos fundamentais? <span class="text-red-600">*</span></label>
-                        <textarea rows="3" [(ngModel)]="aiaForm.ImpactosDireitosFundamentais" name="aia-impactos"
+                        <label for="aia-impactos" class="block text-sm font-semibold mb-1">Que impactos o sistema pode ter sobre direitos fundamentais? <span class="text-red-600">*</span></label>
+                        <textarea id="aia-impactos" rows="3" [(ngModel)]="aiaForm.ImpactosDireitosFundamentais" name="aia-impactos"
                                   placeholder="Descreva os riscos identificados para as pessoas atingidas pelas decisões do sistema."
                                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   [class.border-red-500]="errAiaImpactos"
@@ -175,8 +175,8 @@
                                   [class.border-gray-300]="!errAiaImpactos"></textarea>
                       </div>
                       <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold mb-1">Que medidas evitam esses riscos? <span class="text-red-600">*</span></label>
-                        <textarea rows="3" [(ngModel)]="aiaForm.MedidasPreventivas" name="aia-preventivas"
+                        <label for="aia-preventivas" class="block text-sm font-semibold mb-1">Que medidas evitam esses riscos? <span class="text-red-600">*</span></label>
+                        <textarea id="aia-preventivas" rows="3" [(ngModel)]="aiaForm.MedidasPreventivas" name="aia-preventivas"
                                   placeholder="Medidas preventivas, adotadas antes de o risco acontecer."
                                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   [class.border-red-500]="errAiaPreventivas"
@@ -184,8 +184,8 @@
                                   [class.border-gray-300]="!errAiaPreventivas"></textarea>
                       </div>
                       <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold mb-1">Que medidas reduzem o dano, se ele acontecer? <span class="text-red-600">*</span></label>
-                        <textarea rows="3" [(ngModel)]="aiaForm.MedidasMitigadoras" name="aia-mitigadoras"
+                        <label for="aia-mitigadoras" class="block text-sm font-semibold mb-1">Que medidas reduzem o dano, se ele acontecer? <span class="text-red-600">*</span></label>
+                        <textarea id="aia-mitigadoras" rows="3" [(ngModel)]="aiaForm.MedidasMitigadoras" name="aia-mitigadoras"
                                   placeholder="Medidas mitigadoras."
                                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   [class.border-red-500]="errAiaMitigadoras"
@@ -193,8 +193,8 @@
                                   [class.border-gray-300]="!errAiaMitigadoras"></textarea>
                       </div>
                       <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold mb-1">Como desfazer uma decisão errada do sistema? <span class="text-red-600">*</span></label>
-                        <textarea rows="3" [(ngModel)]="aiaForm.MedidasReversao" name="aia-reversao"
+                        <label for="aia-reversao" class="block text-sm font-semibold mb-1">Como desfazer uma decisão errada do sistema? <span class="text-red-600">*</span></label>
+                        <textarea id="aia-reversao" rows="3" [(ngModel)]="aiaForm.MedidasReversao" name="aia-reversao"
                                   placeholder="Medidas de reversão: como a pessoa afetada volta à situação anterior."
                                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   [class.border-red-500]="errAiaReversao"
@@ -207,7 +207,7 @@
                           <label class="flex items-center gap-2"><input type="radio" name="aia-previa" [value]="true" [(ngModel)]="aiaForm.PreviaLicitacao"> Sim</label>
                           <label class="flex items-center gap-2"><input type="radio" name="aia-previa" [value]="false" [(ngModel)]="aiaForm.PreviaLicitacao"> Não</label>
                         </div>
-                        <p class="text-xs text-gray-400 italic mt-1">Nas novas aquisições, a AIA vem antes da abertura da licitação (art. 25, I, b).</p>
+                        <p class="text-xs text-gray-500 italic mt-1">Nas novas aquisições, a AIA vem antes da abertura da licitação (art. 25, I, b).</p>
                       </div>
                       <div>
                         <label class="block text-sm font-semibold mb-1">Foi feita junto com o relatório de proteção de dados (RIPD)?</label>
@@ -215,7 +215,7 @@
                           <label class="flex items-center gap-2"><input type="radio" name="aia-ripd" [value]="true" [(ngModel)]="aiaForm.ConjuntaRipd"> Sim</label>
                           <label class="flex items-center gap-2"><input type="radio" name="aia-ripd" [value]="false" [(ngModel)]="aiaForm.ConjuntaRipd"> Não</label>
                         </div>
-                        <p class="text-xs text-gray-400 italic mt-1">Se sim, o documento precisa cobrir os requisitos dos dois (art. 22). O Encarregado de Dados analisa.</p>
+                        <p class="text-xs text-gray-500 italic mt-1">Se sim, o documento precisa cobrir os requisitos dos dois (art. 22). O Encarregado de Dados analisa.</p>
                       </div>
                       <div class="md:col-span-2">
                         <label class="block text-sm font-semibold mb-1">Arquivo completo da AIA</label>
@@ -224,7 +224,7 @@
                           [criarDocumento]="criarDocumentoAia"
                           (documentoCriado)="aoCriarDocumentoAia($event)">
                         </app-pgia-anexo>
-                        <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve a avaliação para guardar o arquivo nela.</p>
+                        <p class="text-xs text-gray-500 italic mt-1">Depois de anexar, salve a avaliação para guardar o arquivo nela.</p>
                       </div>
                     </div>
 
@@ -252,7 +252,7 @@
         <span class="text-xs text-gray-500">mostrando {{ sistemas.length }} de {{ totalItens }}</span>
       </div>
 
-      <p class="text-xs text-gray-400 italic mt-3">Para incluir um sistema, use o botão "Cadastrar sistema no inventário" (passo 2.1 da trilha) e salve. Ele passa a aparecer nesta lista.</p>
+      <p class="text-xs text-gray-500 italic mt-3">Para incluir um sistema, use o botão "Cadastrar sistema no inventário" (passo 2.1 da trilha) e salve. Ele passa a aparecer nesta lista.</p>
 
       <div *ngIf="podeCadastrar" class="mt-4">
         <a routerLink="/pgia/sistemas/cadastro"
@@ -278,69 +278,69 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Nome do sistema <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="form.Denominacao" name="s-nome" placeholder="Por exemplo: Triagem inteligente de regulação"
+          <label for="s-nome" class="block text-sm font-semibold mb-1">Nome do sistema <span class="text-red-600">*</span></label>
+          <input id="s-nome" type="text" [(ngModel)]="form.Denominacao" name="s-nome" placeholder="Por exemplo: Triagem inteligente de regulação"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errDenominacao"
                  [class.bg-red-50]="errDenominacao"
                  [class.border-gray-300]="!errDenominacao">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Origem do registro <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.OrigemRegistro" name="s-origem"
+          <label for="s-origem" class="block text-sm font-semibold mb-1">Origem do registro <span class="text-red-600">*</span></label>
+          <select id="s-origem" [(ngModel)]="form.OrigemRegistro" name="s-origem"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let o of origens" [value]="o.valor">{{ o.rotulo }}</option>
           </select>
         </div>
         <div *ngIf="mostraOrigemDescricao" class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Descreva a origem do registro <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="form.OrigemRegistroDescricao" name="s-origem-desc"
+          <label for="s-origem-desc" class="block text-sm font-semibold mb-1">Descreva a origem do registro <span class="text-red-600">*</span></label>
+          <input id="s-origem-desc" type="text" [(ngModel)]="form.OrigemRegistroDescricao" name="s-origem-desc"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errOrigemDescricao"
                  [class.bg-red-50]="errOrigemDescricao"
                  [class.border-gray-300]="!errOrigemDescricao">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Para que o sistema serve? <span class="text-red-600">*</span></label>
-          <textarea rows="3" [(ngModel)]="form.Finalidade" name="s-finalidade" placeholder="Explique a finalidade em linguagem clara. Este texto será publicado."
+          <label for="s-finalidade" class="block text-sm font-semibold mb-1">Para que o sistema serve? <span class="text-red-600">*</span></label>
+          <textarea id="s-finalidade" rows="3" [(ngModel)]="form.Finalidade" name="s-finalidade" placeholder="Explique a finalidade em linguagem clara. Este texto será publicado."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errFinalidade"
                     [class.bg-red-50]="errFinalidade"
                     [class.border-gray-300]="!errFinalidade"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Como o órgão obteve o sistema? <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.TipoSistema" name="s-tipo"
+          <label for="s-tipo" class="block text-sm font-semibold mb-1">Como o órgão obteve o sistema? <span class="text-red-600">*</span></label>
+          <select id="s-tipo" [(ngModel)]="form.TipoSistema" name="s-tipo"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Tecnologia <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.Tecnologia" name="s-tec"
+          <label for="s-tec" class="block text-sm font-semibold mb-1">Tecnologia <span class="text-red-600">*</span></label>
+          <select id="s-tec" [(ngModel)]="form.Tecnologia" name="s-tec"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let t of tecnologias" [value]="t.valor">{{ t.rotulo }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Fase do ciclo de vida <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.StatusCicloVida" name="s-fase"
+          <label for="s-fase" class="block text-sm font-semibold mb-1">Fase do ciclo de vida <span class="text-red-600">*</span></label>
+          <select id="s-fase" [(ngModel)]="form.StatusCicloVida" name="s-fase"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let f of fases" [value]="f">{{ f }}</option>
           </select>
         </div>
         <div *ngIf="mostraImplantacao">
-          <label class="block text-sm font-semibold mb-1">Data de implantação
+          <label for="s-dtimplant" class="block text-sm font-semibold mb-1">Data de implantação
             <span class="text-yellow-700 text-xs font-semibold">se já está em uso</span></label>
-          <input type="date" [(ngModel)]="form.DataImplantacao" name="s-dtimplant"
+          <input id="s-dtimplant" type="date" [(ngModel)]="form.DataImplantacao" name="s-dtimplant"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errDataImplantacao"
                  [class.border-gray-300]="!errDataImplantacao">
-          <p class="text-xs text-gray-400 italic mt-1">Sistema em operação antes de 03/07/2026 precisa concluir a AIA até 03/07/2027 (art. 35, IV).</p>
+          <p class="text-xs text-gray-500 italic mt-1">Sistema em operação antes de 03/07/2026 precisa concluir a AIA até 03/07/2027 (art. 35, IV).</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Que dados o sistema trata? <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.EscopoDados" name="s-escopo"
+          <label for="s-escopo" class="block text-sm font-semibold mb-1">Que dados o sistema trata? <span class="text-red-600">*</span></label>
+          <select id="s-escopo" [(ngModel)]="form.EscopoDados" name="s-escopo"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let e of escopos" [value]="e">{{ e }}</option>
           </select>
@@ -357,18 +357,18 @@
       <!-- Bloco: afeta cidadãos -->
       <div *ngIf="mostraCidadao" class="grid grid-cols-1 gap-4 mt-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Que tipo de decisão o sistema apoia?
+          <label for="s-decisoes" class="block text-sm font-semibold mb-1">Que tipo de decisão o sistema apoia?
             <span class="text-yellow-700 text-xs font-semibold">responda porque afeta cidadãos</span></label>
-          <textarea rows="3" [(ngModel)]="form.NaturezaDecisoes" name="s-decisoes" placeholder="Este texto será publicado (art. 24, III)."
+          <textarea id="s-decisoes" rows="3" [(ngModel)]="form.NaturezaDecisoes" name="s-decisoes" placeholder="Este texto será publicado (art. 24, III)."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errNaturezaDecisoes"
                     [class.bg-red-50]="errNaturezaDecisoes"
                     [class.border-gray-300]="!errNaturezaDecisoes"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Quais os efeitos para o cidadão?
+          <label for="s-efeitos" class="block text-sm font-semibold mb-1">Quais os efeitos para o cidadão?
             <span class="text-yellow-700 text-xs font-semibold">responda porque afeta cidadãos</span></label>
-          <textarea rows="3" [(ngModel)]="form.EfeitosCidadao" name="s-efeitos" placeholder="Este texto será publicado (art. 24, III)."
+          <textarea id="s-efeitos" rows="3" [(ngModel)]="form.EfeitosCidadao" name="s-efeitos" placeholder="Este texto será publicado (art. 24, III)."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errEfeitosCidadao"
                     [class.bg-red-50]="errEfeitosCidadao"
@@ -385,31 +385,31 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-semibold mb-1">Base legal do tratamento <span class="text-red-600">*</span></label>
-            <select [(ngModel)]="form.BaseLegalLgpd" name="s-baselegal"
+            <label for="s-baselegal" class="block text-sm font-semibold mb-1">Base legal do tratamento <span class="text-red-600">*</span></label>
+            <select id="s-baselegal" [(ngModel)]="form.BaseLegalLgpd" name="s-baselegal"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option *ngFor="let b of basesLegais" [value]="b">{{ b }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">Categorias de dados pessoais <span class="text-red-600">*</span></label>
-            <input type="text" [(ngModel)]="form.CategoriasDadosPessoais" name="s-categorias" placeholder="Use somente o estritamente necessário (art. 19, II)."
+            <label for="s-categorias" class="block text-sm font-semibold mb-1">Categorias de dados pessoais <span class="text-red-600">*</span></label>
+            <input id="s-categorias" type="text" [(ngModel)]="form.CategoriasDadosPessoais" name="s-categorias" placeholder="Use somente o estritamente necessário (art. 19, II)."
                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="errCategorias"
                    [class.bg-red-50]="errCategorias"
                    [class.border-gray-300]="!errCategorias">
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-semibold mb-1">Finalidade do tratamento <span class="text-red-600">*</span></label>
-            <input type="text" [(ngModel)]="form.FinalidadeTratamentoDados" name="s-finalidade-trat" placeholder="Os dados não podem ser reutilizados para outra finalidade (art. 19, III)."
+            <label for="s-finalidade-trat" class="block text-sm font-semibold mb-1">Finalidade do tratamento <span class="text-red-600">*</span></label>
+            <input id="s-finalidade-trat" type="text" [(ngModel)]="form.FinalidadeTratamentoDados" name="s-finalidade-trat" placeholder="Os dados não podem ser reutilizados para outra finalidade (art. 19, III)."
                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="errFinalidadeTratamento"
                    [class.bg-red-50]="errFinalidadeTratamento"
                    [class.border-gray-300]="!errFinalidadeTratamento">
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-semibold mb-1">Medidas de segurança <span class="text-red-600">*</span></label>
-            <textarea rows="3" [(ngModel)]="form.MedidasSeguranca" name="s-medidas" placeholder="Medidas técnicas e administrativas, nos padrões da SGDI (art. 19, IV)."
+            <label for="s-medidas" class="block text-sm font-semibold mb-1">Medidas de segurança <span class="text-red-600">*</span></label>
+            <textarea id="s-medidas" rows="3" [(ngModel)]="form.MedidasSeguranca" name="s-medidas" placeholder="Medidas técnicas e administrativas, nos padrões da SGDI (art. 19, IV)."
                       class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       [class.border-red-500]="errMedidas"
                       [class.bg-red-50]="errMedidas"
@@ -426,21 +426,21 @@
             <label class="flex items-center gap-2"><input type="radio" name="interop" [value]="true" [(ngModel)]="form.InteroperavelPadroesSgdi"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="interop" [value]="false" [(ngModel)]="form.InteroperavelPadroesSgdi"> Não</label>
           </div>
-          <p class="text-xs text-gray-400 italic mt-1">É vedada a contratação de solução redundante ou que não converse com os padrões corporativos (art. 27).</p>
+          <p class="text-xs text-gray-500 italic mt-1">É vedada a contratação de solução redundante ou que não converse com os padrões corporativos (art. 27).</p>
         </div>
         <div *ngIf="mostraNaoRedundancia">
-          <label class="block text-sm font-semibold mb-1">Por que a solução não duplica sistema corporativo que já existe?
+          <label for="s-naoredund" class="block text-sm font-semibold mb-1">Por que a solução não duplica sistema corporativo que já existe?
             <span class="text-yellow-700 text-xs font-semibold">responda porque o sistema é contratado</span></label>
-          <textarea rows="3" [(ngModel)]="form.JustificativaNaoRedundancia" name="s-naoredund"
+          <textarea id="s-naoredund" rows="3" [(ngModel)]="form.JustificativaNaoRedundancia" name="s-naoredund"
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errNaoRedundancia"
                     [class.bg-red-50]="errNaoRedundancia"
                     [class.border-gray-300]="!errNaoRedundancia"></textarea>
-          <p class="text-xs text-gray-400 italic mt-1">(art. 27)</p>
+          <p class="text-xs text-gray-500 italic mt-1">(art. 27)</p>
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Como acontece a supervisão humana das decisões do sistema? <span class="text-red-600">*</span></label>
-          <textarea rows="3" [(ngModel)]="form.SupervisaoHumanaDescricao" name="s-supervisao" placeholder="Diga em que momento e por qual servidor a decisão é revisada (arts. 5º, II e 23, II)."
+          <label for="s-supervisao" class="block text-sm font-semibold mb-1">Como acontece a supervisão humana das decisões do sistema? <span class="text-red-600">*</span></label>
+          <textarea id="s-supervisao" rows="3" [(ngModel)]="form.SupervisaoHumanaDescricao" name="s-supervisao" placeholder="Diga em que momento e por qual servidor a decisão é revisada (arts. 5º, II e 23, II)."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errSupervisao"
                     [class.bg-red-50]="errSupervisao"
@@ -461,27 +461,27 @@
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da análise do SGTIC
+          <label for="s-dtsgtic" class="block text-sm font-semibold mb-1">Data da análise do SGTIC
             <span class="text-yellow-700 text-xs font-semibold">na adoção</span></label>
-          <input type="date" [(ngModel)]="form.DataAnaliseSgtic" name="s-dtsgtic"
+          <input id="s-dtsgtic" type="date" [(ngModel)]="form.DataAnaliseSgtic" name="s-dtsgtic"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Parecer do SGTIC
+          <label for="s-parecer" class="block text-sm font-semibold mb-1">Parecer do SGTIC
             <span class="text-yellow-700 text-xs font-semibold">na adoção</span></label>
-          <textarea rows="3" [(ngModel)]="form.ParecerSgtic" name="s-parecer" placeholder="Conclusão da análise de adoção (art. 9º, I)."
+          <textarea id="s-parecer" rows="3" [(ngModel)]="form.ParecerSgtic" name="s-parecer" placeholder="Conclusão da análise de adoção (art. 9º, I)."
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Processo SEI</label>
-          <input type="text" [(ngModel)]="form.ProcessoSei" name="s-sei" placeholder="00060-00098765/2026-33" maxlength="25"
+          <label for="s-sei" class="block text-sm font-semibold mb-1">Processo SEI</label>
+          <input id="s-sei" type="text" [(ngModel)]="form.ProcessoSei" name="s-sei" placeholder="00060-00098765/2026-33" maxlength="25"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da remessa à SGDI</label>
-          <input type="date" [(ngModel)]="form.ComunicadoSgdiEm" name="s-dtremessa"
+          <label for="s-dtremessa" class="block text-sm font-semibold mb-1">Data da remessa à SGDI</label>
+          <input id="s-dtremessa" type="date" [(ngModel)]="form.ComunicadoSgdiEm" name="s-dtremessa"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <p class="text-xs text-gray-400 italic mt-1">Alimenta o Inventário Centralizado (arts. 9º, III e 10, II).</p>
+          <p class="text-xs text-gray-500 italic mt-1">Alimenta o Inventário Centralizado (arts. 9º, III e 10, II).</p>
         </div>
       </div>
 
@@ -503,7 +503,7 @@
                  [name]="'quesito-' + gi + '-' + i"
                  [disabled]="respostasGrupos[gi].nenhuma"
                  (ngModelChange)="aoMarcarQuesito(gi)">
-          <span [class.text-gray-400]="respostasGrupos[gi].nenhuma">{{ q.texto }}</span>
+          <span [class.text-gray-500]="respostasGrupos[gi].nenhuma">{{ q.texto }}</span>
         </label>
 
         <label class="flex items-start gap-2 text-sm py-1 mt-2 pt-2 border-t border-gray-200 leading-relaxed">
@@ -543,7 +543,7 @@
                  class="absolute right-0 z-30 mt-2 w-max max-w-[42rem] bg-white border border-gray-300 rounded-lg shadow-lg p-4">
               <p class="text-xs font-semibold text-gray-900 mb-2">Matriz de risco da CGDF</p>
               <div class="overflow-x-auto">
-                <table class="text-[11px] border-collapse">
+                <table class="text-[0.6875rem] border-collapse">
                   <tbody>
                     <tr *ngFor="let linha of matrizRisco; let li = index">
                       <th class="pr-2 py-1 text-right font-semibold text-gray-700 whitespace-nowrap">
@@ -561,12 +561,12 @@
                     <tr>
                       <th></th>
                       <th *ngFor="let p of probabilidadesCgdf"
-                          class="pt-1 text-[10px] font-semibold text-gray-700 leading-tight">{{ p }}</th>
+                          class="pt-1 text-[0.625rem] font-semibold text-gray-700 leading-tight">{{ p }}</th>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <p class="text-xs text-gray-400 italic mt-2">Linhas: consequência. Colunas: probabilidade.
+              <p class="text-xs text-gray-500 italic mt-2">Linhas: consequência. Colunas: probabilidade.
               Neste grupo você escolhe apenas as opções em destaque; as demais ficam esmaecidas.</p>
             </div>
           </div>
@@ -576,7 +576,7 @@
         um com a ação que vai reduzi-lo e quem responde por ela.
         <ng-container *ngIf="!outrosObrigatorio">Este grupo pode ficar vazio.</ng-container></p>
 
-        <p *ngIf="outrosObrigatorio" class="text-xs text-gray-400 italic mb-3">
+        <p *ngIf="outrosObrigatorio" class="text-xs text-gray-500 italic mb-3">
           Obrigatório quando nenhuma das situações dos três grupos se aplica.
         </p>
 
@@ -656,27 +656,27 @@
                 class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
           Adicionar risco
         </button>
-        <p *ngIf="outrosRiscos.length === 0" class="text-xs text-gray-400 italic mt-2">Nenhum risco adicionado.</p>
+        <p *ngIf="outrosRiscos.length === 0" class="text-xs text-gray-500 italic mt-2">Nenhum risco adicionado.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Motivo da classificação <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="classForm.Motivo" name="s-motivo"
+          <label for="s-motivo" class="block text-sm font-semibold mb-1">Motivo da classificação <span class="text-red-600">*</span></label>
+          <select id="s-motivo" [(ngModel)]="classForm.Motivo" name="s-motivo"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let m of motivos" [value]="m.valor">{{ m.rotulo }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da classificação <span class="text-red-600">*</span></label>
-          <input type="date" [(ngModel)]="classForm.DataClassificacao" name="s-dtclass"
+          <label for="s-dtclass" class="block text-sm font-semibold mb-1">Data da classificação <span class="text-red-600">*</span></label>
+          <input id="s-dtclass" type="date" [(ngModel)]="classForm.DataClassificacao" name="s-dtclass"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errDataClassificacao"
                  [class.border-gray-300]="!errDataClassificacao">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Justificativa <span class="text-red-600">*</span></label>
-          <textarea rows="3" [(ngModel)]="classForm.Justificativa" name="s-just" placeholder="Explique, com suas palavras, por que o sistema foi descrito assim."
+          <label for="s-just" class="block text-sm font-semibold mb-1">Justificativa <span class="text-red-600">*</span></label>
+          <textarea id="s-just" rows="3" [(ngModel)]="classForm.Justificativa" name="s-just" placeholder="Explique, com suas palavras, por que o sistema foi descrito assim."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errJustificativa"
                     [class.bg-red-50]="errJustificativa"
@@ -689,8 +689,8 @@
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
           {{ salvando ? 'Salvando...' : 'Salvar sistema no inventário' }}
         </button>
-        <span *ngIf="faltaNoQuestionario" class="text-xs text-gray-400 italic">{{ faltaNoQuestionario }}</span>
-        <span *ngIf="!faltaNoQuestionario" class="text-xs text-gray-400 italic">O registro fica assinado por {{ user?.Nome }}, Responsável de IA da {{ orgao.Sigla }}.</span>
+        <span *ngIf="faltaNoQuestionario" class="text-xs text-gray-500 italic">{{ faltaNoQuestionario }}</span>
+        <span *ngIf="!faltaNoQuestionario" class="text-xs text-gray-500 italic">O registro fica assinado por {{ user?.Nome }}, Responsável de IA da {{ orgao.Sigla }}.</span>
       </div>
     </div>
 

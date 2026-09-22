@@ -23,9 +23,9 @@
 <!-- Nenhum risco ainda -->
 <div *ngIf="edicao.riscos.length === 0"
      class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-  <span class="material-icons text-3xl text-gray-400" aria-hidden="true">report_problem</span>
+  <span class="material-icons text-3xl text-gray-500" aria-hidden="true">report_problem</span>
   <p class="text-sm text-gray-700 mt-1">Nenhum risco registrado para esta contratação.</p>
-  <p class="text-xs text-gray-400 italic mt-1">Registre o que pode dar errado, o que será feito para evitar e quem
+  <p class="text-xs text-gray-500 italic mt-1">Registre o que pode dar errado, o que será feito para evitar e quem
   acompanha. É opcional.</p>
   <button type="button" (click)="adicionar()"
           class="mt-3 inline-flex items-center gap-1 bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">
@@ -43,7 +43,7 @@
       <h5 class="text-sm font-semibold text-gray-900">Risco {{ i + 1 }}</h5>
       <span *ngIf="nivel(r) as n" class="px-2 py-0.5 rounded-full text-xs font-semibold"
             [ngClass]="badgeNivelRisco(n)">Nível {{ n }}</span>
-      <span *ngIf="!nivel(r)" class="text-xs text-gray-400 italic">O nível aparece ao escolher a probabilidade e a
+      <span *ngIf="!nivel(r)" class="text-xs text-gray-500 italic">O nível aparece ao escolher a probabilidade e a
       consequência.</span>
     </div>
     <button type="button" (click)="remover(i)" [attr.aria-label]="'Remover o risco ' + (i + 1)"
@@ -131,20 +131,20 @@
   </div>
 </div>
 
-<p *ngIf="edicao.riscos.length > 0 && !edicao.podeAdicionar" class="text-xs text-gray-400 italic">Limite de
+<p *ngIf="edicao.riscos.length > 0 && !edicao.podeAdicionar" class="text-xs text-gray-500 italic">Limite de
 {{ maxRiscos }} riscos por processo.</p>
 
-<p *ngIf="edicao.gravada?.ClassificadoPor as autor" class="text-xs text-gray-400 italic mt-2">
+<p *ngIf="edicao.gravada?.ClassificadoPor as autor" class="text-xs text-gray-500 italic mt-2">
   Lista salva por {{ autor }} em {{ edicao.gravada?.ClassificadoEm | date:'dd/MM/yyyy HH:mm' }}.
 </p>
 
 <!-- Onde os riscos caem no mapa da CGDF (as 25 células), quando já há risco posicionado -->
 <div *ngIf="temRiscoNoMapa" class="mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
   <p class="text-sm font-semibold text-gray-900 mb-1">Onde os riscos caem no mapa de riscos da CGDF</p>
-  <p class="text-xs text-gray-400 italic mb-3">Linhas: consequência. Colunas: probabilidade. O número na célula é quantos
+  <p class="text-xs text-gray-500 italic mb-3">Linhas: consequência. Colunas: probabilidade. O número na célula é quantos
   riscos da lista caem nela.</p>
   <div class="overflow-x-auto">
-    <table class="text-[11px] border-collapse">
+    <table class="text-[0.6875rem] border-collapse">
       <tbody>
         <tr *ngFor="let linha of mapa; let li = index">
           <th class="pr-2 py-1 text-right font-semibold text-gray-700 whitespace-nowrap">{{ consequenciasMapa[li] }}</th>
@@ -161,7 +161,7 @@
         <tr>
           <th></th>
           <th *ngFor="let p of probabilidades"
-              class="pt-1 text-[10px] font-semibold text-gray-700 leading-tight">{{ p }}</th>
+              class="pt-1 text-[0.625rem] font-semibold text-gray-700 leading-tight">{{ p }}</th>
         </tr>
       </tbody>
     </table>

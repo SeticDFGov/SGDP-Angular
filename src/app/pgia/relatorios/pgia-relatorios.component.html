@@ -37,8 +37,8 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Sistema</label>
-          <select [(ngModel)]="sistemaSelecionadoId" name="ind-sistema" (ngModelChange)="aoTrocarSistema()"
+          <label for="ind-sistema" class="block text-sm font-semibold mb-1">Sistema</label>
+          <select id="ind-sistema" [(ngModel)]="sistemaSelecionadoId" name="ind-sistema" (ngModelChange)="aoTrocarSistema()"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null">Escolha o sistema</option>
             <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
@@ -93,46 +93,46 @@
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-semibold mb-1">Nome do indicador <span class="text-red-600">*</span></label>
-              <input type="text" [(ngModel)]="indicadorForm.Nome" name="ind-nome" placeholder="Por exemplo: taxa de acerto da triagem"
+              <label for="ind-nome" class="block text-sm font-semibold mb-1">Nome do indicador <span class="text-red-600">*</span></label>
+              <input id="ind-nome" type="text" [(ngModel)]="indicadorForm.Nome" name="ind-nome" placeholder="Por exemplo: taxa de acerto da triagem"
                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                      [class.border-red-500]="errIndNome" [class.bg-red-50]="errIndNome" [class.border-gray-300]="!errIndNome">
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Categoria <span class="text-red-600">*</span></label>
-              <select [(ngModel)]="indicadorForm.Categoria" name="ind-categoria"
+              <label for="ind-categoria" class="block text-sm font-semibold mb-1">Categoria <span class="text-red-600">*</span></label>
+              <select id="ind-categoria" [(ngModel)]="indicadorForm.Categoria" name="ind-categoria"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Valor medido <span class="text-red-600">*</span></label>
-              <input type="number" [(ngModel)]="indicadorForm.Valor" name="ind-valor"
+              <label for="ind-valor" class="block text-sm font-semibold mb-1">Valor medido <span class="text-red-600">*</span></label>
+              <input id="ind-valor" type="number" [(ngModel)]="indicadorForm.Valor" name="ind-valor"
                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                      [class.border-red-500]="errIndValor" [class.border-gray-300]="!errIndValor">
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Unidade</label>
-              <input type="text" [(ngModel)]="indicadorForm.Unidade" name="ind-unidade" placeholder="Por exemplo: %, minutos, atendimentos"
+              <label for="ind-unidade" class="block text-sm font-semibold mb-1">Unidade</label>
+              <input id="ind-unidade" type="text" [(ngModel)]="indicadorForm.Unidade" name="ind-unidade" placeholder="Por exemplo: %, minutos, atendimentos"
                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Início do período <span class="text-red-600">*</span></label>
-              <input type="date" [(ngModel)]="indicadorForm.PeriodoInicio" name="ind-inicio"
+              <label for="ind-inicio" class="block text-sm font-semibold mb-1">Início do período <span class="text-red-600">*</span></label>
+              <input id="ind-inicio" type="date" [(ngModel)]="indicadorForm.PeriodoInicio" name="ind-inicio"
                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                      [class.border-red-500]="errIndInicio" [class.border-gray-300]="!errIndInicio">
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Fim do período <span class="text-red-600">*</span></label>
-              <input type="date" [(ngModel)]="indicadorForm.PeriodoFim" name="ind-fim"
+              <label for="ind-fim" class="block text-sm font-semibold mb-1">Fim do período <span class="text-red-600">*</span></label>
+              <input id="ind-fim" type="date" [(ngModel)]="indicadorForm.PeriodoFim" name="ind-fim"
                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                      [class.border-red-500]="errIndFim" [class.border-gray-300]="!errIndFim">
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Meta</label>
-              <input type="number" [(ngModel)]="indicadorForm.Meta" name="ind-meta"
+              <label for="ind-meta" class="block text-sm font-semibold mb-1">Meta</label>
+              <input id="ind-meta" type="number" [(ngModel)]="indicadorForm.Meta" name="ind-meta"
                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <p class="text-xs text-gray-400 italic mt-1">Preencha quando houver nível de serviço acordado no contrato.</p>
+              <p class="text-xs text-gray-500 italic mt-1">Preencha quando houver nível de serviço acordado no contrato.</p>
             </div>
             <div>
               <label class="block text-sm font-semibold mb-1">Publicado no Registro Público?</label>
@@ -166,13 +166,13 @@
 
       <div class="flex items-end gap-3 flex-wrap" *ngIf="podeEditar">
         <div>
-          <label class="block text-sm font-semibold mb-1">Ano</label>
-          <input type="number" [(ngModel)]="anoGeracao" name="rel-ano"
+          <label for="rel-ano" class="block text-sm font-semibold mb-1">Ano</label>
+          <input id="rel-ano" type="number" [(ngModel)]="anoGeracao" name="rel-ano"
                  class="px-3 py-2 border border-gray-300 rounded-md text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Semestre</label>
-          <select [(ngModel)]="semestreGeracao" name="rel-semestre"
+          <label for="rel-semestre" class="block text-sm font-semibold mb-1">Semestre</label>
+          <select id="rel-semestre" [(ngModel)]="semestreGeracao" name="rel-semestre"
                   class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="1">1º semestre</option>
             <option [ngValue]="2">2º semestre</option>
@@ -249,7 +249,7 @@
                           [criarDocumento]="criarDocumentoSemestral"
                           (documentoCriado)="aoCriarDocumentoSemestral($event)">
                         </app-pgia-anexo>
-                        <p class="text-xs text-gray-400 italic mt-1">Anexe o arquivo que foi à SGDI. O PDF gerado pelo sistema também serve.</p>
+                        <p class="text-xs text-gray-500 italic mt-1">Anexe o arquivo que foi à SGDI. O PDF gerado pelo sistema também serve.</p>
                       </div>
                     </div>
                     <div class="mt-3">

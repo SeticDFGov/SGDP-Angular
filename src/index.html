@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <title>SGDP</title>
@@ -10,9 +10,56 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <!-- Acessibilidade: fundo do tema escolhido enquanto o arquivo do tema chega (sem clarão) -->
+  <style>
+    html.tema-escuro { background-color: #0b111c; color-scheme: dark; }
+    html.tema-alto-contraste { background-color: #000; color-scheme: dark; }
+  </style>
   </head>
 <body>
+<script>
+  // Acessibilidade: aplica o tema e o tamanho do texto guardados antes da primeira
+  // pintura. Mesmo contrato do AcessibilidadeService (src/app/core/acessibilidade):
+  // chave "sgdp.acessibilidade" no localStorage, classes tema-* e sem-animacoes no
+  // <html> e a folha assets/temas/<tema>.css, versionada pelo hash do styles-*.css (muda
+  // junto com as classes do Tailwind, que é quando o tema muda).
+  (function () {
+    var html = document.documentElement;
+    try {
+      var p = JSON.parse(localStorage.getItem('sgdp.acessibilidade') || '{}') || {};
+      var tema = p.tema;
+      if (tema !== 'claro' && tema !== 'escuro' && tema !== 'alto-contraste') {
+        // Sem escolha: segue o sistema operacional
+        tema = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
+      }
+      if (tema !== 'claro') {
+        html.classList.add('tema-' + tema);
+        var estilos = document.querySelector('link[href*="styles"]');
+        var versao = estilos ? (estilos.getAttribute('href').match(/styles-([A-Za-z0-9]+)/) || [])[1] : '';
+        var folha = document.createElement('link');
+        folha.rel = 'stylesheet';
+        folha.href = 'assets/temas/' + tema + '.css' + (versao ? '?v=' + versao : '');
+        document.head.appendChild(folha);
+      }
+      var fonte = Number(p.fonte);
+      if (fonte >= 90 && fonte <= 150 && fonte !== 100) html.style.fontSize = fonte + '%';
+      if (p.reduzirAnimacoes === true) html.classList.add('sem-animacoes');
+    } catch (e) {
+      // navegador sem armazenamento local: fica o padrão
+    }
+  })();
+</script>
 
 <app-root></app-root>
+
+<!-- VLibras (Governo Federal): tradução do conteúdo para a Língua Brasileira de Sinais -->
+<div vw class="enabled">
+  <div vw-access-button class="active"></div>
+  <div vw-plugin-wrapper>
+    <div class="vw-plugin-top-wrapper"></div>
+  </div>
+</div>
+<script async src="https://vlibras.gov.br/app/vlibras-plugin.js"
+        onload="new window.VLibras.Widget('https://vlibras.gov.br/app')"></script>
 </body>
 </html>

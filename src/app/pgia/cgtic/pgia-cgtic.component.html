@@ -77,15 +77,15 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Tipo de deliberação <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.Tipo" name="de-tipo"
+          <label for="de-tipo" class="block text-sm font-semibold mb-1">Tipo de deliberação <span class="text-red-600">*</span></label>
+          <select id="de-tipo" [(ngModel)]="form.Tipo" name="de-tipo"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let t of tipos" [value]="t.valor">{{ t.rotulo }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Objeto da decisão</label>
-          <select [(ngModel)]="form.SistemaIaId" name="de-objeto"
+          <label for="de-objeto" class="block text-sm font-semibold mb-1">Objeto da decisão</label>
+          <select id="de-objeto" [(ngModel)]="form.SistemaIaId" name="de-objeto"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null">Sem objeto específico</option>
             <optgroup label="Casos delegados ao comitê" *ngIf="fila.length > 0">
@@ -99,12 +99,12 @@
               </option>
             </optgroup>
           </select>
-          <p class="text-xs text-gray-400 italic mt-1">A lista traz primeiro os casos delegados ao comitê e depois os demais
+          <p class="text-xs text-gray-500 italic mt-1">A lista traz primeiro os casos delegados ao comitê e depois os demais
           sistemas do inventário. Escolha "Sem objeto específico" para decisões gerais, como resoluções e guias.</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da deliberação <span class="text-red-600">*</span></label>
-          <input type="date" [(ngModel)]="form.DataDeliberacao" name="de-data"
+          <label for="de-data" class="block text-sm font-semibold mb-1">Data da deliberação <span class="text-red-600">*</span></label>
+          <input id="de-data" type="date" [(ngModel)]="form.DataDeliberacao" name="de-data"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errData"
                  [class.border-gray-300]="!errData">
@@ -118,18 +118,18 @@
           </div>
         </div>
         <div *ngIf="ehResolucao">
-          <label class="block text-sm font-semibold mb-1">Número do ato
+          <label for="de-numero" class="block text-sm font-semibold mb-1">Número do ato
             <span class="text-yellow-700 text-xs font-semibold">quando for resolução</span></label>
-          <input type="text" [(ngModel)]="form.NumeroAto" name="de-numero" placeholder="Resolução nº ___/2026, CGTIC"
+          <input id="de-numero" type="text" [(ngModel)]="form.NumeroAto" name="de-numero" placeholder="Resolução nº ___/2026, CGTIC"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errNumeroAto"
                  [class.bg-red-50]="errNumeroAto"
                  [class.border-gray-300]="!errNumeroAto">
         </div>
         <div class="md:col-span-2" *ngIf="ehResolucao">
-          <label class="block text-sm font-semibold mb-1">Ementa
+          <label for="de-ementa" class="block text-sm font-semibold mb-1">Ementa
             <span class="text-yellow-700 text-xs font-semibold">quando for resolução</span></label>
-          <input type="text" [(ngModel)]="form.Ementa" name="de-ementa"
+          <input id="de-ementa" type="text" [(ngModel)]="form.Ementa" name="de-ementa"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errEmenta"
                  [class.bg-red-50]="errEmenta"
@@ -142,7 +142,7 @@
             [criarDocumento]="criarDocumentoAta"
             (documentoCriado)="aoCriarDocumentoAta($event)">
           </app-pgia-anexo>
-          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, registre a deliberação para guardar a ata nela.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Depois de anexar, registre a deliberação para guardar a ata nela.</p>
         </div>
       </div>
 
@@ -210,7 +210,7 @@
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
           {{ baixandoPdf ? 'Preparando...' : 'Baixar relatório (PDF)' }}
         </button>
-        <p class="text-xs text-gray-400 italic mt-1">O arquivo traz os mesmos casos e deliberações mostrados nesta tela.</p>
+        <p class="text-xs text-gray-500 italic mt-1">O arquivo traz os mesmos casos e deliberações mostrados nesta tela.</p>
       </div>
 
       <div *ngIf="carregandoHistorico" class="text-sm text-gray-500 py-2">Carregando...</div>
@@ -231,7 +231,7 @@
             {{ f.rotulo }} ({{ contagem(f.valor) }})
           </button>
         </div>
-        <p class="text-xs text-gray-400 italic mb-4">"Analisadas" são os casos que já têm ao menos uma deliberação registrada.</p>
+        <p class="text-xs text-gray-500 italic mb-4">"Analisadas" são os casos que já têm ao menos uma deliberação registrada.</p>
 
         <!-- Casos que passam pelo comitê -->
         <div class="overflow-x-auto">
@@ -303,7 +303,7 @@
 
         <!-- Deliberações fora dos casos delegados (com ou sem sistema como objeto) -->
         <h3 class="text-sm font-semibold text-gray-900 mb-2 mt-6">Outras deliberações do comitê</h3>
-        <p class="text-xs text-gray-400 italic mb-2">Decisões fora dos casos delegados: contratos, diretrizes,
+        <p class="text-xs text-gray-500 italic mb-2">Decisões fora dos casos delegados: contratos, diretrizes,
         aprovação de guias e também decisões sobre sistemas que não correm pela rota do comitê.</p>
 
         <div class="overflow-x-auto">

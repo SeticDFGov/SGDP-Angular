@@ -21,7 +21,7 @@
           <h2 class="text-base font-semibold text-blue-900 mb-1">Processos por situação</h2>
           <p class="text-sm text-gray-600"><strong>{{ painel.TotalAtivos }}</strong> processo(s) em acompanhamento.</p>
         </div>
-        <a routerLink="/analises/processos/lista" class="text-sm text-blue-700 hover:underline">Ver todos na lista</a>
+        <a routerLink="/analises/processos/lista" class="text-sm text-blue-700 underline">Ver todos na lista</a>
       </div>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -40,11 +40,11 @@
         <div>
           <h3 class="text-sm font-semibold text-blue-900 mb-2">Concluídos (contrato assinado)</h3>
           <a routerLink="/analises/processos/lista" [queryParams]="lista({ Situacao: 'Concluído' })"
-             class="inline-flex items-end gap-2 hover:underline">
+             class="inline-flex items-end gap-2 underline">
             <span class="text-2xl font-bold text-green-700">{{ painel.TotalConcluidos }}</span>
             <span class="text-sm text-blue-700">ver na lista</span>
           </a>
-          <p class="text-xs text-gray-400 italic mt-1">Com a data de assinatura do contrato o processo sai da lista e
+          <p class="text-xs text-gray-500 italic mt-1">Com a data de assinatura do contrato o processo sai da lista e
           entra na relação de concluídos, logo abaixo.</p>
         </div>
 
@@ -52,11 +52,11 @@
         <div>
           <h3 class="text-sm font-semibold text-blue-900 mb-2">Aguardando esclarecimento do órgão</h3>
           <a routerLink="/analises/processos/lista" [queryParams]="lista({ EsclarecimentoPendente: true })"
-             class="inline-flex items-end gap-2 hover:underline">
+             class="inline-flex items-end gap-2 underline">
             <span class="text-2xl font-bold text-amber-700">{{ painel.TotalEsclarecimentoPendente }}</span>
             <span class="text-sm text-blue-700">ver na lista</span>
           </a>
-          <p class="text-xs text-gray-400 italic mt-1">Pedido de esclarecimento ainda sem resposta. A situação do trâmite
+          <p class="text-xs text-gray-500 italic mt-1">Pedido de esclarecimento ainda sem resposta. A situação do trâmite
           não muda por causa disso.</p>
         </div>
       </div>
@@ -71,7 +71,7 @@
           primeiro, até 50; a lista filtrada por Concluído traz todos.</p>
         </div>
         <a routerLink="/analises/processos/lista" [queryParams]="lista({ Situacao: 'Concluído' })"
-           class="text-sm text-blue-700 hover:underline">Ver todos na lista</a>
+           class="text-sm text-blue-700 underline">Ver todos na lista</a>
       </div>
 
       <div *ngIf="painel.Concluidos.length === 0" class="text-sm text-gray-500">Nenhum processo concluído ainda.</div>
@@ -92,14 +92,14 @@
             <tr *ngFor="let p of painel.Concluidos" class="border-b border-gray-200 hover:bg-gray-50">
               <td class="px-3 py-2 whitespace-nowrap">
                 <a [routerLink]="['/analises/processos/editar', p.Id]"
-                   class="font-semibold text-blue-800 hover:underline">{{ p.NumeroProcesso }}</a>
+                   class="font-semibold text-blue-800 underline">{{ p.NumeroProcesso }}</a>
               </td>
               <td class="px-3 py-2">{{ p.OrgaoSigla }}</td>
               <td class="px-3 py-2"><span class="block w-64 truncate" [title]="p.Objeto">{{ p.Objeto }}</span></td>
               <td class="px-3 py-2">
                 <span *ngIf="p.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeCriticidade(p.Criticidade)">{{ p.Criticidade }}</span>
-                <span *ngIf="!p.Criticidade" class="text-xs text-gray-400 italic">sem criticidade</span>
+                <span *ngIf="!p.Criticidade" class="text-xs text-gray-500 italic">sem criticidade</span>
               </td>
               <td class="px-3 py-2 whitespace-nowrap">{{ p.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}</td>
               <td class="px-3 py-2 text-right">
@@ -115,7 +115,7 @@
     <!-- Riscos da contratação: o maior nível de cada processo -->
     <div class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Maior risco da contratação</h2>
-      <p class="text-xs text-gray-400 italic mb-4">Cada processo conta uma vez, pelo maior nível entre os riscos da
+      <p class="text-xs text-gray-500 italic mb-4">Cada processo conta uma vez, pelo maior nível entre os riscos da
       contratação registrados nele (mapa de riscos da CGDF). Independente da criticidade.</p>
       <p *ngIf="porNivelRiscoDeclarado.length === 0" class="text-sm text-gray-500">Sem dados.</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -248,7 +248,7 @@
             <tr *ngFor="let p of painel.Gargalos" class="border-b border-gray-200 hover:bg-gray-50">
               <td class="px-3 py-2 whitespace-nowrap">
                 <a [routerLink]="['/analises/processos/editar', p.Id]"
-                   class="font-semibold text-blue-800 hover:underline">{{ p.NumeroProcesso }}</a>
+                   class="font-semibold text-blue-800 underline">{{ p.NumeroProcesso }}</a>
               </td>
               <td class="px-3 py-2">{{ p.OrgaoSigla }}</td>
               <td class="px-3 py-2">

@@ -38,7 +38,7 @@
     <div *ngIf="carregando && !pagina" class="p-6 text-sm text-gray-500">Carregando...</div>
     <div *ngIf="erroCarga" class="p-6 text-sm text-red-700">Não foi possível carregar os pedidos. Tente buscar de novo.</div>
     <div *ngIf="pagina && pagina.Items.length === 0 && !erroCarga" class="p-6 text-sm text-gray-500 flex items-center gap-2">
-      <span class="material-icons text-lg text-gray-400" aria-hidden="true">{{ vendoPendentes ? 'task_alt' : 'inbox' }}</span>
+      <span class="material-icons text-lg text-gray-500" aria-hidden="true">{{ vendoPendentes ? 'task_alt' : 'inbox' }}</span>
       {{ vendoPendentes ? 'Nenhum pedido aguardando decisão.' : 'Nenhum pedido com esses filtros.' }}
     </div>
 
@@ -50,7 +50,7 @@
           <div class="lg:w-72 shrink-0 min-w-0">
             <p class="font-semibold text-gray-900">{{ p.Nome || '(sem nome)' }}</p>
             <p class="text-xs text-gray-500 break-all">{{ p.Email }}</p>
-            <p class="text-xs text-gray-400 mt-0.5">Unidade: {{ p.UnidadeNome || 'não definida' }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">Unidade: {{ p.UnidadeNome || 'não definida' }}</p>
           </div>
 
           <!-- O pedido -->
@@ -63,7 +63,7 @@
               <span class="text-xs text-gray-500">Pedido em {{ p.CriadoEm | date:'dd/MM/yyyy HH:mm' }}</span>
             </div>
             <p *ngIf="p.Justificativa" class="text-sm text-gray-700 mt-2 whitespace-pre-line break-words">"{{ p.Justificativa }}"</p>
-            <p *ngIf="!p.Justificativa" class="text-sm text-gray-400 italic mt-2">Sem justificativa.</p>
+            <p *ngIf="!p.Justificativa" class="text-sm text-gray-500 italic mt-2">Sem justificativa.</p>
 
             <!-- Já decidido -->
             <div *ngIf="p.Situacao === S.Aprovado" class="mt-3 text-sm rounded-md px-3 py-2 bg-green-50 text-green-900 border border-green-100">
@@ -90,7 +90,7 @@
           <!-- Ações -->
           <div *ngIf="p.Situacao === S.Pendente" class="flex gap-2 lg:flex-col lg:w-36 shrink-0">
             <button type="button" (click)="abrirDecisao(p, 'aprovar')"
-                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold bg-green-600 text-white hover:bg-green-700">
+                    class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold bg-green-700 text-white hover:bg-green-800">
               <span class="material-icons text-base" aria-hidden="true">check</span> Aprovar
             </button>
             <button type="button" (click)="abrirDecisao(p, 'recusar')"
@@ -125,7 +125,7 @@
 
           <div class="flex flex-wrap items-center gap-2 mt-4">
             <button type="button" (click)="confirmar()" [disabled]="salvando"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-green-700 text-white text-sm font-semibold hover:bg-green-800 disabled:opacity-50">
               <span class="material-icons text-base" aria-hidden="true">lock_open</span>
               {{ salvando ? 'Liberando...' : 'Aprovar e liberar o acesso' }}
             </button>
@@ -149,7 +149,7 @@
             <span [ngClass]="motivoFaltando ? 'text-red-600' : 'text-gray-500'">
               {{ motivoFaltando ? 'Escreva o motivo: a pessoa vai ler no card do módulo.' : 'A pessoa vai ler o motivo no card do módulo.' }}
             </span>
-            <span class="text-gray-400 whitespace-nowrap">{{ decisao.motivo.length }}/{{ tamanhoMotivo }}</span>
+            <span class="text-gray-500 whitespace-nowrap">{{ decisao.motivo.length }}/{{ tamanhoMotivo }}</span>
           </div>
 
           <div class="flex flex-wrap items-center gap-2 mt-3">

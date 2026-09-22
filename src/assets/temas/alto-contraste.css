@@ -1,0 +1,234 @@
+/* GERADO por scripts/temas/gerar-temas.mjs a partir do CSS do Tailwind: não editar à mão (npm run temas). */
+html.tema-alto-contraste{color-scheme:dark;background-color:#000;color:#fff;--foco:#ffff00}
+html.tema-alto-contraste body{background-color:#000;color:#fff}
+html.tema-alto-contraste *,html.tema-alto-contraste ::before,html.tema-alto-contraste ::after{--tw-ring-offset-color:#000}
+html.tema-alto-contraste app-root a[href]{color:#ffff00;text-decoration:underline;text-underline-offset:2px}
+html.tema-alto-contraste app-root :is(input,select,textarea):not([type=checkbox]):not([type=radio]):not([type=range]){background-color:#000;color:#fff;border-color:#fff}
+html.tema-alto-contraste app-root :is(input[type=checkbox],input[type=radio]){accent-color:#ffff00}
+html.tema-alto-contraste app-root [aria-pressed=true],html.tema-alto-contraste app-root a[href][aria-current=page]{background-color:#ffff00;color:#000;box-shadow:none;text-decoration:none}
+html.tema-alto-contraste ::placeholder{color:#c8c8c8;opacity:1}
+html.tema-alto-contraste ::selection{background-color:#ffff00;color:#000}
+html.tema-alto-contraste #gantt-chart-container::-webkit-scrollbar-track{background:#000}
+html.tema-alto-contraste #gantt-chart-container::-webkit-scrollbar-thumb{background:#fff}
+html.tema-alto-contraste :where(.divide-gray-100 > :not(:last-child)){border-color:#fff}
+html.tema-alto-contraste :where(.divide-gray-200 > :not(:last-child)){border-color:#fff}
+html.tema-alto-contraste .border-amber-200{border-color:#ffe14d}
+html.tema-alto-contraste .border-amber-300{border-color:#ffe14d}
+html.tema-alto-contraste .border-amber-400{border-color:#ffe14d}
+html.tema-alto-contraste .border-blue-100{border-color:#80c8ff}
+html.tema-alto-contraste .border-blue-200{border-color:#80c8ff}
+html.tema-alto-contraste .border-blue-400{border-color:#80c8ff}
+html.tema-alto-contraste .border-blue-500{border-color:#80c8ff}
+html.tema-alto-contraste .border-blue-600{border-color:#80c8ff}
+html.tema-alto-contraste .border-gray-100{border-color:#fff}
+html.tema-alto-contraste .border-gray-200{border-color:#fff}
+html.tema-alto-contraste .border-gray-300{border-color:#fff}
+html.tema-alto-contraste .border-gray-500{border-color:#fff}
+html.tema-alto-contraste .border-gray-900{border-color:#fff}
+html.tema-alto-contraste .border-green-100{border-color:#66ff99}
+html.tema-alto-contraste .border-green-200{border-color:#66ff99}
+html.tema-alto-contraste .border-green-500{border-color:#66ff99}
+html.tema-alto-contraste .border-green-600{border-color:#66ff99}
+html.tema-alto-contraste .border-green-700{border-color:#66ff99}
+html.tema-alto-contraste .border-indigo-100{border-color:#d0a8ff}
+html.tema-alto-contraste .border-indigo-200{border-color:#d0a8ff}
+html.tema-alto-contraste .border-indigo-600{border-color:#d0a8ff}
+html.tema-alto-contraste .border-orange-400{border-color:#ffb070}
+html.tema-alto-contraste .border-purple-200{border-color:#d0a8ff}
+html.tema-alto-contraste .border-purple-300{border-color:#d0a8ff}
+html.tema-alto-contraste .border-red-100{border-color:#ff8080}
+html.tema-alto-contraste .border-red-200{border-color:#ff8080}
+html.tema-alto-contraste .border-red-300{border-color:#ff8080}
+html.tema-alto-contraste .border-red-500{border-color:#ff8080}
+html.tema-alto-contraste .border-red-600{border-color:#ff8080}
+html.tema-alto-contraste .border-slate-300{border-color:#fff}
+html.tema-alto-contraste .border-slate-700{border-color:#fff}
+html.tema-alto-contraste .border-teal-200{border-color:#5ff5f5}
+html.tema-alto-contraste .border-teal-600{border-color:#5ff5f5}
+html.tema-alto-contraste .border-white{border-color:#000}
+html.tema-alto-contraste .border-yellow-200{border-color:#ffe14d}
+html.tema-alto-contraste .border-yellow-500{border-color:#ffe14d}
+html.tema-alto-contraste .bg-amber-50{background-color:#000}
+html.tema-alto-contraste .bg-amber-100{background-color:#000}
+html.tema-alto-contraste .bg-amber-500{background-color:#000;box-shadow:inset 0 0 0 2px #ffe14d}
+html.tema-alto-contraste .bg-blue-50{background-color:#000}
+@supports (color: color-mix(in lab, red, red)){html.tema-alto-contraste .bg-blue-50\/40{background-color:color-mix(in oklab, #000 40%, transparent)}}
+@supports (color: color-mix(in lab, red, red)){html.tema-alto-contraste .bg-blue-50\/50{background-color:color-mix(in oklab, #000 50%, transparent)}}
+@supports (color: color-mix(in lab, red, red)){html.tema-alto-contraste .bg-blue-50\/60{background-color:color-mix(in oklab, #000 60%, transparent)}}
+html.tema-alto-contraste .bg-blue-100{background-color:#000}
+html.tema-alto-contraste .bg-blue-500{background-color:#000;box-shadow:inset 0 0 0 2px #80c8ff}
+html.tema-alto-contraste .bg-blue-600{background-color:#000;box-shadow:inset 0 0 0 2px #80c8ff}
+html.tema-alto-contraste .bg-blue-900{background-color:#000;box-shadow:inset 0 0 0 2px #80c8ff}
+html.tema-alto-contraste .bg-cyan-100{background-color:#000}
+html.tema-alto-contraste .bg-emerald-100{background-color:#000}
+html.tema-alto-contraste .bg-gray-50{background-color:#000}
+html.tema-alto-contraste .bg-gray-100{background-color:#000}
+html.tema-alto-contraste .bg-gray-200{background-color:#000}
+html.tema-alto-contraste .bg-gray-300{background-color:#000}
+html.tema-alto-contraste .bg-gray-400{background-color:#000}
+html.tema-alto-contraste .bg-gray-500{background-color:#000;box-shadow:inset 0 0 0 2px #fff}
+html.tema-alto-contraste .bg-gray-600{background-color:#000;box-shadow:inset 0 0 0 2px #fff}
+html.tema-alto-contraste .bg-gray-700{background-color:#000;box-shadow:inset 0 0 0 2px #fff}
+html.tema-alto-contraste .bg-gray-800{background-color:#000}
+html.tema-alto-contraste .bg-gray-900{background-color:#000}
+html.tema-alto-contraste .bg-green-50{background-color:#000}
+html.tema-alto-contraste .bg-green-100{background-color:#000}
+html.tema-alto-contraste .bg-green-500{background-color:#000;box-shadow:inset 0 0 0 2px #66ff99}
+html.tema-alto-contraste .bg-green-700{background-color:#000;box-shadow:inset 0 0 0 2px #66ff99}
+html.tema-alto-contraste .bg-indigo-50{background-color:#000}
+@supports (color: color-mix(in lab, red, red)){html.tema-alto-contraste .bg-indigo-50\/40{background-color:color-mix(in oklab, #000 40%, transparent)}}
+@supports (color: color-mix(in lab, red, red)){html.tema-alto-contraste .bg-indigo-50\/70{background-color:color-mix(in oklab, #000 70%, transparent)}}
+html.tema-alto-contraste .bg-indigo-100{background-color:#000}
+html.tema-alto-contraste .bg-indigo-500{background-color:#000;box-shadow:inset 0 0 0 2px #d0a8ff}
+html.tema-alto-contraste .bg-indigo-600{background-color:#000;box-shadow:inset 0 0 0 2px #d0a8ff}
+html.tema-alto-contraste .bg-orange-50{background-color:#000}
+html.tema-alto-contraste .bg-orange-100{background-color:#000}
+html.tema-alto-contraste .bg-orange-400{background-color:#000;box-shadow:inset 0 0 0 2px #ffb070}
+html.tema-alto-contraste .bg-purple-50{background-color:#000}
+html.tema-alto-contraste .bg-purple-100{background-color:#000}
+html.tema-alto-contraste .bg-purple-500{background-color:#000;box-shadow:inset 0 0 0 2px #d0a8ff}
+html.tema-alto-contraste .bg-red-50{background-color:#000}
+html.tema-alto-contraste .bg-red-100{background-color:#000}
+html.tema-alto-contraste .bg-red-500{background-color:#000;box-shadow:inset 0 0 0 2px #ff8080}
+html.tema-alto-contraste .bg-red-600{background-color:#000;box-shadow:inset 0 0 0 2px #ff8080}
+html.tema-alto-contraste .bg-slate-100{background-color:#000}
+html.tema-alto-contraste .bg-slate-700{background-color:#000;box-shadow:inset 0 0 0 2px #fff}
+html.tema-alto-contraste .bg-slate-800{background-color:#000}
+html.tema-alto-contraste .bg-slate-900{background-color:#000}
+html.tema-alto-contraste .bg-teal-50{background-color:#000}
+html.tema-alto-contraste .bg-teal-100{background-color:#000}
+html.tema-alto-contraste .bg-teal-600{background-color:#000;box-shadow:inset 0 0 0 2px #5ff5f5}
+html.tema-alto-contraste .bg-teal-700{background-color:#000;box-shadow:inset 0 0 0 2px #5ff5f5}
+html.tema-alto-contraste .bg-white{background-color:#000}
+html.tema-alto-contraste .bg-yellow-50{background-color:#000}
+html.tema-alto-contraste .bg-yellow-100{background-color:#000}
+html.tema-alto-contraste .bg-yellow-300{background-color:#000}
+html.tema-alto-contraste .from-blue-400{--tw-gradient-from:#000}
+html.tema-alto-contraste .to-indigo-500{--tw-gradient-to:#000}
+html.tema-alto-contraste .text-amber-600{color:#ffe14d}
+html.tema-alto-contraste .text-amber-700{color:#ffe14d}
+html.tema-alto-contraste .text-amber-800{color:#ffe14d}
+html.tema-alto-contraste .text-amber-900{color:#ffe14d}
+html.tema-alto-contraste .text-blue-100{color:#80c8ff}
+html.tema-alto-contraste .text-blue-600{color:#80c8ff}
+html.tema-alto-contraste .text-blue-700{color:#80c8ff}
+html.tema-alto-contraste .text-blue-800{color:#80c8ff}
+html.tema-alto-contraste .text-blue-900{color:#80c8ff}
+html.tema-alto-contraste .text-blue-950{color:#80c8ff}
+html.tema-alto-contraste .text-cyan-800{color:#5ff5f5}
+html.tema-alto-contraste .text-emerald-800{color:#66ff99}
+html.tema-alto-contraste .text-gray-300{color:#fff}
+html.tema-alto-contraste .text-gray-400{color:#fff}
+html.tema-alto-contraste .text-gray-500{color:#fff}
+html.tema-alto-contraste .text-gray-600{color:#fff}
+html.tema-alto-contraste .text-gray-700{color:#fff}
+html.tema-alto-contraste .text-gray-800{color:#fff}
+html.tema-alto-contraste .text-gray-900{color:#fff}
+html.tema-alto-contraste .text-green-600{color:#66ff99}
+html.tema-alto-contraste .text-green-700{color:#66ff99}
+html.tema-alto-contraste .text-green-800{color:#66ff99}
+html.tema-alto-contraste .text-green-900{color:#66ff99}
+html.tema-alto-contraste .text-indigo-100{color:#d0a8ff}
+html.tema-alto-contraste .text-indigo-600{color:#d0a8ff}
+html.tema-alto-contraste .text-indigo-700{color:#d0a8ff}
+html.tema-alto-contraste .text-indigo-800{color:#d0a8ff}
+html.tema-alto-contraste .text-indigo-900{color:#d0a8ff}
+html.tema-alto-contraste .text-orange-800{color:#ffb070}
+html.tema-alto-contraste .text-purple-500{color:#d0a8ff}
+html.tema-alto-contraste .text-purple-600{color:#d0a8ff}
+html.tema-alto-contraste .text-purple-700{color:#d0a8ff}
+html.tema-alto-contraste .text-purple-800{color:#d0a8ff}
+html.tema-alto-contraste .text-red-400{color:#ff8080}
+html.tema-alto-contraste .text-red-500{color:#ff8080}
+html.tema-alto-contraste .text-red-600{color:#ff8080}
+html.tema-alto-contraste .text-red-700{color:#ff8080}
+html.tema-alto-contraste .text-red-800{color:#ff8080}
+html.tema-alto-contraste .text-red-900{color:#ff8080}
+html.tema-alto-contraste .text-slate-300{color:#fff}
+html.tema-alto-contraste .text-slate-400{color:#fff}
+html.tema-alto-contraste .text-slate-500{color:#fff}
+html.tema-alto-contraste .text-slate-600{color:#fff}
+html.tema-alto-contraste .text-slate-700{color:#fff}
+html.tema-alto-contraste .text-slate-800{color:#fff}
+html.tema-alto-contraste .text-slate-900{color:#fff}
+html.tema-alto-contraste .text-teal-700{color:#5ff5f5}
+html.tema-alto-contraste .text-teal-800{color:#5ff5f5}
+html.tema-alto-contraste .text-white{color:#fff}
+html.tema-alto-contraste .text-yellow-600{color:#ffe14d}
+html.tema-alto-contraste .text-yellow-700{color:#ffe14d}
+html.tema-alto-contraste .text-yellow-800{color:#ffe14d}
+html.tema-alto-contraste .text-yellow-900{color:#ffe14d}
+html.tema-alto-contraste .shadow{--tw-shadow:0 0 0 1px #fff}
+html.tema-alto-contraste .shadow-2xl{--tw-shadow:0 0 0 1px #fff}
+html.tema-alto-contraste .shadow-lg{--tw-shadow:0 0 0 1px #fff}
+html.tema-alto-contraste .shadow-md{--tw-shadow:0 0 0 1px #fff}
+html.tema-alto-contraste .shadow-sm{--tw-shadow:0 0 0 1px #fff}
+html.tema-alto-contraste .shadow-xl{--tw-shadow:0 0 0 1px #fff}
+html.tema-alto-contraste .ring-blue-300{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .ring-blue-500{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .ring-gray-900{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .ring-indigo-300{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .ring-purple-300{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .ring-purple-500{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .file\:bg-blue-600::file-selector-button{background-color:#000;box-shadow:inset 0 0 0 2px #80c8ff}
+html.tema-alto-contraste .file\:text-white::file-selector-button{color:#fff}
+@media (hover: hover){html.tema-alto-contraste .hover\:border-blue-400:hover{border-color:#80c8ff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:border-gray-200:hover{border-color:#fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:border-gray-300:hover{border-color:#fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:border-green-500:hover{border-color:#66ff99}}
+@media (hover: hover){html.tema-alto-contraste .hover\:border-indigo-300:hover{border-color:#d0a8ff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-blue-50:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-blue-100:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-blue-200:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-blue-700:hover{background-color:#000;box-shadow:inset 0 0 0 2px #80c8ff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-gray-50:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-gray-100:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-gray-300:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-gray-400:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-gray-600:hover{background-color:#000;box-shadow:inset 0 0 0 2px #fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-gray-700:hover{background-color:#000;box-shadow:inset 0 0 0 2px #fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-gray-800:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-green-50:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-green-800:hover{background-color:#000;box-shadow:inset 0 0 0 2px #66ff99}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-indigo-50:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-indigo-700:hover{background-color:#000;box-shadow:inset 0 0 0 2px #d0a8ff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-purple-200:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-red-50:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-red-100:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-red-700:hover{background-color:#000;box-shadow:inset 0 0 0 2px #ff8080}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-slate-800:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-teal-800:hover{background-color:#000;box-shadow:inset 0 0 0 2px #5ff5f5}}
+@media (hover: hover){html.tema-alto-contraste .hover\:text-blue-900:hover{color:#80c8ff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:text-gray-600:hover{color:#fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:text-gray-700:hover{color:#fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:text-gray-900:hover{color:#fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:text-red-600:hover{color:#ff8080}}
+@media (hover: hover){html.tema-alto-contraste .hover\:text-white:hover{color:#fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:shadow-lg:hover{--tw-shadow:0 0 0 1px #fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:shadow-xl:hover{--tw-shadow:0 0 0 1px #fff}}
+@media (hover: hover){html.tema-alto-contraste .hover\:file\:bg-blue-700:hover::file-selector-button{background-color:#000;box-shadow:inset 0 0 0 2px #80c8ff}}
+html.tema-alto-contraste .focus\:border-amber-500:focus{border-color:#ffe14d}
+html.tema-alto-contraste .focus\:border-blue-500:focus{border-color:#80c8ff}
+html.tema-alto-contraste .focus\:border-gray-900:focus{border-color:#fff}
+html.tema-alto-contraste .focus\:bg-white:focus{background-color:#000}
+html.tema-alto-contraste .focus\:ring-amber-500:focus{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus\:ring-blue-200:focus{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus\:ring-blue-500:focus{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus\:ring-gray-500:focus{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus\:ring-gray-900:focus{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus\:ring-green-500:focus{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus\:ring-indigo-500:focus{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus\:ring-red-400:focus{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus-visible\:ring-amber-400:focus-visible{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus-visible\:ring-blue-500:focus-visible{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus-visible\:ring-gray-400:focus-visible{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus-visible\:ring-indigo-500:focus-visible{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus-visible\:ring-slate-500:focus-visible{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus-visible\:ring-teal-500:focus-visible{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .disabled\:bg-gray-50:disabled{background-color:#000}
+html.tema-alto-contraste .disabled\:bg-gray-100:disabled{background-color:#000}
+html.tema-alto-contraste .disabled\:text-gray-500:disabled{color:#fff}
+html.tema-alto-contraste .disabled\:text-gray-600:disabled{color:#fff}
+html.tema-alto-contraste .bg-green-500.text-gray-900{background-color:#000;color:#fff;box-shadow:inset 0 0 0 2px #66ff99}
+html.tema-alto-contraste .bg-yellow-300.text-gray-900{background-color:#000;color:#fff;box-shadow:inset 0 0 0 2px #ffe14d}
+html.tema-alto-contraste .bg-orange-400.text-gray-900{background-color:#000;color:#fff;box-shadow:inset 0 0 0 2px #ffb070}

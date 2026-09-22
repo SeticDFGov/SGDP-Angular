@@ -68,10 +68,10 @@ export class PgiaChecklistAbertoComponent {
     const linha = posConsequencia < 0 ? -1 : CONSEQUENCIAS_CGDF.length - 1 - posConsequencia;
     if (coluna < 0 || linha < 0 || linha >= MATRIZ_RISCO_CGDF.length) return 'bg-gray-100 text-gray-700';
     switch (MATRIZ_RISCO_CGDF[linha][coluna]) {
-      case 'v': return 'bg-green-500 text-white';
+      case 'v': return 'bg-green-500 text-gray-900';
       case 'a': return 'bg-yellow-300 text-gray-900';
       case 'l': return 'bg-orange-400 text-gray-900';
-      default: return 'bg-red-500 text-white';
+      default: return 'bg-red-600 text-white';
     }
   }
 

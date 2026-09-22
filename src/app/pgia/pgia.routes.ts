@@ -1,5 +1,5 @@
 import { Type } from '@angular/core';
-import { Routes } from '@angular/router';
+import { ResolveFn, Routes } from '@angular/router';
 import { PgiaOrgaoEtapa1Component } from './orgao/pgia-orgao-etapa1.component';
 import { PgiaSistemasComponent } from './sistemas/pgia-sistemas.component';
 import { PgiaIncidentesComponent } from './incidentes/pgia-incidentes.component';
@@ -25,17 +25,24 @@ import { PgiaInicioComponent } from './trilha/pgia-inicio.component';
  * chamadas da área (na SGDI são 13 GETs por clique). Com o parâmetro, o
  * componente é reaproveitado e só o campo `secao` muda (ver `acompanharSecao`).
  *
- * A raiz da área redireciona para a primeira seção.
+ * A raiz da área redireciona para a primeira seção. O título da aba do
+ * navegador (acessibilidade, WCAG 2.4.2) vem do nome da seção.
  */
-function secoes(base: string, componente: Type<unknown>, nomes: readonly string[]): Routes {
+function secoes(base: string, componente: Type<unknown>, titulos: Readonly<Record<string, string>>): Routes {
+  const nomes = Object.keys(titulos);
   return [
     { path: base, pathMatch: 'full', redirectTo: `${base}/${nomes[0]}` },
     {
       path: `${base}/:secao`,
       component: componente,
+      title: tituloDaSecao(titulos),
       data: { secoes: nomes, base: `/pgia/${base}` }
     }
   ];
+}
+
+function tituloDaSecao(titulos: Readonly<Record<string, string>>): ResolveFn<string> {
+  return rota => titulos[rota.paramMap.get('secao') ?? ''] ?? '';
 }
 
 /**
@@ -50,31 +57,60 @@ export const pgia_routes: Routes = [
     path: '',
     component: PgiaShellComponent,
     children: [
-      { path: '', pathMatch: 'full', component: PgiaInicioComponent },
+      { path: '', pathMatch: 'full', component: PgiaInicioComponent, title: 'Visão geral' },
 
       // Áreas com um formulário por página
-      ...secoes('orgao', PgiaOrgaoEtapa1Component,
-        ['dados', 'pessoas', 'responsavel-ia', 'encarregado-dados']),
-      ...secoes('sistemas', PgiaSistemasComponent,
-        ['lista', 'cadastro']),
-      ...secoes('incidentes', PgiaIncidentesComponent,
-        ['aviso', 'comunicacao', 'acompanhamento', 'nao-conformidades']),
-      ...secoes('contratacoes', PgiaContratacoesComponent,
-        ['contratos', 'legados']),
-      ...secoes('relatorios', PgiaRelatoriosComponent,
-        ['indicadores', 'semestrais']),
-      ...secoes('sgdi', PgiaSgdiComponent,
-        ['fila', 'orgaos-dados', 'pessoas', 'plataformas', 'apuracao', 'registro-publico', 'aia', 'semestrais',
-         'anual', 'auditorias', 'nao-conformidades', 'normas', 'autorizacoes']),
-      ...secoes('cgtic', PgiaCgticComponent,
-        ['casos', 'deliberacoes', 'historico']),
+      ...secoes('orgao', PgiaOrgaoEtapa1Component, {
+        'dados': 'Dados do órgão',
+        'pessoas': 'Pessoas do órgão',
+        'responsavel-ia': 'Responsável de IA',
+        'encarregado-dados': 'Encarregado de Dados'
+      }),
+      ...secoes('sistemas', PgiaSistemasComponent, {
+        'lista': 'Sistemas de IA do órgão',
+        'cadastro': 'Cadastro de sistema de IA'
+      }),
+      ...secoes('incidentes', PgiaIncidentesComponent, {
+        'aviso': 'Aviso de incidente',
+        'comunicacao': 'Comunicação de incidente à SGDI',
+        'acompanhamento': 'Acompanhamento dos incidentes',
+        'nao-conformidades': 'Não conformidades'
+      }),
+      ...secoes('contratacoes', PgiaContratacoesComponent, {
+        'contratos': 'Contratos de IA',
+        'legados': 'Contratos e atos anteriores ao decreto'
+      }),
+      ...secoes('relatorios', PgiaRelatoriosComponent, {
+        'indicadores': 'Indicadores de desempenho',
+        'semestrais': 'Relatórios semestrais'
+      }),
+      ...secoes('sgdi', PgiaSgdiComponent, {
+        'fila': 'Fila de homologação (SGDI)',
+        'orgaos-dados': 'Dados dos órgãos (SGDI)',
+        'pessoas': 'Pessoas e acessos (SGDI)',
+        'plataformas': 'Plataformas de IA generativa (SGDI)',
+        'apuracao': 'Apuração de incidentes (SGDI)',
+        'registro-publico': 'Registro Público (SGDI)',
+        'aia': 'Avaliações de Impacto Algorítmico (SGDI)',
+        'semestrais': 'Relatórios semestrais (SGDI)',
+        'anual': 'Relatório Anual (SGDI)',
+        'auditorias': 'Auditorias técnicas (SGDI)',
+        'nao-conformidades': 'Não conformidades (SGDI)',
+        'normas': 'Normas complementares (SGDI)',
+        'autorizacoes': 'Autorizações excepcionais (SGDI)'
+      }),
+      ...secoes('cgtic', PgiaCgticComponent, {
+        'casos': 'Casos do comitê (CGTIC)',
+        'deliberacoes': 'Deliberações do comitê (CGTIC)',
+        'historico': 'Histórico de decisões do comitê (CGTIC)'
+      }),
 
       // Áreas de tela única
-      { path: 'uso', component: PgiaUsoComponent },
-      { path: 'capacitacao', component: PgiaCapacitacaoComponent },
-      { path: 'solicitacoes', component: PgiaSolicitacoesComponent },
-      { path: 'auditoria', component: PgiaAuditoriaComponent },
-      { path: 'prazos', component: PgiaPrazosComponent },
+      { path: 'uso', component: PgiaUsoComponent, title: 'Registro de uso de IA' },
+      { path: 'capacitacao', component: PgiaCapacitacaoComponent, title: 'Capacitações' },
+      { path: 'solicitacoes', component: PgiaSolicitacoesComponent, title: 'Solicitações do cidadão' },
+      { path: 'auditoria', component: PgiaAuditoriaComponent, title: 'Auditorias designadas' },
+      { path: 'prazos', component: PgiaPrazosComponent, title: 'Prazos do decreto' },
     ]
   }
 ];

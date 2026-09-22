@@ -30,6 +30,7 @@ import {
   SEM_RISCOS_DECLARADOS,
   SITUACOES
 } from '../../../api/contratacoes/interface';
+import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 
 /** Filtro aplicado, mostrado como etiqueta removível acima da lista. */
 interface FiltroAtivo {
@@ -57,7 +58,7 @@ const SITUACAO_CONCLUIDO = 'Concluído';
 @Component({
   selector: 'app-ctr-processos',
   standalone: true,
-  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule, CtrProcessoFormComponent],
+  imports: [CitaInDirective, DialogoDirective, CommonModule, FormsModule, RouterModule, CtrProcessoFormComponent],
   templateUrl: './ctr-processos.component.html'
 })
 export class CtrProcessosComponent implements OnInit {

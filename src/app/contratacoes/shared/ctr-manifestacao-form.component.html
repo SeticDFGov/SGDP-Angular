@@ -11,8 +11,8 @@
 <!-- Referência da comunicação -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
   <div>
-    <label class="block text-sm font-semibold mb-1">Ofício/Comunicação TCDF nº <span class="text-red-600">*</span></label>
-    <input type="text" [(ngModel)]="form.OficioTcdf" name="ctr-oficio" maxlength="60"
+    <label for="ctr-oficio" class="block text-sm font-semibold mb-1">Ofício/Comunicação TCDF nº <span class="text-red-600">*</span></label>
+    <input id="ctr-oficio" type="text" [(ngModel)]="form.OficioTcdf" name="ctr-oficio" maxlength="60"
            placeholder="1234/2026 (2ª ICE)"
            class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
            [class.border-red-500]="submetido && errOficio"
@@ -21,8 +21,8 @@
     <p *ngIf="submetido && errOficio" class="text-xs text-red-600 mt-1">{{ errOficio }}</p>
   </div>
   <div>
-    <label class="block text-sm font-semibold mb-1">Data do ofício <span class="text-red-600">*</span></label>
-    <input type="date" [(ngModel)]="form.DataOficio" name="ctr-data-oficio"
+    <label for="ctr-data-oficio" class="block text-sm font-semibold mb-1">Data do ofício <span class="text-red-600">*</span></label>
+    <input id="ctr-data-oficio" type="date" [(ngModel)]="form.DataOficio" name="ctr-data-oficio"
            class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
            [class.border-red-500]="submetido && errDataOficio"
            [class.border-gray-300]="!(submetido && errDataOficio)">
@@ -48,13 +48,13 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <label class="block text-sm font-semibold mb-1">Comunicada e monitorada desde <span class="text-red-600">*</span></label>
-        <input type="date" [(ngModel)]="form.ComunicadaDesde" name="ctr-comunicada-desde"
+        <label for="ctr-comunicada-desde" class="block text-sm font-semibold mb-1">Comunicada e monitorada desde <span class="text-red-600">*</span></label>
+        <input id="ctr-comunicada-desde" type="date" [(ngModel)]="form.ComunicadaDesde" name="ctr-comunicada-desde"
                class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                [class.border-red-500]="submetido && errComunicadaDesde"
                [class.border-gray-300]="!(submetido && errComunicadaDesde)">
         <p *ngIf="submetido && errComunicadaDesde" class="text-xs text-red-600 mt-1">{{ errComunicadaDesde }}</p>
-        <p class="text-xs text-gray-400 italic mt-1">É o "[data]" do despacho.</p>
+        <p class="text-xs text-gray-500 italic mt-1">É o "[data]" do despacho.</p>
       </div>
       <!-- A criticidade é da contratação: vem do cadastro do processo -->
       <div>
@@ -64,9 +64,9 @@
         </p>
         <p *ngIf="!criticidadeProcesso" class="text-sm text-red-700 py-2">Ainda não definida no cadastro do processo.</p>
         <a *ngIf="processoId" [routerLink]="['/analises/processos/editar', processoId]"
-           class="text-sm text-blue-700 hover:underline">Editar o processo</a>
+           class="text-sm text-blue-700 underline">Editar o processo</a>
         <p *ngIf="submetido && errCriticidade" class="text-xs text-red-600 mt-1">{{ errCriticidade }}</p>
-        <p class="text-xs text-gray-400 italic mt-1">Art. 11 da IN SGDI nº 1/2026. É atributo da contratação: o despacho
+        <p class="text-xs text-gray-500 italic mt-1">Art. 11 da IN SGDI nº 1/2026. É atributo da contratação: o despacho
         só reporta o valor do cadastro.</p>
       </div>
     </div>
@@ -137,7 +137,7 @@
           acompanhamento contínuo.</span>
         </label>
 
-        <p *ngIf="temRiscos" class="text-xs text-gray-400 italic">As duas primeiras opções são providências que podem
+        <p *ngIf="temRiscos" class="text-xs text-gray-500 italic">As duas primeiras opções são providências que podem
         estar as duas marcadas. As três últimas são o ponto em que o tratamento do risco está: escolha uma.</p>
       </div>
 
@@ -160,13 +160,13 @@
   </label>
 
   <div *ngIf="incisoII" class="mt-4 pl-6 max-w-xs">
-    <label class="block text-sm font-semibold mb-1">Prazo para regularizar, em dias <span class="text-red-600">*</span></label>
-    <input type="number" min="1" max="365" step="1" [(ngModel)]="form.PrazoRegularizacaoDias" name="ctr-prazo"
+    <label for="ctr-prazo" class="block text-sm font-semibold mb-1">Prazo para regularizar, em dias <span class="text-red-600">*</span></label>
+    <input id="ctr-prazo" type="number" min="1" max="365" step="1" [(ngModel)]="form.PrazoRegularizacaoDias" name="ctr-prazo"
            class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
            [class.border-red-500]="submetido && errPrazo"
            [class.border-gray-300]="!(submetido && errPrazo)">
     <p *ngIf="submetido && errPrazo" class="text-xs text-red-600 mt-1">{{ errPrazo }}</p>
-    <p class="text-xs text-gray-400 italic mt-1">É o "[__] dias" do despacho (art. 40 da IN). De 1 a 365 dias.</p>
+    <p class="text-xs text-gray-500 italic mt-1">É o "[__] dias" do despacho (art. 40 da IN). De 1 a 365 dias.</p>
   </div>
 </div>
 
@@ -178,37 +178,37 @@
   <p>Reitera-se que a supervisão exercida por esta SGDI tem natureza técnica e orientadora, não implicando aprovação,
   validação ou substituição das competências dos órgãos de controle interno e externo (art. 9º e art. 25, §2º, da IN
   SGDI nº 1/2026), permanecendo a SGDI à disposição para esclarecimentos adicionais.</p>
-  <p class="text-xs text-gray-400 italic mt-2">Estes dois parágrafos são fixos e entram no despacho gerado.</p>
+  <p class="text-xs text-gray-500 italic mt-2">Estes dois parágrafos são fixos e entram no despacho gerado.</p>
 </div>
 
 <!-- Esclarecimentos adicionais: valem nos dois incisos e não vão no despacho.
      Não confundir com o bloco "Esclarecimentos ao órgão comunicante" do processo. -->
 <div class="mt-4">
-  <label class="block text-sm font-semibold mb-1">Esclarecimentos Adicionais</label>
-  <textarea rows="3" [(ngModel)]="form.EsclarecimentosAdicionais" name="ctr-esclarecimentos-adicionais" maxlength="4000"
+  <label for="ctr-esclarecimentos-adicionais" class="block text-sm font-semibold mb-1">Esclarecimentos Adicionais</label>
+  <textarea id="ctr-esclarecimentos-adicionais" rows="3" [(ngModel)]="form.EsclarecimentosAdicionais" name="ctr-esclarecimentos-adicionais" maxlength="4000"
             placeholder="Informações complementares sobre esta comunicação do TCDF."
             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-  <p class="text-xs text-gray-400 italic mt-1">Registro de acompanhamento; não altera o texto do despacho.</p>
+  <p class="text-xs text-gray-500 italic mt-1">Registro de acompanhamento; não altera o texto do despacho.</p>
 </div>
 
 <!-- Status no TCDF: fato do Tribunal, vale nos dois incisos -->
 <div class="mt-4 max-w-sm">
-  <label class="block text-sm font-semibold mb-1">Status no TCDF (opcional)</label>
-  <select [(ngModel)]="form.StatusTcdf" name="ctr-status-tcdf"
+  <label for="ctr-status-tcdf" class="block text-sm font-semibold mb-1">Status no TCDF (opcional)</label>
+  <select id="ctr-status-tcdf" [(ngModel)]="form.StatusTcdf" name="ctr-status-tcdf"
           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
     <option [ngValue]="null">Sem status especial</option>
     <option *ngFor="let s of statusTcdf" [ngValue]="s">{{ s }}</option>
   </select>
-  <p class="text-xs text-gray-400 italic mt-1">Registro de acompanhamento do que aconteceu com o processo no Tribunal.
+  <p class="text-xs text-gray-500 italic mt-1">Registro de acompanhamento do que aconteceu com o processo no Tribunal.
   Vale para os dois incisos e não altera o texto do despacho.</p>
 </div>
 
 <div class="mt-4">
-  <label class="block text-sm font-semibold mb-1">Observação interna</label>
-  <textarea rows="3" [(ngModel)]="form.Observacao" name="ctr-manifestacao-observacao"
+  <label for="ctr-manifestacao-observacao" class="block text-sm font-semibold mb-1">Observação interna</label>
+  <textarea id="ctr-manifestacao-observacao" rows="3" [(ngModel)]="form.Observacao" name="ctr-manifestacao-observacao"
             placeholder="Anotações da equipe sobre esta manifestação."
             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-  <p class="text-xs text-gray-400 italic mt-1">Fica só no sistema: não entra no despacho.</p>
+  <p class="text-xs text-gray-500 italic mt-1">Fica só no sistema: não entra no despacho.</p>
 </div>
 
 <div class="mt-5 flex items-center gap-3">
@@ -217,5 +217,5 @@
     {{ salvando ? 'Salvando...' : rotuloSalvar }}
   </button>
   <button type="button" (click)="cancelar.emit()" class="text-sm text-blue-700 hover:underline">Cancelar</button>
-  <span *ngIf="submetido && !formValido" class="text-xs text-gray-400 italic">Há campos obrigatórios para preencher acima.</span>
+  <span *ngIf="submetido && !formValido" class="text-xs text-gray-500 italic">Há campos obrigatórios para preencher acima.</span>
 </div>

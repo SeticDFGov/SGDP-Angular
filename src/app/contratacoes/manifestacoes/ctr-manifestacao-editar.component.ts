@@ -8,6 +8,7 @@ import { CtrManifestacaoService } from '../services/ctr-manifestacao.service';
 import { CtrManifestacaoFormComponent } from '../shared/ctr-manifestacao-form.component';
 import { badgeCriticidade, badgeEstagio, badgeStatusTcdf } from '../shared/ctr-rotulos';
 import { CtrManifestacao, CtrManifestacaoForm } from '../../../api/contratacoes/interface';
+import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 
 /**
  * Página de uma manifestação (`/analises/manifestacoes/editar/:id`): o mesmo
@@ -19,7 +20,7 @@ import { CtrManifestacao, CtrManifestacaoForm } from '../../../api/contratacoes/
 @Component({
   selector: 'app-ctr-manifestacao-editar',
   standalone: true,
-  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent],
+  imports: [CitaInDirective, DialogoDirective, CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent],
   templateUrl: './ctr-manifestacao-editar.component.html'
 })
 export class CtrManifestacaoEditarComponent implements OnInit {

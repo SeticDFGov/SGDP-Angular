@@ -2,7 +2,7 @@
 
   <div class="mb-4">
     <a routerLink="/analises/processos/lista" [queryParams]="filtrosDaLista"
-       class="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline">
+       class="inline-flex items-center gap-1 text-sm text-blue-700 underline">
       <span class="material-icons text-base leading-none" aria-hidden="true">arrow_back</span>
       Voltar para a lista de processos
     </a>
@@ -96,7 +96,7 @@
         </p>
       </div>
 
-      <p class="text-xs text-gray-400 italic mt-3">
+      <p class="text-xs text-gray-500 italic mt-3">
         Cadastrado por {{ processo.CriadoPor }} em {{ processo.CriadoEm | date:'dd/MM/yyyy HH:mm' }}<span
         *ngIf="processo.AlteradoEm"> · última alteração por {{ processo.AlteradoPor }} em
         {{ processo.AlteradoEm | date:'dd/MM/yyyy HH:mm' }}</span>.

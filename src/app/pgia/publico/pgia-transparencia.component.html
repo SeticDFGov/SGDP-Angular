@@ -11,7 +11,7 @@
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 py-6">
+  <main id="conteudo" tabindex="-1" class="max-w-4xl mx-auto px-4 py-6">
 
     <!-- Contexto -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-5">
@@ -82,14 +82,14 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">1. Qual serviço ou decisão? <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.SistemaIaId" name="c-servico"
+          <label for="c-servico" class="block text-sm font-semibold mb-1">1. Qual serviço ou decisão? <span class="text-red-600">*</span></label>
+          <select id="c-servico" [(ngModel)]="form.SistemaIaId" name="c-servico"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   [class.border-red-500]="errSistema" [class.border-gray-300]="!errSistema">
             <option [ngValue]="null">Escolha na lista de sistemas publicados</option>
             <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}, {{ s.OrgaoNome }}</option>
           </select>
-          <p class="text-xs text-gray-400 italic mt-1">A lista vem do Registro Público de Sistemas de IA, no Portal da Transparência.</p>
+          <p class="text-xs text-gray-500 italic mt-1">A lista vem do Registro Público de Sistemas de IA, no Portal da Transparência.</p>
         </div>
 
         <div class="md:col-span-2 rounded-md p-2 -m-2" [class.bg-red-50]="errTipo">
@@ -103,34 +103,34 @@
         </div>
 
         <div>
-          <label class="block text-sm font-semibold mb-1">3. Seu nome <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="form.SolicitanteNome" name="c-nome"
+          <label for="c-nome" class="block text-sm font-semibold mb-1">3. Seu nome <span class="text-red-600">*</span></label>
+          <input id="c-nome" type="text" [(ngModel)]="form.SolicitanteNome" name="c-nome"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errNome" [class.bg-red-50]="errNome" [class.border-gray-300]="!errNome">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">4. Como responder a você? <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="form.SolicitanteContato" name="c-contato" placeholder="Informe um e-mail ou um telefone"
+          <label for="c-contato" class="block text-sm font-semibold mb-1">4. Como responder a você? <span class="text-red-600">*</span></label>
+          <input id="c-contato" type="text" [(ngModel)]="form.SolicitanteContato" name="c-contato" placeholder="Informe um e-mail ou um telefone"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errContato" [class.bg-red-50]="errContato" [class.border-gray-300]="!errContato">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">5. Qual foi a decisão?
+          <label for="c-decisao" class="block text-sm font-semibold mb-1">5. Qual foi a decisão?
             <span class="text-yellow-700 text-xs font-semibold">se você pediu revisão ou contestou</span></label>
-          <input type="text" [(ngModel)]="form.ReferenciaDecisao" name="c-decisao"
+          <input id="c-decisao" type="text" [(ngModel)]="form.ReferenciaDecisao" name="c-decisao"
                  placeholder="Se souber, informe o número do protocolo ou a data da decisão."
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">6. Conte o que aconteceu <span class="text-red-600">*</span></label>
-          <textarea rows="4" [(ngModel)]="form.Descricao" name="c-desc" placeholder="Escreva com suas palavras."
+          <label for="c-desc" class="block text-sm font-semibold mb-1">6. Conte o que aconteceu <span class="text-red-600">*</span></label>
+          <textarea id="c-desc" rows="4" [(ngModel)]="form.Descricao" name="c-desc" placeholder="Escreva com suas palavras."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errDescricao" [class.bg-red-50]="errDescricao"
                     [class.border-gray-300]="!errDescricao"></textarea>
         </div>
       </div>
 
-      <p class="text-xs text-gray-400 italic mt-2">Usamos seus dados somente para responder a este pedido, conforme a Lei Geral de Proteção de Dados.</p>
+      <p class="text-xs text-gray-500 italic mt-2">Usamos seus dados somente para responder a este pedido, conforme a Lei Geral de Proteção de Dados.</p>
 
       <div *ngIf="mensagemAviso" class="border-l-4 border-yellow-500 bg-yellow-50 p-3 text-sm leading-relaxed rounded-r-md mt-3">
         {{ mensagemAviso }}
@@ -160,8 +160,8 @@
 
       <div class="flex items-end gap-3 flex-wrap">
         <div>
-          <label class="block text-sm font-semibold mb-1">Número do protocolo</label>
-          <input type="text" [(ngModel)]="protocoloConsulta" name="c-protocolo" placeholder="PGIA-2026-000000-ABCD"
+          <label for="c-protocolo" class="block text-sm font-semibold mb-1">Número do protocolo</label>
+          <input id="c-protocolo" type="text" [(ngModel)]="protocoloConsulta" name="c-protocolo" placeholder="PGIA-2026-000000-ABCD"
                  class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <button (click)="consultarProtocolo()" [disabled]="consultando"
@@ -202,7 +202,7 @@
       </div>
     </div>
 
-    <footer class="text-xs text-gray-500 leading-relaxed py-4">
+    <footer class="text-xs text-gray-600 leading-relaxed py-4">
       Registro Público de Sistemas de IA da PGIA/DF, instituída pelo Decreto nº 48.901/2026.
     </footer>
   </main>

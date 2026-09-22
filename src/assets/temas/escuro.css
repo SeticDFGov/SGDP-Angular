@@ -1,0 +1,146 @@
+/* GERADO por scripts/temas/gerar-temas.mjs a partir do CSS do Tailwind: não editar à mão (npm run temas). */
+html.tema-escuro{color-scheme:dark;background-color:oklch(17% 0.012 264);color:oklch(92.8% 0.006 264.531);--foco:#60a5fa}
+html.tema-escuro body{background-color:oklch(17% 0.012 264)}
+html.tema-escuro *,html.tema-escuro ::before,html.tema-escuro ::after{--tw-ring-offset-color:oklch(21.5% 0.014 264)}
+html.tema-escuro #gantt-chart-container::-webkit-scrollbar-track{background:oklch(29% 0.016 264)}
+html.tema-escuro #gantt-chart-container::-webkit-scrollbar-thumb{background:oklch(55.1% 0.027 264.364)}
+html.tema-escuro :where(.divide-gray-100 > :not(:last-child)){border-color:oklch(26.5% 0.015 264)}
+html.tema-escuro :where(.divide-gray-200 > :not(:last-child)){border-color:oklch(30.5% 0.016 264)}
+html.tema-escuro .border-amber-200{border-color:color-mix(in oklab, oklch(76.9% 0.188 70.08) 38%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-amber-300{border-color:color-mix(in oklab, oklch(76.9% 0.188 70.08) 50%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-blue-100{border-color:color-mix(in oklab, oklch(62.3% 0.214 259.815) 30%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-blue-200{border-color:color-mix(in oklab, oklch(62.3% 0.214 259.815) 38%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-gray-100{border-color:oklch(26.5% 0.015 264)}
+html.tema-escuro .border-gray-200{border-color:oklch(30.5% 0.016 264)}
+html.tema-escuro .border-gray-300{border-color:oklch(37% 0.018 264)}
+html.tema-escuro .border-gray-900{border-color:oklch(96.7% 0.003 264.542)}
+html.tema-escuro .border-green-100{border-color:color-mix(in oklab, oklch(72.3% 0.219 149.579) 30%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-green-200{border-color:color-mix(in oklab, oklch(72.3% 0.219 149.579) 38%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-green-700{border-color:oklch(79.2% 0.209 151.711)}
+html.tema-escuro .border-indigo-100{border-color:color-mix(in oklab, oklch(58.5% 0.233 277.117) 30%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-indigo-200{border-color:color-mix(in oklab, oklch(58.5% 0.233 277.117) 38%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-purple-200{border-color:color-mix(in oklab, oklch(62.7% 0.265 303.9) 38%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-purple-300{border-color:color-mix(in oklab, oklch(62.7% 0.265 303.9) 50%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-red-100{border-color:color-mix(in oklab, oklch(63.7% 0.237 25.331) 30%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-red-200{border-color:color-mix(in oklab, oklch(63.7% 0.237 25.331) 38%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-red-300{border-color:color-mix(in oklab, oklch(63.7% 0.237 25.331) 50%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-slate-300{border-color:oklch(37% 0.018 264)}
+html.tema-escuro .border-slate-700{border-color:oklch(86.9% 0.022 252.894)}
+html.tema-escuro .border-teal-200{border-color:color-mix(in oklab, oklch(70.4% 0.14 182.503) 38%, oklch(21.5% 0.014 264))}
+html.tema-escuro .border-white{border-color:oklch(21.5% 0.014 264)}
+html.tema-escuro .border-yellow-200{border-color:color-mix(in oklab, oklch(79.5% 0.184 86.047) 38%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-amber-50{background-color:color-mix(in oklab, oklch(76.9% 0.188 70.08) 14%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-amber-100{background-color:color-mix(in oklab, oklch(76.9% 0.188 70.08) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-blue-50{background-color:color-mix(in oklab, oklch(62.3% 0.214 259.815) 14%, oklch(21.5% 0.014 264))}
+@supports (color: color-mix(in lab, red, red)){html.tema-escuro .bg-blue-50\/40{background-color:color-mix(in oklab, color-mix(in oklab, oklch(62.3% 0.214 259.815) 14%, oklch(21.5% 0.014 264)) 40%, transparent)}}
+@supports (color: color-mix(in lab, red, red)){html.tema-escuro .bg-blue-50\/50{background-color:color-mix(in oklab, color-mix(in oklab, oklch(62.3% 0.214 259.815) 14%, oklch(21.5% 0.014 264)) 50%, transparent)}}
+@supports (color: color-mix(in lab, red, red)){html.tema-escuro .bg-blue-50\/60{background-color:color-mix(in oklab, color-mix(in oklab, oklch(62.3% 0.214 259.815) 14%, oklch(21.5% 0.014 264)) 60%, transparent)}}
+html.tema-escuro .bg-blue-100{background-color:color-mix(in oklab, oklch(62.3% 0.214 259.815) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-cyan-100{background-color:color-mix(in oklab, oklch(71.5% 0.143 215.221) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-emerald-100{background-color:color-mix(in oklab, oklch(69.6% 0.17 162.48) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-gray-50{background-color:oklch(19.3% 0.013 264)}
+html.tema-escuro .bg-gray-100{background-color:oklch(17% 0.012 264)}
+html.tema-escuro .bg-gray-200{background-color:oklch(29% 0.016 264)}
+html.tema-escuro .bg-gray-300{background-color:oklch(36% 0.018 264)}
+html.tema-escuro .bg-gray-400{background-color:oklch(44% 0.02 264)}
+html.tema-escuro .bg-green-50{background-color:color-mix(in oklab, oklch(72.3% 0.219 149.579) 14%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-green-100{background-color:color-mix(in oklab, oklch(72.3% 0.219 149.579) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-indigo-50{background-color:color-mix(in oklab, oklch(58.5% 0.233 277.117) 14%, oklch(21.5% 0.014 264))}
+@supports (color: color-mix(in lab, red, red)){html.tema-escuro .bg-indigo-50\/40{background-color:color-mix(in oklab, color-mix(in oklab, oklch(58.5% 0.233 277.117) 14%, oklch(21.5% 0.014 264)) 40%, transparent)}}
+@supports (color: color-mix(in lab, red, red)){html.tema-escuro .bg-indigo-50\/70{background-color:color-mix(in oklab, color-mix(in oklab, oklch(58.5% 0.233 277.117) 14%, oklch(21.5% 0.014 264)) 70%, transparent)}}
+html.tema-escuro .bg-indigo-100{background-color:color-mix(in oklab, oklch(58.5% 0.233 277.117) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-orange-50{background-color:color-mix(in oklab, oklch(70.5% 0.213 47.604) 14%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-orange-100{background-color:color-mix(in oklab, oklch(70.5% 0.213 47.604) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-purple-50{background-color:color-mix(in oklab, oklch(62.7% 0.265 303.9) 14%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-purple-100{background-color:color-mix(in oklab, oklch(62.7% 0.265 303.9) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-red-50{background-color:color-mix(in oklab, oklch(63.7% 0.237 25.331) 14%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-red-100{background-color:color-mix(in oklab, oklch(63.7% 0.237 25.331) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-slate-100{background-color:oklch(17% 0.012 264)}
+html.tema-escuro .bg-teal-50{background-color:color-mix(in oklab, oklch(70.4% 0.14 182.503) 14%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-teal-100{background-color:color-mix(in oklab, oklch(70.4% 0.14 182.503) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-white{background-color:oklch(21.5% 0.014 264)}
+html.tema-escuro .bg-yellow-50{background-color:color-mix(in oklab, oklch(79.5% 0.184 86.047) 14%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-yellow-100{background-color:color-mix(in oklab, oklch(79.5% 0.184 86.047) 22%, oklch(21.5% 0.014 264))}
+html.tema-escuro .bg-yellow-300{background-color:color-mix(in oklab, oklch(79.5% 0.184 86.047) 40%, oklch(21.5% 0.014 264))}
+html.tema-escuro .text-amber-600{color:oklch(82.8% 0.189 84.429)}
+html.tema-escuro .text-amber-700{color:oklch(87.9% 0.169 91.605)}
+html.tema-escuro .text-amber-800{color:oklch(92.4% 0.12 95.746)}
+html.tema-escuro .text-amber-900{color:oklch(92.4% 0.12 95.746)}
+html.tema-escuro .text-blue-600{color:oklch(70.7% 0.165 254.624)}
+html.tema-escuro .text-blue-700{color:oklch(80.9% 0.105 251.813)}
+html.tema-escuro .text-blue-800{color:oklch(88.2% 0.059 254.128)}
+html.tema-escuro .text-blue-900{color:oklch(88.2% 0.059 254.128)}
+html.tema-escuro .text-blue-950{color:oklch(93.2% 0.032 255.585)}
+html.tema-escuro .text-cyan-800{color:oklch(91.7% 0.08 205.041)}
+html.tema-escuro .text-emerald-800{color:oklch(90.5% 0.093 164.15)}
+html.tema-escuro .text-gray-500{color:oklch(70.7% 0.022 261.325)}
+html.tema-escuro .text-gray-600{color:oklch(87.2% 0.01 258.338)}
+html.tema-escuro .text-gray-700{color:oklch(92.8% 0.006 264.531)}
+html.tema-escuro .text-gray-800{color:oklch(96.7% 0.003 264.542)}
+html.tema-escuro .text-gray-900{color:oklch(98.5% 0.002 247.839)}
+html.tema-escuro .text-green-600{color:oklch(79.2% 0.209 151.711)}
+html.tema-escuro .text-green-700{color:oklch(87.1% 0.15 154.449)}
+html.tema-escuro .text-green-800{color:oklch(92.5% 0.084 155.995)}
+html.tema-escuro .text-green-900{color:oklch(92.5% 0.084 155.995)}
+html.tema-escuro .text-indigo-600{color:oklch(67.3% 0.182 276.935)}
+html.tema-escuro .text-indigo-700{color:oklch(78.5% 0.115 274.713)}
+html.tema-escuro .text-indigo-800{color:oklch(87% 0.065 274.039)}
+html.tema-escuro .text-indigo-900{color:oklch(87% 0.065 274.039)}
+html.tema-escuro .text-orange-800{color:oklch(90.1% 0.076 70.697)}
+html.tema-escuro .text-purple-500{color:oklch(71.4% 0.203 305.504)}
+html.tema-escuro .text-purple-600{color:oklch(71.4% 0.203 305.504)}
+html.tema-escuro .text-purple-700{color:oklch(82.7% 0.119 306.383)}
+html.tema-escuro .text-purple-800{color:oklch(90.2% 0.063 306.703)}
+html.tema-escuro .text-red-500{color:oklch(70.4% 0.191 22.216)}
+html.tema-escuro .text-red-600{color:oklch(70.4% 0.191 22.216)}
+html.tema-escuro .text-red-700{color:oklch(80.8% 0.114 19.571)}
+html.tema-escuro .text-red-800{color:oklch(88.5% 0.062 18.334)}
+html.tema-escuro .text-red-900{color:oklch(88.5% 0.062 18.334)}
+html.tema-escuro .text-slate-500{color:oklch(70.4% 0.04 256.788)}
+html.tema-escuro .text-slate-600{color:oklch(86.9% 0.022 252.894)}
+html.tema-escuro .text-slate-700{color:oklch(92.9% 0.013 255.508)}
+html.tema-escuro .text-slate-800{color:oklch(96.8% 0.007 247.896)}
+html.tema-escuro .text-slate-900{color:oklch(98.4% 0.003 247.858)}
+html.tema-escuro .text-teal-700{color:oklch(85.5% 0.138 181.071)}
+html.tema-escuro .text-teal-800{color:oklch(91% 0.096 180.426)}
+html.tema-escuro .text-yellow-600{color:oklch(85.2% 0.199 91.936)}
+html.tema-escuro .text-yellow-700{color:oklch(90.5% 0.182 98.111)}
+html.tema-escuro .text-yellow-800{color:oklch(94.5% 0.129 101.54)}
+html.tema-escuro .text-yellow-900{color:oklch(94.5% 0.129 101.54)}
+html.tema-escuro .ring-blue-300{--tw-ring-color:color-mix(in oklab, oklch(62.3% 0.214 259.815) 45%, oklch(21.5% 0.014 264))}
+html.tema-escuro .ring-gray-900{--tw-ring-color:oklch(96.7% 0.003 264.542)}
+html.tema-escuro .ring-indigo-300{--tw-ring-color:color-mix(in oklab, oklch(58.5% 0.233 277.117) 45%, oklch(21.5% 0.014 264))}
+html.tema-escuro .ring-purple-300{--tw-ring-color:color-mix(in oklab, oklch(62.7% 0.265 303.9) 45%, oklch(21.5% 0.014 264))}
+@media (hover: hover){html.tema-escuro .hover\:border-gray-200:hover{border-color:oklch(30.5% 0.016 264)}}
+@media (hover: hover){html.tema-escuro .hover\:border-gray-300:hover{border-color:oklch(37% 0.018 264)}}
+@media (hover: hover){html.tema-escuro .hover\:border-indigo-300:hover{border-color:color-mix(in oklab, oklch(58.5% 0.233 277.117) 50%, oklch(21.5% 0.014 264))}}
+@media (hover: hover){html.tema-escuro .hover\:bg-blue-50:hover{background-color:color-mix(in oklab, oklch(62.3% 0.214 259.815) 14%, oklch(21.5% 0.014 264))}}
+@media (hover: hover){html.tema-escuro .hover\:bg-blue-100:hover{background-color:color-mix(in oklab, oklch(62.3% 0.214 259.815) 22%, oklch(21.5% 0.014 264))}}
+@media (hover: hover){html.tema-escuro .hover\:bg-blue-200:hover{background-color:color-mix(in oklab, oklch(62.3% 0.214 259.815) 30%, oklch(21.5% 0.014 264))}}
+@media (hover: hover){html.tema-escuro .hover\:bg-gray-50:hover{background-color:oklch(19.3% 0.013 264)}}
+@media (hover: hover){html.tema-escuro .hover\:bg-gray-100:hover{background-color:oklch(17% 0.012 264)}}
+@media (hover: hover){html.tema-escuro .hover\:bg-gray-300:hover{background-color:oklch(36% 0.018 264)}}
+@media (hover: hover){html.tema-escuro .hover\:bg-gray-400:hover{background-color:oklch(44% 0.02 264)}}
+@media (hover: hover){@supports (color: color-mix(in lab, red, red)){html.tema-escuro .hover\:bg-gray-400\/60:hover{background-color:color-mix(in oklab, oklch(44% 0.02 264) 60%, transparent)}}}
+@media (hover: hover){html.tema-escuro .hover\:bg-green-50:hover{background-color:color-mix(in oklab, oklch(72.3% 0.219 149.579) 14%, oklch(21.5% 0.014 264))}}
+@media (hover: hover){html.tema-escuro .hover\:bg-indigo-50:hover{background-color:color-mix(in oklab, oklch(58.5% 0.233 277.117) 14%, oklch(21.5% 0.014 264))}}
+@media (hover: hover){html.tema-escuro .hover\:bg-purple-200:hover{background-color:color-mix(in oklab, oklch(62.7% 0.265 303.9) 30%, oklch(21.5% 0.014 264))}}
+@media (hover: hover){html.tema-escuro .hover\:bg-red-50:hover{background-color:color-mix(in oklab, oklch(63.7% 0.237 25.331) 14%, oklch(21.5% 0.014 264))}}
+@media (hover: hover){html.tema-escuro .hover\:bg-red-100:hover{background-color:color-mix(in oklab, oklch(63.7% 0.237 25.331) 22%, oklch(21.5% 0.014 264))}}
+@media (hover: hover){html.tema-escuro .hover\:text-blue-900:hover{color:oklch(88.2% 0.059 254.128)}}
+@media (hover: hover){html.tema-escuro .hover\:text-gray-600:hover{color:oklch(87.2% 0.01 258.338)}}
+@media (hover: hover){html.tema-escuro .hover\:text-gray-700:hover{color:oklch(92.8% 0.006 264.531)}}
+@media (hover: hover){html.tema-escuro .hover\:text-gray-900:hover{color:oklch(98.5% 0.002 247.839)}}
+@media (hover: hover){html.tema-escuro .hover\:text-red-600:hover{color:oklch(70.4% 0.191 22.216)}}
+html.tema-escuro .focus\:border-gray-900:focus{border-color:oklch(96.7% 0.003 264.542)}
+html.tema-escuro .focus\:bg-white:focus{background-color:oklch(21.5% 0.014 264)}
+html.tema-escuro .focus\:ring-blue-200:focus{--tw-ring-color:color-mix(in oklab, oklch(62.3% 0.214 259.815) 45%, oklch(21.5% 0.014 264))}
+html.tema-escuro .focus\:ring-gray-900:focus{--tw-ring-color:oklch(96.7% 0.003 264.542)}
+html.tema-escuro .focus-visible\:ring-gray-400:focus-visible{--tw-ring-color:oklch(45% 0.02 264)}
+html.tema-escuro .disabled\:bg-gray-50:disabled{background-color:oklch(19.3% 0.013 264)}
+html.tema-escuro .disabled\:bg-gray-100:disabled{background-color:oklch(17% 0.012 264)}
+html.tema-escuro .disabled\:text-gray-500:disabled{color:oklch(70.7% 0.022 261.325)}
+html.tema-escuro .disabled\:text-gray-600:disabled{color:oklch(87.2% 0.01 258.338)}
+html.tema-escuro .bg-green-500.text-gray-900{background-color:oklch(72.3% 0.219 149.579);color:oklch(21% 0.034 264.665)}
+html.tema-escuro .bg-yellow-300.text-gray-900{background-color:oklch(90.5% 0.182 98.111);color:oklch(21% 0.034 264.665)}
+html.tema-escuro .bg-orange-400.text-gray-900{background-color:oklch(75% 0.183 55.934);color:oklch(21% 0.034 264.665)}

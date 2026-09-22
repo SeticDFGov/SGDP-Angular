@@ -1,0 +1,177 @@
+<div class="min-h-screen bg-gray-100">
+
+  <header class="bg-slate-900 text-white">
+    <div class="max-w-4xl mx-auto px-4 py-5 flex flex-wrap items-center gap-4">
+      <img src="assets/MarcaGDF2026_Horizontal_S-Conceito_BRANCO.png" alt="Governo do Distrito Federal" class="h-10 w-auto object-contain" />
+      <div class="min-w-0">
+        <p class="text-sm text-slate-300">SGDP</p>
+        <h1 class="text-xl font-bold leading-tight">Acessibilidade</h1>
+      </div>
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <button type="button" (click)="voltar()"
+                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors">
+          <span class="material-icons text-lg" aria-hidden="true">arrow_back</span>
+          Voltar
+        </button>
+        <a routerLink="/inicio"
+           class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors">
+          <span class="material-icons text-lg" aria-hidden="true">home</span>
+          Ir para o início
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="conteudo" tabindex="-1" class="max-w-4xl mx-auto px-4 py-6 space-y-5">
+
+    <section class="bg-white rounded-lg shadow p-6" aria-labelledby="titulo-sobre">
+      <h2 id="titulo-sobre" class="text-lg font-semibold text-gray-900 mb-2">O SGDP e a acessibilidade</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">
+        O SGDP segue o Modelo de Acessibilidade em Governo Eletrônico (eMAG) e as Diretrizes de Acessibilidade
+        para Conteúdo Web (WCAG 2.1, nível AA). Em todas as páginas você encontra:
+      </p>
+      <ul class="mt-3 text-sm text-gray-700 leading-relaxed list-disc pl-5 space-y-1">
+        <li>a <strong>barra de acessibilidade</strong>, no topo: atalhos de teclado, tema (claro, escuro ou alto contraste) e tamanho do texto;</li>
+        <li>o <strong>VLibras</strong>, que traduz o conteúdo para a Língua Brasileira de Sinais;</li>
+        <li><strong>navegação completa pelo teclado</strong>, com o item em foco sempre destacado;</li>
+        <li>títulos de página, regiões com nome, campos com rótulo e avisos preparados para <strong>leitores de tela</strong>;</li>
+        <li><strong>menos animações</strong> para quem pede isso no sistema operacional ou aqui.</li>
+      </ul>
+    </section>
+
+    <section class="bg-white rounded-lg shadow p-6" aria-labelledby="titulo-preferencias">
+      <h2 id="titulo-preferencias" class="text-lg font-semibold text-gray-900 mb-1">Suas preferências</h2>
+      <p class="text-sm text-gray-600 mb-4">As escolhas ficam guardadas neste navegador e valem em todas as páginas.</p>
+
+      <fieldset class="mb-5">
+        <legend class="text-sm font-medium text-gray-800 mb-2">Tema</legend>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <label class="flex items-start gap-2 p-3 rounded-md border border-gray-200 cursor-pointer hover:bg-gray-50">
+            <input type="radio" name="tema" class="mt-1" [checked]="temaMarcado('sistema')" (change)="escolher('sistema')" />
+            <span class="text-sm text-gray-800">
+              <span class="font-medium">Seguir o sistema</span>
+              <span class="block text-xs text-gray-500 italic">Claro ou escuro, como estiver o seu computador. Agora: {{ acessibilidade.rotuloTema(acessibilidade.tema()).toLowerCase() }}.</span>
+            </span>
+          </label>
+          @for (t of temas; track t.valor) {
+            <label class="flex items-start gap-2 p-3 rounded-md border border-gray-200 cursor-pointer hover:bg-gray-50">
+              <input type="radio" name="tema" class="mt-1" [checked]="temaMarcado(t.valor)" (change)="escolher(t.valor)" />
+              <span class="text-sm text-gray-800 flex items-center gap-1.5">
+                <span class="material-icons text-base" aria-hidden="true">{{ t.icone }}</span>
+                <span class="font-medium">{{ t.rotulo }}</span>
+              </span>
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <div class="mb-5" role="group" aria-labelledby="rotulo-tamanho-texto">
+        <p id="rotulo-tamanho-texto" class="text-sm font-medium text-gray-800 mb-2">Tamanho do texto</p>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" (click)="acessibilidade.diminuirTexto()" [disabled]="!acessibilidade.podeDiminuir()"
+                  class="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-sm font-medium disabled:opacity-50">
+            A- Diminuir
+          </button>
+          <button type="button" (click)="acessibilidade.textoPadrao()" [disabled]="acessibilidade.fonte() === 100"
+                  class="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-sm font-medium disabled:opacity-50">
+            A Tamanho padrão
+          </button>
+          <button type="button" (click)="acessibilidade.aumentarTexto()" [disabled]="!acessibilidade.podeAumentar()"
+                  class="px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-sm font-medium disabled:opacity-50">
+            A+ Aumentar
+          </button>
+          <span class="text-sm text-gray-700">Agora: <strong>{{ acessibilidade.rotuloTexto() }}</strong> do tamanho do navegador</span>
+        </div>
+      </div>
+
+      <div class="mb-5">
+        <label class="inline-flex items-start gap-2 cursor-pointer">
+          <input type="checkbox" class="mt-1" [checked]="acessibilidade.reduzirAnimacoes()" (change)="alternarAnimacoes($event)" />
+          <span class="text-sm text-gray-800">
+            <span class="font-medium">Reduzir animações e transições</span>
+            <span class="block text-xs text-gray-500 italic">Com o sistema operacional configurado para reduzir movimento, o SGDP já reduz sozinho.</span>
+          </span>
+        </label>
+      </div>
+
+      <button type="button" (click)="acessibilidade.restaurarPadrao()"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-sm font-medium text-gray-800">
+        <span class="material-icons text-base" aria-hidden="true">restart_alt</span>
+        Restaurar o padrão
+      </button>
+    </section>
+
+    <section class="bg-white rounded-lg shadow p-6" aria-labelledby="titulo-atalhos">
+      <h2 id="titulo-atalhos" class="text-lg font-semibold text-gray-900 mb-2">Atalhos de teclado</h2>
+      <p class="text-sm text-gray-700 leading-relaxed mb-3">
+        Os atalhos ficam na barra de acessibilidade, no topo de todas as páginas. Tecla a combinar com o número:
+        <strong>Alt</strong> no Chrome e no Edge, <strong>Alt + Shift</strong> no Firefox e
+        <strong>Control + Option</strong> no Mac.
+      </p>
+      <table class="w-full text-sm mb-5">
+        <caption class="sr-only">Atalhos da barra de acessibilidade</caption>
+        <thead>
+          <tr class="text-left text-gray-600 border-b border-gray-200">
+            <th scope="col" class="py-2 pr-4 font-medium">Atalho (Chrome e Edge)</th>
+            <th scope="col" class="py-2 font-medium">O que faz</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of atalhos; track a.tecla) {
+            <tr class="border-b border-gray-100">
+              <td class="py-2 pr-4 whitespace-nowrap"><kbd class="px-1.5 py-0.5 rounded border border-gray-300 bg-gray-50 font-mono text-xs">Alt + {{ a.tecla }}</kbd></td>
+              <td class="py-2 text-gray-700">{{ a.acao }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <h3 class="text-base font-semibold text-gray-900 mb-2">Navegação pelo teclado</h3>
+      <table class="w-full text-sm">
+        <caption class="sr-only">Teclas para navegar pelo SGDP</caption>
+        <thead>
+          <tr class="text-left text-gray-600 border-b border-gray-200">
+            <th scope="col" class="py-2 pr-4 font-medium">Tecla</th>
+            <th scope="col" class="py-2 font-medium">O que faz</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of teclas; track t.tecla) {
+            <tr class="border-b border-gray-100">
+              <td class="py-2 pr-4 whitespace-nowrap"><kbd class="px-1.5 py-0.5 rounded border border-gray-300 bg-gray-50 font-mono text-xs">{{ t.tecla }}</kbd></td>
+              <td class="py-2 text-gray-700">{{ t.acao }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section class="bg-white rounded-lg shadow p-6" aria-labelledby="titulo-libras">
+      <h2 id="titulo-libras" class="text-lg font-semibold text-gray-900 mb-2">Libras (VLibras)</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">
+        O ícone azul com as mãos, no lado direito da tela, abre o VLibras, o tradutor da Língua Brasileira de Sinais
+        mantido pelo Governo Federal. Com ele aberto, clique num texto para o avatar traduzir. O VLibras precisa de
+        acesso à internet.
+      </p>
+    </section>
+
+    <section class="bg-white rounded-lg shadow p-6" aria-labelledby="titulo-leitores">
+      <h2 id="titulo-leitores" class="text-lg font-semibold text-gray-900 mb-2">Leitores de tela</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">
+        As páginas foram preparadas para leitores de tela como NVDA, JAWS, Narrador do Windows e VoiceOver. Cada tela
+        tem título próprio, as regiões (barra de acessibilidade, cabeçalho e conteúdo) têm nome e os avisos que
+        aparecem no canto da tela são lidos em voz alta. Ao trocar de página, o foco vai para o título da tela nova.
+      </p>
+    </section>
+
+    <section class="bg-white rounded-lg shadow p-6" aria-labelledby="titulo-barreira">
+      <h2 id="titulo-barreira" class="text-lg font-semibold text-gray-900 mb-2">Encontrou alguma barreira?</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">
+        Se algo no SGDP dificultar o seu uso, avise a equipe responsável pelo sistema na SUBGD. Conte a página, o que
+        você tentou fazer e o recurso de acessibilidade que usa (por exemplo, leitor de tela, ampliação ou só o teclado).
+      </p>
+    </section>
+
+    <p class="text-xs text-gray-600">Página revisada em setembro de 2026.</p>
+  </main>
+</div>

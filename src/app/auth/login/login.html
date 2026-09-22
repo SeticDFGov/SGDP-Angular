@@ -1,4 +1,4 @@
-<div class="min-h-screen flex items-center justify-center bg-gray-100 relative overflow-hidden auth-wrapper">
+<main id="conteudo" tabindex="-1" class="min-h-screen flex items-center justify-center bg-gray-100 relative overflow-hidden auth-wrapper">
   <div class="absolute inset-0 z-0 auth-bg">
     <span class="r absolute block"></span>
     <span class="r s absolute block"></span>
@@ -20,7 +20,7 @@
 
           <div class="mb-4 text-left relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
@@ -30,13 +30,15 @@
               id="email"
               class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-50 border border-gray-300 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200"
               placeholder="Email Institucional"
+              aria-label="E-mail institucional"
+              autocomplete="username"
               formControlName="Email"
             />
           </div>
 
           <div class="mb-6 text-left relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
@@ -46,6 +48,8 @@
                 type="password"
                 id="password"
                 placeholder="Senha Institucional"
+                aria-label="Senha institucional"
+                autocomplete="current-password"
                 class="w-full pl-10 pr-10 py-3 rounded-lg bg-gray-50 border border-gray-300 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200"
                 formControlName="Senha"
               />
@@ -55,6 +59,8 @@
                 id="password"
                 class="w-full pl-10 pr-10 py-3 rounded-lg bg-gray-50 border border-gray-300 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200"
                 placeholder="Senha Institucional"
+                aria-label="Senha institucional"
+                autocomplete="current-password"
                 formControlName="Senha"
               />
             }
@@ -63,6 +69,8 @@
               type="button"
               (click)="togglePasswordVisibility()"
               class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none"
+              [attr.aria-label]="showPassword() ? 'Ocultar a senha' : 'Mostrar a senha'"
+              [attr.aria-pressed]="showPassword()"
             >
               @if (showPassword()) {
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -115,11 +123,11 @@
         @if (modoLocalDisponivel) {
           <p class="text-center text-sm text-gray-500">
             Ambiente de desenvolvimento:
-            <a routerLink="/auth/local" class="text-blue-600 hover:underline">entrar no modo local (sem Keycloak)</a>
+            <a routerLink="/auth/local" class="text-blue-600 underline">entrar no modo local (sem Keycloak)</a>
           </p>
         }
 
       </div>
     </div>
   </div>
-</div>
+</main>

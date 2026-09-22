@@ -85,10 +85,10 @@ export function corAcaoImportacao(acao: string | null | undefined): string {
  */
 export function badgeNivelRisco(nivel: string | null | undefined): string {
   switch (nivel) {
-    case 'Baixo': return 'bg-green-500 text-white';
+    case 'Baixo': return 'bg-green-500 text-gray-900';
     case 'Médio': return 'bg-yellow-300 text-gray-900';
     case 'Alto': return 'bg-orange-400 text-gray-900';
-    case 'Extremo': return 'bg-red-500 text-white';
+    case 'Extremo': return 'bg-red-600 text-white';
     default: return 'bg-gray-100 text-gray-600'; // Sem riscos declarados
   }
 }

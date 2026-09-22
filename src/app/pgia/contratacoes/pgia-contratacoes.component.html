@@ -37,45 +37,45 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4" *ngIf="podeEditar">
         <div>
-          <label class="block text-sm font-semibold mb-1">Número do contrato <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="contratoForm.NumeroContrato" name="ct-numero" placeholder="042/2026"
+          <label for="ct-numero" class="block text-sm font-semibold mb-1">Número do contrato <span class="text-red-600">*</span></label>
+          <input id="ct-numero" type="text" [(ngModel)]="contratoForm.NumeroContrato" name="ct-numero" placeholder="042/2026"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errNumero" [class.bg-red-50]="errNumero" [class.border-gray-300]="!errNumero">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Processo SEI <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="contratoForm.ProcessoSei" name="ct-sei" placeholder="00060-00077777/2026-10" maxlength="25"
+          <label for="ct-sei" class="block text-sm font-semibold mb-1">Processo SEI <span class="text-red-600">*</span></label>
+          <input id="ct-sei" type="text" [(ngModel)]="contratoForm.ProcessoSei" name="ct-sei" placeholder="00060-00077777/2026-10" maxlength="25"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errSei" [class.bg-red-50]="errSei" [class.border-gray-300]="!errSei">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Objeto do contrato <span class="text-red-600">*</span></label>
-          <textarea rows="3" [(ngModel)]="contratoForm.Objeto" name="ct-objeto"
+          <label for="ct-objeto" class="block text-sm font-semibold mb-1">Objeto do contrato <span class="text-red-600">*</span></label>
+          <textarea id="ct-objeto" rows="3" [(ngModel)]="contratoForm.Objeto" name="ct-objeto"
                     placeholder="O que o órgão está contratando, em linguagem clara."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errObjeto" [class.bg-red-50]="errObjeto" [class.border-gray-300]="!errObjeto"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Fornecedor <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="contratoForm.FornecedorNome" name="ct-fornecedor"
+          <label for="ct-fornecedor" class="block text-sm font-semibold mb-1">Fornecedor <span class="text-red-600">*</span></label>
+          <input id="ct-fornecedor" type="text" [(ngModel)]="contratoForm.FornecedorNome" name="ct-fornecedor"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errFornecedor" [class.bg-red-50]="errFornecedor" [class.border-gray-300]="!errFornecedor">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Situação <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="contratoForm.Status" name="ct-status"
+          <label for="ct-status" class="block text-sm font-semibold mb-1">Situação <span class="text-red-600">*</span></label>
+          <select id="ct-status" [(ngModel)]="contratoForm.Status" name="ct-status"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let s of statusContrato" [value]="s">{{ s }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Sistema do inventário</label>
-          <select [(ngModel)]="contratoForm.SistemaIaId" name="ct-sistema"
+          <label for="ct-sistema" class="block text-sm font-semibold mb-1">Sistema do inventário</label>
+          <select id="ct-sistema" [(ngModel)]="contratoForm.SistemaIaId" name="ct-sistema"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null">Ainda não vinculado</option>
             <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
           </select>
-          <p class="text-xs text-gray-400 italic mt-1">O vínculo traz a classificação de risco e define as exigências abaixo.</p>
+          <p class="text-xs text-gray-500 italic mt-1">O vínculo traz a classificação de risco e define as exigências abaixo.</p>
         </div>
         <div *ngIf="classificacaoContrato">
           <label class="block text-sm font-semibold mb-1">Classificação do sistema</label>
@@ -89,11 +89,11 @@
             <label class="flex items-center gap-2"><input type="radio" name="ct-vedacao" [value]="true" [(ngModel)]="contratoForm.ClausulaVedacaoTreinamento"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="ct-vedacao" [value]="false" [(ngModel)]="contratoForm.ClausulaVedacaoTreinamento"> Não</label>
           </div>
-          <p class="text-xs text-gray-400 italic mt-1">A cláusula é obrigatória em todo contrato. Sem ela, é preciso autorização excepcional aprovada pelo CGTIC (art. 21).</p>
+          <p class="text-xs text-gray-500 italic mt-1">A cláusula é obrigatória em todo contrato. Sem ela, é preciso autorização excepcional aprovada pelo CGTIC (art. 21).</p>
         </div>
         <div *ngIf="exigeAutorizacaoTreinamento">
-          <label class="block text-sm font-semibold mb-1">Autorização excepcional de treinamento <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="contratoForm.AutorizacaoTreinamentoId" name="ct-autorizacao"
+          <label for="ct-autorizacao" class="block text-sm font-semibold mb-1">Autorização excepcional de treinamento <span class="text-red-600">*</span></label>
+          <select id="ct-autorizacao" [(ngModel)]="contratoForm.AutorizacaoTreinamentoId" name="ct-autorizacao"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   [class.border-red-500]="errAutorizacao" [class.border-gray-300]="!errAutorizacao">
             <option [ngValue]="null">Escolha a autorização</option>
@@ -101,7 +101,7 @@
               {{ a.OrgaoSigla }} · {{ a.DataAutorizacao | date:'dd/MM/yyyy':'UTC' }}
             </option>
           </select>
-          <p class="text-xs text-gray-400 italic mt-1">A SGDI registra as autorizações. Se a sua não aparece, peça o registro antes de salvar.</p>
+          <p class="text-xs text-gray-500 italic mt-1">A SGDI registra as autorizações. Se a sua não aparece, peça o registro antes de salvar.</p>
         </div>
 
         <div *ngIf="exigePdtic">
@@ -119,7 +119,7 @@
       <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar && exigeHomologacao">
         <h3 class="text-sm font-semibold text-gray-900 mb-1">Homologação técnica da SGDI (art. 25, II)
           <span class="text-red-600">*</span></h3>
-        <p class="text-xs text-gray-400 italic mb-3">O contrato de Risco Moderado só é aceito com a homologação técnica registrada.
+        <p class="text-xs text-gray-500 italic mb-3">O contrato de Risco Moderado só é aceito com a homologação técnica registrada.
         O arquivo em si é anexado no documento gerado aqui; o processo SEI também comprova a homologação.</p>
 
         <div *ngIf="contratoForm.HomologacaoSgdiDocId" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md">
@@ -130,14 +130,14 @@
         <div *ngIf="!contratoForm.HomologacaoSgdiDocId">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-semibold mb-1">Processo SEI da homologação</label>
-              <input type="text" [(ngModel)]="homologacaoSei" name="ct-homosei" placeholder="00060-00088888/2026-45" maxlength="25"
+              <label for="ct-homosei" class="block text-sm font-semibold mb-1">Processo SEI da homologação</label>
+              <input id="ct-homosei" type="text" [(ngModel)]="homologacaoSei" name="ct-homosei" placeholder="00060-00088888/2026-45" maxlength="25"
                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                      [class.border-red-500]="errHomologacao" [class.border-gray-300]="!errHomologacao">
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Identificação do documento</label>
-              <input type="text" [(ngModel)]="homologacaoNome" name="ct-homonome" placeholder="Por exemplo: parecer técnico nº 12/2026, SGDI"
+              <label for="ct-homonome" class="block text-sm font-semibold mb-1">Identificação do documento</label>
+              <input id="ct-homonome" type="text" [(ngModel)]="homologacaoNome" name="ct-homonome" placeholder="Por exemplo: parecer técnico nº 12/2026, SGDI"
                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                      [class.border-red-500]="errHomologacao" [class.border-gray-300]="!errHomologacao">
             </div>
@@ -157,7 +157,7 @@
       <!-- Requisitos do art. 25, § 1º -->
       <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar">
         <h3 class="text-sm font-semibold text-gray-900 mb-1">Requisitos obrigatórios do contrato (art. 25, § 1º)</h3>
-        <p class="text-xs text-gray-400 italic mb-3">Confirme cada ponto com o fornecedor antes de assinar.</p>
+        <p class="text-xs text-gray-500 italic mb-3">Confirme cada ponto com o fornecedor antes de assinar.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-1">Explicabilidade documentada pelo fornecedor?</label>
@@ -186,7 +186,7 @@
               <label class="flex items-center gap-2"><input type="radio" name="ct-req4" [value]="true" [(ngModel)]="contratoForm.ReqSemAprisionamento"> Sim</label>
               <label class="flex items-center gap-2"><input type="radio" name="ct-req4" [value]="false" [(ngModel)]="contratoForm.ReqSemAprisionamento"> Não</label>
             </div>
-            <p class="text-xs text-gray-400 italic mt-1">Migração e portabilidade garantidas (art. 25, § 1º, d).</p>
+            <p class="text-xs text-gray-500 italic mt-1">Migração e portabilidade garantidas (art. 25, § 1º, d).</p>
           </div>
           <div>
             <label class="block text-sm font-semibold mb-1">Compatível com acessibilidade digital?</label>
@@ -201,7 +201,7 @@
               <label class="flex items-center gap-2"><input type="radio" name="ct-guia" [value]="true" [(ngModel)]="contratoForm.ConformeGuiaContratacoes"> Sim</label>
               <label class="flex items-center gap-2"><input type="radio" name="ct-guia" [value]="false" [(ngModel)]="contratoForm.ConformeGuiaContratacoes"> Não</label>
             </div>
-            <p class="text-xs text-gray-400 italic mt-1">Responda depois que o guia for publicado (art. 26, § 1º).</p>
+            <p class="text-xs text-gray-500 italic mt-1">Responda depois que o guia for publicado (art. 26, § 1º).</p>
           </div>
         </div>
       </div>
@@ -210,7 +210,7 @@
       <div class="border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" *ngIf="podeEditar && exigeAltoRisco">
         <h3 class="text-sm font-semibold text-gray-900 mb-1">Exigências do Alto Risco
           <span class="text-yellow-700 text-xs font-semibold">exigido para Alto Risco (art. 25, § 2º)</span></h3>
-        <p class="text-xs text-gray-400 italic mb-3">Os níveis de serviço são números acordados com o fornecedor: use a mesma unidade do contrato.</p>
+        <p class="text-xs text-gray-500 italic mb-3">Os níveis de serviço são números acordados com o fornecedor: use a mesma unidade do contrato.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-1">Cláusula de auditoria independente? <span class="text-red-600">*</span></label>
@@ -222,32 +222,32 @@
           </div>
           <div></div>
           <div>
-            <label class="block text-sm font-semibold mb-1">SLA de desempenho <span class="text-red-600">*</span></label>
-            <input type="number" [(ngModel)]="contratoForm.SlaDesempenho" name="ct-sla1"
+            <label for="ct-sla1" class="block text-sm font-semibold mb-1">SLA de desempenho <span class="text-red-600">*</span></label>
+            <input id="ct-sla1" type="number" [(ngModel)]="contratoForm.SlaDesempenho" name="ct-sla1"
                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="errSlaDesempenho" [class.border-gray-300]="!errSlaDesempenho">
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">SLA de acurácia <span class="text-red-600">*</span></label>
-            <input type="number" [(ngModel)]="contratoForm.SlaAcuracia" name="ct-sla2"
+            <label for="ct-sla2" class="block text-sm font-semibold mb-1">SLA de acurácia <span class="text-red-600">*</span></label>
+            <input id="ct-sla2" type="number" [(ngModel)]="contratoForm.SlaAcuracia" name="ct-sla2"
                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="errSlaAcuracia" [class.border-gray-300]="!errSlaAcuracia">
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">SLA de equidade <span class="text-red-600">*</span></label>
-            <input type="number" [(ngModel)]="contratoForm.SlaEquidade" name="ct-sla3"
+            <label for="ct-sla3" class="block text-sm font-semibold mb-1">SLA de equidade <span class="text-red-600">*</span></label>
+            <input id="ct-sla3" type="number" [(ngModel)]="contratoForm.SlaEquidade" name="ct-sla3"
                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="errSlaEquidade" [class.border-gray-300]="!errSlaEquidade">
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">SLA de disponibilidade <span class="text-red-600">*</span></label>
-            <input type="number" [(ngModel)]="contratoForm.SlaDisponibilidade" name="ct-sla4"
+            <label for="ct-sla4" class="block text-sm font-semibold mb-1">SLA de disponibilidade <span class="text-red-600">*</span></label>
+            <input id="ct-sla4" type="number" [(ngModel)]="contratoForm.SlaDisponibilidade" name="ct-sla4"
                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="errSlaDisponibilidade" [class.border-gray-300]="!errSlaDisponibilidade">
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-semibold mb-1">Penalidades do SLA <span class="text-red-600">*</span></label>
-            <textarea rows="3" [(ngModel)]="contratoForm.SlaPenalidades" name="ct-penalidades"
+            <label for="ct-penalidades" class="block text-sm font-semibold mb-1">Penalidades do SLA <span class="text-red-600">*</span></label>
+            <textarea id="ct-penalidades" rows="3" [(ngModel)]="contratoForm.SlaPenalidades" name="ct-penalidades"
                       placeholder="O que acontece se o fornecedor não cumprir os níveis acordados."
                       class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       [class.border-red-500]="errSlaPenalidades" [class.bg-red-50]="errSlaPenalidades"
@@ -320,36 +320,36 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4" *ngIf="podeEditar">
         <div>
-          <label class="block text-sm font-semibold mb-1">Tipo de instrumento <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="legadoForm.TipoInstrumento" name="lg-tipo"
+          <label for="lg-tipo" class="block text-sm font-semibold mb-1">Tipo de instrumento <span class="text-red-600">*</span></label>
+          <select id="lg-tipo" [(ngModel)]="legadoForm.TipoInstrumento" name="lg-tipo"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let t of tiposInstrumento" [value]="t">{{ t }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Número</label>
-          <input type="text" [(ngModel)]="legadoForm.Numero" name="lg-numero"
+          <label for="lg-numero" class="block text-sm font-semibold mb-1">Número</label>
+          <input id="lg-numero" type="text" [(ngModel)]="legadoForm.Numero" name="lg-numero"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Descrição <span class="text-red-600">*</span></label>
-          <textarea rows="2" [(ngModel)]="legadoForm.Descricao" name="lg-desc"
+          <label for="lg-desc" class="block text-sm font-semibold mb-1">Descrição <span class="text-red-600">*</span></label>
+          <textarea id="lg-desc" rows="2" [(ngModel)]="legadoForm.Descricao" name="lg-desc"
                     placeholder="Do que trata o instrumento."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errLegadoDescricao" [class.bg-red-50]="errLegadoDescricao"
                     [class.border-gray-300]="!errLegadoDescricao"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Envolve IA? <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="legadoForm.EnvolveIa" name="lg-envolve"
+          <label for="lg-envolve" class="block text-sm font-semibold mb-1">Envolve IA? <span class="text-red-600">*</span></label>
+          <select id="lg-envolve" [(ngModel)]="legadoForm.EnvolveIa" name="lg-envolve"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let e of envolveIa" [value]="e">{{ e }}</option>
           </select>
-          <p class="text-xs text-gray-400 italic mt-1">Incerto é tratado como sim até a confirmação do fornecedor.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Incerto é tratado como sim até a confirmação do fornecedor.</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da triagem</label>
-          <input type="date" [(ngModel)]="legadoForm.DataTriagem" name="lg-dttriagem"
+          <label for="lg-dttriagem" class="block text-sm font-semibold mb-1">Data da triagem</label>
+          <input id="lg-dttriagem" type="date" [(ngModel)]="legadoForm.DataTriagem" name="lg-dttriagem"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
@@ -360,8 +360,8 @@
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da revisão</label>
-          <input type="date" [(ngModel)]="legadoForm.DataRevisao" name="lg-dtrevisao"
+          <label for="lg-dtrevisao" class="block text-sm font-semibold mb-1">Data da revisão</label>
+          <input id="lg-dtrevisao" type="date" [(ngModel)]="legadoForm.DataRevisao" name="lg-dtrevisao"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div *ngIf="legadoEnvolveIa">
@@ -371,26 +371,26 @@
             <label class="flex items-center gap-2"><input type="radio" name="lg-aditivo" [value]="true" [(ngModel)]="legadoForm.AditivoClausulaTreinamento"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="lg-aditivo" [value]="false" [(ngModel)]="legadoForm.AditivoClausulaTreinamento"> Não</label>
           </div>
-          <p class="text-xs text-gray-400 italic mt-1">Arts. 21 e 37.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Arts. 21 e 37.</p>
         </div>
         <div *ngIf="legadoEnvolveIa">
-          <label class="block text-sm font-semibold mb-1">Data do aditivo</label>
-          <input type="date" [(ngModel)]="legadoForm.DataAditivo" name="lg-dtaditivo"
+          <label for="lg-dtaditivo" class="block text-sm font-semibold mb-1">Data do aditivo</label>
+          <input id="lg-dtaditivo" type="date" [(ngModel)]="legadoForm.DataAditivo" name="lg-dtaditivo"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Processo SEI</label>
-          <input type="text" [(ngModel)]="legadoForm.ProcessoSei" name="lg-sei" maxlength="25"
+          <label for="lg-sei" class="block text-sm font-semibold mb-1">Processo SEI</label>
+          <input id="lg-sei" type="text" [(ngModel)]="legadoForm.ProcessoSei" name="lg-sei" maxlength="25"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Sistema do inventário</label>
-          <select [(ngModel)]="legadoForm.SistemaIaId" name="lg-sistema"
+          <label for="lg-sistema" class="block text-sm font-semibold mb-1">Sistema do inventário</label>
+          <select id="lg-sistema" [(ngModel)]="legadoForm.SistemaIaId" name="lg-sistema"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null">Ainda não vinculado</option>
             <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}</option>
           </select>
-          <p class="text-xs text-gray-400 italic mt-1">Se o instrumento envolve IA, o sistema entra no inventário com origem "Instrumento vigente em revisão".</p>
+          <p class="text-xs text-gray-500 italic mt-1">Se o instrumento envolve IA, o sistema entra no inventário com origem "Instrumento vigente em revisão".</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Comprovação</label>
@@ -399,7 +399,7 @@
             [criarDocumento]="criarDocumentoComprovacao"
             (documentoCriado)="aoCriarDocumentoComprovacao($event)">
           </app-pgia-anexo>
-          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve o instrumento para guardar a comprovação nele.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Depois de anexar, salve o instrumento para guardar a comprovação nele.</p>
         </div>
       </div>
 

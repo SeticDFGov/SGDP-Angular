@@ -11,11 +11,11 @@
     <p class="text-sm text-gray-600 mb-3">Arquivo CSV separado por ponto e vírgula, de até 5 MB. É o formato que o Excel
     grava em "Salvar como → CSV". A exportação desta mesma tela pode ser reimportada sem perda.</p>
 
-    <input type="file" accept=".csv" (change)="escolherArquivo($event)"
+    <input type="file" accept=".csv" (change)="escolherArquivo($event)" aria-label="Arquivo CSV da planilha"
            class="block text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
 
     <p *ngIf="erroArquivo" class="text-sm text-red-600 mt-3">{{ erroArquivo }}</p>
-    <p *ngIf="arquivo && !erroArquivo" class="text-xs text-gray-400 italic mt-2">{{ arquivo.name }}</p>
+    <p *ngIf="arquivo && !erroArquivo" class="text-xs text-gray-500 italic mt-2">{{ arquivo.name }}</p>
   </div>
 
   <div *ngIf="gerandoPrevia" class="text-center py-8 text-gray-500">Lendo a planilha...</div>
@@ -43,7 +43,7 @@
       </label>
     </div>
 
-    <p class="text-xs text-gray-400 italic mb-3">Linhas rejeitadas não são gravadas; as demais entram normalmente.</p>
+    <p class="text-xs text-gray-500 italic mb-3">Linhas rejeitadas não são gravadas; as demais entram normalmente.</p>
 
     <ng-container *ngTemplateOutlet="tabela"></ng-container>
   </div>

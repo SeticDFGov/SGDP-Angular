@@ -127,11 +127,11 @@
               class="flex-grow px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <button (click)="saveEditArea()"
-              class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700">
+              class="px-3 py-1 text-sm bg-green-700 text-white rounded hover:bg-green-800">
               Salvar
             </button>
             <button (click)="cancelEditArea()"
-              class="px-3 py-1 text-sm bg-gray-400 text-white rounded hover:bg-gray-500">
+              class="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
               Cancelar
             </button>
           </div>
@@ -139,7 +139,7 @@
           <!-- Modo visualização -->
           <div *ngIf="editingArea?.AreaExecutoraId !== area.AreaExecutoraId" class="flex-grow">
             <span class="font-medium text-gray-900">{{ area.Nome }}</span>
-            <span class="ml-2 text-xs text-gray-400">ID: {{ area.AreaExecutoraId }}</span>
+            <span class="ml-2 text-xs text-gray-500">ID: {{ area.AreaExecutoraId }}</span>
           </div>
 
           <div *ngIf="editingArea?.AreaExecutoraId !== area.AreaExecutoraId" class="flex gap-2 ml-4">
@@ -148,7 +148,7 @@
               Editar
             </button>
             <button (click)="deleteArea(area.AreaExecutoraId)"
-              class="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-700">
+              class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700">
               Remover
             </button>
           </div>
@@ -193,7 +193,7 @@
             <span class="ml-2 text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-0.5 rounded">{{ d.NM_SIGLA }}</span>
           </div>
           <button (click)="deleteDemandante(d.AreaDemandanteID)"
-            class="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-700">
+            class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700">
             Remover
           </button>
         </div>
@@ -234,7 +234,7 @@
           </div>
           <div class="flex items-center gap-2">
             <button (click)="deleteEsteira(e.EsteiraId)"
-              class="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-700">
+              class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700">
               Remover
             </button>
           </div>
@@ -258,21 +258,21 @@
       <!-- Formulário de cadastro -->
       <form (ngSubmit)="cadastrarPgiaOrgao($event)" class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
-          <input type="text" [(ngModel)]="newPgiaOrgao.Nome" name="pgiaOrgaoNome"
+          <label for="pgiaOrgaoNome" class="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
+          <input id="pgiaOrgaoNome" type="text" [(ngModel)]="newPgiaOrgao.Nome" name="pgiaOrgaoNome"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Denominação oficial" [disabled]="loadingPgiaOrgao" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Natureza jurídica</label>
-          <select [(ngModel)]="newPgiaOrgao.NaturezaJuridica" name="pgiaOrgaoNatureza"
+          <label for="pgiaOrgaoNatureza" class="block text-sm font-medium text-gray-700 mb-1">Natureza jurídica</label>
+          <select id="pgiaOrgaoNatureza" [(ngModel)]="newPgiaOrgao.NaturezaJuridica" name="pgiaOrgaoNatureza"
             class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let n of naturezasPgia" [value]="n">{{ n }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Unidade vinculada</label>
-          <select [(ngModel)]="newPgiaOrgao.UnidadeId" name="pgiaOrgaoUnidade"
+          <label for="pgiaOrgaoUnidade" class="block text-sm font-medium text-gray-700 mb-1">Unidade vinculada</label>
+          <select id="pgiaOrgaoUnidade" [(ngModel)]="newPgiaOrgao.UnidadeId" name="pgiaOrgaoUnidade"
             class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null" disabled>Escolha a unidade</option>
             <option *ngFor="let unit of units" [ngValue]="unit.id">{{ unit.Nome }}</option>
@@ -323,11 +323,11 @@
               <option *ngFor="let unit of units" [ngValue]="unit.id">{{ unit.Nome }}</option>
             </select>
             <button (click)="salvarVinculoOrgao()" [disabled]="salvandoVinculo"
-              class="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+              class="px-3 py-2 text-sm bg-green-700 text-white rounded hover:bg-green-800 disabled:opacity-50">
               {{ salvandoVinculo ? 'Salvando...' : 'Salvar' }}
             </button>
             <button (click)="cancelarVinculoOrgao()"
-              class="px-3 py-2 text-sm bg-gray-400 text-white rounded hover:bg-gray-500">
+              class="px-3 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600">
               Cancelar
             </button>
           </div>

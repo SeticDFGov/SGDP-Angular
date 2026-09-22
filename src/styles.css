@@ -1,13 +1,60 @@
 @import "tailwindcss";
 
+/* O gerador dos temas cita classes nos textos dele: não é uso em tela */
+@source not "../scripts";
+
 /*
  * Telas do módulo PGIA, da transparência pública e do modo local de testes:
  * o texto de exemplo dos campos (placeholder) segue o mesmo tom dos textos de
- * apoio: cinza claro e itálico. O escopo é a classe `tela-pgia`, posta no
+ * apoio: cinza e itálico. O escopo é a classe `tela-pgia`, posta no
  * elemento-raiz de cada uma dessas telas: as telas legadas do SGDP não mudam.
  */
 .tela-pgia ::placeholder {
-  color: var(--color-gray-400, #99a1af);
+  color: var(--color-gray-500, #6a7282);
   font-style: italic;
   opacity: 1; /* o Firefox clareia o placeholder por padrão */
+}
+
+/*
+ * Acessibilidade (barra no topo de todas as páginas, página /acessibilidade).
+ * Os temas escuro e de alto contraste ficam em src/assets/temas/, gerados por
+ * scripts/temas/gerar-temas.mjs: só baixa quem escolhe o tema.
+ */
+
+/* Foco visível ao navegar pelo teclado (WCAG 2.4.7), inclusive onde a tela
+   apagou o contorno. Campos com anel de foco próprio ficam com o anel. */
+:focus-visible:not([class*="focus:ring"]):not([class*="focus-visible:"]) {
+  outline: 3px solid var(--foco, #2b7fff);
+  outline-offset: 2px;
+}
+
+/* As páginas de altura cheia (molduras e telas abertas) descontam a barra de
+   acessibilidade (h-9 mais a borda), senão toda página ganharia uma rolagem */
+app-root .min-h-screen {
+  min-height: calc(100vh - 2.25rem - 1px);
+}
+
+/* Destinos dos atalhos "Ir para o conteúdo" e "Ir para o menu" recebem o foco
+   sem desenhar uma moldura na página inteira */
+#conteudo:focus,
+#menu:focus {
+  outline: none;
+}
+
+/* Menos movimento: pedido pelo sistema operacional ou na página de acessibilidade.
+   "transition: none" e não uma duração mínima: a duração sozinha, com a propriedade
+   padrão (all), criaria transição em elementos que não tinham nenhuma. */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+html.sem-animacoes *, html.sem-animacoes ::before, html.sem-animacoes ::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
 }
