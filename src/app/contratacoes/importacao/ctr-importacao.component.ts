@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { CitaInDirective } from '../shared/cita-in.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -17,7 +18,7 @@ import { CtrImportacaoLinha, CtrImportacaoRelatorio } from '../../../api/contrat
 @Component({
   selector: 'app-ctr-importacao',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule],
   templateUrl: './ctr-importacao.component.html'
 })
 export class CtrImportacaoComponent {

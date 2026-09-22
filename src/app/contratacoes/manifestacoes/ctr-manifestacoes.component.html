@@ -1,4 +1,4 @@
-<div class="tela-pgia max-w-6xl mx-auto">
+<div citaIn class="tela-pgia max-w-6xl mx-auto">
 
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
     Quando o Tribunal de Contas do Distrito Federal (TCDF) comunica uma contratação de TIC, a SGDI responde com o
@@ -192,7 +192,7 @@
         ({{ processo.OrgaoSigla }})<span *ngIf="processo.ComplementoArea">, {{ processo.ComplementoArea }}</span></p>
         <div class="flex flex-wrap items-center gap-2 mt-2">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                [ngClass]="badgeFase(processo.Fase)">{{ processo.Fase }}</span>
+                [ngClass]="badgeSituacao(processo.Situacao)">{{ processo.Situacao }}</span>
           <span *ngIf="processo.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
                 [ngClass]="badgeCriticidade(processo.Criticidade)">Criticidade {{ processo.Criticidade }}</span>
           <span *ngIf="processo.Origem === 'TCDF'"

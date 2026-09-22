@@ -1,11 +1,12 @@
 import { Component, OnInit } from '@angular/core';
+import { CitaInDirective } from '../shared/cita-in.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Params, RouterModule } from '@angular/router';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import { parametrosDaLista } from '../shared/ctr-filtro-lista';
 import {
-  badgeFase,
+  badgeCriticidade,
   badgeNivelRisco,
   badgeSituacao,
   corDiasSemMovimento
@@ -13,9 +14,10 @@ import {
 import { CtrContagem, CtrPainel, CtrProcessoFiltro } from '../../../api/contratacoes/interface';
 
 /**
- * Painel da área: contagens por situação, fase, maior risco da contratação,
- * categoria e órgão, tempos médios entre as instâncias e a lista de processos
- * parados (gargalos). Cada contagem abre a lista de processos já filtrada.
+ * Painel da área: contagens por situação, maior risco da contratação, categoria
+ * e órgão, a relação de concluídos (contrato assinado), tempos médios entre as
+ * instâncias e a lista de processos parados (gargalos). Cada contagem abre a
+ * lista de processos já filtrada.
  *
  * Os números vêm prontos do backend, sobre os mesmos processos ativos da
  * listagem; nada é recalculado aqui.
@@ -23,7 +25,7 @@ import { CtrContagem, CtrPainel, CtrProcessoFiltro } from '../../../api/contrata
 @Component({
   selector: 'app-ctr-painel',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule],
   templateUrl: './ctr-painel.component.html'
 })
 export class CtrPainelComponent implements OnInit {
@@ -36,7 +38,7 @@ export class CtrPainelComponent implements OnInit {
   limiteDias = 15;
 
   badgeSituacao = badgeSituacao;
-  badgeFase = badgeFase;
+  badgeCriticidade = badgeCriticidade;
   badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
 

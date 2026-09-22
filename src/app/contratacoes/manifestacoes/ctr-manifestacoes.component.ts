@@ -1,4 +1,5 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { CitaInDirective } from '../shared/cita-in.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -11,7 +12,6 @@ import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component'
 import {
   badgeCriticidade,
   badgeEstagio,
-  badgeFase,
   badgeSituacao,
   badgeStatusTcdf
 } from '../shared/ctr-rotulos';
@@ -35,7 +35,7 @@ import {
 @Component({
   selector: 'app-ctr-manifestacoes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent, CtrProcessoFormComponent],
+  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent, CtrProcessoFormComponent],
   templateUrl: './ctr-manifestacoes.component.html'
 })
 export class CtrManifestacoesComponent implements OnInit {
@@ -85,7 +85,6 @@ export class CtrManifestacoesComponent implements OnInit {
   badgeEstagio = badgeEstagio;
   badgeSituacao = badgeSituacao;
   badgeStatusTcdf = badgeStatusTcdf;
-  badgeFase = badgeFase;
   badgeCriticidade = badgeCriticidade;
 
   constructor(

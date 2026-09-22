@@ -1,4 +1,4 @@
-<div class="tela-pgia max-w-5xl mx-auto">
+<div citaIn class="tela-pgia max-w-5xl mx-auto">
 
   <div class="mb-4">
     <a routerLink="/analises/processos/lista" [queryParams]="filtrosDaLista"
@@ -41,14 +41,16 @@
           parado há {{ processo.DiasSemMovimento }} dia(s)
         </span>
         <span class="text-gray-300" aria-hidden="true">·</span>
-        <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
-              [ngClass]="badgeFase(processo.Fase)">{{ processo.Fase }}</span>
         <span *ngIf="processo.EtapaPlanejamento" class="text-xs text-gray-600"
               [title]="rotuloEtapaPlanejamento(processo.EtapaPlanejamento)">
           {{ processo.EtapaPlanejamento }} ({{ rotuloEtapaPlanejamento(processo.EtapaPlanejamento) }})
         </span>
         <span *ngIf="processo.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
-              [ngClass]="badgeCriticidade(processo.Criticidade)">Criticidade {{ processo.Criticidade }}</span>
+              [ngClass]="badgeCriticidade(processo.Criticidade)"
+              title="Criticidade da contratação (art. 11 da IN)">Criticidade {{ processo.Criticidade }}<ng-container
+          *ngIf="processo.PontosCriticidade != null"> ({{ processo.PontosCriticidade }} ponto(s))</ng-container></span>
+        <span *ngIf="!processo.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+              [ngClass]="badgeCriticidade(null)">Sem criticidade</span>
         <!-- Maior nível entre os riscos da contratação, independente da criticidade -->
         <span *ngIf="processo.NivelMaximoRiscoDeclarado" class="px-2 py-0.5 rounded-full text-xs font-semibold"
               [ngClass]="badgeNivelRisco(processo.NivelMaximoRiscoDeclarado)"
@@ -71,6 +73,14 @@
         <app-ctr-tramite [processo]="processo"></app-ctr-tramite>
       </div>
 
+      <!-- Contrato assinado: a data final; o processo saiu da lista -->
+      <div *ngIf="processo.Situacao === 'Concluído'"
+           class="mt-4 border-l-4 border-green-500 bg-green-50 p-3 rounded-r-md text-sm text-green-800">
+        <strong>Concluído:</strong> contrato assinado em {{ processo.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}.
+        O processo não aparece mais na lista; ele está na relação de concluídos do painel. Limpar a data da assinatura
+        o reabre.
+      </div>
+
       <div *ngIf="processo.Restituido"
            class="mt-4 border-l-4 border-orange-400 bg-orange-50 p-3 rounded-r-md text-sm text-orange-800">
         <strong>Restituído ao órgão</strong><span *ngIf="processo.RestituidoEm"> em
@@ -84,9 +94,6 @@
           *ngIf="processo.EsclarecimentoRespondidoEm">, respondido em
           {{ processo.EsclarecimentoRespondidoEm | date:'dd/MM/yyyy':'UTC' }}</span>.
         </p>
-        <p *ngIf="processo.DataAssinaturaContrato" class="text-xs text-gray-600">
-          Contrato assinado em {{ processo.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}.
-        </p>
       </div>
 
       <p class="text-xs text-gray-400 italic mt-3">
@@ -99,7 +106,8 @@
     <!-- Formulário compartilhado com a tela de cadastro -->
     <div class="bg-white rounded-lg shadow p-6 mb-5">
       <h3 class="text-base font-semibold text-blue-900 mb-1">Dados do processo</h3>
-      <p class="text-sm text-gray-600 mb-6">A situação e o tempo parado são calculados a partir das datas da tramitação.</p>
+      <p class="text-sm text-gray-600 mb-6">A situação e o tempo parado são calculados a partir das datas da tramitação; a
+      criticidade, das respostas aos critérios da IN.</p>
 
       <!-- Os riscos vêm aninhados só no GET/PUT: a seção abre com eles -->
       <app-ctr-processo-form

@@ -14,10 +14,11 @@ interface EtapaTramite {
 }
 
 /**
- * Linha do tempo do trâmite de um processo: SGDI, SUBGD, UGTIC, Gab SGDI e
- * órgão comunicante, com a data de cada etapa, as dispensadas ("não se
- * aplica") e onde o processo está agora. Só apresentação: as datas e a
- * situação vêm prontas do servidor (a situação é derivada lá).
+ * Linha do tempo do trâmite de um processo: SGDI, SUBGD, UGTIC, Gab SGDI,
+ * órgão comunicante e, por fim, a assinatura do contrato (a data que conclui
+ * o processo), com a data de cada etapa, as dispensadas ("não se aplica") e
+ * onde o processo está agora. Só apresentação: as datas e a situação vêm
+ * prontas do servidor (a situação é derivada lá).
  */
 @Component({
   selector: 'app-ctr-tramite',
@@ -66,11 +67,12 @@ export class CtrTramiteComponent implements OnChanges {
       {
         rotulo: 'Órgão', acao: 'devolvido em', data: p.RetornoOrgao ?? null,
         naoSeAplica: p.RetornoOrgaoNaoSeAplica, atual: false
-      }
+      },
+      { rotulo: 'Contrato', acao: 'assinado em', data: p.DataAssinaturaContrato ?? null, naoSeAplica: false, atual: false }
     ];
     // Onde o processo está: a última etapa com data, enquanto ele não terminou
-    // (concluído ou restituído não "está" em etapa nenhuma).
-    const terminou = p.Situacao === 'Concluído' || p.Restituido;
+    // (concluído, análise concluída ou restituído não "está" em etapa nenhuma).
+    const terminou = p.Situacao === 'Concluído' || p.Situacao === 'Análise concluída' || p.Restituido;
     const ultima = etapas.map(e => !!e.data).lastIndexOf(true);
     if (!terminou && ultima >= 0) etapas[ultima].atual = true;
     return etapas;

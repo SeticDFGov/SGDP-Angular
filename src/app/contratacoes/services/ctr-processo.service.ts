@@ -56,7 +56,8 @@ export class CtrProcessoService {
     acrescentar('Restituidos', filtro.Restituidos);
     acrescentar('De', filtro.De);
     acrescentar('Ate', filtro.Ate);
-    acrescentar('Fase', filtro.Fase);
+    // Concluídos (contrato assinado) só quando pedidos: a lista e o CSV os escondem por padrão
+    acrescentar('IncluirConcluidos', filtro.IncluirConcluidos ? true : null);
     acrescentar('EtapaPlanejamento', filtro.EtapaPlanejamento);
     acrescentar('Criticidade', filtro.Criticidade);
     acrescentar('Origem', filtro.Origem);

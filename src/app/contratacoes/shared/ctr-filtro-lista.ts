@@ -19,7 +19,7 @@ interface ParametroFiltro {
 const PARAMETROS: ParametroFiltro[] = [
   { campo: 'Filtro', parametro: 'busca' },
   { campo: 'Situacao', parametro: 'situacao' },
-  { campo: 'Fase', parametro: 'fase' },
+  { campo: 'IncluirConcluidos', parametro: 'concluidos', booleano: true },
   { campo: 'NivelRiscoDeclarado', parametro: 'nivel' },
   { campo: 'Categoria', parametro: 'categoria' },
   { campo: 'Sigla', parametro: 'sigla' },

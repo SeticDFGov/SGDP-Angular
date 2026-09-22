@@ -10,8 +10,10 @@ import { CtrManifestacaoForm, STATUS_TCDF } from '../../../api/contratacoes/inte
  * 48.899/2026 + IN SGDI nº 1/2026): os textos das alternativas são os do
  * documento, na literalidade, e todas aparecem na tela como aparecem no papel.
  *
- * As citações de artigos aqui são texto simples: a diretiva de chips
- * `citaDecreto` é exclusiva do Decreto nº 48.901/2026 (PGIA).
+ * As citações de artigos da IN viram chips com o trecho exato pela diretiva
+ * `citaIn`, que fica no elemento-raiz das páginas que embutem este formulário
+ * (nova manifestação e página da manifestação); as citações ao Decreto nº
+ * 48.899/2026 ficam como texto, porque ele não está transcrito.
  *
  * Os blocos são exclusivos: o que não vale para o inciso escolhido é enviado
  * como nulo: o backend recusa campo de bloco inativo preenchido, e a resposta
