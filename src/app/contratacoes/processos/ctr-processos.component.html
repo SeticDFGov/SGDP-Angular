@@ -1,4 +1,4 @@
-<div class="tela-pgia max-w-7xl mx-auto">
+<div citaIn class="tela-pgia max-w-7xl mx-auto">
 
   <!-- ── Lista de processos ────────────────────────────────────────────── -->
   <div *ngIf="secao === 'lista'" class="bg-white rounded-lg shadow p-6">
@@ -6,7 +6,9 @@
       <div class="flex-1 min-w-0">
         <h2 class="text-base font-semibold text-blue-900 mb-1">Processos em análise</h2>
         <p class="text-sm text-gray-600">Cada linha é um processo SEI de contratação de TIC que chegou para análise e
-        percorre SGDI, SUBGD e UGTIC até voltar ao gabinete e ao órgão comunicante.</p>
+        percorre SGDI, SUBGD e UGTIC até voltar ao gabinete e ao órgão comunicante. A lista vem por criticidade (Alta,
+        Média, Baixa e por fim os sem criticidade) e, dentro dela, pela chegada mais recente na SGDI. Os concluídos
+        (contrato assinado) ficam na relação do painel.</p>
       </div>
       <div class="flex items-center gap-2 whitespace-nowrap">
         <button (click)="exportarCsv()" [disabled]="exportando" title="Baixa a lista filtrada em planilha (CSV)"
@@ -42,11 +44,11 @@
         </select>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-fase">Fase</label>
-        <select id="ctr-f-fase" [(ngModel)]="filtro.Fase" name="ctr-f-fase" (ngModelChange)="buscar()"
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-criticidade">Criticidade</label>
+        <select id="ctr-f-criticidade" [(ngModel)]="filtro.Criticidade" name="ctr-f-criticidade" (ngModelChange)="buscar()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todas</option>
-          <option *ngFor="let f of fases" [value]="f">{{ f }}</option>
+          <option *ngFor="let c of criticidades" [value]="c">{{ c }}</option>
         </select>
       </div>
       <div>
@@ -91,13 +93,12 @@
             <option *ngFor="let s of siglas" [value]="s"></option>
           </datalist>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-criticidade">Criticidade</label>
-          <select id="ctr-f-criticidade" [(ngModel)]="filtro.Criticidade" name="ctr-f-criticidade" (ngModelChange)="buscar()"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Todas</option>
-            <option *ngFor="let c of criticidades" [value]="c">{{ c }}</option>
-          </select>
+        <div class="flex items-end">
+          <label class="flex items-center gap-2 text-sm text-gray-700 py-2">
+            <input id="ctr-f-concluidos" type="checkbox" [(ngModel)]="filtro.IncluirConcluidos" name="ctr-f-concluidos"
+                   (ngModelChange)="buscar()" class="rounded border-gray-300">
+            <span>Incluir os concluídos (contrato assinado)</span>
+          </label>
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-etapa-planejamento">Etapa do planejamento</label>
@@ -198,7 +199,7 @@
               <th class="px-3 py-2">Objeto</th>
               <th class="px-3 py-2">Situação</th>
               <th class="px-3 py-2">Parado há</th>
-              <th class="px-3 py-2">Fase e criticidade</th>
+              <th class="px-3 py-2">Criticidade</th>
               <th class="px-3 py-2">Maior risco</th>
               <th class="px-3 py-2" aria-label="Ações"></th>
             </tr>
@@ -240,6 +241,9 @@
                 <span *ngIf="!p.RetornoOrgaoNaoSeAplica && p.RetornoOrgao" class="block text-xs text-gray-500 mt-1">
                   retorno ao órgão: {{ p.RetornoOrgao | date:'dd/MM/yyyy':'UTC' }}
                 </span>
+                <span *ngIf="p.DataAssinaturaContrato" class="block text-xs text-green-800 mt-1">
+                  contrato assinado em {{ p.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}
+                </span>
                 <!-- Manifestações ao TCDF: quantas e o estágio da mais recente -->
                 <span *ngIf="p.TotalManifestacoes > 0" class="block text-xs text-gray-600 mt-1">
                   TCDF: {{ p.TotalManifestacoes }} manifestação(ões)<ng-container
@@ -253,13 +257,14 @@
                 </span>
               </td>
               <td class="px-3 py-2">
-                <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                      [ngClass]="badgeFase(p.Fase)">{{ p.Fase }}</span>
+                <span *ngIf="p.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="badgeCriticidade(p.Criticidade)"
+                      title="Criticidade da contratação (art. 11 da IN)">{{ p.Criticidade }}</span>
+                <span *ngIf="!p.Criticidade" class="text-xs text-gray-400 italic">sem criticidade</span>
+                <!-- Pontos dos critérios; sem eles a criticidade veio de antes da regra automática -->
+                <span *ngIf="p.PontosCriticidade != null" class="block text-xs text-gray-500 mt-1">{{ p.PontosCriticidade }} ponto(s)</span>
                 <span *ngIf="p.EtapaPlanejamento" class="block text-xs text-gray-500 mt-1"
-                      [title]="rotuloEtapaPlanejamento(p.EtapaPlanejamento)">{{ p.EtapaPlanejamento }}</span>
-                <span *ngIf="p.Criticidade" class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                      [ngClass]="badgeCriticidade(p.Criticidade)">{{ p.Criticidade }}</span>
-                <span *ngIf="!p.Criticidade" class="block text-xs text-gray-400 italic mt-1">sem criticidade</span>
+                      [title]="rotuloEtapaPlanejamento(p.EtapaPlanejamento)">Etapa: {{ p.EtapaPlanejamento }}</span>
               </td>
               <td class="px-3 py-2">
                 <span *ngIf="p.NivelMaximoRiscoDeclarado"
@@ -330,6 +335,8 @@
              [disabled]="checkpointLimpar || (etapaAceitaNaoSeAplica && checkpointNaoSeAplica)"
              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
       <p class="text-xs text-gray-400 italic mt-1">Vem preenchida com a data de hoje; troque se a chegada foi em outro dia.</p>
+      <p *ngIf="checkpointEtapa === etapaAssinatura" class="text-xs text-green-800 mt-1">Com esta data o processo fica
+      Concluído: sai da lista e passa para a relação de concluídos do painel.</p>
 
       <label *ngIf="etapaAceitaNaoSeAplica" class="flex items-center gap-2 mt-3 text-sm">
         <input type="checkbox" [ngModel]="checkpointNaoSeAplica" name="ctr-cp-na"

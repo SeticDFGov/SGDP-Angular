@@ -28,12 +28,16 @@ export const CATEGORIAS_OBJETO = [
 export const CATEGORIA_SEM_OBJETO = 'Sem objeto / Indefinido';
 
 /**
- * Situação derivada do processo (nunca gravada: o backend calcula a partir dos
- * checkpoints e da restituição). A ordem é a da precedência do cálculo.
+ * Situação derivada do processo (nunca gravada: o backend calcula a partir das
+ * datas do trâmite e da restituição). A ordem é a da precedência do cálculo:
+ * a assinatura do contrato vence tudo (`Concluído`, o processo sai da lista e
+ * vai para a relação de concluídos do painel); a devolução ao órgão é
+ * `Análise concluída`.
  */
 export const SITUACOES = [
-  'Restituído',
   'Concluído',
+  'Restituído',
+  'Análise concluída',
   'Retornado ao Gab SGDI',
   'Em análise na UGTIC',
   'Em análise na SUBGD',
@@ -41,14 +45,22 @@ export const SITUACOES = [
   'Sem movimentação'
 ] as const;
 
-/** Etapas do trâmite, na ordem cronológica; chave do PUT de checkpoint. */
+/**
+ * Etapas do trâmite, na ordem cronológica; chave do PUT de checkpoint. A última é
+ * a assinatura do contrato: fora da cronologia das outras cinco (o TCDF também
+ * analisa contrato já assinado), mas é a data que conclui o processo.
+ */
 export const ETAPAS = [
   { valor: 'ChegadaSgdi', rotulo: 'Chegada da análise · SGDI' },
   { valor: 'ChegadaSubgd', rotulo: 'Chegada da análise · SUBGD' },
   { valor: 'ChegadaUgtic', rotulo: 'Chegada da análise · UGTIC' },
   { valor: 'RetornoGabSgdi', rotulo: 'Retorno ao Gab SGDI' },
-  { valor: 'RetornoOrgao', rotulo: 'Retorno ao órgão comunicante' }
+  { valor: 'RetornoOrgao', rotulo: 'Retorno ao órgão comunicante' },
+  { valor: 'AssinaturaContrato', rotulo: 'Assinatura do Contrato' }
 ] as const;
+
+/** A etapa que conclui o processo (não aceita "não se aplica"). */
+export const ETAPA_ASSINATURA = 'AssinaturaContrato';
 
 /** Situação da contratação no Portfólio Estratégico (incisos I e II do despacho). */
 export const SITUACOES_PORTFOLIO = [
@@ -57,19 +69,15 @@ export const SITUACOES_PORTFOLIO = [
 ] as const;
 
 /**
- * Criticidade da contratação (art. 11 da IN SGDI nº 1/2026).
+ * Criticidade da contratação (art. 11 da IN SGDI nº 1/2026), da mais alta para a
+ * mais baixa (é a ordem padrão da lista).
  *
  * É atributo da **contratação**, não da resposta ao TCDF: mora no processo e a
- * manifestação apenas a reporta (o despacho do inciso I imprime o valor).
+ * manifestação apenas a reporta (o despacho do inciso I imprime o valor). Desde
+ * 2026-09-22 é DERIVADA no servidor das respostas aos critérios do § 3º
+ * (`criticidade.ts` tem o espelho da regra para a prévia ao vivo).
  */
 export const CRITICIDADES = ['Alta', 'Média', 'Baixa'] as const;
-
-/**
- * Fase da contratação: DERIVADA no backend (`CtrProcessoService.CalcularFase`),
- * nunca gravada: `Execução` quando há data de assinatura do contrato, senão
- * `Planejamento`.
- */
-export const FASES = ['Planejamento', 'Execução'] as const;
 
 /**
  * Etapa em que o planejamento da contratação está. O valor gravado é a sigla
@@ -211,10 +219,23 @@ export interface CtrProcessoForm {
   RetornoOrgaoNaoSeAplica: boolean;
   /** Sigla de ETAPAS_PLANEJAMENTO; continua registrada depois da assinatura. */
   EtapaPlanejamento?: string | null;
-  /** Preenchida, leva o processo à fase de execução. Não pode ser futura. */
+  /**
+   * A data final do trâmite: preenchida, o processo fica `Concluído` (sai da
+   * lista e vai para a relação de concluídos do painel). Não pode ser futura.
+   */
   DataAssinaturaContrato?: string | null;
-  /** Criticidade da contratação (art. 11 da IN): nasce aqui, no processo. */
+  /**
+   * Criticidade da contratação (art. 11 da IN). Com `CriteriosCriticidade` no
+   * corpo o servidor a calcula e ignora este valor; sem respostas vale o que for
+   * enviado (processo classificado antes da regra automática).
+   */
   Criticidade?: string | null;
+  /**
+   * Respostas aos critérios do art. 11, § 3º, da IN (chave = código do critério,
+   * valor = resposta; ver `criticidade.ts`). No PUT, nula **preserva** as
+   * respostas gravadas e a criticidade calculada delas.
+   */
+  CriteriosCriticidade?: Record<string, string> | null;
   /** Opcional no DTO: vazia = "Órgão comunicante". */
   Origem?: string | null;
   /** Pedido de esclarecimento ao órgão: a data exige a descrição. */
@@ -241,10 +262,10 @@ export interface CtrProcessoForm {
  */
 export interface CtrProcesso extends Omit<CtrProcessoForm, 'ClassificacaoRisco'> {
   Id: number;
-  /** Derivada no backend, nunca gravada. */
+  /** Derivada no backend, nunca gravada. `Concluído` = contrato assinado. */
   Situacao: string;
-  /** Derivada no backend a partir da data de assinatura, nunca gravada. */
-  Fase: string;
+  /** Derivado: soma dos pontos das respostas aos critérios; nulo sem respostas. */
+  PontosCriticidade?: number | null;
   /**
    * Sinal paralelo ao trâmite (não muda a situação): há pedido de
    * esclarecimento sem resposta. Derivados no backend, nunca gravados.
@@ -289,8 +310,11 @@ export interface CtrProcessoFiltro {
   Restituidos?: boolean | null;
   De?: string | null;
   Ate?: string | null;
-  /** Fase derivada: traduzida em predicado sobre a data de assinatura. */
-  Fase?: string | null;
+  /**
+   * true traz também os `Concluído` (contrato assinado), que por padrão ficam
+   * fora da lista e do CSV. O filtro por situação `Concluído` também os traz.
+   */
+  IncluirConcluidos?: boolean | null;
   EtapaPlanejamento?: string | null;
   Criticidade?: string | null;
   Origem?: string | null;
@@ -370,15 +394,21 @@ export interface CtrTemposMedios {
   SubgdParaUgtic?: number | null;
   UgticParaRetornoGab?: number | null;
   RetornoGabParaOrgao?: number | null;
+  /** Chegada à SGDI até o retorno ao órgão (análise concluída). */
   ChegadaParaConclusao?: number | null;
+  /** Chegada à SGDI até a assinatura do contrato (processo concluído). */
+  ChegadaParaAssinatura?: number | null;
 }
 
 export interface CtrPainel {
   TotalAtivos: number;
   LimiteDias: number;
+  /** As oito situações sempre presentes, mesmo com zero. */
   PorSituacao: CtrContagem[];
-  /** As duas fases sempre presentes, mesmo com zero. */
-  PorFase: CtrContagem[];
+  /** Ativos com contrato assinado (situação `Concluído`). */
+  TotalConcluidos: number;
+  /** Relação de concluídos: assinatura mais recente primeiro, no máximo 50. */
+  Concluidos: CtrProcesso[];
   /** Ativos com pedido de esclarecimento ainda sem resposta. */
   TotalEsclarecimentoPendente: number;
   /**
@@ -389,7 +419,7 @@ export interface CtrPainel {
   PorCategoria: CtrContagem[];
   PorOrgao: CtrContagem[];
   TemposMedios: CtrTemposMedios;
-  /** Ativos fora de Concluído/Restituído parados há LimiteDias ou mais. */
+  /** Ativos fora de Concluído, Análise concluída e Restituído parados há LimiteDias ou mais. */
   Gargalos: CtrProcesso[];
 }
 

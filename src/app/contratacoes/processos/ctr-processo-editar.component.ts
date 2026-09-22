@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CitaInDirective } from '../shared/cita-in.directive';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Params, Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
@@ -8,7 +9,6 @@ import { CtrTramiteComponent } from '../shared/ctr-tramite.component';
 import {
   badgeCriticidade,
   badgeEstagio,
-  badgeFase,
   badgeNivelRisco,
   badgeSituacao,
   badgeStatusTcdf,
@@ -26,7 +26,7 @@ import { CtrManifestacao, CtrProcesso, CtrProcessoForm } from '../../../api/cont
 @Component({
   selector: 'app-ctr-processo-editar',
   standalone: true,
-  imports: [CommonModule, RouterModule, CtrProcessoFormComponent, CtrTramiteComponent],
+  imports: [CitaInDirective, CommonModule, RouterModule, CtrProcessoFormComponent, CtrTramiteComponent],
   templateUrl: './ctr-processo-editar.component.html'
 })
 export class CtrProcessoEditarComponent implements OnInit {
@@ -43,7 +43,6 @@ export class CtrProcessoEditarComponent implements OnInit {
 
   badgeSituacao = badgeSituacao;
   badgeEstagio = badgeEstagio;
-  badgeFase = badgeFase;
   badgeCriticidade = badgeCriticidade;
   badgeStatusTcdf = badgeStatusTcdf;
   badgeNivelRisco = badgeNivelRisco;
@@ -106,6 +105,7 @@ export class CtrProcessoEditarComponent implements OnInit {
       EtapaPlanejamento: processo.EtapaPlanejamento ?? null,
       DataAssinaturaContrato: processo.DataAssinaturaContrato ?? null,
       Criticidade: processo.Criticidade ?? null,
+      CriteriosCriticidade: processo.CriteriosCriticidade ?? null,
       Origem: processo.Origem ?? null,
       EsclarecimentoSolicitadoEm: processo.EsclarecimentoSolicitadoEm ?? null,
       EsclarecimentoDescricao: processo.EsclarecimentoDescricao ?? null,

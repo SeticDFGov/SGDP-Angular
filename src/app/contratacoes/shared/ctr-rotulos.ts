@@ -7,10 +7,11 @@
  */
 import { ETAPAS_PLANEJAMENTO } from '../../../api/contratacoes/interface';
 
-/** Badge da situação derivada do processo. */
+/** Badge da situação derivada do processo (`Concluído` = contrato assinado). */
 export function badgeSituacao(situacao: string | null | undefined): string {
   switch (situacao) {
     case 'Concluído': return 'bg-green-100 text-green-800';
+    case 'Análise concluída': return 'bg-emerald-100 text-emerald-800';
     case 'Restituído': return 'bg-orange-100 text-orange-800';
     case 'Retornado ao Gab SGDI': return 'bg-blue-100 text-blue-800';
     case 'Em análise na UGTIC': return 'bg-indigo-100 text-indigo-800';
@@ -41,15 +42,6 @@ export function badgeStatusTcdf(status: string | null | undefined): string {
   switch (status) {
     case 'Suspenso por irregularidades': return 'bg-red-100 text-red-800';
     case 'Edital revogado': return 'bg-amber-100 text-amber-800';
-    default: return 'bg-gray-100 text-gray-600';
-  }
-}
-
-/** Badge da fase derivada da contratação. */
-export function badgeFase(fase: string | null | undefined): string {
-  switch (fase) {
-    case 'Execução': return 'bg-green-100 text-green-800';
-    case 'Planejamento': return 'bg-slate-100 text-slate-700';
     default: return 'bg-gray-100 text-gray-600';
   }
 }

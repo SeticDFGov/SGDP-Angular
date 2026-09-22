@@ -13,7 +13,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   CATEGORIAS_OBJETO,
-  CRITICIDADES,
   CtrClassificacaoRisco,
   CtrProcessoForm,
   ETAPAS_PLANEJAMENTO,
@@ -21,14 +20,31 @@ import {
   ORIGEM_TCDF,
   REGEX_NUMERO_SEI
 } from '../../../api/contratacoes/interface';
+import {
+  CRITERIOS_CRITICIDADE,
+  RespostasCriticidade,
+  calcularCriticidade,
+  completarRespostas,
+  pontosCriticidade,
+  respostasPadrao,
+  valorNoLimite
+} from '../../../api/contratacoes/criticidade';
 import { CtrClassificacaoRiscoComponent, CtrClassificacaoRiscoEdicao } from './ctr-classificacao-risco.component';
+import { badgeCriticidade } from './ctr-rotulos';
 
-/** Os cinco checkpoints, na ordem cronológica em que o processo tramita. */
+/**
+ * As seis datas do trâmite, na ordem em que o processo tramita. A assinatura do
+ * contrato é a última: fora da cronologia das outras cinco (o TCDF também analisa
+ * contrato já assinado), mas é a data que conclui o processo.
+ */
 interface CampoCheckpoint {
-  campo: 'ChegadaSgdi' | 'ChegadaSubgd' | 'ChegadaUgtic' | 'RetornoGabSgdi' | 'RetornoOrgao';
+  campo: 'ChegadaSgdi' | 'ChegadaSubgd' | 'ChegadaUgtic' | 'RetornoGabSgdi' | 'RetornoOrgao' | 'DataAssinaturaContrato';
   rotulo: string;
   ajuda: string;
 }
+
+/** O campo da assinatura: o único fora da cronologia e o que conclui o processo. */
+const CAMPO_ASSINATURA: CampoCheckpoint['campo'] = 'DataAssinaturaContrato';
 
 /**
  * Formulário do processo, reaproveitado por "Novo processo" e pela página de
@@ -76,8 +92,11 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   @Output() cancelar = new EventEmitter<void>();
 
   categorias = CATEGORIAS_OBJETO;
-  criticidades = CRITICIDADES;
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
+  /** Os sete critérios do art. 11, § 3º, da IN, com as respostas possíveis. */
+  criterios = CRITERIOS_CRITICIDADE;
+  badgeCriticidade = badgeCriticidade;
+  readonly campoAssinatura = CAMPO_ASSINATURA;
   readonly origemTcdf = ORIGEM_TCDF;
 
   readonly checkpoints: CampoCheckpoint[] = [
@@ -85,7 +104,8 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     { campo: 'ChegadaSubgd', rotulo: 'Chegada da análise · SUBGD', ajuda: 'Quando seguiu para a SUBGD.' },
     { campo: 'ChegadaUgtic', rotulo: 'Chegada da análise · UGTIC', ajuda: 'Quando seguiu para a UGTIC. Marque "não se aplica" se a etapa foi pulada.' },
     { campo: 'RetornoGabSgdi', rotulo: 'Retorno ao Gab SGDI', ajuda: 'Quando o processo voltou ao gabinete da SGDI.' },
-    { campo: 'RetornoOrgao', rotulo: 'Retorno ao órgão comunicante', ajuda: 'Quando o processo foi devolvido ao órgão de origem. Marque "não se aplica" quando o processo não é devolvido.' }
+    { campo: 'RetornoOrgao', rotulo: 'Retorno ao órgão comunicante', ajuda: 'Quando o processo foi devolvido ao órgão de origem. Marque "não se aplica" quando o processo não é devolvido.' },
+    { campo: CAMPO_ASSINATURA, rotulo: 'Assinatura do Contrato', ajuda: 'Quando o contrato foi assinado. É a data final: preenchida, o processo fica Concluído, sai da lista e passa para a relação de concluídos do painel. Pode ser anterior às outras datas (o Tribunal também analisa contrato já assinado); só não pode ser futura.' }
   ];
 
   form: CtrProcessoForm = CtrProcessoFormComponent.vazio();
@@ -110,6 +130,8 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       ChegadaSgdi: null, ChegadaSubgd: null, ChegadaUgtic: null, UgticNaoSeAplica: false,
       RetornoGabSgdi: null, RetornoOrgao: null, RetornoOrgaoNaoSeAplica: false,
       EtapaPlanejamento: null, DataAssinaturaContrato: null, Criticidade: null,
+      // Processo novo já nasce com os critérios respondidos no padrão (Baixa)
+      CriteriosCriticidade: respostasPadrao(),
       Origem: ORIGEM_PADRAO,
       EsclarecimentoSolicitadoEm: null, EsclarecimentoDescricao: null, EsclarecimentoRespondidoEm: null,
       Restituido: false, RestituidoEm: null, RestituidoMotivo: null, Observacao: null
@@ -140,6 +162,44 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   /** Origem que vai no envio: a imposta pela tela ou a que já estava gravada. */
   get origemAtual(): string {
     return this.origemFixa ?? this.form.Origem ?? ORIGEM_PADRAO;
+  }
+
+  // ── Criticidade: derivada dos critérios do art. 11, § 3º, da IN ──────────
+
+  /**
+   * Criticidade registrada antes da regra automática (processo sem respostas
+   * gravadas): vale até a primeira resposta, quando o cálculo passa a mandar.
+   */
+  get criticidadeAnterior(): string | null {
+    return this.form.CriteriosCriticidade ? null : (this.form.Criticidade ?? null);
+  }
+
+  /** O que o servidor vai gravar: a calculada das respostas ou, sem elas, a anterior. */
+  get criticidadeAtual(): string | null {
+    return this.form.CriteriosCriticidade
+      ? calcularCriticidade(this.form.CriteriosCriticidade)
+      : this.criticidadeAnterior;
+  }
+
+  get pontosAtuais(): number | null {
+    return this.form.CriteriosCriticidade ? pontosCriticidade(this.form.CriteriosCriticidade) : null;
+  }
+
+  get valorNoLimite(): boolean {
+    return !!this.form.CriteriosCriticidade && valorNoLimite(this.form.CriteriosCriticidade);
+  }
+
+  respostaDe(codigo: string): string {
+    return completarRespostas(this.form.CriteriosCriticidade)[codigo];
+  }
+
+  /** A primeira resposta avalia os sete critérios (os demais ficam no padrão). */
+  responderCriterio(codigo: string, resposta: string): void {
+    const respostas: RespostasCriticidade = {
+      ...completarRespostas(this.form.CriteriosCriticidade),
+      [codigo]: resposta
+    };
+    this.form.CriteriosCriticidade = respostas;
   }
 
   // ── Máscara do número SEI ─────────────────────────────────────────────────
@@ -316,6 +376,8 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     const hoje = this.hoje;
 
     const preenchidos = this.checkpoints
+      // A assinatura fica fora da cronologia (só não pode ser futura, abaixo)
+      .filter(c => c.campo !== CAMPO_ASSINATURA)
       .map(c => ({ rotulo: c.rotulo, data: this.form[c.campo] ?? null }))
       .filter(c => !!c.data) as { rotulo: string; data: string }[];
 
@@ -483,7 +545,10 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       // onde o planejamento parou. Não anular.
       EtapaPlanejamento: this.form.EtapaPlanejamento || null,
       DataAssinaturaContrato: this.form.DataAssinaturaContrato || null,
+      // Com respostas, o servidor calcula a criticidade e ignora o valor; sem elas
+      // (processo anterior à regra automática) o valor gravado volta como veio.
       Criticidade: this.form.Criticidade || null,
+      CriteriosCriticidade: this.form.CriteriosCriticidade ? { ...this.form.CriteriosCriticidade } : null,
       Origem: this.origemAtual,
       // Sem pedido não há descrição nem resposta (o servidor recusa).
       EsclarecimentoSolicitadoEm: this.form.EsclarecimentoSolicitadoEm || null,

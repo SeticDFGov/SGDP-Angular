@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CitaInDirective } from '../shared/cita-in.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -18,7 +19,7 @@ import { CtrManifestacao, CtrManifestacaoForm } from '../../../api/contratacoes/
 @Component({
   selector: 'app-ctr-manifestacao-editar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent],
+  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent],
   templateUrl: './ctr-manifestacao-editar.component.html'
 })
 export class CtrManifestacaoEditarComponent implements OnInit {

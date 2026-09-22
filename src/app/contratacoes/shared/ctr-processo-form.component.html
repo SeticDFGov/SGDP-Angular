@@ -105,11 +105,11 @@
   </div>
 </section>
 
-<!-- ── Fase da contratação ─────────────────────────────────────────────── -->
+<!-- ── Planejamento da contratação ────────────────────────────────────── -->
 <section class="mt-8 pt-4 border-t border-gray-200">
   <ng-container *ngTemplateOutlet="cabecalho; context: {
-    icone: 'flag', titulo: 'Fase da contratação',
-    ajuda: 'A contratação fica em planejamento até o contrato ser assinado. Com a data de assinatura, passa a execução; a etapa do planejamento continua registrada, porque é onde o planejamento parou.' }"></ng-container>
+    icone: 'flag', titulo: 'Planejamento da contratação',
+    ajuda: 'Em que documento o planejamento está (DFD, ETP ou TR). A assinatura do contrato é registrada na Tramitação: é a data que conclui o processo.' }"></ng-container>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div>
@@ -119,28 +119,51 @@
         <option [ngValue]="null">Não informada</option>
         <option *ngFor="let e of etapasPlanejamento" [ngValue]="e.valor">{{ e.valor }} ({{ e.rotulo }})</option>
       </select>
-      <p class="text-xs text-gray-400 italic mt-1">Em que documento o planejamento da contratação está.</p>
-    </div>
-
-    <div>
-      <label class="block text-sm font-semibold mb-1" for="ctr-assinatura">Assinatura do contrato</label>
-      <input id="ctr-assinatura" type="date" [(ngModel)]="form.DataAssinaturaContrato" name="ctr-assinatura"
-             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <p class="text-xs text-gray-400 italic mt-1">Pode ser anterior à chegada na SGDI: o Tribunal também analisa
-      contrato já assinado.</p>
-    </div>
-
-    <div>
-      <label class="block text-sm font-semibold mb-1" for="ctr-processo-criticidade">Criticidade</label>
-      <select id="ctr-processo-criticidade" [(ngModel)]="form.Criticidade" name="ctr-processo-criticidade"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <option [ngValue]="null">Não classificada</option>
-        <option *ngFor="let c of criticidades" [ngValue]="c">{{ c }}</option>
-      </select>
-      <p class="text-xs text-gray-400 italic mt-1">Art. 11 da IN SGDI nº 1/2026. A manifestação do inciso I ao TCDF só
-      reporta este valor e não é registrada sem ele.</p>
+      <p class="text-xs text-gray-400 italic mt-1">Continua registrada depois da assinatura do contrato: é onde o
+      planejamento parou.</p>
     </div>
   </div>
+</section>
+
+<!-- ── Criticidade: derivada dos critérios do art. 11, § 3º, da IN ───────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'speed', titulo: 'Criticidade da contratação',
+    ajuda: 'Responda aos sete critérios do art. 11, § 3º, da IN SGDI nº 1/2026. A criticidade (art. 11, § 1º) é calculada na hora e gravada pelo sistema: cada resposta vale pontos (só o alinhamento à EGD, no critério I, desconta); de 0 a 2 pontos é Baixa, de 3 a 5 é Média e com 6 ou mais é Alta. O critério VII, do valor estimado, leva direto a Alta.' }"></ng-container>
+
+  <!-- Processo classificado antes da regra automática: o valor antigo vale até os critérios serem respondidos -->
+  <div *ngIf="criticidadeAnterior"
+       class="border-l-4 border-amber-400 bg-amber-50 p-3 rounded-r-md text-sm text-amber-900 mb-4">
+    <strong>Criticidade {{ criticidadeAnterior }}</strong>, registrada antes da classificação por critérios. Ela vale até
+    você responder aos critérios abaixo; a partir da primeira resposta, o cálculo passa a mandar.
+  </div>
+
+  <div class="space-y-2">
+    <div *ngFor="let c of criterios" class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+      <div class="flex items-start justify-between gap-3 flex-wrap">
+        <p class="text-sm text-gray-800"><span class="font-semibold text-blue-900">{{ c.codigo }}.</span> {{ c.pergunta }}</p>
+        <span class="text-xs text-gray-500 whitespace-nowrap">{{ c.citacao }} da IN</span>
+      </div>
+      <div class="flex flex-wrap gap-3 mt-2">
+        <label *ngFor="let r of c.respostas" class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" [name]="'ctr-criterio-' + c.codigo" [value]="r" [checked]="respostaDe(c.codigo) === r"
+                 (change)="responderCriterio(c.codigo, r)">
+          <span>{{ r }}</span>
+        </label>
+      </div>
+      <p class="text-xs text-gray-400 italic mt-1">{{ c.ajuda }}</p>
+    </div>
+  </div>
+
+  <div class="mt-4 flex items-center gap-3 flex-wrap" data-teste="criticidade-resultado">
+    <span class="text-sm text-gray-700">Criticidade:</span>
+    <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+          [ngClass]="badgeCriticidade(criticidadeAtual)">{{ criticidadeAtual || 'Não classificada' }}</span>
+    <span *ngIf="pontosAtuais !== null" class="text-xs text-gray-500">{{ pontosAtuais }} ponto(s)<ng-container
+      *ngIf="valorNoLimite">, valor estimado no limite do inciso VII</ng-container></span>
+  </div>
+  <p class="text-xs text-gray-400 italic mt-1">A manifestação do inciso I ao TCDF reporta esta criticidade e não é
+  registrada sem ela.</p>
 </section>
 
 <!-- ── Riscos da contratação (fora do modo compacto: fica para a página do processo) ── -->
@@ -159,7 +182,7 @@ depois do cadastro.</p>
   <section class="mt-8 pt-4 border-t border-gray-200">
     <ng-container *ngTemplateOutlet="cabecalho; context: {
       icone: 'timeline', titulo: 'Tramitação',
-      ajuda: 'Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; as datas preenchidas seguem o caminho SGDI, SUBGD, UGTIC, Gab SGDI e órgão.' }"></ng-container>
+      ajuda: 'Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; as datas preenchidas seguem o caminho SGDI, SUBGD, UGTIC, Gab SGDI e órgão. A assinatura do contrato é a data final: com ela o processo fica Concluído.' }"></ng-container>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div *ngFor="let c of checkpoints; let n = index">
@@ -172,6 +195,9 @@ depois do cadastro.</p>
                [disabled]="(c.campo === 'ChegadaUgtic' && form.UgticNaoSeAplica)
                            || (c.campo === 'RetornoOrgao' && form.RetornoOrgaoNaoSeAplica)"
                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
+        <p *ngIf="c.campo === campoAssinatura && form.DataAssinaturaContrato" class="text-xs text-green-800 mt-1">
+          Ao salvar, o processo fica Concluído: sai da lista e passa para a relação de concluídos do painel.
+        </p>
         <label *ngIf="c.campo === 'ChegadaUgtic'" class="flex items-center gap-2 mt-2 text-sm">
           <input type="checkbox" [ngModel]="form.UgticNaoSeAplica" name="ctr-ugtic-na"
                  (ngModelChange)="aoMarcarUgticNaoSeAplica($event)"

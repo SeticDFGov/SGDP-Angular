@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CitaInDirective } from '../shared/cita-in.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -9,7 +10,6 @@ import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component'
 import { filtroDosParametros, parametrosDaLista } from '../shared/ctr-filtro-lista';
 import {
   badgeCriticidade,
-  badgeFase,
   badgeNivelRisco,
   badgeSituacao,
   corDiasSemMovimento,
@@ -23,8 +23,8 @@ import {
   CtrProcessoFiltro,
   CtrProcessoForm,
   ETAPAS,
+  ETAPA_ASSINATURA,
   ETAPAS_PLANEJAMENTO,
-  FASES,
   NIVEIS_RISCO,
   ORIGENS,
   SEM_RISCOS_DECLARADOS,
@@ -39,8 +39,12 @@ interface FiltroAtivo {
 
 /** Filtros que ficam em "Mais filtros" (os demais estão sempre à mostra). */
 const CAMPOS_AVANCADOS: (keyof CtrProcessoFiltro)[] = [
-  'Categoria', 'Sigla', 'Criticidade', 'EtapaPlanejamento', 'Origem', 'EsclarecimentoPendente', 'Restituidos', 'De', 'Ate'
+  'Categoria', 'Sigla', 'EtapaPlanejamento', 'Origem', 'EsclarecimentoPendente', 'Restituidos', 'IncluirConcluidos',
+  'De', 'Ate'
 ];
+
+/** A situação dos processos com contrato assinado (fora da lista por padrão). */
+const SITUACAO_CONCLUIDO = 'Concluído';
 
 /**
  * Área "Processos": a lista com busca e filtros e a página de cadastro.
@@ -53,7 +57,7 @@ const CAMPOS_AVANCADOS: (keyof CtrProcessoFiltro)[] = [
 @Component({
   selector: 'app-ctr-processos',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CtrProcessoFormComponent],
+  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule, CtrProcessoFormComponent],
   templateUrl: './ctr-processos.component.html'
 })
 export class CtrProcessosComponent implements OnInit {
@@ -85,7 +89,7 @@ export class CtrProcessosComponent implements OnInit {
   categorias = CATEGORIAS_OBJETO;
   situacoes = SITUACOES;
   etapas = ETAPAS;
-  fases = FASES;
+  readonly etapaAssinatura = ETAPA_ASSINATURA;
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
   criticidades = CRITICIDADES;
   origens = ORIGENS;
@@ -95,8 +99,8 @@ export class CtrProcessosComponent implements OnInit {
   private static filtroVazio(): CtrProcessoFiltro {
     return {
       Filtro: '', Categoria: '', Situacao: '', Sigla: '', Restituidos: null, De: '', Ate: '',
-      Fase: '', EtapaPlanejamento: '', Criticidade: '', Origem: '', EsclarecimentoPendente: null,
-      NivelRiscoDeclarado: ''
+      EtapaPlanejamento: '', Criticidade: '', Origem: '', EsclarecimentoPendente: null,
+      NivelRiscoDeclarado: '', IncluirConcluidos: false
     };
   }
 
@@ -114,7 +118,6 @@ export class CtrProcessosComponent implements OnInit {
   exportando = false;
 
   badgeSituacao = badgeSituacao;
-  badgeFase = badgeFase;
   badgeCriticidade = badgeCriticidade;
   badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
@@ -160,7 +163,9 @@ export class CtrProcessosComponent implements OnInit {
       ...this.filtro,
       Filtro: (this.filtro.Filtro || '').trim() || null,
       // A sigla é gravada em caixa alta: mandar assim evita filtro que não casa.
-      Sigla: (this.filtro.Sigla || '').trim().toUpperCase() || null
+      Sigla: (this.filtro.Sigla || '').trim().toUpperCase() || null,
+      // Só vai quando marcado: desmarcado é o padrão (concluídos fora)
+      IncluirConcluidos: this.filtro.IncluirConcluidos ? true : null
     };
   }
 
@@ -205,11 +210,11 @@ export class CtrProcessosComponent implements OnInit {
     this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl: true });
   }
 
-  /** Quantos filtros de "Mais filtros" estão preenchidos. */
+  /** Quantos filtros de "Mais filtros" estão preenchidos (checkbox desmarcado não conta). */
   private filtrosAvancadosAtivos(filtro: CtrProcessoFiltro): number {
     return CAMPOS_AVANCADOS.filter(campo => {
       const valor = filtro[campo];
-      return valor !== null && valor !== undefined && valor !== '';
+      return valor !== null && valor !== undefined && valor !== '' && valor !== false;
     }).length;
   }
 
@@ -224,7 +229,7 @@ export class CtrProcessosComponent implements OnInit {
     const data = (valor: string) => this.brasileira(valor);
     if (f.Filtro) ativos.push({ campo: 'Filtro', rotulo: `Busca: "${f.Filtro}"` });
     if (f.Situacao) ativos.push({ campo: 'Situacao', rotulo: `Situação: ${f.Situacao}` });
-    if (f.Fase) ativos.push({ campo: 'Fase', rotulo: `Fase: ${f.Fase}` });
+    if (f.IncluirConcluidos) ativos.push({ campo: 'IncluirConcluidos', rotulo: 'Incluindo os concluídos' });
     if (f.NivelRiscoDeclarado) {
       ativos.push({
         campo: 'NivelRiscoDeclarado',
@@ -255,7 +260,9 @@ export class CtrProcessosComponent implements OnInit {
   /** Tira um filtro (a etiqueta) e busca de novo. */
   removerFiltro(campo: keyof CtrProcessoFiltro): void {
     (this.filtro as Record<string, unknown>)[campo] =
-      campo === 'EsclarecimentoPendente' || campo === 'Restituidos' ? null : '';
+      campo === 'EsclarecimentoPendente' || campo === 'Restituidos' ? null
+      : campo === 'IncluirConcluidos' ? false
+      : '';
     this.buscar();
   }
 
@@ -347,12 +354,17 @@ export class CtrProcessosComponent implements OnInit {
     this.processoCheckpoint = null;
   }
 
+  /** Campo do processo que guarda a data de uma etapa (a assinatura tem nome próprio). */
+  private static campoDaEtapa(etapa: string): keyof CtrProcesso {
+    return (etapa === ETAPA_ASSINATURA ? 'DataAssinaturaContrato' : etapa) as keyof CtrProcesso;
+  }
+
   /** Sugere a primeira etapa ainda em branco (etapa dispensada não conta). */
   private proximaEtapa(processo: CtrProcesso): string {
     for (const etapa of ETAPAS) {
       if (etapa.valor === 'ChegadaUgtic' && processo.UgticNaoSeAplica) continue;
       if (etapa.valor === 'RetornoOrgao' && processo.RetornoOrgaoNaoSeAplica) continue;
-      if (!processo[etapa.valor as keyof CtrProcesso]) return etapa.valor;
+      if (!processo[CtrProcessosComponent.campoDaEtapa(etapa.valor)]) return etapa.valor;
     }
     return ETAPAS[ETAPAS.length - 1].valor;
   }
@@ -382,7 +394,7 @@ export class CtrProcessosComponent implements OnInit {
   private get dataGravadaDaEtapa(): string | null {
     const processo = this.processoCheckpoint;
     if (!processo) return null;
-    return (processo[this.checkpointEtapa as keyof CtrProcesso] as string | null | undefined) ?? null;
+    return (processo[CtrProcessosComponent.campoDaEtapa(this.checkpointEtapa)] as string | null | undefined) ?? null;
   }
 
   /**
@@ -416,9 +428,13 @@ export class CtrProcessosComponent implements OnInit {
     if (!this.checkpointData) return 'Informe a data.';
     if (this.checkpointData > this.hoje) return 'A data está no futuro.';
 
+    // A assinatura fica fora da cronologia: nem é conferida contra as outras datas
+    // nem as outras contra ela (o TCDF também analisa contrato já assinado).
+    if (this.checkpointEtapa === ETAPA_ASSINATURA) return null;
+
     const indice = ETAPAS.findIndex(e => e.valor === this.checkpointEtapa);
     for (let i = 0; i < ETAPAS.length; i++) {
-      if (i === indice) continue;
+      if (i === indice || ETAPAS[i].valor === ETAPA_ASSINATURA) continue;
       const valor = processo[ETAPAS[i].valor as keyof CtrProcesso] as string | null | undefined;
       if (!valor) continue;
       if (i < indice && this.checkpointData < valor) {
@@ -464,8 +480,19 @@ export class CtrProcessosComponent implements OnInit {
     this.processoService.registrarCheckpoint(processo.Id, corpo).subscribe({
       next: atualizado => {
         this.salvandoCheckpoint = false;
-        this.processos = this.processos.map(p => p.Id === atualizado.Id ? atualizado : p);
         this.fecharCheckpoint();
+        // Concluído (contrato assinado) sai da lista, a menos que ela o inclua
+        const saiDaLista = atualizado.Situacao === SITUACAO_CONCLUIDO
+          && !this.filtroAplicado.IncluirConcluidos && this.filtroAplicado.Situacao !== SITUACAO_CONCLUIDO;
+        if (saiDaLista) {
+          this.processos = this.processos.filter(p => p.Id !== atualizado.Id);
+          this.totalItens = Math.max(0, this.totalItens - 1);
+          this.notificationService.success(
+            `Processo concluído: contrato assinado em ${this.brasileira(atualizado.DataAssinaturaContrato || '')}. `
+            + 'Ele passa para a relação de concluídos do painel.');
+          return;
+        }
+        this.processos = this.processos.map(p => p.Id === atualizado.Id ? atualizado : p);
         this.notificationService.success('Andamento registrado.');
       },
       error: () => {
