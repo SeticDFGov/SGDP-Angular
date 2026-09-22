@@ -6,12 +6,17 @@
  * Regra da SGDI (2026-09-22): I "Sim" (alinhado à EGD/DF, que é bom) tira 1 ponto;
  * III vale 1 ponto quando "Sim"; II, IV e VI valem 0, 1, 2 ou 3 conforme o grau; V vale
  * 3 quando "Sim"; VII "Sim" é Alta, seja qual for o resto. A soma nunca fica negativa.
- * Baixa até 2 pontos, Média de 3 a 5, Alta com 6 ou mais.
+ * Baixa até 2 pontos, Média de 3 a 5, Alta com 6 ou mais. O critério IV aceita também
+ * "Não foi possível avaliar com as informações apresentadas", que não soma pontos
+ * (decisão da SGDI em 2026-09-22).
  */
 
 export const RESPOSTAS_SIM_NAO = ['Não', 'Sim'] as const;
 
 export const RESPOSTAS_GRAU = ['Nenhum', 'Baixo', 'Médio', 'Alto'] as const;
+
+/** Só no critério IV: sem informação para avaliar o impacto. Vale 0 ponto. */
+export const RESPOSTA_NAO_AVALIAVEL = 'Não foi possível avaliar com as informações apresentadas';
 
 export const PONTOS_MINIMOS_MEDIA = 3;
 
@@ -55,9 +60,9 @@ export const CRITERIOS_CRITICIDADE: CriterioCriticidade[] = [
   {
     codigo: 'IV',
     pergunta: 'Qual o impacto sobre a arquitetura corporativa, a interoperabilidade ou a governança de dados?',
-    ajuda: 'Nenhum 0, Baixo 1, Médio 2 e Alto 3 pontos.',
+    ajuda: 'Nenhum 0, Baixo 1, Médio 2 e Alto 3 pontos. Sem informação suficiente, marque "Não foi possível avaliar": não soma pontos.',
     citacao: 'art. 11, § 3º, IV',
-    respostas: RESPOSTAS_GRAU
+    respostas: [...RESPOSTAS_GRAU, RESPOSTA_NAO_AVALIAVEL]
   },
   {
     codigo: 'V',
@@ -117,6 +122,7 @@ export function pontosDoCriterio(codigo: string, resposta: string): number {
     case 'II':
     case 'IV':
     case 'VI': {
+      // "Não foi possível avaliar" (só no IV) fica fora da escala: 0 ponto
       const grau = RESPOSTAS_GRAU.indexOf(resposta as typeof RESPOSTAS_GRAU[number]);
       return grau < 0 ? 0 : grau;
     }

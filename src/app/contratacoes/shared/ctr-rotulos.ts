@@ -92,3 +92,37 @@ export function badgeNivelRisco(nivel: string | null | undefined): string {
     default: return 'bg-gray-100 text-gray-600'; // Sem riscos declarados
   }
 }
+
+const FORMATO_REAIS = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const FORMATO_NUMERO = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** "R$ 1.234.567,89"; traço quando não informado. */
+export function formatarReais(valor: number | null | undefined): string {
+  return valor == null ? '-' : FORMATO_REAIS.format(valor);
+}
+
+/** "1.234.567,89" (sem o símbolo), para o campo do formulário. */
+export function formatarNumeroReais(valor: number | null | undefined): string {
+  return valor == null ? '' : FORMATO_NUMERO.format(valor);
+}
+
+/**
+ * Lê o valor digitado em reais: aceita "R$", espaços, "1.234.567,89", "1234567,89",
+ * "1500000" e ponto decimal quando não há vírgula ("1234.5"). Vazio = null;
+ * texto que não é número = undefined (o formulário mostra o erro).
+ */
+export function lerReais(texto: string | null | undefined): number | null | undefined {
+  const limpo = (texto || '').replace(/R\$/gi, '').replace(/\s/g, '');
+  if (!limpo) return null;
+  let normal = limpo;
+  if (limpo.includes(',')) normal = limpo.replace(/\./g, '').replace(',', '.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(limpo)) normal = limpo.replace(/\./g, '');
+  if (!/^-?\d+(\.\d+)?$/.test(normal)) return undefined;
+  const numero = Math.round(Number(normal) * 100) / 100;
+  return Number.isFinite(numero) ? numero : undefined;
+}
+
+/** Rede GDFNet: Sim, Não ou Não informado. */
+export function rotuloGdfnet(usa: boolean | null | undefined): string {
+  return usa == null ? 'Não informado' : (usa ? 'Sim' : 'Não');
+}

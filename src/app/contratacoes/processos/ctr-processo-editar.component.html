@@ -26,6 +26,11 @@
           <p class="text-sm text-gray-600">{{ processo.OrgaoNome }} ({{ processo.OrgaoSigla }})<span
             *ngIf="processo.ComplementoArea"> · {{ processo.ComplementoArea }}</span></p>
           <p class="text-sm text-gray-800 mt-1">{{ processo.Objeto }}</p>
+          <p class="text-xs text-gray-600 mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            <span>Valor estimado: <strong class="text-gray-800">{{ formatarReais(processo.ValorEstimado) }}</strong></span>
+            <span>Hospedagem no CeTIC-DF: <strong class="text-gray-800">{{ processo.HospedagemCetic || 'Não informado' }}</strong></span>
+            <span>Rede GDFNet: <strong class="text-gray-800">{{ rotuloGdfnet(processo.UsaGdfnet) }}</strong></span>
+          </p>
         </div>
         <a [routerLink]="['/analises/manifestacoes/nova']" [queryParams]="{ processo: processo.Id }"
            class="inline-flex items-center gap-1 bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700 whitespace-nowrap">

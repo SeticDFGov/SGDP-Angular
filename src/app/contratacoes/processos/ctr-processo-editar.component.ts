@@ -13,7 +13,9 @@ import {
   badgeSituacao,
   badgeStatusTcdf,
   corDiasSemMovimento,
-  rotuloEtapaPlanejamento
+  formatarReais,
+  rotuloEtapaPlanejamento,
+  rotuloGdfnet
 } from '../shared/ctr-rotulos';
 import { CtrManifestacao, CtrProcesso, CtrProcessoForm } from '../../../api/contratacoes/interface';
 
@@ -48,6 +50,8 @@ export class CtrProcessoEditarComponent implements OnInit {
   badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
   rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
+  formatarReais = formatarReais;
+  rotuloGdfnet = rotuloGdfnet;
 
   constructor(
     private route: ActivatedRoute,
@@ -95,6 +99,9 @@ export class CtrProcessoEditarComponent implements OnInit {
       ComplementoArea: processo.ComplementoArea ?? null,
       Objeto: processo.Objeto,
       CategoriaObjeto: processo.CategoriaObjeto,
+      ValorEstimado: processo.ValorEstimado ?? null,
+      HospedagemCetic: processo.HospedagemCetic ?? null,
+      UsaGdfnet: processo.UsaGdfnet ?? null,
       ChegadaSgdi: processo.ChegadaSgdi ?? null,
       ChegadaSubgd: processo.ChegadaSubgd ?? null,
       ChegadaUgtic: processo.ChegadaUgtic ?? null,

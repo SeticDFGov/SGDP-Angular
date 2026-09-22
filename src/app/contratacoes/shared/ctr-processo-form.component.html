@@ -102,6 +102,65 @@
                 [class.border-gray-300]="!(submetido && errObjeto)"></textarea>
       <p *ngIf="submetido && errObjeto" class="text-xs text-red-600 mt-1">{{ errObjeto }}</p>
     </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-valor">Valor estimado da contratação</label>
+      <div class="relative">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-sm text-gray-600 pointer-events-none" aria-hidden="true">R$</span>
+        <input id="ctr-valor" type="text" inputmode="decimal" [value]="valorTexto"
+               (input)="aoDigitarValor($any($event.target).value)" (blur)="aoSairDoValor()"
+               placeholder="0,00" aria-describedby="ctr-valor-ajuda"
+               [attr.data-erro]="submetido && errValor ? 'sim' : null"
+               class="w-full pl-10 pr-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+               [class.border-red-500]="submetido && errValor"
+               [class.bg-red-50]="submetido && errValor"
+               [class.border-gray-300]="!(submetido && errValor)">
+      </div>
+      <p *ngIf="submetido && errValor" class="text-xs text-red-600 mt-1">{{ errValor }}</p>
+      <p id="ctr-valor-ajuda" class="text-xs text-gray-500 italic mt-1">Em reais, como consta no processo. Deixe em branco se ainda não houver estimativa.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Infraestrutura da solução ──────────────────────────────────────────── -->
+<section *ngIf="!compacto" class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'dns', titulo: 'Infraestrutura da solução',
+    ajuda: 'Onde a solução vai rodar e se ela usará a rede do GDF.' }"></ng-container>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <fieldset>
+      <legend class="block text-sm font-semibold mb-1">A solução será hospedada no CeTIC-DF?</legend>
+      <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-hospedagem" [checked]="!form.HospedagemCetic" (change)="form.HospedagemCetic = null">
+          Não informado
+        </label>
+        <label *ngFor="let h of hospedagens" class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-hospedagem" [value]="h" [checked]="form.HospedagemCetic === h" (change)="form.HospedagemCetic = h">
+          {{ h }}
+        </label>
+      </div>
+      <p class="text-xs text-gray-500 italic mt-1">"Não aplicável" quando a solução é contratada como serviço (SaaS) e roda no fornecedor.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend class="block text-sm font-semibold mb-1">A solução utilizará a rede GDFNet?</legend>
+      <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-gdfnet" [checked]="form.UsaGdfnet == null" (change)="form.UsaGdfnet = null">
+          Não informado
+        </label>
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-gdfnet" [checked]="form.UsaGdfnet === true" (change)="form.UsaGdfnet = true">
+          Sim
+        </label>
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-gdfnet" [checked]="form.UsaGdfnet === false" (change)="form.UsaGdfnet = false">
+          Não
+        </label>
+      </div>
+    </fieldset>
   </div>
 </section>
 
@@ -141,10 +200,10 @@
   <div class="space-y-2">
     <div *ngFor="let c of criterios" class="border border-gray-200 rounded-lg p-3 bg-gray-50">
       <div class="flex items-start justify-between gap-3 flex-wrap">
-        <p class="text-sm text-gray-800"><span class="font-semibold text-blue-900">{{ c.codigo }}.</span> {{ c.pergunta }}</p>
+        <p [id]="'ctr-criterio-pergunta-' + c.codigo" class="text-sm text-gray-800"><span class="font-semibold text-blue-900">{{ c.codigo }}.</span> {{ c.pergunta }}</p>
         <span class="text-xs text-gray-500 whitespace-nowrap">{{ c.citacao }} da IN</span>
       </div>
-      <div class="flex flex-wrap gap-3 mt-2">
+      <div class="flex flex-wrap gap-3 mt-2" role="radiogroup" [attr.aria-labelledby]="'ctr-criterio-pergunta-' + c.codigo">
         <label *ngFor="let r of c.respostas" class="flex items-center gap-1 text-sm cursor-pointer">
           <input type="radio" [name]="'ctr-criterio-' + c.codigo" [value]="r" [checked]="respostaDe(c.codigo) === r"
                  (change)="responderCriterio(c.codigo, r)">
@@ -152,6 +211,9 @@
         </label>
       </div>
       <p class="text-xs text-gray-500 italic mt-1">{{ c.ajuda }}</p>
+      <p *ngIf="c.codigo === 'VII' && form.ValorEstimado != null" class="text-xs text-gray-700 mt-1">
+        Valor estimado informado na identificação: <strong>{{ formatarReais(form.ValorEstimado) }}</strong>.
+      </p>
     </div>
   </div>
 
