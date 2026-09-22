@@ -1,7 +1,11 @@
 <div class="tela-pgia max-w-5xl mx-auto">
 
   <div class="mb-4">
-    <a routerLink="/analises/processos/lista" class="text-sm text-blue-700 hover:underline">← Voltar para a lista de processos</a>
+    <a routerLink="/analises/processos/lista" [queryParams]="filtrosDaLista"
+       class="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline">
+      <span class="material-icons text-base leading-none" aria-hidden="true">arrow_back</span>
+      Voltar para a lista de processos
+    </a>
   </div>
 
   <div *ngIf="carregando" class="text-center py-8 text-gray-500">Carregando...</div>
@@ -13,63 +17,78 @@
 
   <ng-container *ngIf="!carregando && processo">
 
-    <!-- Cabeçalho com o estado atual do processo -->
+    <!-- Cabeçalho: o estado atual do processo num relance -->
     <div class="bg-white rounded-lg shadow p-6 mb-5">
       <div class="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 class="text-base font-semibold text-blue-900">Processo {{ processo.NumeroProcesso }}</h2>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Processo SEI</p>
+          <h2 class="text-lg font-semibold text-blue-900">{{ processo.NumeroProcesso }}</h2>
           <p class="text-sm text-gray-600">{{ processo.OrgaoNome }} ({{ processo.OrgaoSigla }})<span
             *ngIf="processo.ComplementoArea"> · {{ processo.ComplementoArea }}</span></p>
-          <div class="flex flex-wrap items-center gap-2 mt-2">
-            <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                  [ngClass]="badgeFase(processo.Fase)">{{ processo.Fase }}</span>
-            <span *ngIf="processo.EtapaPlanejamento" class="text-xs text-gray-600"
-                  [title]="rotuloEtapaPlanejamento(processo.EtapaPlanejamento)">
-              {{ processo.EtapaPlanejamento }} ({{ rotuloEtapaPlanejamento(processo.EtapaPlanejamento) }})
-            </span>
-            <span *ngIf="processo.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                  [ngClass]="badgeCriticidade(processo.Criticidade)">Criticidade {{ processo.Criticidade }}</span>
-            <!-- Classificação de riscos: duas escalas lado a lado, independentes da criticidade -->
-            <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                  [ngClass]="badgeRiscoClassificado(processo.RiscoClassificado)"
-                  title="Risco classificado pelos quesitos dos arts. 15 a 17 do Decreto nº 48.901/2026">{{
-                    processo.RiscoClassificado || 'Risco não classificado' }}</span>
-            <span *ngIf="processo.NivelMaximoRiscoDeclarado" class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                  [ngClass]="badgeNivelRisco(processo.NivelMaximoRiscoDeclarado)"
-                  title="Maior nível entre os riscos declarados, pelo mapa de riscos da CGDF">Maior nível declarado:
-              {{ processo.NivelMaximoRiscoDeclarado }}</span>
-            <!-- Nulo também no processo não classificado: mesma semântica do filtro e do painel -->
-            <span *ngIf="!processo.NivelMaximoRiscoDeclarado"
-                  class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                  [ngClass]="badgeNivelRisco(null)">Sem riscos declarados</span>
-            <span *ngIf="processo.Origem === 'TCDF'"
-                  class="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Origem TCDF</span>
-            <!-- Sinal paralelo ao trâmite: não muda a situação do processo -->
-            <span *ngIf="processo.EsclarecimentoPendente"
-                  class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-              Aguardando esclarecimento há {{ processo.DiasEsclarecimentoPendente }} dia(s)
-            </span>
-          </div>
-          <p *ngIf="processo.EsclarecimentoSolicitadoEm" class="text-xs text-gray-600 mt-1">
-            Esclarecimento pedido em {{ processo.EsclarecimentoSolicitadoEm | date:'dd/MM/yyyy':'UTC' }}<span
-            *ngIf="processo.EsclarecimentoRespondidoEm">, respondido em
-            {{ processo.EsclarecimentoRespondidoEm | date:'dd/MM/yyyy':'UTC' }}</span>.
-          </p>
-          <p *ngIf="processo.DataAssinaturaContrato" class="text-xs text-gray-600 mt-1">
-            Contrato assinado em {{ processo.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}.
-          </p>
-          <p *ngIf="processo.RetornoOrgaoNaoSeAplica" class="text-xs text-gray-600 mt-1">
-            Retorno ao órgão comunicante: não se aplica.
-          </p>
+          <p class="text-sm text-gray-800 mt-1">{{ processo.Objeto }}</p>
         </div>
-        <div class="text-right">
-          <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                [ngClass]="badgeSituacao(processo.Situacao)">{{ processo.Situacao }}</span>
-          <span class="block text-xs mt-1" [ngClass]="corDiasSemMovimento(processo.DiasSemMovimento)">
-            parado há {{ processo.DiasSemMovimento }} dia(s)
-          </span>
-        </div>
+        <a [routerLink]="['/analises/manifestacoes/nova']" [queryParams]="{ processo: processo.Id }"
+           class="inline-flex items-center gap-1 bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700 whitespace-nowrap">
+          <span class="material-icons text-base leading-none" aria-hidden="true">gavel</span>
+          Nova manifestação ao TCDF
+        </a>
       </div>
+
+      <div class="flex flex-wrap items-center gap-2 mt-3">
+        <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+              [ngClass]="badgeSituacao(processo.Situacao)">{{ processo.Situacao }}</span>
+        <span class="text-xs" [ngClass]="corDiasSemMovimento(processo.DiasSemMovimento)">
+          parado há {{ processo.DiasSemMovimento }} dia(s)
+        </span>
+        <span class="text-gray-300" aria-hidden="true">·</span>
+        <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+              [ngClass]="badgeFase(processo.Fase)">{{ processo.Fase }}</span>
+        <span *ngIf="processo.EtapaPlanejamento" class="text-xs text-gray-600"
+              [title]="rotuloEtapaPlanejamento(processo.EtapaPlanejamento)">
+          {{ processo.EtapaPlanejamento }} ({{ rotuloEtapaPlanejamento(processo.EtapaPlanejamento) }})
+        </span>
+        <span *ngIf="processo.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+              [ngClass]="badgeCriticidade(processo.Criticidade)">Criticidade {{ processo.Criticidade }}</span>
+        <!-- Maior nível entre os riscos da contratação, independente da criticidade -->
+        <span *ngIf="processo.NivelMaximoRiscoDeclarado" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+              [ngClass]="badgeNivelRisco(processo.NivelMaximoRiscoDeclarado)"
+              title="Maior nível entre os riscos da contratação, pelo mapa de riscos da CGDF">Maior risco:
+          {{ processo.NivelMaximoRiscoDeclarado }}</span>
+        <span *ngIf="!processo.NivelMaximoRiscoDeclarado"
+              class="px-2 py-0.5 rounded-full text-xs font-semibold"
+              [ngClass]="badgeNivelRisco(null)">Sem riscos registrados</span>
+        <span *ngIf="processo.Origem === 'TCDF'"
+              class="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Origem TCDF</span>
+        <!-- Sinal paralelo ao trâmite: não muda a situação do processo -->
+        <span *ngIf="processo.EsclarecimentoPendente"
+              class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+          Aguardando esclarecimento há {{ processo.DiasEsclarecimentoPendente }} dia(s)
+        </span>
+      </div>
+
+      <!-- Trâmite: onde o processo está e por onde passou -->
+      <div class="mt-5 pt-4 border-t border-gray-100 overflow-x-auto">
+        <app-ctr-tramite [processo]="processo"></app-ctr-tramite>
+      </div>
+
+      <div *ngIf="processo.Restituido"
+           class="mt-4 border-l-4 border-orange-400 bg-orange-50 p-3 rounded-r-md text-sm text-orange-800">
+        <strong>Restituído ao órgão</strong><span *ngIf="processo.RestituidoEm"> em
+        {{ processo.RestituidoEm | date:'dd/MM/yyyy':'UTC' }}</span><span
+        *ngIf="processo.RestituidoMotivo">: {{ processo.RestituidoMotivo }}</span>
+      </div>
+
+      <div class="mt-3 space-y-0.5">
+        <p *ngIf="processo.EsclarecimentoSolicitadoEm" class="text-xs text-gray-600">
+          Esclarecimento pedido em {{ processo.EsclarecimentoSolicitadoEm | date:'dd/MM/yyyy':'UTC' }}<span
+          *ngIf="processo.EsclarecimentoRespondidoEm">, respondido em
+          {{ processo.EsclarecimentoRespondidoEm | date:'dd/MM/yyyy':'UTC' }}</span>.
+        </p>
+        <p *ngIf="processo.DataAssinaturaContrato" class="text-xs text-gray-600">
+          Contrato assinado em {{ processo.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}.
+        </p>
+      </div>
+
       <p class="text-xs text-gray-400 italic mt-3">
         Cadastrado por {{ processo.CriadoPor }} em {{ processo.CriadoEm | date:'dd/MM/yyyy HH:mm' }}<span
         *ngIf="processo.AlteradoEm"> · última alteração por {{ processo.AlteradoPor }} em
@@ -80,9 +99,9 @@
     <!-- Formulário compartilhado com a tela de cadastro -->
     <div class="bg-white rounded-lg shadow p-6 mb-5">
       <h3 class="text-base font-semibold text-blue-900 mb-1">Dados do processo</h3>
-      <p class="text-sm text-gray-600 mb-4">A situação e o tempo parado são calculados a partir das datas abaixo.</p>
+      <p class="text-sm text-gray-600 mb-6">A situação e o tempo parado são calculados a partir das datas da tramitação.</p>
 
-      <!-- A classificação vem aninhada só no GET/PUT: a seção abre preenchida com ela -->
+      <!-- Os riscos vêm aninhados só no GET/PUT: a seção abre com eles -->
       <app-ctr-processo-form
         [valor]="valorForm"
         [classificacao]="processo.ClassificacaoRisco ?? null"
@@ -97,14 +116,15 @@
 
     <!-- Manifestações ao TCDF deste processo -->
     <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex items-start justify-between gap-4 mb-4">
+      <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
           <h3 class="text-base font-semibold text-blue-900 mb-1">Manifestações ao TCDF</h3>
           <p class="text-sm text-gray-600">Cada comunicação do Tribunal de Contas do Distrito Federal (TCDF) sobre esta
           contratação gera uma manifestação da SGDI. Ofício novo = manifestação nova.</p>
         </div>
         <a [routerLink]="['/analises/manifestacoes/nova']" [queryParams]="{ processo: processo.Id }"
-           class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700 whitespace-nowrap">
+           class="inline-flex items-center gap-1 text-sm text-blue-700 border border-blue-600 rounded-md py-2 px-4 hover:bg-blue-50 whitespace-nowrap">
+          <span class="material-icons text-base leading-none" aria-hidden="true">add</span>
           Nova manifestação
         </a>
       </div>
@@ -121,11 +141,11 @@
               <th class="px-3 py-2">Data</th>
               <th class="px-3 py-2">Situação no portfólio</th>
               <th class="px-3 py-2">Estágio</th>
-              <th class="px-3 py-2"></th>
+              <th class="px-3 py-2" aria-label="Ações"></th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let m of manifestacoes" class="border-b border-gray-200 align-top">
+            <tr *ngFor="let m of manifestacoes" class="border-b border-gray-200 align-top hover:bg-gray-50">
               <td class="px-3 py-2">{{ m.OficioTcdf }}</td>
               <td class="px-3 py-2 whitespace-nowrap">{{ m.DataOficio | date:'dd/MM/yyyy':'UTC' }}</td>
               <td class="px-3 py-2">{{ m.SituacaoPortfolio }}</td>
@@ -137,7 +157,7 @@
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <a [routerLink]="['/analises/manifestacoes/editar', m.Id]"
-                   class="text-sm text-blue-700 hover:underline">Abrir</a>
+                   class="text-xs font-semibold text-blue-700 border border-blue-200 rounded-md px-2 py-1 hover:bg-blue-50">Abrir</a>
               </td>
             </tr>
           </tbody>

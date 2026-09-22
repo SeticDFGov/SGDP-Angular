@@ -13,247 +13,301 @@
   comunicante.
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-  <!-- Identificação -->
-  <div>
-    <label class="block text-sm font-semibold mb-1">Número do processo SEI <span class="text-red-600">*</span></label>
-    <input type="text" inputmode="numeric" [value]="form.NumeroProcesso" (input)="aoDigitarNumero($event)"
-           placeholder="00000-00000000/2026-00"
-           class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-           [class.border-red-500]="submetido && errNumero"
-           [class.bg-red-50]="submetido && errNumero"
-           [class.border-gray-300]="!(submetido && errNumero)">
-    <p *ngIf="submetido && errNumero" class="text-xs text-red-600 mt-1">{{ errNumero }}</p>
-    <p class="text-xs text-gray-400 italic mt-1">Digite só os números: a pontuação é preenchida sozinha.</p>
+<!-- Cabeçalho de cada seção do formulário -->
+<ng-template #cabecalho let-icone="icone" let-titulo="titulo" let-ajuda="ajuda">
+  <div class="flex items-start gap-3 mb-4">
+    <span class="material-icons text-xl leading-none text-blue-700 bg-blue-50 rounded-full p-2" aria-hidden="true">{{ icone }}</span>
+    <div>
+      <h3 class="text-sm font-semibold text-blue-900">{{ titulo }}</h3>
+      <p *ngIf="ajuda" class="text-xs text-gray-400 italic mt-0.5">{{ ajuda }}</p>
+    </div>
   </div>
+</ng-template>
 
-  <div>
-    <label class="block text-sm font-semibold mb-1">Categoria do objeto <span class="text-red-600">*</span></label>
-    <select [(ngModel)]="form.CategoriaObjeto" name="ctr-categoria"
-            class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            [class.border-red-500]="submetido && errCategoria"
-            [class.border-gray-300]="!(submetido && errCategoria)">
-      <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
-    </select>
-    <p class="text-xs text-gray-400 italic mt-1">Use "Sem objeto / Indefinido" quando o processo ainda não define o objeto.</p>
+<!-- ── Identificação ───────────────────────────────────────────────────── -->
+<section>
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'badge', titulo: 'Identificação',
+    ajuda: 'O processo SEI, o órgão que comunicou a contratação e o que está sendo contratado.' }"></ng-container>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-numero">Número do processo SEI <span class="text-red-600">*</span></label>
+      <input id="ctr-numero" type="text" inputmode="numeric" [value]="form.NumeroProcesso" (input)="aoDigitarNumero($event)"
+             placeholder="00000-00000000/2026-00"
+             [attr.data-erro]="submetido && errNumero ? 'sim' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errNumero"
+             [class.bg-red-50]="submetido && errNumero"
+             [class.border-gray-300]="!(submetido && errNumero)">
+      <p *ngIf="submetido && errNumero" class="text-xs text-red-600 mt-1">{{ errNumero }}</p>
+      <p class="text-xs text-gray-400 italic mt-1">Digite só os números: a pontuação é preenchida sozinha.</p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-categoria">Categoria do objeto <span class="text-red-600">*</span></label>
+      <select id="ctr-categoria" [(ngModel)]="form.CategoriaObjeto" name="ctr-categoria"
+              [attr.data-erro]="submetido && errCategoria ? 'sim' : null"
+              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-500]="submetido && errCategoria"
+              [class.border-gray-300]="!(submetido && errCategoria)">
+        <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+      </select>
+      <p class="text-xs text-gray-400 italic mt-1">Use "Sem objeto / Indefinido" quando o processo ainda não define o objeto.</p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-orgao-nome">Órgão comunicante <span class="text-red-600">*</span></label>
+      <input id="ctr-orgao-nome" type="text" [(ngModel)]="form.OrgaoNome" name="ctr-orgao-nome" maxlength="200"
+             placeholder="Nome completo do órgão ou entidade"
+             [attr.data-erro]="submetido && errOrgaoNome ? 'sim' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errOrgaoNome"
+             [class.bg-red-50]="submetido && errOrgaoNome"
+             [class.border-gray-300]="!(submetido && errOrgaoNome)">
+      <p *ngIf="submetido && errOrgaoNome" class="text-xs text-red-600 mt-1">{{ errOrgaoNome }}</p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-orgao-sigla">Sigla <span class="text-red-600">*</span></label>
+      <input id="ctr-orgao-sigla" type="text" [value]="form.OrgaoSigla" (input)="aoDigitarSigla($event)" maxlength="20"
+             list="ctr-siglas" placeholder="SEEC"
+             [attr.data-erro]="submetido && errOrgaoSigla ? 'sim' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errOrgaoSigla"
+             [class.bg-red-50]="submetido && errOrgaoSigla"
+             [class.border-gray-300]="!(submetido && errOrgaoSigla)">
+      <datalist id="ctr-siglas">
+        <option *ngFor="let s of siglas" [value]="s"></option>
+      </datalist>
+      <p *ngIf="submetido && errOrgaoSigla" class="text-xs text-red-600 mt-1">{{ errOrgaoSigla }}</p>
+      <p class="text-xs text-gray-400 italic mt-1">A sigla é gravada em caixa alta. A lista sugere as siglas já usadas.</p>
+    </div>
+
+    <div class="md:col-span-2">
+      <label class="block text-sm font-semibold mb-1" for="ctr-complemento">Complemento / Área</label>
+      <input id="ctr-complemento" type="text" [(ngModel)]="form.ComplementoArea" name="ctr-complemento" maxlength="200"
+             placeholder="Subsecretaria, diretoria ou área demandante, quando houver"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div class="md:col-span-2">
+      <label class="block text-sm font-semibold mb-1" for="ctr-objeto">Objeto <span class="text-red-600">*</span></label>
+      <textarea id="ctr-objeto" rows="3" [(ngModel)]="form.Objeto" name="ctr-objeto"
+                placeholder="O que está sendo contratado, como consta no processo."
+                [attr.data-erro]="submetido && errObjeto ? 'sim' : null"
+                class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class.border-red-500]="submetido && errObjeto"
+                [class.bg-red-50]="submetido && errObjeto"
+                [class.border-gray-300]="!(submetido && errObjeto)"></textarea>
+      <p *ngIf="submetido && errObjeto" class="text-xs text-red-600 mt-1">{{ errObjeto }}</p>
+    </div>
   </div>
+</section>
 
-  <div>
-    <label class="block text-sm font-semibold mb-1">Órgão comunicante <span class="text-red-600">*</span></label>
-    <input type="text" [(ngModel)]="form.OrgaoNome" name="ctr-orgao-nome" maxlength="200"
-           placeholder="Nome completo do órgão ou entidade"
-           class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-           [class.border-red-500]="submetido && errOrgaoNome"
-           [class.bg-red-50]="submetido && errOrgaoNome"
-           [class.border-gray-300]="!(submetido && errOrgaoNome)">
-    <p *ngIf="submetido && errOrgaoNome" class="text-xs text-red-600 mt-1">{{ errOrgaoNome }}</p>
+<!-- ── Fase da contratação ─────────────────────────────────────────────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'flag', titulo: 'Fase da contratação',
+    ajuda: 'A contratação fica em planejamento até o contrato ser assinado. Com a data de assinatura, passa a execução; a etapa do planejamento continua registrada, porque é onde o planejamento parou.' }"></ng-container>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-etapa-planejamento">Etapa do planejamento</label>
+      <select id="ctr-etapa-planejamento" [(ngModel)]="form.EtapaPlanejamento" name="ctr-etapa-planejamento"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option [ngValue]="null">Não informada</option>
+        <option *ngFor="let e of etapasPlanejamento" [ngValue]="e.valor">{{ e.valor }} ({{ e.rotulo }})</option>
+      </select>
+      <p class="text-xs text-gray-400 italic mt-1">Em que documento o planejamento da contratação está.</p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-assinatura">Assinatura do contrato</label>
+      <input id="ctr-assinatura" type="date" [(ngModel)]="form.DataAssinaturaContrato" name="ctr-assinatura"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <p class="text-xs text-gray-400 italic mt-1">Pode ser anterior à chegada na SGDI: o Tribunal também analisa
+      contrato já assinado.</p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-processo-criticidade">Criticidade</label>
+      <select id="ctr-processo-criticidade" [(ngModel)]="form.Criticidade" name="ctr-processo-criticidade"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option [ngValue]="null">Não classificada</option>
+        <option *ngFor="let c of criticidades" [ngValue]="c">{{ c }}</option>
+      </select>
+      <p class="text-xs text-gray-400 italic mt-1">Art. 11 da IN SGDI nº 1/2026. A manifestação do inciso I ao TCDF só
+      reporta este valor e não é registrada sem ele.</p>
+    </div>
   </div>
+</section>
 
-  <div>
-    <label class="block text-sm font-semibold mb-1">Sigla <span class="text-red-600">*</span></label>
-    <input type="text" [value]="form.OrgaoSigla" (input)="aoDigitarSigla($event)" maxlength="20"
-           list="ctr-siglas" placeholder="SEEC"
-           class="w-full px-3 py-2 border rounded-md text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
-           [class.border-red-500]="submetido && errOrgaoSigla"
-           [class.bg-red-50]="submetido && errOrgaoSigla"
-           [class.border-gray-300]="!(submetido && errOrgaoSigla)">
-    <datalist id="ctr-siglas">
-      <option *ngFor="let s of siglas" [value]="s"></option>
-    </datalist>
-    <p *ngIf="submetido && errOrgaoSigla" class="text-xs text-red-600 mt-1">{{ errOrgaoSigla }}</p>
-    <p class="text-xs text-gray-400 italic mt-1">A sigla é gravada em caixa alta. A lista sugere as siglas já usadas.</p>
-  </div>
+<!-- ── Riscos da contratação (fora do modo compacto: fica para a página do processo) ── -->
+<section *ngIf="!compacto" class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'report_problem', titulo: 'Riscos da contratação',
+    ajuda: 'Cada risco com a ação que vai reduzi-lo, quem responde por ela e onde ele cai no mapa de riscos da CGDF (probabilidade × consequência). Opcional; não depende da criticidade e fica fora do CSV e do despacho em PDF.' }"></ng-container>
 
-  <div class="md:col-span-2">
-    <label class="block text-sm font-semibold mb-1">Complemento / Área</label>
-    <input type="text" [(ngModel)]="form.ComplementoArea" name="ctr-complemento" maxlength="200"
-           placeholder="Subsecretaria, diretoria ou área demandante, quando houver"
-           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-  </div>
-
-  <div class="md:col-span-2">
-    <label class="block text-sm font-semibold mb-1">Objeto <span class="text-red-600">*</span></label>
-    <textarea rows="3" [(ngModel)]="form.Objeto" name="ctr-objeto"
-              placeholder="O que está sendo contratado, como consta no processo."
-              class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              [class.border-red-500]="submetido && errObjeto"
-              [class.bg-red-50]="submetido && errObjeto"
-              [class.border-gray-300]="!(submetido && errObjeto)"></textarea>
-    <p *ngIf="submetido && errObjeto" class="text-xs text-red-600 mt-1">{{ errObjeto }}</p>
-  </div>
-</div>
-
-<!-- Fase da contratação -->
-<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Fase da contratação</h3>
-<p class="text-xs text-gray-400 italic mb-3">A contratação fica em <strong>planejamento</strong> até o contrato ser
-assinado. Informar a data de assinatura leva o processo para a fase de <strong>execução</strong>; a etapa do
-planejamento continua registrada, porque é onde o planejamento parou.</p>
-
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-  <div>
-    <label class="block text-sm font-semibold mb-1">Etapa do planejamento</label>
-    <select [(ngModel)]="form.EtapaPlanejamento" name="ctr-etapa-planejamento"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <option [ngValue]="null">Não informada</option>
-      <option *ngFor="let e of etapasPlanejamento" [ngValue]="e.valor">{{ e.valor }} ({{ e.rotulo }})</option>
-    </select>
-    <p class="text-xs text-gray-400 italic mt-1">Em que documento o planejamento da contratação está.</p>
-  </div>
-
-  <div>
-    <label class="block text-sm font-semibold mb-1">Assinatura do contrato</label>
-    <input type="date" [(ngModel)]="form.DataAssinaturaContrato" name="ctr-assinatura"
-           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-    <p class="text-xs text-gray-400 italic mt-1">Preenchida, a contratação passa a aparecer como "Execução". Pode ser
-    anterior à chegada na SGDI: o Tribunal também analisa contrato já assinado.</p>
-  </div>
-
-  <div>
-    <label class="block text-sm font-semibold mb-1">Criticidade</label>
-    <select [(ngModel)]="form.Criticidade" name="ctr-processo-criticidade"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <option [ngValue]="null">Não classificada</option>
-      <option *ngFor="let c of criticidades" [ngValue]="c">{{ c }}</option>
-    </select>
-    <p class="text-xs text-gray-400 italic mt-1">Art. 11 da IN SGDI nº 1/2026. É a criticidade da contratação: a
-    manifestação do inciso I ao TCDF só reporta este valor e não é registrada sem ele.</p>
-  </div>
-</div>
-
-<!-- Classificação de riscos: fora do modo compacto (fica para a página do processo) -->
-<app-ctr-classificacao-risco *ngIf="!compacto" [edicao]="risco"></app-ctr-classificacao-risco>
-<p *ngIf="compacto" class="text-xs text-gray-400 italic mt-4">A classificação de riscos fica para a página do processo,
+  <app-ctr-classificacao-risco [edicao]="risco" [mostrarErros]="submetido"></app-ctr-classificacao-risco>
+</section>
+<p *ngIf="compacto" class="text-xs text-gray-400 italic mt-6">Os riscos da contratação ficam para a página do processo,
 depois do cadastro.</p>
 
-<!-- Tramitação -->
 <ng-container *ngIf="!compacto">
-<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Tramitação</h3>
-<p class="text-xs text-gray-400 italic mb-3">Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; a ordem
-das datas preenchidas precisa respeitar o caminho SGDI → SUBGD → UGTIC → Gab SGDI → órgão.</p>
+  <!-- ── Tramitação ────────────────────────────────────────────────────── -->
+  <section class="mt-8 pt-4 border-t border-gray-200">
+    <ng-container *ngTemplateOutlet="cabecalho; context: {
+      icone: 'timeline', titulo: 'Tramitação',
+      ajuda: 'Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; as datas preenchidas seguem o caminho SGDI, SUBGD, UGTIC, Gab SGDI e órgão.' }"></ng-container>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div *ngFor="let c of checkpoints">
-    <label class="block text-sm font-semibold mb-1">{{ c.rotulo }}</label>
-    <input type="date" [ngModel]="dataDoCheckpoint(c.campo)" [name]="'ctr-' + c.campo"
-           (ngModelChange)="definirCheckpoint(c.campo, $event)"
-           [disabled]="(c.campo === 'ChegadaUgtic' && form.UgticNaoSeAplica)
-                       || (c.campo === 'RetornoOrgao' && form.RetornoOrgaoNaoSeAplica)"
-           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
-    <label *ngIf="c.campo === 'ChegadaUgtic'" class="flex items-center gap-2 mt-2 text-sm">
-      <input type="checkbox" [ngModel]="form.UgticNaoSeAplica" name="ctr-ugtic-na"
-             (ngModelChange)="aoMarcarUgticNaoSeAplica($event)"
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div *ngFor="let c of checkpoints; let n = index">
+        <label class="block text-sm font-semibold mb-1" [attr.for]="'ctr-' + c.campo">
+          <span class="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-gray-100 text-gray-600 text-xs font-bold">{{ n + 1 }}</span>
+          {{ c.rotulo }}
+        </label>
+        <input type="date" [id]="'ctr-' + c.campo" [ngModel]="dataDoCheckpoint(c.campo)" [name]="'ctr-' + c.campo"
+               (ngModelChange)="definirCheckpoint(c.campo, $event)"
+               [disabled]="(c.campo === 'ChegadaUgtic' && form.UgticNaoSeAplica)
+                           || (c.campo === 'RetornoOrgao' && form.RetornoOrgaoNaoSeAplica)"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
+        <label *ngIf="c.campo === 'ChegadaUgtic'" class="flex items-center gap-2 mt-2 text-sm">
+          <input type="checkbox" [ngModel]="form.UgticNaoSeAplica" name="ctr-ugtic-na"
+                 (ngModelChange)="aoMarcarUgticNaoSeAplica($event)"
+                 class="rounded border-gray-300">
+          <span>Não se aplica (etapa pulada de propósito)</span>
+        </label>
+        <label *ngIf="c.campo === 'RetornoOrgao'" class="flex items-center gap-2 mt-2 text-sm">
+          <input type="checkbox" [ngModel]="form.RetornoOrgaoNaoSeAplica" name="ctr-retorno-orgao-na"
+                 (ngModelChange)="aoMarcarRetornoOrgaoNaoSeAplica($event)"
+                 class="rounded border-gray-300">
+          <span>Não se aplica (o processo não é devolvido ao órgão)</span>
+        </label>
+        <p class="text-xs text-gray-400 italic mt-1">{{ c.ajuda }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Esclarecimentos: sinal paralelo ao trâmite, não é etapa ──────── -->
+  <section class="mt-8 pt-4 border-t border-gray-200">
+    <ng-container *ngTemplateOutlet="cabecalho; context: {
+      icone: 'forum', titulo: 'Esclarecimentos ao órgão comunicante',
+      ajuda: 'Quando a SGDI pede esclarecimentos ao órgão, registre aqui. Enquanto não houver a data da resposta, o processo aparece sinalizado na lista. A situação do trâmite não muda por causa disso.' }"></ng-container>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-em">Pedido de esclarecimento em</label>
+        <input id="ctr-esclarecimento-em" type="date" [ngModel]="form.EsclarecimentoSolicitadoEm" name="ctr-esclarecimento-em"
+               (ngModelChange)="aoTrocarEsclarecimentoSolicitado($event)"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <p class="text-xs text-gray-400 italic mt-1">Limpar esta data apaga o que foi pedido e a data da resposta.</p>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-descricao">O que foi pedido
+          <span *ngIf="form.EsclarecimentoSolicitadoEm" class="text-red-600">*</span>
+        </label>
+        <textarea id="ctr-esclarecimento-descricao" rows="2" [(ngModel)]="form.EsclarecimentoDescricao" name="ctr-esclarecimento-descricao"
+                  [disabled]="!form.EsclarecimentoSolicitadoEm"
+                  placeholder="Que informação foi solicitada ao órgão comunicante."
+                  [attr.data-erro]="submetido && errEsclarecimentoDescricao ? 'sim' : null"
+                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                  [class.border-red-500]="submetido && errEsclarecimentoDescricao"
+                  [class.bg-red-50]="submetido && errEsclarecimentoDescricao"
+                  [class.border-gray-300]="!(submetido && errEsclarecimentoDescricao)"></textarea>
+        <p *ngIf="submetido && errEsclarecimentoDescricao" class="text-xs text-red-600 mt-1">{{ errEsclarecimentoDescricao }}</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-resposta">Resposta do órgão em</label>
+        <input id="ctr-esclarecimento-resposta" type="date" [(ngModel)]="form.EsclarecimentoRespondidoEm" name="ctr-esclarecimento-resposta"
+               [disabled]="!form.EsclarecimentoSolicitadoEm"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
+        <p class="text-xs text-gray-400 italic mt-1">Preenchida, a sinalização sai da lista. Não pode ser anterior ao pedido.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Restituição ───────────────────────────────────────────────────── -->
+  <section class="mt-8 pt-4 border-t border-gray-200">
+    <ng-container *ngTemplateOutlet="cabecalho; context: {
+      icone: 'assignment_return', titulo: 'Restituição ao órgão',
+      ajuda: 'Quando o processo volta ao órgão comunicante sem a análise concluída.' }"></ng-container>
+
+    <label class="flex items-center gap-2 text-sm mb-3">
+      <input type="checkbox" [ngModel]="form.Restituido" name="ctr-restituido"
+             (ngModelChange)="aoMarcarRestituido($event)"
              class="rounded border-gray-300">
-      <span>Não se aplica (etapa pulada de propósito)</span>
+      <span>O processo foi restituído ao órgão comunicante</span>
     </label>
-    <label *ngIf="c.campo === 'RetornoOrgao'" class="flex items-center gap-2 mt-2 text-sm">
-      <input type="checkbox" [ngModel]="form.RetornoOrgaoNaoSeAplica" name="ctr-retorno-orgao-na"
-             (ngModelChange)="aoMarcarRetornoOrgaoNaoSeAplica($event)"
-             class="rounded border-gray-300">
-      <span>Não se aplica (o processo não é devolvido ao órgão)</span>
-    </label>
-    <p class="text-xs text-gray-400 italic mt-1">{{ c.ajuda }}</p>
-  </div>
-</div>
 
-<!-- Esclarecimentos: sinal paralelo ao trâmite, não é etapa -->
-<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Esclarecimentos ao órgão comunicante</h3>
-<p class="text-xs text-gray-400 italic mb-3">Quando a SGDI pede esclarecimentos ao órgão, registre aqui. Enquanto não
-houver a data da resposta, o processo aparece sinalizado na lista como aguardando esclarecimento. A situação do trâmite
-não muda por causa disso.</p>
-
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-  <div>
-    <label class="block text-sm font-semibold mb-1">Pedido de esclarecimento em</label>
-    <input type="date" [ngModel]="form.EsclarecimentoSolicitadoEm" name="ctr-esclarecimento-em"
-           (ngModelChange)="aoTrocarEsclarecimentoSolicitado($event)"
-           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-    <p class="text-xs text-gray-400 italic mt-1">Limpar esta data apaga o que foi pedido e a data da resposta.</p>
-  </div>
-
-  <div class="md:col-span-2">
-    <label class="block text-sm font-semibold mb-1">O que foi pedido
-      <span *ngIf="form.EsclarecimentoSolicitadoEm" class="text-red-600">*</span>
-    </label>
-    <textarea rows="2" [(ngModel)]="form.EsclarecimentoDescricao" name="ctr-esclarecimento-descricao"
-              [disabled]="!form.EsclarecimentoSolicitadoEm"
-              placeholder="Que informação foi solicitada ao órgão comunicante."
-              class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
-              [class.border-red-500]="submetido && errEsclarecimentoDescricao"
-              [class.bg-red-50]="submetido && errEsclarecimentoDescricao"
-              [class.border-gray-300]="!(submetido && errEsclarecimentoDescricao)"></textarea>
-    <p *ngIf="submetido && errEsclarecimentoDescricao" class="text-xs text-red-600 mt-1">{{ errEsclarecimentoDescricao }}</p>
-  </div>
-
-  <div>
-    <label class="block text-sm font-semibold mb-1">Resposta do órgão em</label>
-    <input type="date" [(ngModel)]="form.EsclarecimentoRespondidoEm" name="ctr-esclarecimento-resposta"
-           [disabled]="!form.EsclarecimentoSolicitadoEm"
-           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
-    <p class="text-xs text-gray-400 italic mt-1">Preenchida, a sinalização sai da lista. Não pode ser anterior ao pedido.</p>
-  </div>
-</div>
-
-<!-- Restituição -->
-<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-1">Restituição ao órgão</h3>
-<label class="flex items-center gap-2 text-sm mb-3">
-  <input type="checkbox" [ngModel]="form.Restituido" name="ctr-restituido"
-         (ngModelChange)="aoMarcarRestituido($event)"
-         class="rounded border-gray-300">
-  <span>O processo foi restituído ao órgão comunicante</span>
-</label>
-
-<div *ngIf="form.Restituido" class="grid grid-cols-1 md:grid-cols-2 gap-4 border-l-4 border-orange-400 bg-orange-50 p-4 rounded-r-md">
-  <div>
-    <label class="block text-sm font-semibold mb-1">Data da restituição <span class="text-red-600">*</span></label>
-    <input type="date" [(ngModel)]="form.RestituidoEm" name="ctr-restituido-em"
-           class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-           [class.border-red-500]="submetido && errRestituidoEm"
-           [class.border-gray-300]="!(submetido && errRestituidoEm)">
-    <p *ngIf="submetido && errRestituidoEm" class="text-xs text-red-600 mt-1">{{ errRestituidoEm }}</p>
-  </div>
-  <div>
-    <label class="block text-sm font-semibold mb-1">Motivo da restituição <span class="text-red-600">*</span></label>
-    <textarea rows="2" [(ngModel)]="form.RestituidoMotivo" name="ctr-restituido-motivo"
-              placeholder="Por que o processo voltou ao órgão sem a análise concluída."
-              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              [class.border-red-500]="submetido && errRestituidoMotivo"
-              [class.border-gray-300]="!(submetido && errRestituidoMotivo)"></textarea>
-    <p *ngIf="submetido && errRestituidoMotivo" class="text-xs text-red-600 mt-1">{{ errRestituidoMotivo }}</p>
-  </div>
-</div>
+    <div *ngIf="form.Restituido" class="grid grid-cols-1 md:grid-cols-2 gap-4 border-l-4 border-orange-400 bg-orange-50 p-4 rounded-r-md">
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-restituido-em">Data da restituição <span class="text-red-600">*</span></label>
+        <input id="ctr-restituido-em" type="date" [(ngModel)]="form.RestituidoEm" name="ctr-restituido-em"
+               [attr.data-erro]="submetido && errRestituidoEm ? 'sim' : null"
+               class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+               [class.border-red-500]="submetido && errRestituidoEm"
+               [class.border-gray-300]="!(submetido && errRestituidoEm)">
+        <p *ngIf="submetido && errRestituidoEm" class="text-xs text-red-600 mt-1">{{ errRestituidoEm }}</p>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-restituido-motivo">Motivo da restituição <span class="text-red-600">*</span></label>
+        <textarea id="ctr-restituido-motivo" rows="2" [(ngModel)]="form.RestituidoMotivo" name="ctr-restituido-motivo"
+                  placeholder="Por que o processo voltou ao órgão sem a análise concluída."
+                  [attr.data-erro]="submetido && errRestituidoMotivo ? 'sim' : null"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="submetido && errRestituidoMotivo"
+                  [class.border-gray-300]="!(submetido && errRestituidoMotivo)"></textarea>
+        <p *ngIf="submetido && errRestituidoMotivo" class="text-xs text-red-600 mt-1">{{ errRestituidoMotivo }}</p>
+      </div>
+    </div>
+  </section>
 </ng-container>
 
 <!-- No modo compacto o trâmite fica de fora: processo cadastrado pelo TCDF
      costuma nascer sem nenhuma data de tramitação. -->
-<p *ngIf="compacto" class="text-xs text-gray-400 italic mt-4">As datas de tramitação e a restituição ficam para a página
+<p *ngIf="compacto" class="text-xs text-gray-400 italic mt-2">As datas de tramitação e a restituição ficam para a página
 do processo, quando houver. O cadastro do TCDF normalmente começa sem elas.</p>
 
-<!-- Observação -->
-<div class="mt-4">
-  <label class="block text-sm font-semibold mb-1">Observação</label>
-  <textarea rows="3" [(ngModel)]="form.Observacao" name="ctr-observacao"
+<!-- ── Observação ──────────────────────────────────────────────────────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'notes', titulo: 'Observação',
+    ajuda: 'Anotações da equipe sobre o andamento do processo. Não entram no despacho.' }"></ng-container>
+  <textarea id="ctr-observacao" rows="3" [(ngModel)]="form.Observacao" name="ctr-observacao" aria-label="Observação"
             placeholder="Anotações da equipe sobre o andamento do processo."
             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-</div>
+</section>
 
 <!-- Datas incoerentes: aparecem assim que o problema existe -->
-<div *ngIf="errDatas.length > 0" class="mt-4 border-l-4 border-red-500 bg-red-50 p-3 rounded-r-md">
+<div *ngIf="errDatas.length > 0" class="mt-6 border-l-4 border-red-500 bg-red-50 p-3 rounded-r-md" role="alert">
   <p class="text-sm font-semibold text-red-800 mb-1">Confira as datas antes de salvar:</p>
   <ul class="list-disc pl-5 text-sm text-red-800 space-y-0.5">
     <li *ngFor="let e of errDatas">{{ e }}</li>
   </ul>
 </div>
 
-<div class="mt-5 flex items-center gap-3 flex-wrap">
-  <!-- Com a classificação de riscos aberta, o envio espera ela ficar completa -->
-  <button (click)="enviar()" [disabled]="salvando || !classificacaoPronta"
+<!-- O que ainda impede o envio: aparece na primeira tentativa de salvar -->
+<div *ngIf="submetido && problemas.length > 0" class="mt-4 border-l-4 border-red-500 bg-red-50 p-3 rounded-r-md" role="alert">
+  <p class="text-sm font-semibold text-red-800 mb-1">Antes de salvar, corrija:</p>
+  <ul class="list-disc pl-5 text-sm text-red-800 space-y-0.5">
+    <li *ngFor="let p of problemas">{{ p }}</li>
+  </ul>
+</div>
+
+<!-- Ações: na página inteira a barra fica presa ao pé da tela enquanto se rola o formulário -->
+<div class="mt-6 flex items-center gap-3 flex-wrap"
+     [ngClass]="compacto ? '' : 'sticky bottom-0 z-10 py-3 bg-white border-t border-gray-200'">
+  <button type="button" (click)="enviar()" [disabled]="salvando"
           class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
     {{ salvando ? 'Salvando...' : rotuloSalvar }}
   </button>
   <button *ngIf="rotaCancelar" type="button" (click)="cancelar.emit()"
-          class="text-sm text-blue-700 hover:underline">Cancelar</button>
-  <span *ngIf="faltaNaClassificacao" class="text-xs text-gray-400 italic">Classificação de riscos incompleta.
-    {{ faltaNaClassificacao }}</span>
-  <span *ngIf="!faltaNaClassificacao && submetido && !formValido" class="text-xs text-gray-400 italic">Há campos obrigatórios ou datas para corrigir acima.</span>
+          class="text-sm text-gray-700 border border-gray-300 bg-white rounded-md py-2 px-4 hover:bg-gray-50">Cancelar</button>
+  <span *ngIf="submetido && totalProblemas > 0" class="text-xs font-semibold text-red-700">
+    {{ totalProblemas === 1 ? '1 item para corrigir' : totalProblemas + ' itens para corrigir' }}
+  </span>
+  <span *ngIf="!(submetido && totalProblemas > 0) && alterado" class="text-xs text-gray-400 italic">Há alterações não salvas.</span>
 </div>

@@ -1,15 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Params, Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
+import { CtrTramiteComponent } from '../shared/ctr-tramite.component';
 import {
   badgeCriticidade,
   badgeEstagio,
   badgeFase,
   badgeNivelRisco,
-  badgeRiscoClassificado,
   badgeSituacao,
   badgeStatusTcdf,
   corDiasSemMovimento,
@@ -18,14 +18,15 @@ import {
 import { CtrManifestacao, CtrProcesso, CtrProcessoForm } from '../../../api/contratacoes/interface';
 
 /**
- * Página de edição de um processo (`/analises/processos/editar/:id`): o mesmo
- * formulário compartilhado da tela de cadastro, mais as manifestações ao TCDF
- * já registradas para ele, com atalho para registrar uma nova.
+ * Página de um processo (`/analises/processos/editar/:id`): o estado atual num
+ * cabeçalho (situação, fase, maior risco e a linha do tempo do trâmite), o mesmo
+ * formulário compartilhado da tela de cadastro e as manifestações ao TCDF já
+ * registradas para ele, com atalho para registrar uma nova.
  */
 @Component({
   selector: 'app-ctr-processo-editar',
   standalone: true,
-  imports: [CommonModule, RouterModule, CtrProcessoFormComponent],
+  imports: [CommonModule, RouterModule, CtrProcessoFormComponent, CtrTramiteComponent],
   templateUrl: './ctr-processo-editar.component.html'
 })
 export class CtrProcessoEditarComponent implements OnInit {
@@ -45,7 +46,6 @@ export class CtrProcessoEditarComponent implements OnInit {
   badgeFase = badgeFase;
   badgeCriticidade = badgeCriticidade;
   badgeStatusTcdf = badgeStatusTcdf;
-  badgeRiscoClassificado = badgeRiscoClassificado;
   badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
   rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
@@ -137,13 +137,18 @@ export class CtrProcessoEditarComponent implements OnInit {
         this.salvando = false;
         this.notificationService.error(
           'Não foi possível salvar. Confira se o número do processo já não está em outro cadastro, se as datas estão coerentes '
-          + 'e se a classificação de riscos está correta.'
+          + 'e se os riscos da contratação estão completos.'
         );
       }
     });
   }
 
+  /** A lista volta com os filtros que estavam aplicados quando o processo foi aberto. */
+  get filtrosDaLista(): Params {
+    return this.processoService.filtrosDaLista;
+  }
+
   irParaLista(): void {
-    this.router.navigate(['/analises/processos/lista']);
+    this.router.navigate(['/analises/processos/lista'], { queryParams: this.filtrosDaLista });
   }
 }

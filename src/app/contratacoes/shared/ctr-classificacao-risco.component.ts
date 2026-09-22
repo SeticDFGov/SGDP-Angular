@@ -1,94 +1,32 @@
-import { Component, Input } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, Input, QueryList, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-// Fontes estáticas de domínio do PGIA (só dados puros, nada de tela): os
-// quesitos e os pesos dos arts. 15 a 17 do Decreto nº 48.901/2026 e a escala
-// 5×5 da CGDF. Nenhum dos dois arquivos importa o texto do decreto
-// (`pgia/shared/decreto-48901.ts`) nem a diretiva `citaDecreto`: o decreto não
-// entra no chunk deste módulo (conferido no build). Nada do PGIA é alterado.
+// Só a escala 5×5 da CGDF, dado puro da fonte estática do PGIA (nada de tela).
+// O arquivo não importa o texto do decreto (`pgia/shared/decreto-48901.ts`) nem
+// a diretiva `citaDecreto`: o decreto não entra no chunk deste módulo.
 import {
   CONSEQUENCIAS_CGDF,
   MATRIZ_RISCO_CGDF,
-  PESOS_QUESITOS,
   PROBABILIDADES_CGDF
 } from '../../../api/pgia/interface';
-import { GRUPOS_QUESITOS, ROMANOS } from '../../pgia/sistemas/quesitos';
 import {
   CtrClassificacaoRisco,
   CtrClassificacaoRiscoForm,
   CtrProcessoForm,
   CtrRiscoDeclaradoForm,
   MAX_RISCOS_DECLARADOS,
-  NAO_CLASSIFICADO,
-  NIVEIS_RISCO,
-  RISCOS_CLASSIFICADOS
+  NIVEIS_RISCO
 } from '../../../api/contratacoes/interface';
-import { badgeNivelRisco, badgeRiscoClassificado } from './ctr-rotulos';
+import { badgeNivelRisco } from './ctr-rotulos';
 
 /** Código de cor da célula do mapa da CGDF: v verde, a amarelo, l laranja, r vermelho. */
 type CorCelula = 'v' | 'a' | 'l' | 'r';
 
-type Artigo = 15 | 16 | 17;
+/** Campos de um risco que a tela confere (e destaca quando falta algo). */
+export type CampoRisco =
+  'DescricaoRisco' | 'AcaoMitigacao' | 'ResponsavelNome' | 'ResponsavelEmail' | 'Probabilidade' | 'Consequencia';
 
-/** Quesito de um grupo, com o peso da matriz do PGIA. */
-export interface CtrQuesitoRisco {
-  inciso: string;
-  texto: string;
-  peso: number;
-}
-
-/** Um dos três grupos de quesitos, na ordem da tela (que é a da precedência). */
-export interface CtrGrupoRisco {
-  artigo: Artigo;
-  /** Rótulo curto, o mesmo do PGIA: Risco Excessivo, Alto Risco, Risco Moderado. */
-  rotulo: string;
-  /** Título da tela, em texto simples (este módulo não usa chips de citação). */
-  titulo: string;
-  /** Risco classificado quando este é o primeiro grupo com inciso marcado. */
-  resultado: string;
-  /** Incisos na ordem do artigo; o primeiro marcado é o enquadramento. */
-  quesitos: CtrQuesitoRisco[];
-}
-
-const TITULOS_GRUPOS: Record<Artigo, string> = {
-  15: 'Risco Excessivo (art. 15 do Decreto nº 48.901/2026)',
-  16: 'Alto Risco (art. 16)',
-  17: 'Risco Moderado (art. 17)'
-};
-
-/** Precedência do servidor: art. 15 → Excessivo; 16 → Alto; 17 → Moderado. */
-const RESULTADO_DO_ARTIGO: Record<Artigo, string> = {
-  15: RISCOS_CLASSIFICADOS[0],
-  16: RISCOS_CLASSIFICADOS[1],
-  17: RISCOS_CLASSIFICADOS[2]
-};
-
-/** Sem inciso marcado em grupo nenhum. */
-const BAIXO_RISCO: string = RISCOS_CLASSIFICADOS[3];
-
-/**
- * Os três grupos com textos e pesos do PGIA. Ordenados de novo por artigo e por
- * inciso de propósito: a precedência do resultado e o enquadramento ("primeiro
- * inciso na ordem do artigo") dependem dessa ordem, não da ordem de exibição
- * que o PGIA escolher para a tela dele.
- */
-export const GRUPOS_RISCO: CtrGrupoRisco[] = [...GRUPOS_QUESITOS]
-  .sort((a, b) => a.artigo - b.artigo)
-  .map(g => ({
-    artigo: g.artigo,
-    rotulo: g.rotulo,
-    titulo: TITULOS_GRUPOS[g.artigo],
-    resultado: RESULTADO_DO_ARTIGO[g.artigo],
-    quesitos: [...g.quesitos]
-      .sort((a, b) => ROMANOS.indexOf(a.inciso) - ROMANOS.indexOf(b.inciso))
-      .map(q => ({
-        inciso: q.inciso,
-        texto: q.texto,
-        peso: PESOS_QUESITOS.find(p => p.Artigo === g.artigo && p.Inciso === q.inciso)?.Peso ?? 0
-      }))
-  }));
-
-/** Cor da célula → nível do risco declarado, em ordem crescente. */
+/** Cor da célula → nível do risco, em ordem crescente. */
 const NIVEL_DA_COR: Record<CorCelula, string> = {
   v: NIVEIS_RISCO[0],
   a: NIVEIS_RISCO[1],
@@ -97,10 +35,10 @@ const NIVEL_DA_COR: Record<CorCelula, string> = {
 };
 
 /**
- * Nível de um risco declarado pela célula do mapa da CGDF, com a mesma
- * disposição do servidor (`CtrClassificacaoRisco.CalcularNivel`): linhas da
- * Catastrófica (topo) à Desprezível, colunas do Improvável ao Quase certo.
- * Nulo enquanto faltar um dos dois eixos.
+ * Nível de um risco pela célula do mapa da CGDF, com a mesma disposição do
+ * servidor (`CtrClassificacaoRisco.CalcularNivel`): linhas da Catastrófica
+ * (topo) à Desprezível, colunas do Improvável ao Quase certo. Nulo enquanto
+ * faltar um dos dois eixos.
  */
 export function nivelDoRisco(
   probabilidade: string | null | undefined,
@@ -135,46 +73,38 @@ export function normalizarEmail(valor: string | null | undefined): string {
  */
 const REGEX_EMAIL = /^(?!\.)[^\s\x00-\x1f\x7f@(),;:<>[\]\\"]+@(?!\.)[^\s\x00-\x1f\x7f@(),;:<>[\]\\"]+\.[^\s\x00-\x1f\x7f@(),;:<>[\]\\"]+$/;
 
-interface RespostaGrupo {
-  marcados: boolean[];
-  nenhuma: boolean;
-}
-
 /**
- * Estado de edição da classificação de riscos de um processo.
+ * Estado de edição dos riscos da contratação de um processo.
  *
- * Pertence ao formulário do processo: é ele que monta o corpo do POST/PUT e
- * decide se o botão de salvar fica liberado, e é entregue à seção
- * (`app-ctr-classificacao-risco`), que o altera pelos métodos daqui. Assim a
- * completude é lida ao vivo pelos dois lados, sem `@ViewChild` e sem evento
- * emitido durante a detecção de mudanças.
+ * Pertence ao formulário do processo (é ele que monta o corpo do POST/PUT e
+ * confere se dá para salvar) e é entregue à seção (`app-ctr-classificacao-risco`),
+ * que o altera pelos métodos daqui. Assim a conferência é lida ao vivo pelos
+ * dois lados, sem `@ViewChild` e sem evento emitido durante a detecção de
+ * mudanças.
  *
  * Rastreia alteração: cada instância nasce de uma carga (a da página ou a
  * resposta de um salvamento bem-sucedido) e guarda o retrato dela; `envio()`
- * só manda a classificação quando a tela difere desse retrato.
+ * só manda a lista quando a tela difere desse retrato.
  */
 export class CtrClassificacaoRiscoEdicao {
-  /** Seção aberta: a classificação está sendo preenchida ou revisada. */
-  aberta = false;
-  /** O usuário removeu a classificação gravada: o envio leva `LimparClassificacaoRisco`. */
-  removida = false;
-  respostas: RespostaGrupo[] = CtrClassificacaoRiscoEdicao.respostasVazias();
   riscos: CtrRiscoDeclaradoForm[] = [];
   /**
-   * Retrato normalizado da classificação carregada (checklist + riscos
-   * declarados, sem Ids nem derivados), serializado na forma do envio, com os
-   * riscos em ordem canônica. Nulo = o processo chegou sem classificação.
+   * Retrato normalizado da lista carregada (textos aparados, e-mail em
+   * minúsculas, sem Ids nem derivados), com os riscos em ordem canônica.
    */
-  private readonly retrato: string | null;
+  private readonly retrato: string;
 
-  /** `gravada` é a classificação que veio do servidor; nula = não classificado. */
+  /** `gravada` são os riscos que vieram do servidor; nula = processo sem riscos. */
   constructor(readonly gravada: CtrClassificacaoRisco | null = null) {
-    if (gravada) this.carregarGravada();
+    this.riscos = (gravada?.RiscosDeclarados ?? []).map(r => ({
+      DescricaoRisco: r.DescricaoRisco || '',
+      AcaoMitigacao: r.AcaoMitigacao || '',
+      ResponsavelNome: r.ResponsavelNome || '',
+      ResponsavelEmail: r.ResponsavelEmail || '',
+      Probabilidade: r.Probabilidade || '',
+      Consequencia: r.Consequencia || ''
+    }));
     this.retrato = this.retratoAtual();
-  }
-
-  private static respostasVazias(): RespostaGrupo[] {
-    return GRUPOS_RISCO.map(g => ({ marcados: g.quesitos.map(() => false), nenhuma: false }));
   }
 
   private static riscoVazio(): CtrRiscoDeclaradoForm {
@@ -184,131 +114,27 @@ export class CtrClassificacaoRiscoEdicao {
     };
   }
 
-  /** Com classificação gravada, a seção abre preenchida com ela. */
-  private carregarGravada(): void {
-    const g = this.gravada;
-    if (!g) return;
-    const porArtigo: Record<Artigo, { incisos: string[]; nenhuma: boolean }> = {
-      15: { incisos: g.Q15 ?? [], nenhuma: !!g.Q15Nenhuma },
-      16: { incisos: g.Q16 ?? [], nenhuma: !!g.Q16Nenhuma },
-      17: { incisos: g.Q17 ?? [], nenhuma: !!g.Q17Nenhuma }
-    };
-    this.respostas = GRUPOS_RISCO.map(grupo => ({
-      marcados: grupo.quesitos.map(q => porArtigo[grupo.artigo].incisos.includes(q.inciso)),
-      nenhuma: porArtigo[grupo.artigo].nenhuma
-    }));
-    this.riscos = (g.RiscosDeclarados ?? []).map(r => ({
-      DescricaoRisco: r.DescricaoRisco || '',
-      AcaoMitigacao: r.AcaoMitigacao || '',
-      ResponsavelNome: r.ResponsavelNome || '',
-      ResponsavelEmail: r.ResponsavelEmail || '',
-      Probabilidade: r.Probabilidade || '',
-      Consequencia: r.Consequencia || ''
-    }));
-    this.aberta = true;
-    this.removida = false;
+  // ── Lista ─────────────────────────────────────────────────────────────────
+
+  get podeAdicionar(): boolean {
+    return this.riscos.length < MAX_RISCOS_DECLARADOS;
   }
 
-  // ── Ciclo da seção ────────────────────────────────────────────────────────
-
-  /** "Classificar riscos": abre a seção em branco (e desfaz remoção pendente). */
-  classificar(): void {
-    this.respostas = CtrClassificacaoRiscoEdicao.respostasVazias();
-    this.riscos = [];
-    this.removida = false;
-    this.aberta = true;
-  }
-
-  /** Fecha a seção sem classificar (só oferecido quando nada está gravado). */
-  descartar(): void {
-    this.respostas = CtrClassificacaoRiscoEdicao.respostasVazias();
-    this.riscos = [];
-    this.aberta = false;
-  }
-
-  /** Remove a classificação gravada; vale quando o processo for salvo. */
-  remover(): void {
-    this.respostas = CtrClassificacaoRiscoEdicao.respostasVazias();
-    this.riscos = [];
-    this.aberta = false;
-    this.removida = !!this.gravada;
-  }
-
-  desfazerRemocao(): void {
-    this.carregarGravada();
-  }
-
-  // ── Grupos de quesitos ────────────────────────────────────────────────────
-
-  /** Marcar um inciso desfaz o "nenhuma" do grupo (as opções são exclusivas). */
-  aoMarcarQuesito(indiceGrupo: number): void {
-    const resposta = this.respostas[indiceGrupo];
-    if (resposta.marcados.some(m => m)) resposta.nenhuma = false;
-  }
-
-  /** Marcar "nenhuma" limpa (e a tela desabilita) os incisos do grupo. */
-  aoMarcarNenhuma(indiceGrupo: number): void {
-    const resposta = this.respostas[indiceGrupo];
-    if (resposta.nenhuma) resposta.marcados = resposta.marcados.map(() => false);
-  }
-
-  /** Respondido = inciso marcado XOR "nenhuma" (a exclusividade é garantida acima). */
-  grupoRespondido(indiceGrupo: number): boolean {
-    const resposta = this.respostas[indiceGrupo];
-    return resposta.nenhuma || resposta.marcados.some(m => m);
-  }
-
-  get todosRespondidos(): boolean {
-    return this.respostas.every((_, i) => this.grupoRespondido(i));
-  }
-
-  get todosNenhuma(): boolean {
-    return this.respostas.every(r => r.nenhuma);
-  }
-
-  /** Contratação sem risco algum não existe: tudo "nenhuma" exige risco declarado. */
-  get riscosObrigatorios(): boolean {
-    return this.todosNenhuma;
-  }
-
-  subtotal(indiceGrupo: number): number {
-    return GRUPOS_RISCO[indiceGrupo].quesitos
-      .reduce((soma, q, i) => soma + (this.respostas[indiceGrupo].marcados[i] ? q.peso : 0), 0);
-  }
-
-  /** Soma dos pesos marcados; "nenhuma" e riscos declarados não pontuam. */
-  get pontuacao(): number {
-    return GRUPOS_RISCO.reduce((soma, _, i) => soma + this.subtotal(i), 0);
-  }
-
-  /** Primeiro grupo, na ordem 15 → 16 → 17, com inciso marcado; -1 sem nenhum. */
-  private get grupoDeterminante(): number {
-    return this.respostas.findIndex(r => r.marcados.some(m => m));
-  }
-
-  /** Mesma regra do servidor (replicada de `PgiaSistemaService` no backend). */
-  get resultado(): string {
-    const grupo = this.grupoDeterminante;
-    return grupo < 0 ? BAIXO_RISCO : GRUPOS_RISCO[grupo].resultado;
-  }
-
-  /** "art. 16, II": primeiro inciso marcado do grupo determinante; nulo em Baixo Risco. */
-  get enquadramento(): string | null {
-    const grupo = this.grupoDeterminante;
-    if (grupo < 0) return null;
-    const primeiro = GRUPOS_RISCO[grupo].quesitos.find((_, i) => this.respostas[grupo].marcados[i]);
-    return primeiro ? `art. ${GRUPOS_RISCO[grupo].artigo}, ${primeiro.inciso}` : null;
-  }
-
-  // ── Riscos da contratação ─────────────────────────────────────────────────
-
-  adicionarRisco(): void {
-    if (this.riscos.length >= MAX_RISCOS_DECLARADOS) return;
+  /** Acrescenta um risco em branco no fim; devolve a posição dele (-1 no limite). */
+  adicionarRisco(): number {
+    if (!this.podeAdicionar) return -1;
     this.riscos = [...this.riscos, CtrClassificacaoRiscoEdicao.riscoVazio()];
+    return this.riscos.length - 1;
   }
 
   removerRisco(indice: number): void {
     this.riscos = this.riscos.filter((_, i) => i !== indice);
+  }
+
+  /** Algo foi digitado ou escolhido no risco (remover pede confirmação). */
+  static temConteudo(r: CtrRiscoDeclaradoForm): boolean {
+    return [r.DescricaoRisco, r.AcaoMitigacao, r.ResponsavelNome, r.ResponsavelEmail, r.Probabilidade, r.Consequencia]
+      .some(valor => !!(valor || '').trim());
   }
 
   /** Maior nível entre os riscos com os dois eixos escolhidos; nulo sem nenhum. */
@@ -321,29 +147,52 @@ export class CtrClassificacaoRiscoEdicao {
     return maior < 0 ? null : NIVEIS_RISCO[maior];
   }
 
-  /** Quantos riscos declarados caem na célula (linha 0 = Catastrófica, coluna 0 = Improvável). */
+  /** Quantos riscos caem na célula (linha 0 = Catastrófica, coluna 0 = Improvável). */
   contagemNaCelula(linha: number, coluna: number): number {
     const consequencia = CONSEQUENCIAS_CGDF[CONSEQUENCIAS_CGDF.length - 1 - linha];
     const probabilidade = PROBABILIDADES_CGDF[coluna];
     return this.riscos.filter(r => r.Consequencia === consequencia && r.Probabilidade === probabilidade).length;
   }
 
+  // ── Conferência (espelha a validação do servidor) ─────────────────────────
+
   /** Valida o e-mail já normalizado, o mesmo valor que `montar()` envia. */
   static emailValido(email: string | null | undefined): boolean {
     return REGEX_EMAIL.test(normalizarEmail(email));
   }
 
-  /** O que falta num risco, em linguagem simples e na ordem dos campos da tela. */
+  /** Mensagem do campo com problema, em linguagem simples; nula = campo certo. */
+  static erroDoCampo(r: CtrRiscoDeclaradoForm, campo: CampoRisco): string | null {
+    switch (campo) {
+      case 'DescricaoRisco':
+        return (r.DescricaoRisco || '').trim() ? null : 'Descreva o risco.';
+      case 'AcaoMitigacao':
+        return (r.AcaoMitigacao || '').trim() ? null : 'Diga o que será feito para reduzir o risco.';
+      case 'ResponsavelNome':
+        return (r.ResponsavelNome || '').trim() ? null : 'Informe quem acompanha a ação.';
+      case 'ResponsavelEmail': {
+        const email = normalizarEmail(r.ResponsavelEmail);
+        if (!email) return 'Informe o e-mail do responsável.';
+        return REGEX_EMAIL.test(email) ? null : 'Informe um e-mail válido, como nome@orgao.df.gov.br.';
+      }
+      case 'Probabilidade':
+        return (PROBABILIDADES_CGDF as readonly string[]).includes(r.Probabilidade) ? null : 'Escolha a probabilidade.';
+      case 'Consequencia':
+        return (CONSEQUENCIAS_CGDF as readonly string[]).includes(r.Consequencia) ? null : 'Escolha a consequência.';
+    }
+  }
+
+  /** O que falta num risco, em frases curtas e na ordem dos campos da tela. */
   static faltasDoRisco(r: CtrRiscoDeclaradoForm): string[] {
     const faltas: string[] = [];
-    if (!(r.DescricaoRisco || '').trim()) faltas.push('a descrição do risco');
-    if (!(r.AcaoMitigacao || '').trim()) faltas.push('a ação de mitigação');
-    if (!(r.ResponsavelNome || '').trim()) faltas.push('o nome do responsável');
+    if (CtrClassificacaoRiscoEdicao.erroDoCampo(r, 'DescricaoRisco')) faltas.push('a descrição do risco');
+    if (CtrClassificacaoRiscoEdicao.erroDoCampo(r, 'AcaoMitigacao')) faltas.push('a ação de mitigação');
+    if (CtrClassificacaoRiscoEdicao.erroDoCampo(r, 'ResponsavelNome')) faltas.push('o nome do responsável');
     const email = normalizarEmail(r.ResponsavelEmail);
     if (!email) faltas.push('o e-mail do responsável');
     else if (!REGEX_EMAIL.test(email)) faltas.push('um e-mail válido do responsável');
-    if (!(PROBABILIDADES_CGDF as readonly string[]).includes(r.Probabilidade)) faltas.push('a probabilidade');
-    if (!(CONSEQUENCIAS_CGDF as readonly string[]).includes(r.Consequencia)) faltas.push('a consequência');
+    if (CtrClassificacaoRiscoEdicao.erroDoCampo(r, 'Probabilidade')) faltas.push('a probabilidade');
+    if (CtrClassificacaoRiscoEdicao.erroDoCampo(r, 'Consequencia')) faltas.push('a consequência');
     return faltas;
   }
 
@@ -353,70 +202,40 @@ export class CtrClassificacaoRiscoEdicao {
   }
 
   /**
-   * O que ainda impede o envio, espelhando a validação do servidor: os três
-   * grupos respondidos, tudo "nenhuma" exige ao menos um risco declarado, cada
-   * risco completo (escala completa da CGDF) e no máximo 20. Nulo = completa.
+   * Tudo o que impede o envio, um item por risco, espelhando o servidor: cada
+   * risco completo (escala completa da CGDF) e no máximo 20. Risco deixado em
+   * branco também conta: é preencher ou remover.
    */
-  get falta(): string | null {
-    const grupoSemResposta = GRUPOS_RISCO
-      .filter((_, i) => !this.grupoRespondido(i))
-      .map(g => `"${g.rotulo}"`);
-    const comoResponder = 'marque as situações que se aplicam ou "Nenhuma das alternativas acima"';
-    if (grupoSemResposta.length === GRUPOS_RISCO.length) {
-      return `Responda os três grupos de quesitos: ${comoResponder}.`;
-    }
-    if (grupoSemResposta.length > 0) {
-      return grupoSemResposta.length === 1
-        ? `Responda o grupo ${grupoSemResposta[0]}: ${comoResponder}.`
-        : `Responda os grupos ${CtrClassificacaoRiscoEdicao.juntar(grupoSemResposta)}: ${comoResponder}.`;
-    }
-    if (this.riscosObrigatorios && this.riscos.length === 0) {
-      return 'Como nenhuma das situações dos três grupos se aplica, declare ao menos um risco da contratação.';
-    }
+  get problemas(): string[] {
+    const problemas: string[] = [];
     if (this.riscos.length > MAX_RISCOS_DECLARADOS) {
-      return `Declare no máximo ${MAX_RISCOS_DECLARADOS} riscos da contratação.`;
+      problemas.push(`Registre no máximo ${MAX_RISCOS_DECLARADOS} riscos da contratação.`);
     }
-    for (let i = 0; i < this.riscos.length; i++) {
-      const faltas = CtrClassificacaoRiscoEdicao.faltasDoRisco(this.riscos[i]);
-      if (faltas.length > 0) {
-        return `Complete o risco ${i + 1} da contratação: ${faltas.length === 1 ? 'falta' : 'faltam'} `
-          + `${CtrClassificacaoRiscoEdicao.juntar(faltas)}.`;
+    this.riscos.forEach((r, i) => {
+      if (!CtrClassificacaoRiscoEdicao.temConteudo(r)) {
+        problemas.push(`O risco ${i + 1} está em branco: preencha ou remova.`);
+        return;
       }
-    }
-    return null;
+      const faltas = CtrClassificacaoRiscoEdicao.faltasDoRisco(r);
+      if (faltas.length > 0) {
+        problemas.push(`No risco ${i + 1}, ${faltas.length === 1 ? 'falta' : 'faltam'} `
+          + `${CtrClassificacaoRiscoEdicao.juntar(faltas)}.`);
+      }
+    });
+    return problemas;
   }
 
   get completa(): boolean {
-    return this.falta === null;
-  }
-
-  /** Algo já foi marcado ou preenchido (descartar pede confirmação). */
-  get temConteudo(): boolean {
-    return this.respostas.some(r => r.nenhuma || r.marcados.some(m => m)) || this.riscos.length > 0;
+    return this.problemas.length === 0;
   }
 
   /**
    * Corpo `ClassificacaoRisco` do POST/PUT, e também a normalização do
-   * retrato: incisos na ordem do artigo, "nenhuma" como booleano, textos
-   * aparados, e-mail normalizado (minúsculas) e nenhum Id ou campo derivado.
-   * Os riscos vão na ordem da tela; só o retrato os põe em ordem canônica.
+   * retrato: textos aparados, e-mail normalizado (minúsculas) e nenhum Id ou
+   * campo derivado. Os riscos vão na ordem da tela.
    */
   montar(): CtrClassificacaoRiscoForm {
-    const doArtigo = (artigo: Artigo) => {
-      const indice = GRUPOS_RISCO.findIndex(g => g.artigo === artigo);
-      return {
-        incisos: GRUPOS_RISCO[indice].quesitos
-          .filter((_, i) => !!this.respostas[indice].marcados[i])
-          .map(q => q.inciso),
-        nenhuma: !!this.respostas[indice].nenhuma
-      };
-    };
-    const q15 = doArtigo(15);
-    const q16 = doArtigo(16);
-    const q17 = doArtigo(17);
     return {
-      Q15: q15.incisos, Q16: q16.incisos, Q17: q17.incisos,
-      Q15Nenhuma: q15.nenhuma, Q16Nenhuma: q16.nenhuma, Q17Nenhuma: q17.nenhuma,
       RiscosDeclarados: this.riscos.map(r => ({
         DescricaoRisco: (r.DescricaoRisco || '').trim(),
         AcaoMitigacao: (r.AcaoMitigacao || '').trim(),
@@ -431,56 +250,39 @@ export class CtrClassificacaoRiscoEdicao {
   // ── Rastreio de alteração ─────────────────────────────────────────────────
 
   /**
-   * O que está na tela, na forma do retrato; nulo sem classificação aberta.
-   * Os riscos entram em ordem canônica (ordenados pela chave de conteúdo): o
-   * servidor compara a lista como multiconjunto e a devolve ordenada por Id,
-   * então reordenar não é alteração. A tela mantém a ordem do usuário.
+   * O que está na tela, na forma do retrato. Os riscos entram em ordem
+   * canônica (ordenados pela chave de conteúdo): o servidor compara a lista como
+   * multiconjunto e a devolve ordenada por Id, então reordenar não é alteração.
    */
-  private retratoAtual(): string | null {
-    if (!this.aberta) return null;
-    const corpo = this.montar();
-    const riscos = corpo.RiscosDeclarados
+  private retratoAtual(): string {
+    return JSON.stringify(this.montar().RiscosDeclarados
       .map(r => JSON.stringify([
         r.DescricaoRisco, r.AcaoMitigacao, r.ResponsavelNome, r.ResponsavelEmail, r.Probabilidade, r.Consequencia
       ]))
-      .sort();
-    return JSON.stringify({ ...corpo, RiscosDeclarados: riscos });
+      .sort());
   }
 
-  /**
-   * A classificação aberta difere da carregada. Com retrato nulo, abrir já é
-   * alteração: é a primeira classificação do processo.
-   */
   get alterada(): boolean {
-    return this.aberta && this.retratoAtual() !== this.retrato;
+    return this.retratoAtual() !== this.retrato;
   }
 
   /**
-   * Chaves da classificação no corpo do POST/PUT, nunca as duas juntas:
-   * - gravada removida pelo usuário: só `LimparClassificacaoRisco: true`;
-   * - aberta e diferente do retrato (inclui a primeira classificação):
-   *   `ClassificacaoRisco` completa: o servidor recalcula, substitui os riscos
-   *   e registra quem classificou e quando;
-   * - sem mudança (inclusive depois de "Desfazer a remoção" ou de descartar):
-   *   `ClassificacaoRisco: null`: no PUT preserva a gravada, os Ids dos riscos
-   *   e `ClassificadoEm/Por`; no POST o processo nasce não classificado.
+   * Chave dos riscos no corpo do POST/PUT: a lista inteira quando difere da
+   * carregada (inclusive vazia, que tira todos os riscos gravados); sem
+   * mudança, `ClassificacaoRisco: null`, que no PUT preserva os gravados, os
+   * Ids e quem/quando, e no POST cria o processo sem riscos.
    */
-  envio(): Pick<CtrProcessoForm, 'ClassificacaoRisco' | 'LimparClassificacaoRisco'> {
-    if (this.removida && this.gravada) return { LimparClassificacaoRisco: true };
-    if (this.alterada) return { ClassificacaoRisco: this.montar() };
-    return { ClassificacaoRisco: null };
+  envio(): Pick<CtrProcessoForm, 'ClassificacaoRisco'> {
+    return { ClassificacaoRisco: this.alterada ? this.montar() : null };
   }
 }
 
 /**
- * Seção "Classificação de riscos" do formulário do processo: os três grupos de
- * quesitos com pesos e "Nenhuma das alternativas acima" exclusiva, os riscos
- * da contratação na escala completa da CGDF com o nível ao vivo, o mapa 5×5
- * sempre visível com a contagem por célula e o resumo das duas escalas.
- *
- * Quem preenche é a SGDI (módulo interno): ao contrário do questionário do
- * órgão no PGIA, aqui o resultado, o enquadramento, a pontuação e o nível de
- * cada risco aparecem enquanto se preenche.
+ * Seção "Riscos da contratação" do formulário do processo: a lista de riscos,
+ * cada um com a ação que o reduz, quem responde por ela e onde cai no mapa de
+ * riscos da CGDF (escala completa), com o nível ao vivo; e o mapa com a
+ * contagem por célula quando já há risco posicionado. O título e o texto de
+ * apoio da seção ficam no formulário do processo.
  */
 @Component({
   selector: 'app-ctr-classificacao-risco',
@@ -488,11 +290,16 @@ export class CtrClassificacaoRiscoEdicao {
   imports: [CommonModule, FormsModule],
   templateUrl: './ctr-classificacao-risco.component.html'
 })
-export class CtrClassificacaoRiscoComponent {
+export class CtrClassificacaoRiscoComponent implements AfterViewChecked {
   /** Estado de edição; pertence ao formulário do processo, que lê dele o envio. */
   @Input({ required: true }) edicao!: CtrClassificacaoRiscoEdicao;
+  /** Destaca os campos com problema (o formulário liga na primeira tentativa de salvar). */
+  @Input() mostrarErros = false;
 
-  readonly grupos = GRUPOS_RISCO;
+  @ViewChildren('campoDescricao') private camposDescricao!: QueryList<ElementRef<HTMLTextAreaElement>>;
+  /** Risco recém-adicionado que ainda vai receber o foco, quando o cartão dele aparecer. */
+  private focarRisco: number | null = null;
+
   readonly probabilidades = PROBABILIDADES_CGDF;
   readonly consequencias = CONSEQUENCIAS_CGDF;
   /** Linhas do mapa de cima para baixo: Catastrófica → Desprezível. */
@@ -500,37 +307,38 @@ export class CtrClassificacaoRiscoComponent {
   readonly mapa = MATRIZ_RISCO_CGDF;
   readonly niveis = NIVEIS_RISCO;
   readonly maxRiscos = MAX_RISCOS_DECLARADOS;
-  readonly naoClassificado = NAO_CLASSIFICADO;
 
   badgeNivelRisco = badgeNivelRisco;
-  badgeRiscoClassificado = badgeRiscoClassificado;
 
-  classificar(): void {
-    this.edicao.classificar();
+  /** Risco novo em branco no fim da lista, já com o cursor na descrição. */
+  adicionar(): void {
+    const indice = this.edicao.adicionarRisco();
+    if (indice >= 0) this.focarRisco = indice;
   }
 
-  descartar(): void {
-    if (this.edicao.temConteudo) {
+  /**
+   * O foco vai depois que o cartão novo aparecer: com eventCoalescing, um
+   * setTimeout pode rodar antes da renderização. (`afterNextRender` também
+   * serviria, mas traz código do núcleo do Angular para o pacote inicial.)
+   */
+  ngAfterViewChecked(): void {
+    if (this.focarRisco === null) return;
+    const campo = this.camposDescricao.get(this.focarRisco);
+    if (!campo) return;
+    this.focarRisco = null;
+    campo.nativeElement.focus();
+  }
+
+  remover(indice: number): void {
+    const risco = this.edicao.riscos[indice];
+    if (risco && CtrClassificacaoRiscoEdicao.temConteudo(risco)) {
       const confirmou = confirm(
-        'Descartar a classificação de riscos?\n\n'
-        + 'O que foi marcado e os riscos preenchidos nesta seção serão perdidos, e o processo continua sem classificação.'
+        `Remover o risco ${indice + 1} da lista?\n\n`
+        + 'Ele sai do processo quando você salvar. Antes disso, dá para desistir saindo sem salvar.'
       );
       if (!confirmou) return;
     }
-    this.edicao.descartar();
-  }
-
-  remover(): void {
-    const confirmou = confirm(
-      'Remover a classificação de riscos deste processo?\n\n'
-      + 'As respostas dos três grupos e os riscos da contratação serão apagados quando você salvar o processo.'
-    );
-    if (!confirmou) return;
-    this.edicao.remover();
-  }
-
-  desfazerRemocao(): void {
-    this.edicao.desfazerRemocao();
+    this.edicao.removerRisco(indice);
   }
 
   /** Nível ao vivo do risco em edição (nulo até escolher os dois eixos). */
@@ -538,9 +346,22 @@ export class CtrClassificacaoRiscoComponent {
     return nivelDoRisco(risco.Probabilidade, risco.Consequencia);
   }
 
-  /** O e-mail só acusa erro depois de digitado; vazio é tratado no "o que falta". */
-  emailInvalido(risco: CtrRiscoDeclaradoForm): boolean {
-    return !!normalizarEmail(risco.ResponsavelEmail) && !CtrClassificacaoRiscoEdicao.emailValido(risco.ResponsavelEmail);
+  /**
+   * Problema do campo para mostrar na tela. Depois da primeira tentativa de
+   * salvar, todos aparecem; antes disso só o e-mail digitado errado, que é o
+   * único que dá para julgar enquanto a pessoa ainda preenche.
+   */
+  erro(risco: CtrRiscoDeclaradoForm, campo: CampoRisco): string | null {
+    if (!this.mostrarErros) {
+      const digitado = campo === 'ResponsavelEmail' && !!normalizarEmail(risco.ResponsavelEmail);
+      if (!digitado) return null;
+    }
+    return CtrClassificacaoRiscoEdicao.erroDoCampo(risco, campo);
+  }
+
+  /** O cartão do risco ganha borda de erro quando algum campo dele tem problema. */
+  riscoComProblema(risco: CtrRiscoDeclaradoForm): boolean {
+    return this.mostrarErros && CtrClassificacaoRiscoEdicao.faltasDoRisco(risco).length > 0;
   }
 
   /**
@@ -550,6 +371,11 @@ export class CtrClassificacaoRiscoComponent {
   aoSairDoEmail(risco: CtrRiscoDeclaradoForm): void {
     const normalizado = normalizarEmail(risco.ResponsavelEmail);
     if (normalizado !== risco.ResponsavelEmail) risco.ResponsavelEmail = normalizado;
+  }
+
+  /** O mapa aparece quando pelo menos um risco já tem os dois eixos escolhidos. */
+  get temRiscoNoMapa(): boolean {
+    return this.edicao.riscos.some(r => !!this.nivel(r));
   }
 
   /** A célula usa a mesma cor do badge do nível. */
@@ -564,6 +390,6 @@ export class CtrClassificacaoRiscoComponent {
   tituloCelula(linha: number, coluna: number, cor: CorCelula): string {
     const quantidade = this.contagem(linha, coluna);
     return `Consequência ${this.consequenciasMapa[linha]} × probabilidade ${this.probabilidades[coluna]}: `
-      + `nível ${NIVEL_DA_COR[cor]}` + (quantidade > 0 ? `, ${quantidade} risco(s) declarado(s)` : '');
+      + `nível ${NIVEL_DA_COR[cor]}` + (quantidade > 0 ? `, ${quantidade} risco(s)` : '');
   }
 }

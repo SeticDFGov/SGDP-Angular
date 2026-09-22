@@ -1,4 +1,14 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import {
+  AfterViewChecked,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -34,7 +44,7 @@ interface CampoCheckpoint {
   imports: [CommonModule, FormsModule, CtrClassificacaoRiscoComponent],
   templateUrl: './ctr-processo-form.component.html'
 })
-export class CtrProcessoFormComponent implements OnChanges {
+export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   /** Valor inicial; nulo abre o formulário em branco (cadastro). */
   @Input() valor: CtrProcessoForm | null = null;
   /** Siglas já usadas, para o autocompletar do campo. */
@@ -48,7 +58,7 @@ export class CtrProcessoFormComponent implements OnChanges {
    * Modo compacto: o formulário é usado embutido em outra tela (o cadastro do
    * processo do TCDF, dentro da nova manifestação). Fica só o essencial
    * (identificação, fase e observação): processo de origem TCDF costuma nascer
-   * sem nenhuma data de trâmite, sem restituição e sem classificação de riscos.
+   * sem nenhuma data de trâmite, sem restituição e sem riscos da contratação.
    */
   @Input() compacto = false;
   /**
@@ -57,8 +67,8 @@ export class CtrProcessoFormComponent implements OnChanges {
    */
   @Input() origemFixa: string | null = null;
   /**
-   * Classificação de riscos gravada (vem aninhada na resposta do GET/PUT do
-   * processo). Nula = não classificado; presente, a seção abre preenchida.
+   * Riscos da contratação gravados (vêm aninhados na resposta do GET/PUT do
+   * processo). Nulo = processo sem riscos.
    */
   @Input() classificacao: CtrClassificacaoRisco | null = null;
 
@@ -81,11 +91,17 @@ export class CtrProcessoFormComponent implements OnChanges {
   form: CtrProcessoForm = CtrProcessoFormComponent.vazio();
   submetido = false;
   /**
-   * Estado da seção "Classificação de riscos". Mora aqui, e não no componente
-   * da seção, porque é este formulário que monta o corpo do envio e trava o
-   * botão de salvar enquanto a classificação aberta estiver incompleta.
+   * Estado da seção "Riscos da contratação". Mora aqui, e não no componente
+   * da seção, porque é este formulário que monta o corpo do envio e confere,
+   * antes de mandar, se cada risco está completo.
    */
   risco = new CtrClassificacaoRiscoEdicao();
+  /** O formulário como chegou (carga da página ou resposta do salvamento), para o aviso de alteração. */
+  private retratoForm = CtrProcessoFormComponent.retratoDe(CtrProcessoFormComponent.vazio());
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  /** Tentativa de salvar recusada: levar a pessoa ao primeiro problema na próxima renderização. */
+  private irAoProblema = false;
 
   static vazio(): CtrProcessoForm {
     return {
@@ -106,6 +122,7 @@ export class CtrProcessoFormComponent implements OnChanges {
       this.form = this.valor
         ? { ...CtrProcessoFormComponent.vazio(), ...this.valor }
         : CtrProcessoFormComponent.vazio();
+      this.retratoForm = CtrProcessoFormComponent.retratoDe(this.form);
     }
     // Valor novo do servidor (carga da página ou resposta de um PUT
     // bem-sucedido): a seção de riscos recomeça do que está gravado, com o
@@ -367,17 +384,44 @@ export class CtrProcessoFormComponent implements OnChanges {
       && this.errDatas.length === 0;
   }
 
-  /**
-   * A classificação de riscos só trava o envio quando está aberta: fechada
-   * (não classificado, descartada ou removida) ou no modo compacto, não pesa.
-   */
-  get classificacaoPronta(): boolean {
-    return this.compacto || !this.risco.aberta || this.risco.completa;
+  /** No modo compacto a seção de riscos nem aparece, então não pesa. */
+  get riscosProntos(): boolean {
+    return this.compacto || this.risco.completa;
   }
 
-  /** O que falta na classificação aberta, para o hint ao lado do botão. */
-  get faltaNaClassificacao(): string | null {
-    return this.classificacaoPronta ? null : this.risco.falta;
+  /**
+   * O que impede o envio, na ordem da tela, para o resumo que aparece na
+   * primeira tentativa de salvar. As datas incoerentes ficam no quadro próprio,
+   * logo acima do resumo, e entram só na contagem (`totalProblemas`).
+   */
+  get problemas(): string[] {
+    const itens = [
+      this.errNumero, this.errCategoria, this.errOrgaoNome, this.errOrgaoSigla, this.errObjeto
+    ].filter((e): e is string => !!e);
+    if (!this.compacto) itens.push(...this.risco.problemas);
+    for (const e of [this.errEsclarecimentoDescricao, this.errRestituidoEm, this.errRestituidoMotivo]) {
+      if (e) itens.push(e);
+    }
+    return itens;
+  }
+
+  get totalProblemas(): number {
+    return this.problemas.length + this.errDatas.length;
+  }
+
+  /** Só na edição: o que está na tela difere do que foi carregado ou salvo. */
+  get alterado(): boolean {
+    if (!this.valor) return false;
+    return CtrProcessoFormComponent.retratoDe(this.form) !== this.retratoForm
+      || (!this.compacto && this.risco.alterada);
+  }
+
+  /** Campos em ordem fixa, textos aparados e vazio igual a nulo: apagar o que se digitou não é alteração. */
+  private static retratoDe(form: CtrProcessoForm): string {
+    return JSON.stringify(Object.entries(form)
+      .filter(([chave]) => chave !== 'ClassificacaoRisco')
+      .map(([chave, valor]) => [chave, typeof valor === 'string' ? (valor.trim() || null) : (valor ?? null)])
+      .sort(([a], [b]) => String(a).localeCompare(String(b))));
   }
 
   // ── Envio ─────────────────────────────────────────────────────────────────
@@ -388,20 +432,38 @@ export class CtrProcessoFormComponent implements OnChanges {
   }
 
   /**
-   * Chaves da classificação no corpo. Quem decide é o rastreio de alteração
-   * (`CtrClassificacaoRiscoEdicao.envio()`): só a classificação alterada (ou a
-   * primeira) vai; sem mudança, `ClassificacaoRisco: null`; removida, só
-   * `LimparClassificacaoRisco: true`. O cadastro rápido do TCDF nasce não
-   * classificado.
+   * Chave dos riscos no corpo. Quem decide é o rastreio de alteração
+   * (`CtrClassificacaoRiscoEdicao.envio()`): só a lista alterada vai (vazia
+   * tira os gravados); sem mudança, `ClassificacaoRisco: null`. O cadastro
+   * rápido do TCDF nasce sem riscos.
    */
-  private envioClassificacao(): Pick<CtrProcessoForm, 'ClassificacaoRisco' | 'LimparClassificacaoRisco'> {
+  private envioClassificacao(): Pick<CtrProcessoForm, 'ClassificacaoRisco'> {
     if (this.compacto) return { ClassificacaoRisco: null };
     return this.risco.envio();
   }
 
+  /**
+   * Leva a pessoa ao primeiro campo com problema (ou ao quadro das datas),
+   * depois que os destaques aparecerem na tela: roda na verificação da view que
+   * segue a tentativa de salvar. (`afterNextRender` também serviria, mas traz
+   * código do núcleo do Angular para o pacote inicial.)
+   */
+  ngAfterViewChecked(): void {
+    if (!this.irAoProblema) return;
+    this.irAoProblema = false;
+    const raiz = this.host.nativeElement;
+    const alvo = raiz.querySelector<HTMLElement>('[data-erro="sim"]') ?? raiz.querySelector<HTMLElement>('[role="alert"]');
+    if (!alvo) return;
+    alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (alvo.matches('input, textarea, select')) alvo.focus({ preventScroll: true });
+  }
+
   enviar(): void {
     this.submetido = true;
-    if (!this.formValido || !this.classificacaoPronta) return;
+    if (!this.formValido || !this.riscosProntos) {
+      this.irAoProblema = true;
+      return;
+    }
 
     this.salvar.emit({
       NumeroProcesso: this.form.NumeroProcesso.trim(),

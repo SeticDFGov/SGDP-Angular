@@ -1,18 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../auth/services/auth';
-import { UserProfile } from '../../../api/auth/interface';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { acompanharSecao } from '../../pgia/shared/secao-rota';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
+import { filtroDosParametros, parametrosDaLista } from '../shared/ctr-filtro-lista';
 import {
   badgeCriticidade,
   badgeFase,
   badgeNivelRisco,
-  badgeRiscoClassificado,
   badgeSituacao,
   corDiasSemMovimento,
   rotuloEtapaPlanejamento
@@ -27,17 +25,30 @@ import {
   ETAPAS,
   ETAPAS_PLANEJAMENTO,
   FASES,
-  NAO_CLASSIFICADO,
   NIVEIS_RISCO,
   ORIGENS,
-  RISCOS_CLASSIFICADOS,
   SEM_RISCOS_DECLARADOS,
   SITUACOES
 } from '../../../api/contratacoes/interface';
 
+/** Filtro aplicado, mostrado como etiqueta removível acima da lista. */
+interface FiltroAtivo {
+  campo: keyof CtrProcessoFiltro;
+  rotulo: string;
+}
+
+/** Filtros que ficam em "Mais filtros" (os demais estão sempre à mostra). */
+const CAMPOS_AVANCADOS: (keyof CtrProcessoFiltro)[] = [
+  'Categoria', 'Sigla', 'Criticidade', 'EtapaPlanejamento', 'Origem', 'EsclarecimentoPendente', 'Restituidos', 'De', 'Ate'
+];
+
 /**
  * Área "Processos": a lista com busca e filtros e a página de cadastro.
  * Uma seção por página (`/analises/processos/:secao`), como no PGIA.
+ *
+ * Os filtros da lista valem assim que escolhidos (a busca por texto, no Enter
+ * ou no botão) e ficam gravados na URL: voltar de um processo, recarregar ou
+ * seguir um link do painel mostra a mesma lista.
  */
 @Component({
   selector: 'app-ctr-processos',
@@ -48,7 +59,6 @@ import {
 export class CtrProcessosComponent implements OnInit {
   /** Formulário mostrado nesta página (vem do parâmetro `:secao` da rota). */
   secao = '';
-  user: UserProfile | null = null;
 
   processos: CtrProcesso[] = [];
   siglas: string[] = [];
@@ -64,10 +74,14 @@ export class CtrProcessosComponent implements OnInit {
 
   // Filtros da lista
   filtro: CtrProcessoFiltro = CtrProcessosComponent.filtroVazio();
-  /** Cópia dos filtros da consulta que está na tela (congelada no Buscar). */
+  /** Cópia dos filtros da consulta que está na tela (congelada a cada aplicação). */
   private filtroAplicado: CtrProcessoFiltro = {};
   /** A lista é buscada na primeira vez que a seção dela abre. */
   private carregouLista = false;
+  /** Painel "Mais filtros" aberto. */
+  filtrosAbertos = false;
+  /** Etiquetas dos filtros aplicados (montadas a cada aplicação). */
+  filtrosAtivos: FiltroAtivo[] = [];
   categorias = CATEGORIAS_OBJETO;
   situacoes = SITUACOES;
   etapas = ETAPAS;
@@ -75,16 +89,14 @@ export class CtrProcessosComponent implements OnInit {
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
   criticidades = CRITICIDADES;
   origens = ORIGENS;
-  riscosClassificados = RISCOS_CLASSIFICADOS;
   niveisRisco = NIVEIS_RISCO;
-  readonly naoClassificado = NAO_CLASSIFICADO;
   readonly semRiscosDeclarados = SEM_RISCOS_DECLARADOS;
 
   private static filtroVazio(): CtrProcessoFiltro {
     return {
       Filtro: '', Categoria: '', Situacao: '', Sigla: '', Restituidos: null, De: '', Ate: '',
       Fase: '', EtapaPlanejamento: '', Criticidade: '', Origem: '', EsclarecimentoPendente: null,
-      RiscoClassificado: '', NivelRiscoDeclarado: ''
+      NivelRiscoDeclarado: ''
     };
   }
 
@@ -104,29 +116,32 @@ export class CtrProcessosComponent implements OnInit {
   badgeSituacao = badgeSituacao;
   badgeFase = badgeFase;
   badgeCriticidade = badgeCriticidade;
-  badgeRiscoClassificado = badgeRiscoClassificado;
   badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
   rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
 
   constructor(
     private processoService: CtrProcessoService,
-    private authService: AuthService,
     private notificationService: NotificationService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     acompanharSecao(secao => {
       this.secao = secao;
       // O modal é da lista: trocar de seção (inclusive pelo histórico) o fecha.
       this.fecharCheckpoint();
       // A lista só é buscada quando é ela que está na tela: a mensagem de erro
-      // dela mora na própria seção e ficaria muda em "Novo processo".
-      if (secao === 'lista' && !this.carregouLista) this.buscar();
+      // dela mora na própria seção e ficaria muda em "Novo processo". Na
+      // primeira vez, os filtros vêm da URL (volta de um processo, link do painel).
+      if (secao === 'lista' && !this.carregouLista) {
+        this.filtro = { ...CtrProcessosComponent.filtroVazio(), ...filtroDosParametros(this.route.snapshot.queryParamMap) };
+        this.filtrosAbertos = this.filtrosAvancadosAtivos(this.filtro) > 0;
+        this.buscar();
+      }
     });
   }
 
   ngOnInit(): void {
-    this.authService.getUser().subscribe(user => this.user = user);
     this.carregarSiglas();
   }
 
@@ -155,6 +170,8 @@ export class CtrProcessosComponent implements OnInit {
     // trabalham sobre a lista que está na tela, não sobre o que foi digitado
     // depois e ainda não foi buscado.
     this.filtroAplicado = this.filtroDigitado();
+    this.filtrosAtivos = this.descreverFiltros(this.filtroAplicado);
+    this.gravarFiltrosNaUrl();
     this.carregando = true;
     this.erroCarregar = null;
     this.processoService.listar({ ...this.filtroAplicado, Page: 1, PageSize: this.tamanhoPagina }).subscribe({
@@ -175,6 +192,76 @@ export class CtrProcessosComponent implements OnInit {
   limparFiltros(): void {
     this.filtro = CtrProcessosComponent.filtroVazio();
     this.buscar();
+  }
+
+  /**
+   * Os filtros aplicados vão para a URL sem entrar no histórico: voltar de um
+   * processo ou recarregar mostra a mesma lista. O serviço guarda os mesmos
+   * parâmetros para o "Voltar para a lista" da página do processo.
+   */
+  private gravarFiltrosNaUrl(): void {
+    const queryParams = parametrosDaLista(this.filtroAplicado);
+    this.processoService.filtrosDaLista = queryParams;
+    this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl: true });
+  }
+
+  /** Quantos filtros de "Mais filtros" estão preenchidos. */
+  private filtrosAvancadosAtivos(filtro: CtrProcessoFiltro): number {
+    return CAMPOS_AVANCADOS.filter(campo => {
+      const valor = filtro[campo];
+      return valor !== null && valor !== undefined && valor !== '';
+    }).length;
+  }
+
+  /** Contagem no botão "Mais filtros", do que está aplicado na lista. */
+  get totalFiltrosAvancados(): number {
+    return this.filtrosAvancadosAtivos(this.filtroAplicado);
+  }
+
+  /** Os filtros aplicados, em etiquetas que dizem em palavras o que está valendo. */
+  private descreverFiltros(f: CtrProcessoFiltro): FiltroAtivo[] {
+    const ativos: FiltroAtivo[] = [];
+    const data = (valor: string) => this.brasileira(valor);
+    if (f.Filtro) ativos.push({ campo: 'Filtro', rotulo: `Busca: "${f.Filtro}"` });
+    if (f.Situacao) ativos.push({ campo: 'Situacao', rotulo: `Situação: ${f.Situacao}` });
+    if (f.Fase) ativos.push({ campo: 'Fase', rotulo: `Fase: ${f.Fase}` });
+    if (f.NivelRiscoDeclarado) {
+      ativos.push({
+        campo: 'NivelRiscoDeclarado',
+        rotulo: f.NivelRiscoDeclarado === this.semRiscosDeclarados
+          ? this.semRiscosDeclarados
+          : `Maior risco: ${f.NivelRiscoDeclarado}`
+      });
+    }
+    if (f.Categoria) ativos.push({ campo: 'Categoria', rotulo: `Categoria: ${f.Categoria}` });
+    if (f.Sigla) ativos.push({ campo: 'Sigla', rotulo: `Órgão: ${f.Sigla}` });
+    if (f.Criticidade) ativos.push({ campo: 'Criticidade', rotulo: `Criticidade: ${f.Criticidade}` });
+    if (f.EtapaPlanejamento) ativos.push({ campo: 'EtapaPlanejamento', rotulo: `Etapa: ${f.EtapaPlanejamento}` });
+    if (f.Origem) ativos.push({ campo: 'Origem', rotulo: `Origem: ${f.Origem}` });
+    if (f.EsclarecimentoPendente !== null && f.EsclarecimentoPendente !== undefined) {
+      ativos.push({
+        campo: 'EsclarecimentoPendente',
+        rotulo: f.EsclarecimentoPendente ? 'Aguardando esclarecimento' : 'Sem esclarecimento pendente'
+      });
+    }
+    if (f.Restituidos !== null && f.Restituidos !== undefined) {
+      ativos.push({ campo: 'Restituidos', rotulo: f.Restituidos ? 'Só os restituídos' : 'Sem os restituídos' });
+    }
+    if (f.De) ativos.push({ campo: 'De', rotulo: `Chegada na SGDI a partir de ${data(f.De)}` });
+    if (f.Ate) ativos.push({ campo: 'Ate', rotulo: `Chegada na SGDI até ${data(f.Ate)}` });
+    return ativos;
+  }
+
+  /** Tira um filtro (a etiqueta) e busca de novo. */
+  removerFiltro(campo: keyof CtrProcessoFiltro): void {
+    (this.filtro as Record<string, unknown>)[campo] =
+      campo === 'EsclarecimentoPendente' || campo === 'Restituidos' ? null : '';
+    this.buscar();
+  }
+
+  /** Nenhum processo cadastrado ainda (e não é um filtro que esconde todos). */
+  get semNenhumProcesso(): boolean {
+    return this.totalItens === 0 && this.filtrosAtivos.length === 0;
   }
 
   get temMais(): boolean {
@@ -223,7 +310,7 @@ export class CtrProcessosComponent implements OnInit {
 
   excluir(processo: CtrProcesso): void {
     const confirmou = confirm(
-      `Excluir o processo ${processo.NumeroProcesso}?\n\n`
+      `Excluir o processo ${processo.NumeroProcesso} (${processo.OrgaoSigla})?\n\n`
       + 'Ele sai das listas e dos números do painel, junto com as manifestações dele. '
       + 'O registro continua guardado para auditoria.'
     );
@@ -402,13 +489,13 @@ export class CtrProcessosComponent implements OnInit {
         this.salvando = false;
         this.notificationService.error(
           'Não foi possível cadastrar. Confira se o número do processo já não está cadastrado, se as datas estão coerentes '
-          + 'e se a classificação de riscos está correta.'
+          + 'e se os riscos da contratação estão completos.'
         );
       }
     });
   }
 
   irParaLista(): void {
-    this.router.navigate(['/analises/processos/lista']);
+    this.router.navigate(['/analises/processos/lista'], { queryParams: this.processoService.filtrosDaLista });
   }
 }

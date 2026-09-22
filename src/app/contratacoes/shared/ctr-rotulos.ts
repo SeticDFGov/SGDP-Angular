@@ -88,24 +88,8 @@ export function corAcaoImportacao(acao: string | null | undefined): string {
 }
 
 /**
- * Badge do risco classificado pelos quesitos (mesmas cores dos badges de risco
- * do PGIA): Excessivo vermelho, Alto laranja, Moderado amarelo, Baixo verde e,
- * sem classificação, cinza.
- */
-export function badgeRiscoClassificado(risco: string | null | undefined): string {
-  switch (risco) {
-    case 'Risco Excessivo': return 'bg-red-100 text-red-800';
-    case 'Alto Risco': return 'bg-orange-100 text-orange-800';
-    case 'Risco Moderado': return 'bg-yellow-100 text-yellow-800';
-    case 'Baixo Risco': return 'bg-green-100 text-green-800';
-    default: return 'bg-gray-100 text-gray-600'; // Não classificado
-  }
-}
-
-/**
- * Badge do nível de um risco declarado: a cor cheia da célula do mapa da CGDF
- * (a mesma do mapa desenhado na classificação). O tom diferente do badge do
- * risco classificado é proposital: são duas escalas que não se misturam.
+ * Badge do nível de um risco da contratação: a cor cheia da célula do mapa da
+ * CGDF (a mesma do mapa desenhado na seção de riscos do processo).
  */
 export function badgeNivelRisco(nivel: string | null | undefined): string {
   switch (nivel) {
