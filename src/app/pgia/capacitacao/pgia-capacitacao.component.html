@@ -38,35 +38,35 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Pessoa <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.AgenteId" name="cap-agente" [disabled]="!!emEdicao"
+          <label for="cap-agente" class="block text-sm font-semibold mb-1">Pessoa <span class="text-red-600">*</span></label>
+          <select id="cap-agente" [(ngModel)]="form.AgenteId" name="cap-agente" [disabled]="!!emEdicao"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-600"
                   [class.border-red-500]="errAgente"
                   [class.border-gray-300]="!errAgente">
             <option value="">Escolha uma pessoa do órgão</option>
             <option *ngFor="let p of pessoas" [value]="p.UserId">{{ p.Nome }}{{ p.Matricula ? ' · mat. ' + p.Matricula : '' }}</option>
           </select>
-          <p *ngIf="!emEdicao" class="text-xs text-gray-400 italic mt-1">Não encontrou o nome? Peça à pessoa que acesse o SGDP e escolha a unidade do seu órgão.</p>
-          <p *ngIf="emEdicao" class="text-xs text-gray-400 italic mt-1">Pessoa e trilha identificam o registro e não mudam. Para outra combinação, cancele e registre uma nova.</p>
+          <p *ngIf="!emEdicao" class="text-xs text-gray-500 italic mt-1">Não encontrou o nome? Peça à pessoa que acesse o SGDP e escolha a unidade do seu órgão.</p>
+          <p *ngIf="emEdicao" class="text-xs text-gray-500 italic mt-1">Pessoa e trilha identificam o registro e não mudam. Para outra combinação, cancele e registre uma nova.</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Trilha <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.Trilha" name="cap-trilha" [disabled]="!!emEdicao"
+          <label for="cap-trilha" class="block text-sm font-semibold mb-1">Trilha <span class="text-red-600">*</span></label>
+          <select id="cap-trilha" [(ngModel)]="form.Trilha" name="cap-trilha" [disabled]="!!emEdicao"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-600">
             <option *ngFor="let t of trilhas" [value]="t">{{ t }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Situação <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="form.Status" name="cap-status"
+          <label for="cap-status" class="block text-sm font-semibold mb-1">Situação <span class="text-red-600">*</span></label>
+          <select id="cap-status" [(ngModel)]="form.Status" name="cap-status"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let s of situacoes" [value]="s">{{ s }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data de conclusão
+          <label for="cap-conclusao" class="block text-sm font-semibold mb-1">Data de conclusão
             <span class="text-yellow-700 text-xs font-semibold">ao concluir</span></label>
-          <input type="date" [(ngModel)]="form.DataConclusao" name="cap-conclusao"
+          <input id="cap-conclusao" type="date" [(ngModel)]="form.DataConclusao" name="cap-conclusao"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errConclusao"
                  [class.border-gray-300]="!errConclusao">
@@ -77,7 +77,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="cap-prevista" [value]="true" [(ngModel)]="form.PrevistaPlanoCapacitacao"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="cap-prevista" [value]="false" [(ngModel)]="form.PrevistaPlanoCapacitacao"> Não</label>
           </div>
-          <p class="text-xs text-gray-400 italic mt-1">As trilhas entram nos planos de capacitação até 30/12/2026 (arts. 29, parágrafo único e 35, III).</p>
+          <p class="text-xs text-gray-500 italic mt-1">As trilhas entram nos planos de capacitação até 30/12/2026 (arts. 29, parágrafo único e 35, III).</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Certificado</label>
@@ -86,7 +86,7 @@
             [criarDocumento]="criarDocumentoCertificado"
             (documentoCriado)="aoCriarDocumentoCertificado($event)">
           </app-pgia-anexo>
-          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve o registro para guardar o certificado nele.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Depois de anexar, salve o registro para guardar o certificado nele.</p>
         </div>
       </div>
 

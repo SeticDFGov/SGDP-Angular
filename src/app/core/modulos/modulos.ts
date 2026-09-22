@@ -100,7 +100,7 @@ export const MODULOS: ModuloSgdp[] = [
     tom: {
       faixa: 'bg-teal-600',
       icone: 'bg-teal-50 text-teal-700',
-      botao: 'bg-teal-600 hover:bg-teal-700 focus-visible:ring-teal-500',
+      botao: 'bg-teal-700 hover:bg-teal-800 focus-visible:ring-teal-500',
       chip: 'bg-teal-50 text-teal-800 border-teal-200',
       aba: 'border-teal-600 text-teal-700'
     },

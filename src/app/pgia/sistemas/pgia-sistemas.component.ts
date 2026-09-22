@@ -627,10 +627,10 @@ export class PgiaSistemasComponent implements OnInit {
   /** Cor da célula da matriz (v verde, a amarelo, l laranja, r vermelho). */
   corMatriz(codigo: string): string {
     switch (codigo) {
-      case 'v': return 'bg-green-500 text-white';
+      case 'v': return 'bg-green-500 text-gray-900';
       case 'a': return 'bg-yellow-300 text-gray-900';
       case 'l': return 'bg-orange-400 text-gray-900';
-      default: return 'bg-red-500 text-white';
+      default: return 'bg-red-600 text-white';
     }
   }
 

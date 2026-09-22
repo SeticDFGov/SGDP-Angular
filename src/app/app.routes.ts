@@ -18,8 +18,15 @@ export const routes: Routes = [
   {
     // Transparência pública (arts. 23 e 24): fora do MainLayout e sem guard.
     path: 'transparencia-ia',
+    title: 'Transparência da inteligência artificial no DF',
     loadComponent: () => import('./pgia/publico/pgia-transparencia.component')
       .then(m => m.PgiaTransparenciaComponent)
+  },
+  {
+    // Recursos de acessibilidade (eMAG): aberta, sem login, como a transparência
+    path: 'acessibilidade',
+    title: 'Acessibilidade',
+    loadComponent: () => import('./acessibilidade/acessibilidade.component').then(m => m.AcessibilidadeComponent)
   },
   {
     path: 'auth',
@@ -36,22 +43,26 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       {
         path: 'inicio',
+        title: 'Início',
         loadComponent: () => import('./inicio/inicio.component').then(m => m.InicioComponent)
       },
 
       // Demandas e Projetos
       {
         path: 'dashboard',
+        title: 'Painel das demandas',
         canActivate: [guardaDemandas],
         loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
       {
         path: 'demandas',
+        title: 'Demandas e Projetos',
         canActivate: [guardaDemandas],
         loadComponent: () => import('./projeto/projeto').then(m => m.Projeto)
       },
       {
         path: 'demandas/:id/entregaveis',
+        title: 'Entregáveis da demanda',
         canActivate: [guardaDemandas],
         loadComponent: () => import('./projeto/etapa/etapa-list/etapa-list.component').then(m => m.EtapaListComponent),
         data: {
@@ -62,6 +73,7 @@ export const routes: Routes = [
       // Governança de IA (PGIA): trilha numerada por papel
       {
         path: 'pgia',
+        title: 'Governança de IA (PGIA)',
         canActivate: [moduloGuard(Modulos.Pgia)],
         loadChildren: () => import('./pgia/pgia.routes').then(m => m.pgia_routes)
       },
@@ -70,6 +82,7 @@ export const routes: Routes = [
       // O nome exibido mudou; a rota /analises continua a mesma.
       {
         path: 'analises',
+        title: 'Supervisão Contínua das Contratações',
         canActivate: [moduloGuard(Modulos.Contratacoes)],
         loadChildren: () => import('./contratacoes/contratacoes.routes').then(m => m.contratacoes_routes)
       },
@@ -77,19 +90,23 @@ export const routes: Routes = [
       // Administração do SGDP (perfil admin): gestão de acessos, pedidos de acesso e cadastros
       {
         path: 'admin',
+        title: 'Administração',
         canActivate: [adminGuard],
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'acessos' },
           {
             path: 'acessos',
+            title: 'Gestão de acessos',
             loadComponent: () => import('./admin/acessos/admin-acessos.component').then(m => m.AdminAcessosComponent)
           },
           {
             path: 'pedidos',
+            title: 'Pedidos de acesso',
             loadComponent: () => import('./admin/pedidos/admin-pedidos.component').then(m => m.AdminPedidosComponent)
           },
           {
             path: 'cadastros',
+            title: 'Cadastros',
             loadComponent: () => import('./admin/admin.component').then(m => m.AdminComponent)
           }
         ]

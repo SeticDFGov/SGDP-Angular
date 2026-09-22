@@ -10,11 +10,13 @@ import { Observable } from 'rxjs';
 import { DemandaService } from '../demanda/service/demanda.service';
 import { DemandanteService } from './service/demandante';
 import { EsteiraService } from './service/esteira';
+import { DialogoDirective } from '../core/acessibilidade/dialogo.directive';
 
 @Component({
   selector: 'app-projeto',
   standalone: true,
   imports: [
+    DialogoDirective,
     CommonModule,
     RouterLink,
     FormsModule

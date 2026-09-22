@@ -5,14 +5,14 @@
         <span class="material-icons text-2xl">folder_open</span>
       </div>
       <div class="flex flex-col">
-        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">
           Demanda Atual
         </span>
         <h1 class="text-2xl font-bold text-gray-800 leading-none truncate max-w-md" [title]="demanda?.NM_PROJETO ?? ''">
           {{ demanda?.NM_PROJETO || 'Carregando...' }}
         </h1>
         <div *ngIf="demanda?.NR_PROCESSO_SEI" class="flex items-center mt-1 text-sm text-gray-500">
-          <span class="material-icons text-xs mr-1 text-gray-400">description</span>
+          <span class="material-icons text-xs mr-1 text-gray-500">description</span>
           <span class="font-medium mr-1">SEI:</span>
           <span class="tracking-wide">{{ demanda?.NR_PROCESSO_SEI }}</span>
         </div>
@@ -102,7 +102,7 @@
               </td>
               <td class="px-4 py-3">
                 <div class="font-semibold text-gray-900">{{ etapa.NM_ETAPA }}</div>
-                <div class="text-xs text-gray-400 mt-0.5 space-y-0.5">
+                <div class="text-xs text-gray-500 mt-0.5 space-y-0.5">
                   <div *ngIf="etapa.CriadoPor">
                     Criado em {{ etapa.CriadoEm | date:'dd/MM/yyyy HH:mm' }} por {{ etapa.CriadoPor }}
                   </div>

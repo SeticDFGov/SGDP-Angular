@@ -16,6 +16,7 @@ import {
   CtrClassificacaoRisco,
   CtrProcessoForm,
   ETAPAS_PLANEJAMENTO,
+  HOSPEDAGENS_CETIC,
   ORIGEM_PADRAO,
   ORIGEM_TCDF,
   REGEX_NUMERO_SEI
@@ -30,7 +31,7 @@ import {
   valorNoLimite
 } from '../../../api/contratacoes/criticidade';
 import { CtrClassificacaoRiscoComponent, CtrClassificacaoRiscoEdicao } from './ctr-classificacao-risco.component';
-import { badgeCriticidade } from './ctr-rotulos';
+import { badgeCriticidade, formatarNumeroReais, formatarReais, lerReais } from './ctr-rotulos';
 
 /**
  * As seis datas do trâmite, na ordem em que o processo tramita. A assinatura do
@@ -93,6 +94,8 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
 
   categorias = CATEGORIAS_OBJETO;
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
+  hospedagens = HOSPEDAGENS_CETIC;
+  formatarReais = formatarReais;
   /** Os sete critérios do art. 11, § 3º, da IN, com as respostas possíveis. */
   criterios = CRITERIOS_CRITICIDADE;
   badgeCriticidade = badgeCriticidade;
@@ -110,6 +113,8 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
 
   form: CtrProcessoForm = CtrProcessoFormComponent.vazio();
   submetido = false;
+  /** O que está escrito no campo do valor (o número vai no form.ValorEstimado). */
+  valorTexto = '';
   /**
    * Estado da seção "Riscos da contratação". Mora aqui, e não no componente
    * da seção, porque é este formulário que monta o corpo do envio e confere,
@@ -127,6 +132,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     return {
       NumeroProcesso: '', OrgaoNome: '', OrgaoSigla: '', ComplementoArea: null,
       Objeto: '', CategoriaObjeto: 'Sem objeto / Indefinido',
+      ValorEstimado: null, HospedagemCetic: null, UsaGdfnet: null,
       ChegadaSgdi: null, ChegadaSubgd: null, ChegadaUgtic: null, UgticNaoSeAplica: false,
       RetornoGabSgdi: null, RetornoOrgao: null, RetornoOrgaoNaoSeAplica: false,
       EtapaPlanejamento: null, DataAssinaturaContrato: null, Criticidade: null,
@@ -145,6 +151,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
         ? { ...CtrProcessoFormComponent.vazio(), ...this.valor }
         : CtrProcessoFormComponent.vazio();
       this.retratoForm = CtrProcessoFormComponent.retratoDe(this.form);
+      this.valorTexto = formatarNumeroReais(this.form.ValorEstimado);
     }
     // Valor novo do servidor (carga da página ou resposta de um PUT
     // bem-sucedido): a seção de riscos recomeça do que está gravado, com o
@@ -254,6 +261,20 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     return texto.length;
   }
 
+  // ── Valor estimado ────────────────────────────────────────────────────────
+
+  /** Guarda o número a cada tecla; o texto só é reformatado ao sair do campo. */
+  aoDigitarValor(texto: string): void {
+    this.valorTexto = texto;
+    const valor = lerReais(texto);
+    this.form.ValorEstimado = valor === undefined ? this.form.ValorEstimado : valor;
+  }
+
+  aoSairDoValor(): void {
+    const valor = lerReais(this.valorTexto);
+    if (valor !== undefined) this.valorTexto = formatarNumeroReais(valor);
+  }
+
   /** Sigla sempre em caixa alta, pelo mesmo motivo do campo mascarado. */
   aoDigitarSigla(evento: Event): void {
     const input = evento.target as HTMLInputElement;
@@ -345,6 +366,15 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
 
   get errCategoria(): string | null {
     return (this.form.CategoriaObjeto || '').trim() ? null : 'Escolha a categoria do objeto.';
+  }
+
+  /** Mesmas regras do servidor: número em reais, sem negativo, até o limite do numeric(18,2). */
+  get errValor(): string | null {
+    const valor = lerReais(this.valorTexto);
+    if (valor === undefined) return 'Informe o valor estimado em reais, por exemplo 1.250.000,00.';
+    if (valor !== null && valor < 0) return 'O valor estimado não pode ser negativo.';
+    if (valor !== null && valor > 9999999999999999.99) return 'O valor estimado passa do limite aceito.';
+    return null;
   }
 
   /** A data do pedido exige dizer o que foi pedido (CHECK do servidor). */
@@ -440,7 +470,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
 
   get formValido(): boolean {
     return !this.errNumero && !this.errOrgaoNome && !this.errOrgaoSigla
-      && !this.errObjeto && !this.errCategoria
+      && !this.errObjeto && !this.errCategoria && !this.errValor
       && !this.errEsclarecimentoDescricao
       && !this.errRestituidoEm && !this.errRestituidoMotivo
       && this.errDatas.length === 0;
@@ -458,7 +488,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
    */
   get problemas(): string[] {
     const itens = [
-      this.errNumero, this.errCategoria, this.errOrgaoNome, this.errOrgaoSigla, this.errObjeto
+      this.errNumero, this.errCategoria, this.errOrgaoNome, this.errOrgaoSigla, this.errObjeto, this.errValor
     ].filter((e): e is string => !!e);
     if (!this.compacto) itens.push(...this.risco.problemas);
     for (const e of [this.errEsclarecimentoDescricao, this.errRestituidoEm, this.errRestituidoMotivo]) {
@@ -534,6 +564,9 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       ComplementoArea: this.texto(this.form.ComplementoArea),
       Objeto: this.form.Objeto.trim(),
       CategoriaObjeto: this.form.CategoriaObjeto,
+      ValorEstimado: lerReais(this.valorTexto) ?? null,
+      HospedagemCetic: this.form.HospedagemCetic || null,
+      UsaGdfnet: this.form.UsaGdfnet ?? null,
       ChegadaSgdi: this.form.ChegadaSgdi || null,
       ChegadaSubgd: this.form.ChegadaSubgd || null,
       ChegadaUgtic: this.form.UgticNaoSeAplica ? null : (this.form.ChegadaUgtic || null),

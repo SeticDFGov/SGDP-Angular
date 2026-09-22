@@ -69,7 +69,7 @@
               <td class="px-4 py-3">
                 <p class="font-semibold text-gray-900">{{ u.Nome || '(sem nome)' }}</p>
                 <p class="text-xs text-gray-500">{{ u.Email }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">Unidade: {{ u.UnidadeNome || 'não definida' }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">Unidade: {{ u.UnidadeNome || 'não definida' }}</p>
               </td>
               <td *ngFor="let m of modulos" class="px-4 py-3">
                 <ng-container *ngIf="temModulo(u, m.id); else semModulo">
@@ -82,7 +82,7 @@
                   </p>
                 </ng-container>
                 <ng-template #semModulo>
-                  <span class="inline-flex items-center gap-1 text-gray-400">
+                  <span class="inline-flex items-center gap-1 text-gray-500">
                     <span class="material-icons text-base" aria-hidden="true">remove_circle_outline</span> Não
                   </span>
                 </ng-template>
@@ -108,7 +108,7 @@
                       <input type="checkbox" [(ngModel)]="edicao.form.Demandas" name="acesso-demandas" class="w-4 h-4">
                       Demandas e Projetos
                     </label>
-                    <p class="text-xs text-gray-400 italic mt-2">Acesso de consulta. Criar e editar demandas continua exigindo o perfil gestor no Keycloak.</p>
+                    <p class="text-xs text-gray-500 italic mt-2">Acesso de consulta. Criar e editar demandas continua exigindo o perfil gestor no Keycloak.</p>
                     <p *ngIf="noKeycloak(u, M.Demandas)" class="text-xs text-slate-600 mt-2 flex items-center gap-1">
                       <span class="material-icons text-sm" aria-hidden="true">key</span> Já tem pelo perfil gestor do Keycloak.
                     </p>
@@ -122,7 +122,7 @@
                     </label>
                     <label for="acesso-papel" class="block text-xs font-semibold text-gray-700 mt-3 mb-1">Papel dentro do PGIA</label>
                     <select id="acesso-papel" [(ngModel)]="edicao.form.PapelPgia" name="acesso-papel" [disabled]="!edicao.form.Pgia"
-                            class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400">
+                            class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white disabled:bg-gray-100 disabled:text-gray-500">
                       <option *ngFor="let p of opcoesPapelPgia" [ngValue]="p.valor">{{ p.rotulo }}</option>
                     </select>
                     <p *ngIf="papelOrgaoSemUnidade" class="text-xs text-amber-700 mt-2">
@@ -139,7 +139,7 @@
                       <input type="checkbox" [(ngModel)]="edicao.form.Contratacoes" name="acesso-contratacoes" class="w-4 h-4">
                       Supervisão Contínua das Contratações
                     </label>
-                    <p class="text-xs text-gray-400 italic mt-2">Ferramenta interna da SGDI (processos de contratação de TIC e manifestações ao TCDF).</p>
+                    <p class="text-xs text-gray-500 italic mt-2">Ferramenta interna da SGDI (processos de contratação de TIC e manifestações ao TCDF).</p>
                   </div>
 
                   <!-- Administração + unidade -->
@@ -147,7 +147,7 @@
                     <p class="font-semibold text-gray-900 flex items-center gap-2">
                       <span class="material-icons text-base text-slate-500" aria-hidden="true">key</span> Administração
                     </p>
-                    <p class="text-xs text-gray-400 italic mt-1">Vem só do perfil admin do Keycloak e não é concedida aqui.</p>
+                    <p class="text-xs text-gray-500 italic mt-1">Vem só do perfil admin do Keycloak e não é concedida aqui.</p>
 
                     <label for="acesso-unidade" class="block text-xs font-semibold text-gray-700 mt-3 mb-1">Unidade</label>
                     <div class="flex gap-2">
@@ -162,7 +162,7 @@
                         {{ alterandoUnidade ? '...' : 'Alterar' }}
                       </button>
                     </div>
-                    <p class="text-xs text-gray-400 italic mt-1">A unidade liga a pessoa ao órgão no PGIA e também define o que ela vê nas demandas.</p>
+                    <p class="text-xs text-gray-500 italic mt-1">A unidade liga a pessoa ao órgão no PGIA e também define o que ela vê nas demandas.</p>
                   </div>
                 </div>
 
@@ -175,7 +175,7 @@
                   <button type="button" (click)="edicao = null" class="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50">
                     Cancelar
                   </button>
-                  <span class="text-xs text-gray-400 italic">O que vem do Keycloak não muda por aqui.</span>
+                  <span class="text-xs text-gray-500 italic">O que vem do Keycloak não muda por aqui.</span>
                 </div>
               </td>
             </tr>

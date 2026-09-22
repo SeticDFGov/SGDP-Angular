@@ -1,6 +1,6 @@
-<div *ngIf="isOpen" class="fixed inset-0 z-50 bg-gray-900 bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-    <h2 class="text-xl font-semibold text-gray-800 mb-5">Editar Entregável</h2>
+<div *ngIf="isOpen" class="fixed inset-0 z-50 bg-gray-900/50 flex items-center justify-center">
+  <div appDialogo aria-labelledby="titulo-editar-entregavel" (fechar)="closeModal()" class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+    <h2 id="titulo-editar-entregavel" class="text-xl font-semibold text-gray-800 mb-5">Editar Entregável</h2>
 
     <form [formGroup]="etapaForm" (ngSubmit)="handleSubmit()">
       <div class="space-y-4">

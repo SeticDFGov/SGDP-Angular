@@ -30,14 +30,14 @@ interface EtapaTramite {
         <div class="flex flex-col items-center text-center w-24">
           <span class="w-8 h-8 rounded-full flex items-center justify-center border-2"
                 [ngClass]="e.atual ? 'bg-blue-600 border-blue-600 text-white'
-                  : e.data ? 'bg-green-500 border-green-500 text-white'
-                  : e.naoSeAplica ? 'bg-white border-dashed border-gray-300 text-gray-400'
-                  : 'bg-white border-gray-300 text-gray-300'">
+                  : e.data ? 'bg-green-700 border-green-700 text-white'
+                  : e.naoSeAplica ? 'bg-white border-dashed border-gray-300 text-gray-500'
+                  : 'bg-white border-gray-300 text-gray-500'">
             <span class="material-icons text-base leading-none" aria-hidden="true">{{
               e.data ? (e.atual ? 'place' : 'check') : (e.naoSeAplica ? 'remove' : 'more_horiz') }}</span>
           </span>
           <span class="mt-1 text-xs font-semibold" [ngClass]="e.atual ? 'text-blue-800' : 'text-gray-700'">{{ e.rotulo }}</span>
-          <span class="text-[11px] text-gray-500">
+          <span class="text-[0.6875rem] text-gray-500">
             <ng-container *ngIf="e.data">{{ e.acao }} {{ e.data | date:'dd/MM/yyyy':'UTC' }}</ng-container>
             <ng-container *ngIf="!e.data && e.naoSeAplica">não se aplica</ng-container>
             <ng-container *ngIf="!e.data && !e.naoSeAplica">pendente</ng-container>

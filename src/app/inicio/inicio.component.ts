@@ -10,6 +10,7 @@ import { MeuPedidoAcesso, SituacoesPedidoAcesso } from '../../api/acessos/interf
 import {
   MODULOS, Modulos, ModuloSgdp, mensagemAdministracao, podePedirAcesso, temModulo
 } from '../core/modulos/modulos';
+import { DialogoDirective } from '../core/acessibilidade/dialogo.directive';
 
 /** Rótulo do papel do usuário dentro do PGIA (o card mostra "como" a pessoa entra). */
 const ROTULO_PAPEL_PGIA: Record<string, string> = {
@@ -45,7 +46,7 @@ interface DialogoPedido {
 @Component({
   selector: 'app-inicio',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, DialogoDirective],
   providers: [DatePipe],
   templateUrl: './inicio.component.html'
 })

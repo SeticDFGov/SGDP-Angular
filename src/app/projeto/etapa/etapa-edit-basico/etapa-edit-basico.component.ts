@@ -2,11 +2,12 @@ import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Entregavel, EntregavelUpdateBasicoForm } from '../../../../api/demanda/interface';
+import { DialogoDirective } from '../../../core/acessibilidade/dialogo.directive';
 
 @Component({
   selector: 'app-etapa-edit-basico',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, DialogoDirective],
   templateUrl: './etapa-edit-basico.component.html',
   styleUrls: ['./etapa-edit-basico.component.css']
 })

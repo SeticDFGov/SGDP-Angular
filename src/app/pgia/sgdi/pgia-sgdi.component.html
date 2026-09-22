@@ -61,8 +61,8 @@
           <app-pgia-checklist-aberto [classificacao]="item.ClassificacaoVigente"></app-pgia-checklist-aberto>
 
           <div class="mt-4">
-            <label class="block text-sm font-semibold mb-1">Parecer da avaliação <span class="text-red-600">*</span></label>
-            <textarea rows="3" [(ngModel)]="parecerAtual" name="parecer"
+            <label for="parecer" class="block text-sm font-semibold mb-1">Parecer da avaliação <span class="text-red-600">*</span></label>
+            <textarea id="parecer" rows="3" [(ngModel)]="parecerAtual" name="parecer"
                       placeholder="Explique a decisão. O órgão vê este texto no inventário."
                       class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       [class.border-red-500]="errParecer"
@@ -84,7 +84,7 @@
 
       <!-- Fila do CGTIC (somente leitura para a SGDI) -->
       <h3 class="text-sm font-semibold text-gray-900 mb-2 mt-6">Delegados ao CGTIC</h3>
-      <p class="text-xs text-gray-400 italic mb-2">Estes casos são deliberados pelo comitê. A SGDI acompanha, mas não decide aqui.</p>
+      <p class="text-xs text-gray-500 italic mb-2">Estes casos são deliberados pelo comitê. A SGDI acompanha, mas não decide aqui.</p>
       <p *ngIf="!carregandoFilas && filaCgtic.length === 0" class="text-sm text-gray-500">
         Nenhum sistema aguardando deliberação do CGTIC.
       </p>
@@ -125,8 +125,8 @@
 
       <div class="flex items-end gap-3 flex-wrap mb-4" *ngIf="!modoCriacaoOrgao">
         <div class="flex-1 min-w-64">
-          <label class="block text-sm font-semibold mb-1">Órgão</label>
-          <select [(ngModel)]="orgaoDadosId" name="od-orgao" (ngModelChange)="aoTrocarOrgaoDados()"
+          <label for="od-orgao" class="block text-sm font-semibold mb-1">Órgão</label>
+          <select id="od-orgao" [(ngModel)]="orgaoDadosId" name="od-orgao" (ngModelChange)="aoTrocarOrgaoDados()"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null">Escolha o órgão</option>
             <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
@@ -142,19 +142,19 @@
       <div *ngIf="modoCriacaoOrgao" class="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
         <h3 class="text-sm font-semibold text-gray-900 mb-3">Cadastrar novo órgão</h3>
 
-        <p class="text-xs text-gray-400 italic mb-3">A sigla do órgão é definida automaticamente pelo grupo do Keycloak da unidade escolhida abaixo.</p>
+        <p class="text-xs text-gray-500 italic mb-3">A sigla do órgão é definida automaticamente pelo grupo do Keycloak da unidade escolhida abaixo.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-semibold mb-1">Nome completo <span class="text-red-600">*</span></label>
-            <input type="text" [(ngModel)]="novoOrgaoForm.Nome" name="no-nome"
+            <label for="no-nome" class="block text-sm font-semibold mb-1">Nome completo <span class="text-red-600">*</span></label>
+            <input id="no-nome" type="text" [(ngModel)]="novoOrgaoForm.Nome" name="no-nome"
                    class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="novoOrgaoSubmetido && !novoOrgaoForm.Nome.trim()"
                    [class.bg-red-50]="novoOrgaoSubmetido && !novoOrgaoForm.Nome.trim()"
                    [class.border-gray-300]="!(novoOrgaoSubmetido && !novoOrgaoForm.Nome.trim())">
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">Natureza jurídica <span class="text-red-600">*</span></label>
-            <select [(ngModel)]="novoOrgaoForm.NaturezaJuridica" name="no-natureza"
+            <label for="no-natureza" class="block text-sm font-semibold mb-1">Natureza jurídica <span class="text-red-600">*</span></label>
+            <select id="no-natureza" [(ngModel)]="novoOrgaoForm.NaturezaJuridica" name="no-natureza"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option *ngFor="let n of naturezas" [value]="n">{{ n }}</option>
             </select>
@@ -166,11 +166,11 @@
               <label class="flex items-center gap-2"><input type="radio" name="no-psc" [value]="true" [(ngModel)]="novoOrgaoForm.PrestaServicoCidadao"> Sim</label>
               <label class="flex items-center gap-2"><input type="radio" name="no-psc" [value]="false" [(ngModel)]="novoOrgaoForm.PrestaServicoCidadao"> Não</label>
             </div>
-            <p class="text-xs text-gray-400 italic mt-1">Para empresas públicas e sociedades de economia mista, a política vale no que couber (art. 1º, parágrafo único).</p>
+            <p class="text-xs text-gray-500 italic mt-1">Para empresas públicas e sociedades de economia mista, a política vale no que couber (art. 1º, parágrafo único).</p>
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-semibold mb-1">Unidade do SGDP <span class="text-red-600">*</span></label>
-            <select [(ngModel)]="novoOrgaoForm.UnidadeId" name="no-unidade" [disabled]="carregandoUnidades"
+            <label for="no-unidade" class="block text-sm font-semibold mb-1">Unidade do SGDP <span class="text-red-600">*</span></label>
+            <select id="no-unidade" [(ngModel)]="novoOrgaoForm.UnidadeId" name="no-unidade" [disabled]="carregandoUnidades"
                     class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                     [class.border-red-500]="errNovoOrgaoUnidade"
                     [class.bg-red-50]="errNovoOrgaoUnidade"
@@ -181,7 +181,7 @@
               </option>
             </select>
             <p *ngIf="errNovoOrgaoUnidade" class="text-xs text-red-600 mt-1">Escolha a unidade do SGDP.</p>
-            <p class="text-xs text-gray-400 italic mt-1">A unidade é o elo entre as pessoas e o órgão: quem estiver nela verá a área deste órgão.</p>
+            <p class="text-xs text-gray-500 italic mt-1">A unidade é o elo entre as pessoas e o órgão: quem estiver nela verá a área deste órgão.</p>
           </div>
         </div>
 
@@ -205,19 +205,19 @@
             <label class="block text-sm font-semibold mb-1">Sigla</label>
             <input type="text" [value]="orgaoDados.Sigla" disabled
                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
-            <p class="text-xs text-gray-400 italic mt-1">Definida pelo grupo do órgão no Keycloak; muda ao trocar a unidade abaixo.</p>
+            <p class="text-xs text-gray-500 italic mt-1">Definida pelo grupo do órgão no Keycloak; muda ao trocar a unidade abaixo.</p>
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">Nome completo <span class="text-red-600">*</span></label>
-            <input type="text" [(ngModel)]="dadosForm.Nome" name="od-nome"
+            <label for="od-nome" class="block text-sm font-semibold mb-1">Nome completo <span class="text-red-600">*</span></label>
+            <input id="od-nome" type="text" [(ngModel)]="dadosForm.Nome" name="od-nome"
                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="dadosSubmetido && !dadosForm.Nome.trim()"
                    [class.bg-red-50]="dadosSubmetido && !dadosForm.Nome.trim()"
                    [class.border-gray-300]="!(dadosSubmetido && !dadosForm.Nome.trim())">
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">Natureza jurídica <span class="text-red-600">*</span></label>
-            <select [(ngModel)]="dadosForm.NaturezaJuridica" name="od-natureza"
+            <label for="od-natureza" class="block text-sm font-semibold mb-1">Natureza jurídica <span class="text-red-600">*</span></label>
+            <select id="od-natureza" [(ngModel)]="dadosForm.NaturezaJuridica" name="od-natureza"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option *ngFor="let n of naturezas" [value]="n">{{ n }}</option>
             </select>
@@ -229,11 +229,11 @@
               <label class="flex items-center gap-2"><input type="radio" name="od-psc" [value]="true" [(ngModel)]="dadosForm.PrestaServicoCidadao"> Sim</label>
               <label class="flex items-center gap-2"><input type="radio" name="od-psc" [value]="false" [(ngModel)]="dadosForm.PrestaServicoCidadao"> Não</label>
             </div>
-            <p class="text-xs text-gray-400 italic mt-1">Para empresas públicas e sociedades de economia mista, a política vale no que couber (art. 1º, parágrafo único).</p>
+            <p class="text-xs text-gray-500 italic mt-1">Para empresas públicas e sociedades de economia mista, a política vale no que couber (art. 1º, parágrafo único).</p>
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-semibold mb-1">Unidade do SGDP <span class="text-red-600">*</span></label>
-            <select [(ngModel)]="dadosForm.UnidadeId" name="od-unidade" [disabled]="carregandoUnidades"
+            <label for="od-unidade" class="block text-sm font-semibold mb-1">Unidade do SGDP <span class="text-red-600">*</span></label>
+            <select id="od-unidade" [(ngModel)]="dadosForm.UnidadeId" name="od-unidade" [disabled]="carregandoUnidades"
                     class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                     [class.border-red-500]="errDadosUnidade"
                     [class.bg-red-50]="errDadosUnidade"
@@ -244,7 +244,7 @@
               </option>
             </select>
             <p *ngIf="errDadosUnidade" class="text-xs text-red-600 mt-1">Escolha a unidade do SGDP.</p>
-            <p class="text-xs text-gray-400 italic mt-1">A unidade é o elo entre as pessoas e o órgão: quem estiver nela verá a área deste órgão.</p>
+            <p class="text-xs text-gray-500 italic mt-1">A unidade é o elo entre as pessoas e o órgão: quem estiver nela verá a área deste órgão.</p>
           </div>
         </div>
 
@@ -263,7 +263,7 @@
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Aqui a SGDI define quem faz o quê no PGIA: procure a pessoa pelo
       nome ou pelo e-mail, escolha o papel dela e o órgão em que ela trabalha. Quem ainda não acessou o sistema pode ser
       pré-cadastrada pelo e-mail, no botão ao lado.</p>
-      <p class="text-xs text-gray-400 italic mb-4">O perfil do SGDP (admin, gestor…) vem do Keycloak; papel PGIA e órgão são definidos aqui.
+      <p class="text-xs text-gray-500 italic mb-4">O perfil do SGDP (admin, gestor…) vem do Keycloak; papel PGIA e órgão são definidos aqui.
       Quem tem papel já entra no PGIA. Sem papel, a pessoa precisa de acesso ao módulo para registrar uso de IA e avisar
       incidentes (art. 13): ele vem do grupo do órgão no Keycloak ou é liberado aqui.</p>
 
@@ -281,14 +281,14 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mb-4">
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Nome ou e-mail</label>
-          <input type="text" [(ngModel)]="filtroPessoas" name="pa-filtro" placeholder="Digite parte do nome ou do e-mail"
+          <label for="pa-filtro" class="block text-sm font-semibold mb-1">Nome ou e-mail</label>
+          <input id="pa-filtro" type="text" [(ngModel)]="filtroPessoas" name="pa-filtro" placeholder="Digite parte do nome ou do e-mail"
                  (keyup.enter)="buscarPessoas()"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Órgão</label>
-          <select [(ngModel)]="filtroOrgaoId" name="pa-orgao"
+          <label for="pa-orgao" class="block text-sm font-semibold mb-1">Órgão</label>
+          <select id="pa-orgao" [(ngModel)]="filtroOrgaoId" name="pa-orgao"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null">Todos os órgãos</option>
             <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }}</option>
@@ -307,7 +307,7 @@
             Pré-cadastrar pessoa
           </button>
         </div>
-        <p class="text-xs text-gray-400 italic mt-1">Deixe os campos em branco para listar todas as pessoas.</p>
+        <p class="text-xs text-gray-500 italic mt-1">Deixe os campos em branco para listar todas as pessoas.</p>
       </div>
 
       <!-- Pré-cadastro: vincula a pessoa antes do primeiro login -->
@@ -316,8 +316,8 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-semibold mb-1">E-mail <span class="text-red-600">*</span></label>
-            <input type="email" [(ngModel)]="preCadastroForm.Email" name="pc-email" placeholder="nome.sobrenome@orgao.df.gov.br"
+            <label for="pc-email" class="block text-sm font-semibold mb-1">E-mail <span class="text-red-600">*</span></label>
+            <input id="pc-email" type="email" [(ngModel)]="preCadastroForm.Email" name="pc-email" placeholder="nome.sobrenome@orgao.df.gov.br"
                    class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="errPreCadastroEmail"
                    [class.bg-red-50]="errPreCadastroEmail"
@@ -325,24 +325,24 @@
             <p *ngIf="errPreCadastroEmail" class="text-xs text-red-600 mt-1">Informe um e-mail válido, como nome@orgao.df.gov.br.</p>
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">Nome <span class="text-red-600">*</span></label>
-            <input type="text" [(ngModel)]="preCadastroForm.Nome" name="pc-nome"
+            <label for="pc-nome" class="block text-sm font-semibold mb-1">Nome <span class="text-red-600">*</span></label>
+            <input id="pc-nome" type="text" [(ngModel)]="preCadastroForm.Nome" name="pc-nome"
                    class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                    [class.border-red-500]="preCadastroSubmetido && !preCadastroForm.Nome.trim()"
                    [class.bg-red-50]="preCadastroSubmetido && !preCadastroForm.Nome.trim()"
                    [class.border-gray-300]="!(preCadastroSubmetido && !preCadastroForm.Nome.trim())">
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">Papel no PGIA</label>
-            <select [(ngModel)]="preCadastroForm.PapelPgia" name="pc-papel"
+            <label for="pc-papel" class="block text-sm font-semibold mb-1">Papel no PGIA</label>
+            <select id="pc-papel" [(ngModel)]="preCadastroForm.PapelPgia" name="pc-papel"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option [ngValue]="null">Sem papel no PGIA</option>
               <option *ngFor="let pp of papeisPgia" [ngValue]="pp.valor">{{ pp.rotulo }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">Órgão</label>
-            <select [(ngModel)]="orgaoPreCadastroId" name="pc-orgao" (ngModelChange)="aoTrocarOrgaoPreCadastro()"
+            <label for="pc-orgao" class="block text-sm font-semibold mb-1">Órgão</label>
+            <select id="pc-orgao" [(ngModel)]="orgaoPreCadastroId" name="pc-orgao" (ngModelChange)="aoTrocarOrgaoPreCadastro()"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option [ngValue]="null">Sem vínculo</option>
               <option *ngFor="let o of orgaos" [ngValue]="o.Id" [disabled]="orgaoSemUnidade(o)">
@@ -352,7 +352,7 @@
           </div>
         </div>
 
-        <p class="text-xs text-gray-400 italic mt-3">Use exatamente o e-mail do Keycloak. No primeiro login a conta é
+        <p class="text-xs text-gray-500 italic mt-3">Use exatamente o e-mail do Keycloak. No primeiro login a conta é
         vinculada a este cadastro e o órgão e o papel já valem; se o e-mail for diferente, o login criará um segundo cadastro.
         Se a pessoa já existir, os campos deixados em branco são mantidos como estão.</p>
 
@@ -432,24 +432,24 @@
                   <h3 class="text-sm font-semibold text-gray-900 mb-3">Acesso de {{ p.Nome }}</h3>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-semibold mb-1">Papel no PGIA</label>
-                      <select [(ngModel)]="vinculoForm.PapelPgia" name="pa-papel"
+                      <label for="pa-papel" class="block text-sm font-semibold mb-1">Papel no PGIA</label>
+                      <select id="pa-papel" [(ngModel)]="vinculoForm.PapelPgia" name="pa-papel"
                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option [ngValue]="null">Sem papel no PGIA</option>
                         <option *ngFor="let pp of papeisPgia" [ngValue]="pp.valor">{{ pp.rotulo }}</option>
                       </select>
-                      <p class="text-xs text-gray-400 italic mt-1">Sem papel, a pessoa só registra o uso de IA e avisa incidentes (art. 13).</p>
+                      <p class="text-xs text-gray-500 italic mt-1">Sem papel, a pessoa só registra o uso de IA e avisa incidentes (art. 13).</p>
                     </div>
                     <div>
-                      <label class="block text-sm font-semibold mb-1">Órgão</label>
-                      <select [(ngModel)]="orgaoVinculoId" name="pa-vinculo-orgao" (ngModelChange)="aoTrocarOrgaoVinculo()"
+                      <label for="pa-vinculo-orgao" class="block text-sm font-semibold mb-1">Órgão</label>
+                      <select id="pa-vinculo-orgao" [(ngModel)]="orgaoVinculoId" name="pa-vinculo-orgao" (ngModelChange)="aoTrocarOrgaoVinculo()"
                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option [ngValue]="null">Sem vínculo</option>
                         <option *ngFor="let o of orgaos" [ngValue]="o.Id" [disabled]="orgaoSemUnidade(o)">
                           {{ o.Sigla }} · {{ o.Nome }}{{ orgaoSemUnidade(o) ? ' (sem unidade)' : '' }}
                         </option>
                       </select>
-                      <p class="text-xs text-gray-400 italic mt-1">Órgão sem unidade vinculada não pode receber pessoas: defina a unidade dele em "Dados dos órgãos" primeiro.</p>
+                      <p class="text-xs text-gray-500 italic mt-1">Órgão sem unidade vinculada não pode receber pessoas: defina a unidade dele em "Dados dos órgãos" primeiro.</p>
                     </div>
                   </div>
                   <div class="mt-3 flex gap-2">
@@ -471,19 +471,19 @@
                   <h3 class="text-sm font-semibold text-gray-900 mb-3">Completar dados de {{ p.Nome }}</h3>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label class="block text-sm font-semibold mb-1">Matrícula</label>
-                      <input type="text" [(ngModel)]="infoForm.Matricula" name="pa-matricula" maxlength="20"
+                      <label for="pa-matricula" class="block text-sm font-semibold mb-1">Matrícula</label>
+                      <input id="pa-matricula" type="text" [(ngModel)]="infoForm.Matricula" name="pa-matricula" maxlength="20"
                              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                      <label class="block text-sm font-semibold mb-1">Cargo ou função</label>
-                      <input type="text" [(ngModel)]="infoForm.CargoFuncao" name="pa-cargo"
+                      <label for="pa-cargo" class="block text-sm font-semibold mb-1">Cargo ou função</label>
+                      <input id="pa-cargo" type="text" [(ngModel)]="infoForm.CargoFuncao" name="pa-cargo"
                              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <p class="text-xs text-gray-400 italic mt-1">Aparece nos atos de designação.</p>
+                      <p class="text-xs text-gray-500 italic mt-1">Aparece nos atos de designação.</p>
                     </div>
                     <div>
-                      <label class="block text-sm font-semibold mb-1">Vínculo <span class="text-red-600">*</span></label>
-                      <select [(ngModel)]="infoForm.Vinculo" name="pa-vinculo"
+                      <label for="pa-vinculo" class="block text-sm font-semibold mb-1">Vínculo <span class="text-red-600">*</span></label>
+                      <select id="pa-vinculo" [(ngModel)]="infoForm.Vinculo" name="pa-vinculo"
                               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option *ngFor="let v of vinculos" [value]="v">{{ v }}</option>
                       </select>
@@ -520,21 +520,21 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Nome da plataforma <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="plataformaForm.Nome" name="pl-nome" placeholder="Por exemplo: assistente de escrita XYZ"
+          <label for="pl-nome" class="block text-sm font-semibold mb-1">Nome da plataforma <span class="text-red-600">*</span></label>
+          <input id="pl-nome" type="text" [(ngModel)]="plataformaForm.Nome" name="pl-nome" placeholder="Por exemplo: assistente de escrita XYZ"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errPlataformaNome"
                  [class.bg-red-50]="errPlataformaNome"
                  [class.border-gray-300]="!errPlataformaNome">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Fornecedor</label>
-          <input type="text" [(ngModel)]="plataformaForm.Fornecedor" name="pl-fornecedor"
+          <label for="pl-fornecedor" class="block text-sm font-semibold mb-1">Fornecedor</label>
+          <input id="pl-fornecedor" type="text" [(ngModel)]="plataformaForm.Fornecedor" name="pl-fornecedor"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Situação da homologação <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="plataformaForm.StatusHomologacao" name="pl-status"
+          <label for="pl-status" class="block text-sm font-semibold mb-1">Situação da homologação <span class="text-red-600">*</span></label>
+          <select id="pl-status" [(ngModel)]="plataformaForm.StatusHomologacao" name="pl-status"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let s of statusPlataforma" [value]="s">{{ s }}</option>
           </select>
@@ -547,18 +547,18 @@
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Ato de homologação</label>
-          <input type="text" [(ngModel)]="plataformaForm.AtoHomologacao" name="pl-ato" placeholder="Instrução nº ___/2026, SGDI"
+          <label for="pl-ato" class="block text-sm font-semibold mb-1">Ato de homologação</label>
+          <input id="pl-ato" type="text" [(ngModel)]="plataformaForm.AtoHomologacao" name="pl-ato" placeholder="Instrução nº ___/2026, SGDI"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data de publicação da relação</label>
-          <input type="date" [(ngModel)]="plataformaForm.PublicadaRelacaoEm" name="pl-dtrel"
+          <label for="pl-dtrel" class="block text-sm font-semibold mb-1">Data de publicação da relação</label>
+          <input id="pl-dtrel" type="date" [(ngModel)]="plataformaForm.PublicadaRelacaoEm" name="pl-dtrel"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Diretrizes de uso</label>
-          <textarea rows="3" [(ngModel)]="plataformaForm.DiretrizesUso" name="pl-diretrizes"
+          <label for="pl-diretrizes" class="block text-sm font-semibold mb-1">Diretrizes de uso</label>
+          <textarea id="pl-diretrizes" rows="3" [(ngModel)]="plataformaForm.DiretrizesUso" name="pl-diretrizes"
                     placeholder="Explique o que o agente público pode e não pode fazer nesta plataforma (arts. 18, § 1º e 25, III, b)."
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
         </div>
@@ -620,16 +620,16 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Incidente em análise</label>
-          <select [(ngModel)]="incidenteSelecionadoId" name="ap-incidente" (ngModelChange)="aoTrocarIncidente()"
+          <label for="ap-incidente" class="block text-sm font-semibold mb-1">Incidente em análise</label>
+          <select id="ap-incidente" [(ngModel)]="incidenteSelecionadoId" name="ap-incidente" (ngModelChange)="aoTrocarIncidente()"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null">Escolha o incidente</option>
             <option *ngFor="let i of incidentes" [ngValue]="i.Id">{{ rotuloIncidente(i) }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Situação da apuração <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="apuracaoForm.StatusApuracao" name="ap-status"
+          <label for="ap-status" class="block text-sm font-semibold mb-1">Situação da apuração <span class="text-red-600">*</span></label>
+          <select id="ap-status" [(ngModel)]="apuracaoForm.StatusApuracao" name="ap-status"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let s of statusApuracao" [value]="s">{{ s }}</option>
           </select>
@@ -648,8 +648,8 @@
           </div>
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Recomendações ao órgão</label>
-          <textarea rows="3" [(ngModel)]="apuracaoForm.RecomendacoesSgdi" name="ap-recomendacoes"
+          <label for="ap-recomendacoes" class="block text-sm font-semibold mb-1">Recomendações ao órgão</label>
+          <textarea id="ap-recomendacoes" rows="3" [(ngModel)]="apuracaoForm.RecomendacoesSgdi" name="ap-recomendacoes"
                     placeholder="Descreva as medidas corretivas recomendadas."
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
         </div>
@@ -661,10 +661,10 @@
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Encaminhado ao órgão competente em</label>
-          <input type="date" [(ngModel)]="apuracaoForm.EncaminhadoOrgaoCompetenteEm" name="ap-encaminhado"
+          <label for="ap-encaminhado" class="block text-sm font-semibold mb-1">Encaminhado ao órgão competente em</label>
+          <input id="ap-encaminhado" type="date" [(ngModel)]="apuracaoForm.EncaminhadoOrgaoCompetenteEm" name="ap-encaminhado"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <p class="text-xs text-gray-400 italic mt-1">Art. 8º, IX.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Art. 8º, IX.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">O sistema foi suspenso? <span class="text-red-600">*</span></label>
@@ -674,9 +674,9 @@
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da suspensão
+          <label for="ap-dtsusp" class="block text-sm font-semibold mb-1">Data da suspensão
             <span *ngIf="apuracaoForm.SistemaSuspenso" class="text-red-600">*</span></label>
-          <input type="date" [(ngModel)]="apuracaoForm.DataSuspensao" name="ap-dtsusp"
+          <input id="ap-dtsusp" type="date" [(ngModel)]="apuracaoForm.DataSuspensao" name="ap-dtsusp"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errDataSuspensao"
                  [class.border-gray-300]="!errDataSuspensao">
@@ -695,16 +695,16 @@
          que agora são páginas separadas. -->
     <ng-template #seletorOrgaoSistema>
       <div>
-        <label class="block text-sm font-semibold mb-1">Órgão</label>
-        <select [(ngModel)]="orgaoSelecionadoId" name="rp-orgao" (ngModelChange)="aoTrocarOrgao()"
+        <label for="rp-orgao" class="block text-sm font-semibold mb-1">Órgão</label>
+        <select id="rp-orgao" [(ngModel)]="orgaoSelecionadoId" name="rp-orgao" (ngModelChange)="aoTrocarOrgao()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option [ngValue]="null">Escolha o órgão</option>
           <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
         </select>
       </div>
       <div>
-        <label class="block text-sm font-semibold mb-1">Sistema</label>
-        <select [(ngModel)]="sistemaSelecionadoId" name="rp-sistema" (ngModelChange)="aoTrocarSistema()"
+        <label for="rp-sistema" class="block text-sm font-semibold mb-1">Sistema</label>
+        <select id="rp-sistema" [(ngModel)]="sistemaSelecionadoId" name="rp-sistema" (ngModelChange)="aoTrocarSistema()"
                 [disabled]="!orgaoSelecionadoId || carregandoSistemas"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50">
           <option [ngValue]="null">{{ carregandoSistemas ? 'Carregando...' : 'Escolha o sistema' }}</option>
@@ -730,15 +730,15 @@
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da publicação</label>
-          <input type="date" [(ngModel)]="registroData" name="rp-data"
+          <label for="rp-data" class="block text-sm font-semibold mb-1">Data da publicação</label>
+          <input id="rp-data" type="date" [(ngModel)]="registroData" name="rp-data"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div class="md:col-span-2" *ngIf="sistemaSelecionado">
           <label class="block text-sm font-semibold mb-1">Endereço do resultado da AIA</label>
           <input type="text" readonly [value]="urlAiaPublicada || 'nenhuma avaliação publicada até agora'"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
-          <p class="text-xs text-gray-400 italic mt-1">Vem da avaliação de impacto registrada em "Publicação de AIA". Respeitados os segredos comerciais e industriais (art. 24, IV).</p>
+          <p class="text-xs text-gray-500 italic mt-1">Vem da avaliação de impacto registrada em "Publicação de AIA". Respeitados os segredos comerciais e industriais (art. 24, IV).</p>
         </div>
       </div>
 
@@ -833,8 +833,8 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Órgão</label>
-          <select [(ngModel)]="orgaoRelatoriosId" name="rs-orgao" (ngModelChange)="aoTrocarOrgaoRelatorios()"
+          <label for="rs-orgao" class="block text-sm font-semibold mb-1">Órgão</label>
+          <select id="rs-orgao" [(ngModel)]="orgaoRelatoriosId" name="rs-orgao" (ngModelChange)="aoTrocarOrgaoRelatorios()"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null">Escolha o órgão</option>
             <option *ngFor="let o of orgaos" [ngValue]="o.Id">{{ o.Sigla }} · {{ o.Nome }}</option>
@@ -926,35 +926,35 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Ano de referência <span class="text-red-600">*</span></label>
-          <input type="number" [(ngModel)]="anualForm.Ano" name="ra-ano"
+          <label for="ra-ano" class="block text-sm font-semibold mb-1">Ano de referência <span class="text-red-600">*</span></label>
+          <input id="ra-ano" type="number" [(ngModel)]="anualForm.Ano" name="ra-ano"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errAnualAno" [class.border-gray-300]="!errAnualAno">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da publicação</label>
-          <input type="date" [(ngModel)]="anualForm.DataPublicacao" name="ra-data"
+          <label for="ra-data" class="block text-sm font-semibold mb-1">Data da publicação</label>
+          <input id="ra-data" type="date" [(ngModel)]="anualForm.DataPublicacao" name="ra-data"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Endereço da publicação</label>
-          <input type="text" [(ngModel)]="anualForm.UrlPublicacao" name="ra-url" placeholder="URL no Portal da Transparência"
+          <label for="ra-url" class="block text-sm font-semibold mb-1">Endereço da publicação</label>
+          <input id="ra-url" type="text" [(ngModel)]="anualForm.UrlPublicacao" name="ra-url" placeholder="URL no Portal da Transparência"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Apreciado pelo CGTIC em</label>
-          <input type="date" [(ngModel)]="anualForm.ApreciadoCgticEm" name="ra-cgtic"
+          <label for="ra-cgtic" class="block text-sm font-semibold mb-1">Apreciado pelo CGTIC em</label>
+          <input id="ra-cgtic" type="date" [(ngModel)]="anualForm.ApreciadoCgticEm" name="ra-cgtic"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Recomendações</label>
-          <textarea rows="3" [(ngModel)]="anualForm.Recomendacoes" name="ra-recomendacoes"
+          <label for="ra-recomendacoes" class="block text-sm font-semibold mb-1">Recomendações</label>
+          <textarea id="ra-recomendacoes" rows="3" [(ngModel)]="anualForm.Recomendacoes" name="ra-recomendacoes"
                     placeholder="O que o relatório recomenda aos órgãos para o próximo ciclo."
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Agenda de inovação do exercício seguinte</label>
-          <textarea rows="3" [(ngModel)]="anualForm.AgendaInovacao" name="ra-agenda"
+          <label for="ra-agenda" class="block text-sm font-semibold mb-1">Agenda de inovação do exercício seguinte</label>
+          <textarea id="ra-agenda" rows="3" [(ngModel)]="anualForm.AgendaInovacao" name="ra-agenda"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
         </div>
         <div class="md:col-span-2">
@@ -964,7 +964,7 @@
             [criarDocumento]="criarDocumentoAnual"
             (documentoCriado)="aoCriarDocumentoAnual($event)">
           </app-pgia-anexo>
-          <p class="text-xs text-gray-400 italic mt-1">Depois de anexar, salve o relatório para guardar o arquivo nele.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Depois de anexar, salve o relatório para guardar o arquivo nele.</p>
         </div>
       </div>
 
@@ -1020,8 +1020,8 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Sistema auditado <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="auditoriaForm.SistemaIaId" name="au-sistema"
+          <label for="au-sistema" class="block text-sm font-semibold mb-1">Sistema auditado <span class="text-red-600">*</span></label>
+          <select id="au-sistema" [(ngModel)]="auditoriaForm.SistemaIaId" name="au-sistema"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   [class.border-red-500]="errAuditoriaSistema" [class.border-gray-300]="!errAuditoriaSistema">
             <option [ngValue]="null">Escolha o sistema</option>
@@ -1029,27 +1029,27 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Tipo <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="auditoriaForm.Tipo" name="au-tipoaud"
+          <label for="au-tipoaud" class="block text-sm font-semibold mb-1">Tipo <span class="text-red-600">*</span></label>
+          <select id="au-tipoaud" [(ngModel)]="auditoriaForm.Tipo" name="au-tipoaud"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let t of tiposAuditoria" [value]="t">{{ t }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Entidade auditora <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="auditoriaForm.EntidadeAuditora" name="au-entidade" placeholder="Por exemplo: Instituto Auditor Ltda."
+          <label for="au-entidade" class="block text-sm font-semibold mb-1">Entidade auditora <span class="text-red-600">*</span></label>
+          <input id="au-entidade" type="text" [(ngModel)]="auditoriaForm.EntidadeAuditora" name="au-entidade" placeholder="Por exemplo: Instituto Auditor Ltda."
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errAuditoriaEntidade" [class.bg-red-50]="errAuditoriaEntidade"
                  [class.border-gray-300]="!errAuditoriaEntidade">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Usuário da entidade auditora</label>
-          <select [(ngModel)]="auditoriaForm.AuditorUserId" name="au-auditor"
+          <label for="au-auditor" class="block text-sm font-semibold mb-1">Usuário da entidade auditora</label>
+          <select id="au-auditor" [(ngModel)]="auditoriaForm.AuditorUserId" name="au-auditor"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Escolher depois</option>
             <option *ngFor="let a of auditores" [value]="a.UserId">{{ a.Nome }} · {{ a.Email }}</option>
           </select>
-          <p class="text-xs text-gray-400 italic mt-1">É quem vê a auditoria na área dela e entrega o parecer.</p>
+          <p class="text-xs text-gray-500 italic mt-1">É quem vê a auditoria na área dela e entrega o parecer.</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Externa ao fornecedor? <span class="text-red-600">*</span></label>
@@ -1057,7 +1057,7 @@
             <label class="flex items-center gap-2"><input type="radio" name="au-externa" [value]="true" [(ngModel)]="auditoriaForm.ExternaFornecedor"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="au-externa" [value]="false" [(ngModel)]="auditoriaForm.ExternaFornecedor"> Não</label>
           </div>
-          <p class="text-xs text-gray-400 italic mt-1">O decreto exige que a entidade auditora seja externa ao fornecedor (art. 25, § 2º).</p>
+          <p class="text-xs text-gray-500 italic mt-1">O decreto exige que a entidade auditora seja externa ao fornecedor (art. 25, § 2º).</p>
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1">Apoio da FAPDF?</label>
@@ -1065,11 +1065,11 @@
             <label class="flex items-center gap-2"><input type="radio" name="au-fapdf" [value]="true" [(ngModel)]="auditoriaForm.ApoioFapdf"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="au-fapdf" [value]="false" [(ngModel)]="auditoriaForm.ApoioFapdf"> Não</label>
           </div>
-          <p class="text-xs text-gray-400 italic mt-1">A FAPDF pode dar suporte técnico-científico (art. 12, I).</p>
+          <p class="text-xs text-gray-500 italic mt-1">A FAPDF pode dar suporte técnico-científico (art. 12, I).</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Início dos trabalhos <span class="text-red-600">*</span></label>
-          <input type="date" [(ngModel)]="auditoriaForm.DataInicio" name="au-inicio"
+          <label for="au-inicio" class="block text-sm font-semibold mb-1">Início dos trabalhos <span class="text-red-600">*</span></label>
+          <input id="au-inicio" type="date" [(ngModel)]="auditoriaForm.DataInicio" name="au-inicio"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errAuditoriaInicio" [class.border-gray-300]="!errAuditoriaInicio">
         </div>
@@ -1080,7 +1080,7 @@
             [criarDocumento]="criarDocumentoAuditoria"
             (documentoCriado)="aoCriarDocumentoAuditoria($event)">
           </app-pgia-anexo>
-          <p class="text-xs text-gray-400 italic mt-1">Escolha o sistema antes de anexar. O relatório também pode ser anexado depois, editando a auditoria.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Escolha o sistema antes de anexar. O relatório também pode ser anexado depois, editando a auditoria.</p>
         </div>
       </div>
 
@@ -1130,7 +1130,7 @@
                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
           </div>
-          <p class="text-xs text-gray-400 italic mt-1">O resultado da auditoria é publicado no Portal da Transparência (art. 34).</p>
+          <p class="text-xs text-gray-500 italic mt-1">O resultado da auditoria é publicado no Portal da Transparência (art. 34).</p>
 
           <div class="mt-3">
             <button (click)="publicarAuditoria(a)" [disabled]="publicandoAuditoriaId === a.Id"
@@ -1151,8 +1151,8 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Órgão <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="ncForm.OrgaoId" name="nc-orgao"
+          <label for="nc-orgao" class="block text-sm font-semibold mb-1">Órgão <span class="text-red-600">*</span></label>
+          <select id="nc-orgao" [(ngModel)]="ncForm.OrgaoId" name="nc-orgao"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   [class.border-red-500]="errNcOrgao"
                   [class.border-gray-300]="!errNcOrgao">
@@ -1161,14 +1161,14 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Como foi identificada</label>
-          <input type="text" readonly value="Supervisão da SGDI"
+          <label for="nc-identificada" class="block text-sm font-semibold mb-1">Como foi identificada</label>
+          <input id="nc-identificada" type="text" readonly value="Supervisão da SGDI"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-600">
-          <p class="text-xs text-gray-400 italic mt-1">O que o SGTIC do órgão encontra é registrado por ele, na área do órgão.</p>
+          <p class="text-xs text-gray-500 italic mt-1">O que o SGTIC do órgão encontra é registrado por ele, na área do órgão.</p>
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">O que não foi cumprido? <span class="text-red-600">*</span></label>
-          <textarea rows="3" [(ngModel)]="ncForm.Descricao" name="nc-desc"
+          <label for="nc-desc" class="block text-sm font-semibold mb-1">O que não foi cumprido? <span class="text-red-600">*</span></label>
+          <textarea id="nc-desc" rows="3" [(ngModel)]="ncForm.Descricao" name="nc-desc"
                     placeholder="Descreva a situação e o sistema ou processo envolvido."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errNcDescricao"
@@ -1267,28 +1267,28 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Tipo <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="normaForm.Tipo" name="no-tipo"
+          <label for="no-tipo" class="block text-sm font-semibold mb-1">Tipo <span class="text-red-600">*</span></label>
+          <select id="no-tipo" [(ngModel)]="normaForm.Tipo" name="no-tipo"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let t of tiposNorma" [value]="t">{{ t }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Número</label>
-          <input type="text" [(ngModel)]="normaForm.Numero" name="no-numero" placeholder="Resolução nº ___/2026, CGTIC"
+          <label for="no-numero" class="block text-sm font-semibold mb-1">Número</label>
+          <input id="no-numero" type="text" [(ngModel)]="normaForm.Numero" name="no-numero" placeholder="Resolução nº ___/2026, CGTIC"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Ementa <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="normaForm.Ementa" name="no-ementa" placeholder="Do que a norma trata, em uma frase."
+          <label for="no-ementa" class="block text-sm font-semibold mb-1">Ementa <span class="text-red-600">*</span></label>
+          <input id="no-ementa" type="text" [(ngModel)]="normaForm.Ementa" name="no-ementa" placeholder="Do que a norma trata, em uma frase."
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errNormaEmenta"
                  [class.bg-red-50]="errNormaEmenta"
                  [class.border-gray-300]="!errNormaEmenta">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Quem emitiu <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="normaForm.Emissor" name="no-emissor"
+          <label for="no-emissor" class="block text-sm font-semibold mb-1">Quem emitiu <span class="text-red-600">*</span></label>
+          <select id="no-emissor" [(ngModel)]="normaForm.Emissor" name="no-emissor"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   [class.border-red-500]="errNormaEmissor"
                   [class.border-gray-300]="!errNormaEmissor">
@@ -1296,20 +1296,20 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da publicação <span class="text-red-600">*</span></label>
-          <input type="date" [(ngModel)]="normaForm.DataPublicacao" name="no-data"
+          <label for="no-data" class="block text-sm font-semibold mb-1">Data da publicação <span class="text-red-600">*</span></label>
+          <input id="no-data" type="date" [(ngModel)]="normaForm.DataPublicacao" name="no-data"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errNormaData"
                  [class.border-gray-300]="!errNormaData">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Endereço da norma</label>
-          <input type="text" [(ngModel)]="normaForm.Url" name="no-url" placeholder="URL da publicação"
+          <label for="no-url" class="block text-sm font-semibold mb-1">Endereço da norma</label>
+          <input id="no-url" type="text" [(ngModel)]="normaForm.Url" name="no-url" placeholder="URL da publicação"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Aprovada pelo CGTIC em</label>
-          <input type="date" [(ngModel)]="normaForm.AprovadaCgticEm" name="no-cgtic"
+          <label for="no-cgtic" class="block text-sm font-semibold mb-1">Aprovada pelo CGTIC em</label>
+          <input id="no-cgtic" type="date" [(ngModel)]="normaForm.AprovadaCgticEm" name="no-cgtic"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
@@ -1375,15 +1375,15 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Tipo de autorização <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="autorizacaoForm.Tipo" name="au-tipo"
+          <label for="au-tipo" class="block text-sm font-semibold mb-1">Tipo de autorização <span class="text-red-600">*</span></label>
+          <select id="au-tipo" [(ngModel)]="autorizacaoForm.Tipo" name="au-tipo"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let t of tiposAutorizacao" [value]="t">{{ t }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Órgão autorizado <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="autorizacaoForm.OrgaoId" name="au-orgao"
+          <label for="au-orgao" class="block text-sm font-semibold mb-1">Órgão autorizado <span class="text-red-600">*</span></label>
+          <select id="au-orgao" [(ngModel)]="autorizacaoForm.OrgaoId" name="au-orgao"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   [class.border-red-500]="errAutorizacaoOrgao"
                   [class.border-gray-300]="!errAutorizacaoOrgao">
@@ -1392,23 +1392,23 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Plataforma</label>
-          <select [(ngModel)]="autorizacaoForm.PlataformaId" name="au-plataforma"
+          <label for="au-plataforma" class="block text-sm font-semibold mb-1">Plataforma</label>
+          <select id="au-plataforma" [(ngModel)]="autorizacaoForm.PlataformaId" name="au-plataforma"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option [ngValue]="null">Não se aplica</option>
             <option *ngFor="let p of plataformas" [ngValue]="p.Id">{{ p.Nome }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Quem autorizou <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="autorizacaoForm.AutorizadaPor" name="au-por"
+          <label for="au-por" class="block text-sm font-semibold mb-1">Quem autorizou <span class="text-red-600">*</span></label>
+          <select id="au-por" [(ngModel)]="autorizacaoForm.AutorizadaPor" name="au-por"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option *ngFor="let a of autorizadaPor" [value]="a">{{ a }}</option>
           </select>
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Justificativa <span class="text-red-600">*</span></label>
-          <textarea rows="3" [(ngModel)]="autorizacaoForm.Justificativa" name="au-just"
+          <label for="au-just" class="block text-sm font-semibold mb-1">Justificativa <span class="text-red-600">*</span></label>
+          <textarea id="au-just" rows="3" [(ngModel)]="autorizacaoForm.Justificativa" name="au-just"
                     placeholder="Explique por que a exceção é necessária e que cuidados foram tomados."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errAutorizacaoJustificativa"
@@ -1416,9 +1416,9 @@
                     [class.border-gray-300]="!errAutorizacaoJustificativa"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Deliberação do CGTIC
+          <label for="au-delib" class="block text-sm font-semibold mb-1">Deliberação do CGTIC
             <span *ngIf="exigeDeliberacao" class="text-red-600">*</span></label>
-          <select [(ngModel)]="autorizacaoForm.DeliberacaoCgticId" name="au-delib"
+          <select id="au-delib" [(ngModel)]="autorizacaoForm.DeliberacaoCgticId" name="au-delib"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   [class.border-red-500]="errAutorizacaoDeliberacao"
                   [class.border-gray-300]="!errAutorizacaoDeliberacao">
@@ -1427,21 +1427,21 @@
               {{ d.DataDeliberacao | date:'dd/MM/yyyy':'UTC' }} · {{ d.Tipo }} · {{ d.Resultado }}
             </option>
           </select>
-          <p *ngIf="exigeDeliberacao" class="text-xs text-gray-400 italic mt-1">Treinar modelos com dados do GDF só acontece com
+          <p *ngIf="exigeDeliberacao" class="text-xs text-gray-500 italic mt-1">Treinar modelos com dados do GDF só acontece com
           deliberação do comitê (art. 21).</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data da autorização <span class="text-red-600">*</span></label>
-          <input type="date" [(ngModel)]="autorizacaoForm.DataAutorizacao" name="au-data"
+          <label for="au-data" class="block text-sm font-semibold mb-1">Data da autorização <span class="text-red-600">*</span></label>
+          <input id="au-data" type="date" [(ngModel)]="autorizacaoForm.DataAutorizacao" name="au-data"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errAutorizacaoData"
                  [class.border-gray-300]="!errAutorizacaoData">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Vale até</label>
-          <input type="date" [(ngModel)]="autorizacaoForm.VigenciaFim" name="au-vigencia"
+          <label for="au-vigencia" class="block text-sm font-semibold mb-1">Vale até</label>
+          <input id="au-vigencia" type="date" [(ngModel)]="autorizacaoForm.VigenciaFim" name="au-vigencia"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <p class="text-xs text-gray-400 italic mt-1">Deixe em branco se a autorização não tem prazo definido.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Deixe em branco se a autorização não tem prazo definido.</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Avaliação de riscos (documento)</label>
@@ -1450,7 +1450,7 @@
             [criarDocumento]="criarDocumentoAvaliacaoRiscos"
             (documentoCriado)="aoCriarDocumentoAvaliacaoRiscos($event)">
           </app-pgia-anexo>
-          <p class="text-xs text-gray-400 italic mt-1">Escolha o órgão antes de anexar; depois salve a autorização para guardar o documento nela.</p>
+          <p class="text-xs text-gray-500 italic mt-1">Escolha o órgão antes de anexar; depois salve a autorização para guardar o documento nela.</p>
         </div>
       </div>
 

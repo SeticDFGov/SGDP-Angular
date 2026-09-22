@@ -26,7 +26,7 @@
       <ng-container *ngIf="!documentoId && !criarDocumento">
         <input type="text" readonly [value]="'anexo indisponível por enquanto'"
                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-500">
-        <p class="text-xs text-gray-400 italic mt-1">{{ avisoSemDocumento }}</p>
+        <p class="text-xs text-gray-500 italic mt-1">{{ avisoSemDocumento }}</p>
       </ng-container>
 
       <!-- Pronto para enviar -->
@@ -37,7 +37,7 @@
           {{ enviando ? 'Enviando...' : 'Escolher arquivo' }}
           <input type="file" class="hidden" [accept]="aceita" [disabled]="enviando" (change)="aoEscolherArquivo($event)">
         </label>
-        <p class="text-xs text-gray-400 italic mt-1">Até 25 MB, nos formatos pdf, doc, docx, odt, xls, xlsx, ods, csv, txt, png, jpg ou jpeg.</p>
+        <p class="text-xs text-gray-500 italic mt-1">Até 25 MB, nos formatos pdf, doc, docx, odt, xls, xlsx, ods, csv, txt, png, jpg ou jpeg.</p>
       </ng-container>
     </ng-container>
   </ng-container>

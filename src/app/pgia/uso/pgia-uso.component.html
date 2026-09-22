@@ -29,8 +29,8 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold mb-1">Qual sistema ou plataforma você usou? <span class="text-red-600">*</span></label>
-          <select [(ngModel)]="fonteEscolhida" name="uso-fonte"
+          <label for="uso-fonte" class="block text-sm font-semibold mb-1">Qual sistema ou plataforma você usou? <span class="text-red-600">*</span></label>
+          <select id="uso-fonte" [(ngModel)]="fonteEscolhida" name="uso-fonte"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   [class.border-red-500]="errFonte"
                   [class.border-gray-300]="!errFonte">
@@ -42,26 +42,26 @@
               <option *ngFor="let s of fontes.Sistemas" [ngValue]="'sistema:' + s.Id">{{ s.Denominacao }}</option>
             </optgroup>
           </select>
-          <p class="text-xs text-gray-400 italic mt-1">Só aparecem as plataformas homologadas pela SGDI. Em plataformas de fora desta lista, use apenas informações públicas (art. 20).</p>
+          <p class="text-xs text-gray-500 italic mt-1">Só aparecem as plataformas homologadas pela SGDI. Em plataformas de fora desta lista, use apenas informações públicas (art. 20).</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Data do uso <span class="text-red-600">*</span></label>
-          <input type="date" [(ngModel)]="dataUso" name="uso-data"
+          <label for="uso-data" class="block text-sm font-semibold mb-1">Data do uso <span class="text-red-600">*</span></label>
+          <input id="uso-data" type="date" [(ngModel)]="dataUso" name="uso-data"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errData"
                  [class.border-gray-300]="!errData">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1">Em qual documento ou produto? <span class="text-red-600">*</span></label>
-          <input type="text" [(ngModel)]="produtoRef" name="uso-produto" placeholder="Por exemplo: minuta da nota técnica nº 15/2026"
+          <label for="uso-produto" class="block text-sm font-semibold mb-1">Em qual documento ou produto? <span class="text-red-600">*</span></label>
+          <input id="uso-produto" type="text" [(ngModel)]="produtoRef" name="uso-produto" placeholder="Por exemplo: minuta da nota técnica nº 15/2026"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errProduto"
                  [class.bg-red-50]="errProduto"
                  [class.border-gray-300]="!errProduto">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Processo SEI, se houver</label>
-          <input type="text" [(ngModel)]="processoSei" name="uso-sei" placeholder="00040-00054321/2026-90" maxlength="25"
+          <label for="uso-sei" class="block text-sm font-semibold mb-1">Processo SEI, se houver</label>
+          <input id="uso-sei" type="text" [(ngModel)]="processoSei" name="uso-sei" placeholder="00040-00054321/2026-90" maxlength="25"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
       </div>

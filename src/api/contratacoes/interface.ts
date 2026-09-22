@@ -29,6 +29,12 @@ export const CATEGORIAS_OBJETO = [
 export const CATEGORIA_SEM_OBJETO = 'Sem objeto / Indefinido';
 
 /**
+ * Onde a solução será hospedada (espelha CtrDominios.HospedagemCetic). "Não aplicável"
+ * é a solução contratada como serviço (SaaS), que roda no fornecedor. Nulo = não informado.
+ */
+export const HOSPEDAGENS_CETIC = ['Sim', 'Não', 'Parcialmente', 'Não aplicável (SaaS)'] as const;
+
+/**
  * Situação derivada do processo (nunca gravada: o backend calcula a partir das
  * datas do trâmite e da restituição). A ordem é a da precedência do cálculo:
  * a assinatura do contrato vence tudo (`Concluído`, o processo sai da lista e
@@ -210,6 +216,12 @@ export interface CtrProcessoForm {
   ComplementoArea?: string | null;
   Objeto: string;
   CategoriaObjeto: string;
+  /** Valor estimado da contratação, em reais (numeric(18,2)); nulo = não informado. */
+  ValorEstimado?: number | null;
+  /** Um dos HOSPEDAGENS_CETIC; nulo = não informado. */
+  HospedagemCetic?: string | null;
+  /** A solução usará a rede GDFNet; nulo = não informado. */
+  UsaGdfnet?: boolean | null;
   ChegadaSgdi?: string | null;
   ChegadaSubgd?: string | null;
   ChegadaUgtic?: string | null;

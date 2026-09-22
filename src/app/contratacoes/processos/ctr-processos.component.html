@@ -176,7 +176,7 @@
       <div *ngIf="semNenhumProcesso" class="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
         <span class="material-icons text-4xl text-gray-300" aria-hidden="true">folder_open</span>
         <p class="text-sm text-gray-700 mt-2">Ainda não há processos cadastrados.</p>
-        <p class="text-xs text-gray-400 italic mt-1">Cadastre um processo ou traga a planilha de acompanhamento da equipe.</p>
+        <p class="text-xs text-gray-500 italic mt-1">Cadastre um processo ou traga a planilha de acompanhamento da equipe.</p>
         <div class="mt-4 flex items-center justify-center gap-3">
           <a routerLink="/analises/processos/novo"
              class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">Cadastrar processo</a>
@@ -208,7 +208,7 @@
             <tr *ngFor="let p of processos" class="border-b border-gray-200 align-top hover:bg-gray-50">
               <td class="px-3 py-2">
                 <a [routerLink]="['/analises/processos/editar', p.Id]"
-                   class="whitespace-nowrap font-semibold text-blue-800 hover:underline">{{ p.NumeroProcesso }}</a>
+                   class="whitespace-nowrap font-semibold text-blue-800 underline">{{ p.NumeroProcesso }}</a>
                 <span class="block mt-0.5">
                   <span class="font-semibold text-gray-900">{{ p.OrgaoSigla }}</span>
                   <span *ngIf="p.Origem === 'TCDF'"
@@ -216,7 +216,7 @@
                         title="Processo cadastrado a partir de análise interna do Tribunal">TCDF</span>
                 </span>
                 <span class="block text-xs text-gray-500">{{ p.OrgaoNome }}</span>
-                <span *ngIf="p.ComplementoArea" class="block text-xs text-gray-400 italic">{{ p.ComplementoArea }}</span>
+                <span *ngIf="p.ComplementoArea" class="block text-xs text-gray-500 italic">{{ p.ComplementoArea }}</span>
               </td>
               <td class="px-3 py-2">
                 <span class="block w-64 truncate" [title]="p.Objeto">{{ p.Objeto }}</span>
@@ -260,7 +260,7 @@
                 <span *ngIf="p.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeCriticidade(p.Criticidade)"
                       title="Criticidade da contratação (art. 11 da IN)">{{ p.Criticidade }}</span>
-                <span *ngIf="!p.Criticidade" class="text-xs text-gray-400 italic">sem criticidade</span>
+                <span *ngIf="!p.Criticidade" class="text-xs text-gray-500 italic">sem criticidade</span>
                 <!-- Pontos dos critérios; sem eles a criticidade veio de antes da regra automática -->
                 <span *ngIf="p.PontosCriticidade != null" class="block text-xs text-gray-500 mt-1">{{ p.PontosCriticidade }} ponto(s)</span>
                 <span *ngIf="p.EtapaPlanejamento" class="block text-xs text-gray-500 mt-1"
@@ -271,7 +271,7 @@
                       class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeNivelRisco(p.NivelMaximoRiscoDeclarado)"
                       title="Maior nível entre os riscos da contratação, pelo mapa de riscos da CGDF">{{ p.NivelMaximoRiscoDeclarado }}</span>
-                <span *ngIf="!p.NivelMaximoRiscoDeclarado" class="text-xs text-gray-400 italic">sem riscos</span>
+                <span *ngIf="!p.NivelMaximoRiscoDeclarado" class="text-xs text-gray-500 italic">sem riscos</span>
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <div class="inline-flex items-center gap-1">
@@ -319,7 +319,7 @@
   <!-- ── Modal: registrar andamento em uma etapa ───────────────────────── -->
   <div *ngIf="secao === 'lista' && processoCheckpoint"
        class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6" role="dialog" aria-modal="true" aria-labelledby="ctr-cp-titulo">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6" appDialogo aria-labelledby="ctr-cp-titulo" (fechar)="fecharCheckpoint()">
       <h3 id="ctr-cp-titulo" class="text-base font-semibold text-blue-900 mb-1">Registrar andamento</h3>
       <p class="text-sm text-gray-600 mb-4">Processo {{ processoCheckpoint.NumeroProcesso }} ·
       {{ processoCheckpoint.OrgaoSigla }}</p>
@@ -333,8 +333,8 @@
       <label class="block text-sm font-semibold mb-1" for="ctr-cp-data">Data</label>
       <input id="ctr-cp-data" type="date" [(ngModel)]="checkpointData" name="ctr-cp-data"
              [disabled]="checkpointLimpar || (etapaAceitaNaoSeAplica && checkpointNaoSeAplica)"
-             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
-      <p class="text-xs text-gray-400 italic mt-1">Vem preenchida com a data de hoje; troque se a chegada foi em outro dia.</p>
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
+      <p class="text-xs text-gray-500 italic mt-1">Vem preenchida com a data de hoje; troque se a chegada foi em outro dia.</p>
       <p *ngIf="checkpointEtapa === etapaAssinatura" class="text-xs text-green-800 mt-1">Com esta data o processo fica
       Concluído: sai da lista e passa para a relação de concluídos do painel.</p>
 

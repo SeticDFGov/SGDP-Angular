@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "temas": "node scripts/temas/gerar-temas.mjs",
+    "prestart": "npm run temas",
     "start": "ng serve",
+    "prebuild": "npm run temas",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",

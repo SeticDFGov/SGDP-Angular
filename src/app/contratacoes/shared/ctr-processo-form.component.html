@@ -4,7 +4,7 @@
      class="border-l-4 border-blue-400 bg-blue-50 p-3 rounded-r-md text-sm text-blue-950 mb-4">
   <p><strong>Origem: TCDF.</strong> Este cadastro é de contratação que chegou por análise interna do Tribunal sobre o
   contrato, sem ter passado pelo órgão de origem.</p>
-  <p class="text-xs text-gray-400 italic mt-1">A origem já vai gravada como "TCDF"; não há campo para escolher.</p>
+  <p class="text-xs text-gray-500 italic mt-1">A origem já vai gravada como "TCDF"; não há campo para escolher.</p>
 </div>
 
 <div *ngIf="origemFixa !== origemTcdf && form.Origem === origemTcdf"
@@ -19,7 +19,7 @@
     <span class="material-icons text-xl leading-none text-blue-700 bg-blue-50 rounded-full p-2" aria-hidden="true">{{ icone }}</span>
     <div>
       <h3 class="text-sm font-semibold text-blue-900">{{ titulo }}</h3>
-      <p *ngIf="ajuda" class="text-xs text-gray-400 italic mt-0.5">{{ ajuda }}</p>
+      <p *ngIf="ajuda" class="text-xs text-gray-500 italic mt-0.5">{{ ajuda }}</p>
     </div>
   </div>
 </ng-template>
@@ -41,7 +41,7 @@
              [class.bg-red-50]="submetido && errNumero"
              [class.border-gray-300]="!(submetido && errNumero)">
       <p *ngIf="submetido && errNumero" class="text-xs text-red-600 mt-1">{{ errNumero }}</p>
-      <p class="text-xs text-gray-400 italic mt-1">Digite só os números: a pontuação é preenchida sozinha.</p>
+      <p class="text-xs text-gray-500 italic mt-1">Digite só os números: a pontuação é preenchida sozinha.</p>
     </div>
 
     <div>
@@ -53,7 +53,7 @@
               [class.border-gray-300]="!(submetido && errCategoria)">
         <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
       </select>
-      <p class="text-xs text-gray-400 italic mt-1">Use "Sem objeto / Indefinido" quando o processo ainda não define o objeto.</p>
+      <p class="text-xs text-gray-500 italic mt-1">Use "Sem objeto / Indefinido" quando o processo ainda não define o objeto.</p>
     </div>
 
     <div>
@@ -81,7 +81,7 @@
         <option *ngFor="let s of siglas" [value]="s"></option>
       </datalist>
       <p *ngIf="submetido && errOrgaoSigla" class="text-xs text-red-600 mt-1">{{ errOrgaoSigla }}</p>
-      <p class="text-xs text-gray-400 italic mt-1">A sigla é gravada em caixa alta. A lista sugere as siglas já usadas.</p>
+      <p class="text-xs text-gray-500 italic mt-1">A sigla é gravada em caixa alta. A lista sugere as siglas já usadas.</p>
     </div>
 
     <div class="md:col-span-2">
@@ -102,6 +102,65 @@
                 [class.border-gray-300]="!(submetido && errObjeto)"></textarea>
       <p *ngIf="submetido && errObjeto" class="text-xs text-red-600 mt-1">{{ errObjeto }}</p>
     </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-valor">Valor estimado da contratação</label>
+      <div class="relative">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-sm text-gray-600 pointer-events-none" aria-hidden="true">R$</span>
+        <input id="ctr-valor" type="text" inputmode="decimal" [value]="valorTexto"
+               (input)="aoDigitarValor($any($event.target).value)" (blur)="aoSairDoValor()"
+               placeholder="0,00" aria-describedby="ctr-valor-ajuda"
+               [attr.data-erro]="submetido && errValor ? 'sim' : null"
+               class="w-full pl-10 pr-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+               [class.border-red-500]="submetido && errValor"
+               [class.bg-red-50]="submetido && errValor"
+               [class.border-gray-300]="!(submetido && errValor)">
+      </div>
+      <p *ngIf="submetido && errValor" class="text-xs text-red-600 mt-1">{{ errValor }}</p>
+      <p id="ctr-valor-ajuda" class="text-xs text-gray-500 italic mt-1">Em reais, como consta no processo. Deixe em branco se ainda não houver estimativa.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Infraestrutura da solução ──────────────────────────────────────────── -->
+<section *ngIf="!compacto" class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'dns', titulo: 'Infraestrutura da solução',
+    ajuda: 'Onde a solução vai rodar e se ela usará a rede do GDF.' }"></ng-container>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <fieldset>
+      <legend class="block text-sm font-semibold mb-1">A solução será hospedada no CeTIC-DF?</legend>
+      <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-hospedagem" [checked]="!form.HospedagemCetic" (change)="form.HospedagemCetic = null">
+          Não informado
+        </label>
+        <label *ngFor="let h of hospedagens" class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-hospedagem" [value]="h" [checked]="form.HospedagemCetic === h" (change)="form.HospedagemCetic = h">
+          {{ h }}
+        </label>
+      </div>
+      <p class="text-xs text-gray-500 italic mt-1">"Não aplicável" quando a solução é contratada como serviço (SaaS) e roda no fornecedor.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend class="block text-sm font-semibold mb-1">A solução utilizará a rede GDFNet?</legend>
+      <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-gdfnet" [checked]="form.UsaGdfnet == null" (change)="form.UsaGdfnet = null">
+          Não informado
+        </label>
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-gdfnet" [checked]="form.UsaGdfnet === true" (change)="form.UsaGdfnet = true">
+          Sim
+        </label>
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="radio" name="ctr-gdfnet" [checked]="form.UsaGdfnet === false" (change)="form.UsaGdfnet = false">
+          Não
+        </label>
+      </div>
+    </fieldset>
   </div>
 </section>
 
@@ -119,7 +178,7 @@
         <option [ngValue]="null">Não informada</option>
         <option *ngFor="let e of etapasPlanejamento" [ngValue]="e.valor">{{ e.valor }} ({{ e.rotulo }})</option>
       </select>
-      <p class="text-xs text-gray-400 italic mt-1">Continua registrada depois da assinatura do contrato: é onde o
+      <p class="text-xs text-gray-500 italic mt-1">Continua registrada depois da assinatura do contrato: é onde o
       planejamento parou.</p>
     </div>
   </div>
@@ -141,17 +200,20 @@
   <div class="space-y-2">
     <div *ngFor="let c of criterios" class="border border-gray-200 rounded-lg p-3 bg-gray-50">
       <div class="flex items-start justify-between gap-3 flex-wrap">
-        <p class="text-sm text-gray-800"><span class="font-semibold text-blue-900">{{ c.codigo }}.</span> {{ c.pergunta }}</p>
+        <p [id]="'ctr-criterio-pergunta-' + c.codigo" class="text-sm text-gray-800"><span class="font-semibold text-blue-900">{{ c.codigo }}.</span> {{ c.pergunta }}</p>
         <span class="text-xs text-gray-500 whitespace-nowrap">{{ c.citacao }} da IN</span>
       </div>
-      <div class="flex flex-wrap gap-3 mt-2">
+      <div class="flex flex-wrap gap-3 mt-2" role="radiogroup" [attr.aria-labelledby]="'ctr-criterio-pergunta-' + c.codigo">
         <label *ngFor="let r of c.respostas" class="flex items-center gap-1 text-sm cursor-pointer">
           <input type="radio" [name]="'ctr-criterio-' + c.codigo" [value]="r" [checked]="respostaDe(c.codigo) === r"
                  (change)="responderCriterio(c.codigo, r)">
           <span>{{ r }}</span>
         </label>
       </div>
-      <p class="text-xs text-gray-400 italic mt-1">{{ c.ajuda }}</p>
+      <p class="text-xs text-gray-500 italic mt-1">{{ c.ajuda }}</p>
+      <p *ngIf="c.codigo === 'VII' && form.ValorEstimado != null" class="text-xs text-gray-700 mt-1">
+        Valor estimado informado na identificação: <strong>{{ formatarReais(form.ValorEstimado) }}</strong>.
+      </p>
     </div>
   </div>
 
@@ -162,7 +224,7 @@
     <span *ngIf="pontosAtuais !== null" class="text-xs text-gray-500">{{ pontosAtuais }} ponto(s)<ng-container
       *ngIf="valorNoLimite">, valor estimado no limite do inciso VII</ng-container></span>
   </div>
-  <p class="text-xs text-gray-400 italic mt-1">A manifestação do inciso I ao TCDF reporta esta criticidade e não é
+  <p class="text-xs text-gray-500 italic mt-1">A manifestação do inciso I ao TCDF reporta esta criticidade e não é
   registrada sem ela.</p>
 </section>
 
@@ -174,7 +236,7 @@
 
   <app-ctr-classificacao-risco [edicao]="risco" [mostrarErros]="submetido"></app-ctr-classificacao-risco>
 </section>
-<p *ngIf="compacto" class="text-xs text-gray-400 italic mt-6">Os riscos da contratação ficam para a página do processo,
+<p *ngIf="compacto" class="text-xs text-gray-500 italic mt-6">Os riscos da contratação ficam para a página do processo,
 depois do cadastro.</p>
 
 <ng-container *ngIf="!compacto">
@@ -194,7 +256,7 @@ depois do cadastro.</p>
                (ngModelChange)="definirCheckpoint(c.campo, $event)"
                [disabled]="(c.campo === 'ChegadaUgtic' && form.UgticNaoSeAplica)
                            || (c.campo === 'RetornoOrgao' && form.RetornoOrgaoNaoSeAplica)"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
         <p *ngIf="c.campo === campoAssinatura && form.DataAssinaturaContrato" class="text-xs text-green-800 mt-1">
           Ao salvar, o processo fica Concluído: sai da lista e passa para a relação de concluídos do painel.
         </p>
@@ -210,7 +272,7 @@ depois do cadastro.</p>
                  class="rounded border-gray-300">
           <span>Não se aplica (o processo não é devolvido ao órgão)</span>
         </label>
-        <p class="text-xs text-gray-400 italic mt-1">{{ c.ajuda }}</p>
+        <p class="text-xs text-gray-500 italic mt-1">{{ c.ajuda }}</p>
       </div>
     </div>
   </section>
@@ -227,7 +289,7 @@ depois do cadastro.</p>
         <input id="ctr-esclarecimento-em" type="date" [ngModel]="form.EsclarecimentoSolicitadoEm" name="ctr-esclarecimento-em"
                (ngModelChange)="aoTrocarEsclarecimentoSolicitado($event)"
                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <p class="text-xs text-gray-400 italic mt-1">Limpar esta data apaga o que foi pedido e a data da resposta.</p>
+        <p class="text-xs text-gray-500 italic mt-1">Limpar esta data apaga o que foi pedido e a data da resposta.</p>
       </div>
 
       <div class="md:col-span-2">
@@ -238,7 +300,7 @@ depois do cadastro.</p>
                   [disabled]="!form.EsclarecimentoSolicitadoEm"
                   placeholder="Que informação foi solicitada ao órgão comunicante."
                   [attr.data-erro]="submetido && errEsclarecimentoDescricao ? 'sim' : null"
-                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                   [class.border-red-500]="submetido && errEsclarecimentoDescricao"
                   [class.bg-red-50]="submetido && errEsclarecimentoDescricao"
                   [class.border-gray-300]="!(submetido && errEsclarecimentoDescricao)"></textarea>
@@ -249,8 +311,8 @@ depois do cadastro.</p>
         <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-resposta">Resposta do órgão em</label>
         <input id="ctr-esclarecimento-resposta" type="date" [(ngModel)]="form.EsclarecimentoRespondidoEm" name="ctr-esclarecimento-resposta"
                [disabled]="!form.EsclarecimentoSolicitadoEm"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
-        <p class="text-xs text-gray-400 italic mt-1">Preenchida, a sinalização sai da lista. Não pode ser anterior ao pedido.</p>
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
+        <p class="text-xs text-gray-500 italic mt-1">Preenchida, a sinalização sai da lista. Não pode ser anterior ao pedido.</p>
       </div>
     </div>
   </section>
@@ -294,7 +356,7 @@ depois do cadastro.</p>
 
 <!-- No modo compacto o trâmite fica de fora: processo cadastrado pelo TCDF
      costuma nascer sem nenhuma data de tramitação. -->
-<p *ngIf="compacto" class="text-xs text-gray-400 italic mt-2">As datas de tramitação e a restituição ficam para a página
+<p *ngIf="compacto" class="text-xs text-gray-500 italic mt-2">As datas de tramitação e a restituição ficam para a página
 do processo, quando houver. O cadastro do TCDF normalmente começa sem elas.</p>
 
 <!-- ── Observação ──────────────────────────────────────────────────────── -->
@@ -335,5 +397,5 @@ do processo, quando houver. O cadastro do TCDF normalmente começa sem elas.</p>
   <span *ngIf="submetido && totalProblemas > 0" class="text-xs font-semibold text-red-700">
     {{ totalProblemas === 1 ? '1 item para corrigir' : totalProblemas + ' itens para corrigir' }}
   </span>
-  <span *ngIf="!(submetido && totalProblemas > 0) && alterado" class="text-xs text-gray-400 italic">Há alterações não salvas.</span>
+  <span *ngIf="!(submetido && totalProblemas > 0) && alterado" class="text-xs text-gray-500 italic">Há alterações não salvas.</span>
 </div>

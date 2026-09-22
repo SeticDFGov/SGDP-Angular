@@ -1,6 +1,7 @@
 <div class="min-h-screen bg-gray-100 flex flex-col">
 
-  <header class="sticky top-0 z-30 shadow-md">
+  <!-- id="menu" e id="conteudo": destinos dos atalhos da barra de acessibilidade -->
+  <header id="menu" tabindex="-1" class="sticky top-0 z-30 shadow-md">
     <!-- Barra principal -->
     <div class="bg-slate-900 text-white">
       <div class="h-16 px-4 md:px-6 flex items-center gap-3 md:gap-5">
@@ -24,7 +25,7 @@
         </nav>
 
         <div class="ml-auto flex items-center gap-2 md:gap-3">
-          <a *ngIf="!naInicio" routerLink="/inicio"
+          <a *ngIf="!naInicio" routerLink="/inicio" aria-label="Voltar ao início"
              class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors">
             <span class="material-icons text-lg" aria-hidden="true">home</span>
             <span class="hidden md:inline">Voltar ao início</span>
@@ -34,7 +35,8 @@
           <div class="relative">
             <button type="button" (click)="menuAberto = !menuAberto"
                     class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
-                    aria-haspopup="menu" [attr.aria-expanded]="menuAberto" title="Conta">
+                    aria-haspopup="menu" [attr.aria-expanded]="menuAberto" title="Conta"
+                    [attr.aria-label]="'Menu da conta de ' + (user?.Nome || 'usuário')">
               <span class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-500 flex items-center justify-center text-sm font-bold">
                 {{ iniciais }}
               </span>
@@ -94,7 +96,7 @@
     </div>
   </header>
 
-  <main class="flex-1 p-4 md:p-6">
+  <main id="conteudo" tabindex="-1" class="flex-1 p-4 md:p-6">
     <router-outlet></router-outlet>
   </main>
 </div>

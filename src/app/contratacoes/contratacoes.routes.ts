@@ -1,5 +1,5 @@
 import { Type } from '@angular/core';
-import { Routes } from '@angular/router';
+import { ResolveFn, Routes } from '@angular/router';
 import { CtrProcessosComponent } from './processos/ctr-processos.component';
 import { CtrProcessoEditarComponent } from './processos/ctr-processo-editar.component';
 import { CtrPainelComponent } from './painel/ctr-painel.component';
@@ -14,17 +14,24 @@ import { CtrImportacaoComponent } from './importacao/ctr-importacao.component';
  * as chamadas da área. Com o parâmetro, o componente é reaproveitado e só o
  * campo `secao` muda (ver `acompanharSecao`, reaproveitado de `pgia/shared`).
  *
- * A raiz de cada área redireciona para a primeira seção.
+ * A raiz de cada área redireciona para a primeira seção. O título da aba do
+ * navegador (acessibilidade, WCAG 2.4.2) vem do nome da seção.
  */
-function secoes(base: string, componente: Type<unknown>, nomes: readonly string[]): Routes {
+function secoes(base: string, componente: Type<unknown>, titulos: Readonly<Record<string, string>>): Routes {
+  const nomes = Object.keys(titulos);
   return [
     { path: base, pathMatch: 'full', redirectTo: `${base}/${nomes[0]}` },
     {
       path: `${base}/:secao`,
       component: componente,
+      title: tituloDaSecao(titulos),
       data: { secoes: nomes, base: `/analises/${base}` }
     }
   ];
+}
+
+function tituloDaSecao(titulos: Readonly<Record<string, string>>): ResolveFn<string> {
+  return rota => titulos[rota.paramMap.get('secao') ?? ''] ?? '';
 }
 
 /**
@@ -36,13 +43,19 @@ function secoes(base: string, componente: Type<unknown>, nomes: readonly string[
 export const contratacoes_routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'processos/lista' },
 
-  ...secoes('processos', CtrProcessosComponent, ['lista', 'novo']),
-  { path: 'processos/editar/:id', component: CtrProcessoEditarComponent, data: { prerender: false } },
+  ...secoes('processos', CtrProcessosComponent, { 'lista': 'Lista de processos', 'novo': 'Novo processo' }),
+  { path: 'processos/editar/:id', component: CtrProcessoEditarComponent, title: 'Processo', data: { prerender: false } },
 
-  { path: 'painel', component: CtrPainelComponent },
+  { path: 'painel', component: CtrPainelComponent, title: 'Painel' },
 
-  ...secoes('manifestacoes', CtrManifestacoesComponent, ['lista', 'nova']),
-  { path: 'manifestacoes/editar/:id', component: CtrManifestacaoEditarComponent, data: { prerender: false } },
+  ...secoes('manifestacoes', CtrManifestacoesComponent, {
+    'lista': 'Manifestações registradas',
+    'nova': 'Nova manifestação ao TCDF'
+  }),
+  {
+    path: 'manifestacoes/editar/:id', component: CtrManifestacaoEditarComponent,
+    title: 'Manifestação ao TCDF', data: { prerender: false }
+  },
 
-  { path: 'importacao', component: CtrImportacaoComponent }
+  { path: 'importacao', component: CtrImportacaoComponent, title: 'Importar planilha' }
 ];
