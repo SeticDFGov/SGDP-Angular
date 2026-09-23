@@ -18,16 +18,24 @@
         <div class="text-sm">
           <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Secretaria de Estado de Governança
           Digital e Integração (SGDI) · Despacho</p>
-          <p><strong>Processo SEI nº:</strong> {{ manifestacao.NumeroProcesso }}</p>
+          <!-- O mesmo número que o PDF traz: o processo de comunicação do TCDF (sem ele, o da contratação) -->
+          <p><strong>Processo SEI nº:</strong> {{ manifestacao.ProcessoComunicacaoTcdf || manifestacao.NumeroProcesso }}</p>
           <p><strong>Referência:</strong> Ofício/Comunicação TCDF nº {{ manifestacao.OficioTcdf }}, de
           {{ manifestacao.DataOficio | date:'dd/MM/yyyy':'UTC' }}</p>
           <p><strong>Contratação:</strong> {{ manifestacao.Objeto }} · {{ manifestacao.OrgaoNome }}
           ({{ manifestacao.OrgaoSigla }})</p>
+          <p *ngIf="manifestacao.AtoTcdf || manifestacao.DataRecebimento" class="text-gray-600 mt-1">
+            <ng-container *ngIf="manifestacao.AtoTcdf">{{ rotuloAtoTcdf(manifestacao.AtoTcdf, manifestacao.NumeroAtoTcdf) }}</ng-container>
+            <ng-container *ngIf="manifestacao.AtoTcdf && manifestacao.DataRecebimento"> · </ng-container>
+            <ng-container *ngIf="manifestacao.DataRecebimento">recebido na SGDI em
+              {{ manifestacao.DataRecebimento | date:'dd/MM/yyyy':'UTC' }}</ng-container>
+          </p>
         </div>
         <div class="text-right">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
                 [ngClass]="badgeEstagio(manifestacao.Estagio)">{{ manifestacao.Estagio }}</span>
-          <span *ngIf="manifestacao.StatusTcdf"
+          <!-- Com status no TCDF o estágio JÁ é o status (precedência): só um selo -->
+          <span *ngIf="manifestacao.StatusTcdf && manifestacao.StatusTcdf !== manifestacao.Estagio"
                 class="block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold w-fit ml-auto"
                 [ngClass]="badgeStatusTcdf(manifestacao.StatusTcdf)">{{ manifestacao.StatusTcdf }}</span>
           <span *ngIf="manifestacao.Criticidade"
@@ -60,17 +68,17 @@
       </p>
     </div>
 
-    <!-- Formulário do despacho -->
+    <!-- Formulário da comunicação e do despacho -->
     <div class="bg-white rounded-lg shadow p-6">
       <h3 class="text-base font-semibold text-blue-900 mb-1">Manifestação da SGDI</h3>
-      <p class="text-sm text-gray-600 mb-4">Editar aqui é como o caso evolui: "Aguardando resposta" passa a "Risco
+      <p class="text-sm text-gray-600 mb-6">Editar aqui é como o caso evolui: "Aguardando resposta" passa a "Risco
       resolvido" ou "Não pode prosseguir" nesta mesma manifestação. Ofício novo do TCDF pede manifestação nova.</p>
 
       <app-ctr-manifestacao-form
         [valor]="valorForm"
         [salvando]="salvando"
-        [criticidadeProcesso]="manifestacao.Criticidade ?? null"
-        [processoId]="manifestacao.ProcessoId"
+        [contratacao]="contratacao"
+        [exigirComunicacao]="temComunicacao"
         rotuloSalvar="Salvar alterações"
         (salvar)="salvar($event)"
         (cancelar)="irParaLista()"

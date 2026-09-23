@@ -159,13 +159,21 @@
           </thead>
           <tbody>
             <tr *ngFor="let m of manifestacoes" class="border-b border-gray-200 align-top hover:bg-gray-50">
-              <td class="px-3 py-2">{{ m.OficioTcdf }}</td>
+              <td class="px-3 py-2">
+                {{ m.OficioTcdf }}
+                <span *ngIf="m.AtoTcdf" class="block text-xs text-gray-600">{{ rotuloAtoTcdf(m.AtoTcdf, m.NumeroAtoTcdf) }}</span>
+                <!-- Comunicação que chegou num processo do TCDF diferente deste -->
+                <span *ngIf="m.ProcessoComunicacaoTcdf && m.ProcessoComunicacaoTcdf !== m.NumeroProcesso"
+                      class="block text-xs text-gray-600">Processo do TCDF {{ m.ProcessoComunicacaoTcdf }}</span>
+              </td>
               <td class="px-3 py-2 whitespace-nowrap">{{ m.DataOficio | date:'dd/MM/yyyy':'UTC' }}</td>
               <td class="px-3 py-2">{{ m.SituacaoPortfolio }}</td>
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeEstagio(m.Estagio)">{{ m.Estagio }}</span>
-                <span *ngIf="m.StatusTcdf" class="block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold w-fit whitespace-nowrap"
+                <!-- Com status no TCDF o estágio JÁ é o status (precedência): só um selo -->
+                <span *ngIf="m.StatusTcdf && m.StatusTcdf !== m.Estagio"
+                      class="block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold w-fit whitespace-nowrap"
                       [ngClass]="badgeStatusTcdf(m.StatusTcdf)">{{ m.StatusTcdf }}</span>
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">

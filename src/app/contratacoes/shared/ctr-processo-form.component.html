@@ -1,16 +1,8 @@
-<!-- Origem: fixada pela tela que embute o formulário, ou só informada quando o
-     processo já está cadastrado como do TCDF -->
-<div *ngIf="origemFixa === origemTcdf"
+<!-- Origem TCDF: o processo nasceu de uma comunicação do Tribunal (nova manifestação) -->
+<div *ngIf="form.Origem === origemTcdf"
      class="border-l-4 border-blue-400 bg-blue-50 p-3 rounded-r-md text-sm text-blue-950 mb-4">
-  <p><strong>Origem: TCDF.</strong> Este cadastro é de contratação que chegou por análise interna do Tribunal sobre o
-  contrato, sem ter passado pelo órgão de origem.</p>
-  <p class="text-xs text-gray-500 italic mt-1">A origem já vai gravada como "TCDF"; não há campo para escolher.</p>
-</div>
-
-<div *ngIf="origemFixa !== origemTcdf && form.Origem === origemTcdf"
-     class="border-l-4 border-blue-400 bg-blue-50 p-3 rounded-r-md text-sm text-blue-950 mb-4">
-  <strong>Origem: TCDF.</strong> Processo cadastrado a partir de análise interna do Tribunal, sem ter vindo do órgão
-  comunicante.
+  <strong>Origem: TCDF.</strong> Processo cadastrado a partir de uma comunicação do Tribunal, sem ter vindo do órgão
+  comunicante. O número é o do processo de comunicação do TCDF.
 </div>
 
 <!-- Cabeçalho de cada seção do formulário -->
@@ -57,7 +49,7 @@
     </div>
 
     <div>
-      <label class="block text-sm font-semibold mb-1" for="ctr-orgao-nome">Órgão comunicante <span class="text-red-600">*</span></label>
+      <label class="block text-sm font-semibold mb-1" for="ctr-orgao-nome">{{ form.Origem === origemTcdf ? 'Órgão auditado' : 'Órgão comunicante' }} <span class="text-red-600">*</span></label>
       <input id="ctr-orgao-nome" type="text" [(ngModel)]="form.OrgaoNome" name="ctr-orgao-nome" maxlength="200"
              placeholder="Nome completo do órgão ou entidade"
              [attr.data-erro]="submetido && errOrgaoNome ? 'sim' : null"
@@ -123,7 +115,7 @@
 </section>
 
 <!-- ── Infraestrutura da solução ──────────────────────────────────────────── -->
-<section *ngIf="!compacto" class="mt-8 pt-4 border-t border-gray-200">
+<section class="mt-8 pt-4 border-t border-gray-200">
   <ng-container *ngTemplateOutlet="cabecalho; context: {
     icone: 'dns', titulo: 'Infraestrutura da solução',
     ajuda: 'Onde a solução vai rodar e se ela usará a rede do GDF.' }"></ng-container>
@@ -228,136 +220,128 @@
   registrada sem ela.</p>
 </section>
 
-<!-- ── Riscos da contratação (fora do modo compacto: fica para a página do processo) ── -->
-<section *ngIf="!compacto" class="mt-8 pt-4 border-t border-gray-200">
+<!-- ── Riscos da contratação ──────────────────────────────────────────────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
   <ng-container *ngTemplateOutlet="cabecalho; context: {
     icone: 'report_problem', titulo: 'Riscos da contratação',
     ajuda: 'Cada risco com a ação que vai reduzi-lo, quem responde por ela e onde ele cai no mapa de riscos da CGDF (probabilidade × consequência). Opcional; não depende da criticidade e fica fora do CSV e do despacho em PDF.' }"></ng-container>
 
   <app-ctr-classificacao-risco [edicao]="risco" [mostrarErros]="submetido"></app-ctr-classificacao-risco>
 </section>
-<p *ngIf="compacto" class="text-xs text-gray-500 italic mt-6">Os riscos da contratação ficam para a página do processo,
-depois do cadastro.</p>
 
-<ng-container *ngIf="!compacto">
-  <!-- ── Tramitação ────────────────────────────────────────────────────── -->
-  <section class="mt-8 pt-4 border-t border-gray-200">
-    <ng-container *ngTemplateOutlet="cabecalho; context: {
-      icone: 'timeline', titulo: 'Tramitação',
-      ajuda: 'Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; as datas preenchidas seguem o caminho SGDI, SUBGD, UGTIC, Gab SGDI e órgão. A assinatura do contrato é a data final: com ela o processo fica Concluído.' }"></ng-container>
+<!-- ── Tramitação ────────────────────────────────────────────────────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'timeline', titulo: 'Tramitação',
+    ajuda: 'Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; as datas preenchidas seguem o caminho SGDI, SUBGD, UGTIC, Gab SGDI e órgão. A assinatura do contrato é a data final: com ela o processo fica Concluído.' }"></ng-container>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div *ngFor="let c of checkpoints; let n = index">
-        <label class="block text-sm font-semibold mb-1" [attr.for]="'ctr-' + c.campo">
-          <span class="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-gray-100 text-gray-600 text-xs font-bold">{{ n + 1 }}</span>
-          {{ c.rotulo }}
-        </label>
-        <input type="date" [id]="'ctr-' + c.campo" [ngModel]="dataDoCheckpoint(c.campo)" [name]="'ctr-' + c.campo"
-               (ngModelChange)="definirCheckpoint(c.campo, $event)"
-               [disabled]="(c.campo === 'ChegadaUgtic' && form.UgticNaoSeAplica)
-                           || (c.campo === 'RetornoOrgao' && form.RetornoOrgaoNaoSeAplica)"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
-        <p *ngIf="c.campo === campoAssinatura && form.DataAssinaturaContrato" class="text-xs text-green-800 mt-1">
-          Ao salvar, o processo fica Concluído: sai da lista e passa para a relação de concluídos do painel.
-        </p>
-        <label *ngIf="c.campo === 'ChegadaUgtic'" class="flex items-center gap-2 mt-2 text-sm">
-          <input type="checkbox" [ngModel]="form.UgticNaoSeAplica" name="ctr-ugtic-na"
-                 (ngModelChange)="aoMarcarUgticNaoSeAplica($event)"
-                 class="rounded border-gray-300">
-          <span>Não se aplica (etapa pulada de propósito)</span>
-        </label>
-        <label *ngIf="c.campo === 'RetornoOrgao'" class="flex items-center gap-2 mt-2 text-sm">
-          <input type="checkbox" [ngModel]="form.RetornoOrgaoNaoSeAplica" name="ctr-retorno-orgao-na"
-                 (ngModelChange)="aoMarcarRetornoOrgaoNaoSeAplica($event)"
-                 class="rounded border-gray-300">
-          <span>Não se aplica (o processo não é devolvido ao órgão)</span>
-        </label>
-        <p class="text-xs text-gray-500 italic mt-1">{{ c.ajuda }}</p>
-      </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div *ngFor="let c of checkpoints; let n = index">
+      <label class="block text-sm font-semibold mb-1" [attr.for]="'ctr-' + c.campo">
+        <span class="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-gray-100 text-gray-600 text-xs font-bold">{{ n + 1 }}</span>
+        {{ c.rotulo }}
+      </label>
+      <input type="date" [id]="'ctr-' + c.campo" [ngModel]="dataDoCheckpoint(c.campo)" [name]="'ctr-' + c.campo"
+             (ngModelChange)="definirCheckpoint(c.campo, $event)"
+             [disabled]="(c.campo === 'ChegadaUgtic' && form.UgticNaoSeAplica)
+                         || (c.campo === 'RetornoOrgao' && form.RetornoOrgaoNaoSeAplica)"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
+      <p *ngIf="c.campo === campoAssinatura && form.DataAssinaturaContrato" class="text-xs text-green-800 mt-1">
+        Ao salvar, o processo fica Concluído: sai da lista e passa para a relação de concluídos do painel.
+      </p>
+      <label *ngIf="c.campo === 'ChegadaUgtic'" class="flex items-center gap-2 mt-2 text-sm">
+        <input type="checkbox" [ngModel]="form.UgticNaoSeAplica" name="ctr-ugtic-na"
+               (ngModelChange)="aoMarcarUgticNaoSeAplica($event)"
+               class="rounded border-gray-300">
+        <span>Não se aplica (etapa pulada de propósito)</span>
+      </label>
+      <label *ngIf="c.campo === 'RetornoOrgao'" class="flex items-center gap-2 mt-2 text-sm">
+        <input type="checkbox" [ngModel]="form.RetornoOrgaoNaoSeAplica" name="ctr-retorno-orgao-na"
+               (ngModelChange)="aoMarcarRetornoOrgaoNaoSeAplica($event)"
+               class="rounded border-gray-300">
+        <span>Não se aplica (o processo não é devolvido ao órgão)</span>
+      </label>
+      <p class="text-xs text-gray-500 italic mt-1">{{ c.ajuda }}</p>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ── Esclarecimentos: sinal paralelo ao trâmite, não é etapa ──────── -->
-  <section class="mt-8 pt-4 border-t border-gray-200">
-    <ng-container *ngTemplateOutlet="cabecalho; context: {
-      icone: 'forum', titulo: 'Esclarecimentos ao órgão comunicante',
-      ajuda: 'Quando a SGDI pede esclarecimentos ao órgão, registre aqui. Enquanto não houver a data da resposta, o processo aparece sinalizado na lista. A situação do trâmite não muda por causa disso.' }"></ng-container>
+<!-- ── Esclarecimentos: sinal paralelo ao trâmite, não é etapa ──────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'forum', titulo: 'Esclarecimentos ao órgão comunicante',
+    ajuda: 'Quando a SGDI pede esclarecimentos ao órgão, registre aqui. Enquanto não houver a data da resposta, o processo aparece sinalizado na lista. A situação do trâmite não muda por causa disso.' }"></ng-container>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-em">Pedido de esclarecimento em</label>
-        <input id="ctr-esclarecimento-em" type="date" [ngModel]="form.EsclarecimentoSolicitadoEm" name="ctr-esclarecimento-em"
-               (ngModelChange)="aoTrocarEsclarecimentoSolicitado($event)"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <p class="text-xs text-gray-500 italic mt-1">Limpar esta data apaga o que foi pedido e a data da resposta.</p>
-      </div>
-
-      <div class="md:col-span-2">
-        <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-descricao">O que foi pedido
-          <span *ngIf="form.EsclarecimentoSolicitadoEm" class="text-red-600">*</span>
-        </label>
-        <textarea id="ctr-esclarecimento-descricao" rows="2" [(ngModel)]="form.EsclarecimentoDescricao" name="ctr-esclarecimento-descricao"
-                  [disabled]="!form.EsclarecimentoSolicitadoEm"
-                  placeholder="Que informação foi solicitada ao órgão comunicante."
-                  [attr.data-erro]="submetido && errEsclarecimentoDescricao ? 'sim' : null"
-                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                  [class.border-red-500]="submetido && errEsclarecimentoDescricao"
-                  [class.bg-red-50]="submetido && errEsclarecimentoDescricao"
-                  [class.border-gray-300]="!(submetido && errEsclarecimentoDescricao)"></textarea>
-        <p *ngIf="submetido && errEsclarecimentoDescricao" class="text-xs text-red-600 mt-1">{{ errEsclarecimentoDescricao }}</p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-resposta">Resposta do órgão em</label>
-        <input id="ctr-esclarecimento-resposta" type="date" [(ngModel)]="form.EsclarecimentoRespondidoEm" name="ctr-esclarecimento-resposta"
-               [disabled]="!form.EsclarecimentoSolicitadoEm"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
-        <p class="text-xs text-gray-500 italic mt-1">Preenchida, a sinalização sai da lista. Não pode ser anterior ao pedido.</p>
-      </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-em">Pedido de esclarecimento em</label>
+      <input id="ctr-esclarecimento-em" type="date" [ngModel]="form.EsclarecimentoSolicitadoEm" name="ctr-esclarecimento-em"
+             (ngModelChange)="aoTrocarEsclarecimentoSolicitado($event)"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <p class="text-xs text-gray-500 italic mt-1">Limpar esta data apaga o que foi pedido e a data da resposta.</p>
     </div>
-  </section>
 
-  <!-- ── Restituição ───────────────────────────────────────────────────── -->
-  <section class="mt-8 pt-4 border-t border-gray-200">
-    <ng-container *ngTemplateOutlet="cabecalho; context: {
-      icone: 'assignment_return', titulo: 'Restituição ao órgão',
-      ajuda: 'Quando o processo volta ao órgão comunicante sem a análise concluída.' }"></ng-container>
-
-    <label class="flex items-center gap-2 text-sm mb-3">
-      <input type="checkbox" [ngModel]="form.Restituido" name="ctr-restituido"
-             (ngModelChange)="aoMarcarRestituido($event)"
-             class="rounded border-gray-300">
-      <span>O processo foi restituído ao órgão comunicante</span>
-    </label>
-
-    <div *ngIf="form.Restituido" class="grid grid-cols-1 md:grid-cols-2 gap-4 border-l-4 border-orange-400 bg-orange-50 p-4 rounded-r-md">
-      <div>
-        <label class="block text-sm font-semibold mb-1" for="ctr-restituido-em">Data da restituição <span class="text-red-600">*</span></label>
-        <input id="ctr-restituido-em" type="date" [(ngModel)]="form.RestituidoEm" name="ctr-restituido-em"
-               [attr.data-erro]="submetido && errRestituidoEm ? 'sim' : null"
-               class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-               [class.border-red-500]="submetido && errRestituidoEm"
-               [class.border-gray-300]="!(submetido && errRestituidoEm)">
-        <p *ngIf="submetido && errRestituidoEm" class="text-xs text-red-600 mt-1">{{ errRestituidoEm }}</p>
-      </div>
-      <div>
-        <label class="block text-sm font-semibold mb-1" for="ctr-restituido-motivo">Motivo da restituição <span class="text-red-600">*</span></label>
-        <textarea id="ctr-restituido-motivo" rows="2" [(ngModel)]="form.RestituidoMotivo" name="ctr-restituido-motivo"
-                  placeholder="Por que o processo voltou ao órgão sem a análise concluída."
-                  [attr.data-erro]="submetido && errRestituidoMotivo ? 'sim' : null"
-                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  [class.border-red-500]="submetido && errRestituidoMotivo"
-                  [class.border-gray-300]="!(submetido && errRestituidoMotivo)"></textarea>
-        <p *ngIf="submetido && errRestituidoMotivo" class="text-xs text-red-600 mt-1">{{ errRestituidoMotivo }}</p>
-      </div>
+    <div class="md:col-span-2">
+      <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-descricao">O que foi pedido
+        <span *ngIf="form.EsclarecimentoSolicitadoEm" class="text-red-600">*</span>
+      </label>
+      <textarea id="ctr-esclarecimento-descricao" rows="2" [(ngModel)]="form.EsclarecimentoDescricao" name="ctr-esclarecimento-descricao"
+                [disabled]="!form.EsclarecimentoSolicitadoEm"
+                placeholder="Que informação foi solicitada ao órgão comunicante."
+                [attr.data-erro]="submetido && errEsclarecimentoDescricao ? 'sim' : null"
+                class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                [class.border-red-500]="submetido && errEsclarecimentoDescricao"
+                [class.bg-red-50]="submetido && errEsclarecimentoDescricao"
+                [class.border-gray-300]="!(submetido && errEsclarecimentoDescricao)"></textarea>
+      <p *ngIf="submetido && errEsclarecimentoDescricao" class="text-xs text-red-600 mt-1">{{ errEsclarecimentoDescricao }}</p>
     </div>
-  </section>
-</ng-container>
 
-<!-- No modo compacto o trâmite fica de fora: processo cadastrado pelo TCDF
-     costuma nascer sem nenhuma data de tramitação. -->
-<p *ngIf="compacto" class="text-xs text-gray-500 italic mt-2">As datas de tramitação e a restituição ficam para a página
-do processo, quando houver. O cadastro do TCDF normalmente começa sem elas.</p>
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-resposta">Resposta do órgão em</label>
+      <input id="ctr-esclarecimento-resposta" type="date" [(ngModel)]="form.EsclarecimentoRespondidoEm" name="ctr-esclarecimento-resposta"
+             [disabled]="!form.EsclarecimentoSolicitadoEm"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
+      <p class="text-xs text-gray-500 italic mt-1">Preenchida, a sinalização sai da lista. Não pode ser anterior ao pedido.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Restituição ───────────────────────────────────────────────────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'assignment_return', titulo: 'Restituição ao órgão',
+    ajuda: 'Quando o processo volta ao órgão comunicante sem a análise concluída.' }"></ng-container>
+
+  <label class="flex items-center gap-2 text-sm mb-3">
+    <input type="checkbox" [ngModel]="form.Restituido" name="ctr-restituido"
+           (ngModelChange)="aoMarcarRestituido($event)"
+           class="rounded border-gray-300">
+    <span>O processo foi restituído ao órgão comunicante</span>
+  </label>
+
+  <div *ngIf="form.Restituido" class="grid grid-cols-1 md:grid-cols-2 gap-4 border-l-4 border-orange-400 bg-orange-50 p-4 rounded-r-md">
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-restituido-em">Data da restituição <span class="text-red-600">*</span></label>
+      <input id="ctr-restituido-em" type="date" [(ngModel)]="form.RestituidoEm" name="ctr-restituido-em"
+             [attr.data-erro]="submetido && errRestituidoEm ? 'sim' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errRestituidoEm"
+             [class.border-gray-300]="!(submetido && errRestituidoEm)">
+      <p *ngIf="submetido && errRestituidoEm" class="text-xs text-red-600 mt-1">{{ errRestituidoEm }}</p>
+    </div>
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-restituido-motivo">Motivo da restituição <span class="text-red-600">*</span></label>
+      <textarea id="ctr-restituido-motivo" rows="2" [(ngModel)]="form.RestituidoMotivo" name="ctr-restituido-motivo"
+                placeholder="Por que o processo voltou ao órgão sem a análise concluída."
+                [attr.data-erro]="submetido && errRestituidoMotivo ? 'sim' : null"
+                class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class.border-red-500]="submetido && errRestituidoMotivo"
+                [class.border-gray-300]="!(submetido && errRestituidoMotivo)"></textarea>
+      <p *ngIf="submetido && errRestituidoMotivo" class="text-xs text-red-600 mt-1">{{ errRestituidoMotivo }}</p>
+    </div>
+  </div>
+</section>
+
 
 <!-- ── Observação ──────────────────────────────────────────────────────── -->
 <section class="mt-8 pt-4 border-t border-gray-200">
@@ -386,8 +370,7 @@ do processo, quando houver. O cadastro do TCDF normalmente começa sem elas.</p>
 </div>
 
 <!-- Ações: na página inteira a barra fica presa ao pé da tela enquanto se rola o formulário -->
-<div class="mt-6 flex items-center gap-3 flex-wrap"
-     [ngClass]="compacto ? '' : 'sticky bottom-0 z-10 py-3 bg-white border-t border-gray-200'">
+<div class="mt-6 flex items-center gap-3 flex-wrap sticky bottom-0 z-10 py-3 bg-white border-t border-gray-200">
   <button type="button" (click)="enviar()" [disabled]="salvando"
           class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
     {{ salvando ? 'Salvando...' : rotuloSalvar }}

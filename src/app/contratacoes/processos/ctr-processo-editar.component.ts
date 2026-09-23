@@ -14,6 +14,7 @@ import {
   badgeStatusTcdf,
   corDiasSemMovimento,
   formatarReais,
+  rotuloAtoTcdf,
   rotuloEtapaPlanejamento,
   rotuloGdfnet
 } from '../shared/ctr-rotulos';
@@ -52,6 +53,7 @@ export class CtrProcessoEditarComponent implements OnInit {
   rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
   formatarReais = formatarReais;
   rotuloGdfnet = rotuloGdfnet;
+  rotuloAtoTcdf = rotuloAtoTcdf;
 
   constructor(
     private route: ActivatedRoute,

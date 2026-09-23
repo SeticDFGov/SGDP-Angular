@@ -7,7 +7,6 @@ import { AuthService } from '../../auth/services/auth';
 import {
   CtrCheckpointForm,
   CtrManifestacao,
-  CtrManifestacaoForm,
   CtrPagedResponse,
   CtrPainel,
   CtrProcesso,
@@ -119,11 +118,6 @@ export class CtrProcessoService {
   /** Manifestações ao TCDF do processo, mais recente primeiro. */
   listarManifestacoes(id: number): Observable<CtrManifestacao[]> {
     return this.http.get<CtrManifestacao[]>(`${this.apiUrl}/processo/${id}/manifestacoes`,
-      { headers: this.getHeaders() });
-  }
-
-  criarManifestacao(id: number, form: CtrManifestacaoForm): Observable<CtrManifestacao> {
-    return this.http.post<CtrManifestacao>(`${this.apiUrl}/processo/${id}/manifestacao`, form,
       { headers: this.getHeaders() });
   }
 

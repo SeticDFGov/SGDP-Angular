@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
 import {
+  CtrComunicacaoTcdfForm,
   CtrDespachoParams,
   CtrManifestacao,
   CtrManifestacaoForm,
@@ -11,11 +12,9 @@ import {
 } from '../../../api/contratacoes/interface';
 
 /**
- * Manifestações da SGDI ao TCDF (`api/contratacoes/manifestacao`).
- *
- * Criar é do processo (`POST processo/{id}/manifestacao`, no CtrProcessoService):
- * ofício novo do TCDF = manifestação nova. Aqui ficam a lista geral, a leitura,
- * a edição da mesma manifestação e o despacho em PDF.
+ * Manifestações da SGDI ao TCDF (`api/contratacoes/manifestacao`): a lista geral,
+ * o registro da comunicação do TCDF, a leitura, a edição da mesma manifestação e
+ * o despacho em PDF. Ofício novo do TCDF = manifestação nova.
  */
 @Injectable({
   providedIn: 'root'
@@ -40,6 +39,15 @@ export class CtrManifestacaoService {
     if (opcoes.Filtro) params = params.set('Filtro', opcoes.Filtro);
     return this.http.get<CtrPagedResponse<CtrManifestacao>>(this.apiUrl,
       { headers: this.getHeaders(), params });
+  }
+
+  /**
+   * Registra a comunicação do TCDF: no processo já cadastrado (`ProcessoId`) ou
+   * com a contratação nova (`Contratacao`), que o servidor grava como processo de
+   * origem TCDF junto com a manifestação.
+   */
+  criar(form: CtrComunicacaoTcdfForm): Observable<CtrManifestacao> {
+    return this.http.post<CtrManifestacao>(this.apiUrl, form, { headers: this.getHeaders() });
   }
 
   getManifestacao(id: number): Observable<CtrManifestacao> {

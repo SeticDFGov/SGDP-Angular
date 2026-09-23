@@ -5,14 +5,15 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { CtrManifestacaoService } from '../services/ctr-manifestacao.service';
-import { CtrManifestacaoFormComponent } from '../shared/ctr-manifestacao-form.component';
-import { badgeCriticidade, badgeEstagio, badgeStatusTcdf } from '../shared/ctr-rotulos';
+import { CtrContratacaoResumo, CtrManifestacaoFormComponent } from '../shared/ctr-manifestacao-form.component';
+import { badgeCriticidade, badgeEstagio, badgeStatusTcdf, rotuloAtoTcdf } from '../shared/ctr-rotulos';
 import { CtrManifestacao, CtrManifestacaoForm } from '../../../api/contratacoes/interface';
 import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 
 /**
  * Página de uma manifestação (`/analises/manifestacoes/editar/:id`): o mesmo
- * formulário do despacho, mais a geração do documento em PDF.
+ * formulário da comunicação do TCDF e do despacho (com a contratação só em
+ * consulta), mais a geração do documento em PDF.
  *
  * Editar é a forma de acompanhar a evolução do caso: "Aguardando resposta"
  * vira "Risco resolvido" ou "Não pode prosseguir" na mesma manifestação.
@@ -26,6 +27,13 @@ import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 export class CtrManifestacaoEditarComponent implements OnInit {
   manifestacao: CtrManifestacao | null = null;
   valorForm: CtrManifestacaoForm | null = null;
+  /** O processo da manifestação, para o resumo da contratação no formulário. */
+  contratacao: CtrContratacaoResumo | null = null;
+  /**
+   * Registrada depois dos dados da comunicação do TCDF (2026-09-23)? As
+   * anteriores podem seguir sem eles.
+   */
+  temComunicacao = false;
 
   carregando = true;
   salvando = false;
@@ -41,6 +49,7 @@ export class CtrManifestacaoEditarComponent implements OnInit {
   badgeEstagio = badgeEstagio;
   badgeStatusTcdf = badgeStatusTcdf;
   badgeCriticidade = badgeCriticidade;
+  rotuloAtoTcdf = rotuloAtoTcdf;
 
   constructor(
     private route: ActivatedRoute,
@@ -76,9 +85,26 @@ export class CtrManifestacaoEditarComponent implements OnInit {
 
   private aplicar(manifestacao: CtrManifestacao): void {
     this.manifestacao = manifestacao;
+    this.temComunicacao = !!(manifestacao.ProcessoComunicacaoTcdf || manifestacao.DataRecebimento
+      || manifestacao.AtoTcdf || manifestacao.NumeroAtoTcdf);
+    this.contratacao = {
+      Id: manifestacao.ProcessoId,
+      NumeroProcesso: manifestacao.NumeroProcesso,
+      OrgaoNome: manifestacao.OrgaoNome,
+      OrgaoSigla: manifestacao.OrgaoSigla,
+      Objeto: manifestacao.Objeto,
+      CategoriaObjeto: manifestacao.CategoriaObjeto,
+      ValorEstimado: manifestacao.ValorEstimado ?? null,
+      Criticidade: manifestacao.Criticidade ?? null,
+      Origem: manifestacao.Origem
+    };
     this.valorForm = {
       OficioTcdf: manifestacao.OficioTcdf,
       DataOficio: manifestacao.DataOficio,
+      ProcessoComunicacaoTcdf: manifestacao.ProcessoComunicacaoTcdf ?? null,
+      DataRecebimento: manifestacao.DataRecebimento ?? null,
+      AtoTcdf: manifestacao.AtoTcdf ?? null,
+      NumeroAtoTcdf: manifestacao.NumeroAtoTcdf ?? null,
       SituacaoPortfolio: manifestacao.SituacaoPortfolio,
       ComunicadaDesde: manifestacao.ComunicadaDesde ?? null,
       ResultadoAnalise: manifestacao.ResultadoAnalise ?? null,
@@ -138,7 +164,8 @@ export class CtrManifestacaoEditarComponent implements OnInit {
 
     this.gerandoPdf = true;
     const id = this.manifestacao.Id;
-    const numero = this.manifestacao.NumeroProcesso.replace(/[^0-9]/g, '');
+    // O mesmo número do cabeçalho do despacho
+    const numero = (this.manifestacao.ProcessoComunicacaoTcdf || this.manifestacao.NumeroProcesso).replace(/[^0-9]/g, '');
     this.manifestacaoService.baixarDespachoPdf(id, {
       Local: this.despacho.Local.trim(),
       Nome: this.despacho.Nome.trim(),

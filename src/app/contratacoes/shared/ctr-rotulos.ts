@@ -126,3 +126,69 @@ export function lerReais(texto: string | null | undefined): number | null | unde
 export function rotuloGdfnet(usa: boolean | null | undefined): string {
   return usa == null ? 'Não informado' : (usa ? 'Sim' : 'Não');
 }
+
+/** "Decisão nº 1234/2026"; vazio quando a manifestação não tem o ato. */
+export function rotuloAtoTcdf(ato: string | null | undefined, numero: string | null | undefined): string {
+  if (!ato) return '';
+  return numero ? `${ato} nº ${numero}` : ato;
+}
+
+// ── Campos com máscara ───────────────────────────────────────────────────────
+// Os campos mascarados usam `[value]` + `(input)`, não `ngModel`: quando o que
+// foi digitado é descartado pela máscara (uma letra, por exemplo), o modelo não
+// muda, o Angular não reescreve a caixa de texto e a tela ficaria mostrando o
+// caractere recusado. Escrevendo direto no elemento, os dois ficam iguais.
+
+/** 19 dígitos com a pontuação do SEI: 00000-00000000/AAAA-DD. */
+export function mascaraSei(valor: string): string {
+  const digitos = (valor || '').replace(/\D/g, '').slice(0, 19);
+  let saida = digitos.slice(0, 5);
+  if (digitos.length > 5) saida += '-' + digitos.slice(5, 13);
+  if (digitos.length > 13) saida += '/' + digitos.slice(13, 17);
+  if (digitos.length > 17) saida += '-' + digitos.slice(17, 19);
+  return saida;
+}
+
+/** Posição logo depois do n-ésimo dígito do texto já mascarado. */
+function depoisDoDigito(texto: string, digitos: number): number {
+  if (digitos <= 0) return 0;
+  let vistos = 0;
+  for (let i = 0; i < texto.length; i++) {
+    if (texto[i] >= '0' && texto[i] <= '9') {
+      vistos++;
+      if (vistos === digitos) return i + 1;
+    }
+  }
+  return texto.length;
+}
+
+/**
+ * Aplica a máscara do SEI no campo enquanto a pessoa digita e devolve o número
+ * formatado. O cursor é reposicionado pela contagem de dígitos à esquerda dele:
+ * sem isso qualquer correção no meio do número jogaria o cursor para o fim.
+ */
+export function digitarNumeroSei(input: HTMLInputElement): string {
+  const bruto = input.value || '';
+  const cursor = input.selectionStart ?? bruto.length;
+  const digitosAntes = bruto.slice(0, cursor).replace(/\D/g, '').length;
+  const formatado = mascaraSei(bruto);
+  // Só reescrever quando a máscara mudou algo: reescrever à toa mexe no cursor.
+  if (bruto !== formatado) {
+    input.value = formatado;
+    const posicao = depoisDoDigito(formatado, digitosAntes);
+    input.setSelectionRange(posicao, posicao);
+  }
+  return formatado;
+}
+
+/** Sigla sempre em caixa alta, pelo mesmo motivo; devolve o texto do campo. */
+export function digitarCaixaAlta(input: HTMLInputElement): string {
+  const saida = (input.value || '').toUpperCase();
+  if (input.value !== saida) {
+    // A caixa alta não muda o tamanho do texto: o cursor fica onde estava.
+    const cursor = input.selectionStart;
+    input.value = saida;
+    if (cursor !== null) input.setSelectionRange(cursor, cursor);
+  }
+  return saida;
+}
