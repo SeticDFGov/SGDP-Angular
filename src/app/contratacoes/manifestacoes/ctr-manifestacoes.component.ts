@@ -8,34 +8,27 @@ import { acompanharSecao } from '../../pgia/shared/secao-rota';
 import { CtrManifestacaoService } from '../services/ctr-manifestacao.service';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import { CtrManifestacaoFormComponent } from '../shared/ctr-manifestacao-form.component';
-import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
+import { badgeEstagio, badgeStatusTcdf, rotuloAtoTcdf } from '../shared/ctr-rotulos';
 import {
-  badgeCriticidade,
-  badgeEstagio,
-  badgeSituacao,
-  badgeStatusTcdf
-} from '../shared/ctr-rotulos';
-import {
+  CtrComunicacaoTcdfForm,
   CtrManifestacao,
-  CtrManifestacaoForm,
   CtrProcesso,
-  CtrProcessoForm,
-  ESTAGIOS_TCDF,
-  ORIGEM_TCDF
+  ESTAGIOS_TCDF
 } from '../../../api/contratacoes/interface';
 
 /**
  * Área "Manifestações ao TCDF": a lista geral (com filtro por estágio) e a
- * página de registro de uma manifestação nova.
+ * página de registro de uma comunicação nova do TCDF.
  *
  * A seção "nova" lê `?processo=ID`: é assim que a página do processo manda o
- * contexto. Sem o parâmetro, a tela oferece um seletor de processo com busca e
- * o cadastro do processo do próprio TCDF, embutido, sem sair da página.
+ * contexto, e é onde o processo escolhido na busca do formulário fica guardado
+ * (recarregar a página mantém a escolha). Sem processo, a comunicação traz os
+ * dados da contratação, que o servidor cadastra como processo de origem TCDF.
  */
 @Component({
   selector: 'app-ctr-manifestacoes',
   standalone: true,
-  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent, CtrProcessoFormComponent],
+  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule, CtrManifestacaoFormComponent],
   templateUrl: './ctr-manifestacoes.component.html'
 })
 export class CtrManifestacoesComponent implements OnInit {
@@ -63,29 +56,17 @@ export class CtrManifestacoesComponent implements OnInit {
   private requisicaoProcesso = 0;
   private destroyRef = inject(DestroyRef);
 
-  // Nova manifestação
+  // Nova comunicação
   processo: CtrProcesso | null = null;
   carregandoProcesso = false;
   erroProcesso: string | null = null;
   salvando = false;
-
-  // Seletor de processo (quando a página abre sem ?processo=)
-  buscaProcesso = '';
-  resultados: CtrProcesso[] = [];
-  buscandoProcessos = false;
-  buscouProcessos = false;
-
-  // Cadastro do processo do próprio TCDF, embutido nesta página
-  cadastroTcdfAberto = false;
-  salvandoTcdf = false;
   siglas: string[] = [];
   private carregouSiglas = false;
-  readonly origemTcdf = ORIGEM_TCDF;
 
   badgeEstagio = badgeEstagio;
-  badgeSituacao = badgeSituacao;
   badgeStatusTcdf = badgeStatusTcdf;
-  badgeCriticidade = badgeCriticidade;
+  rotuloAtoTcdf = rotuloAtoTcdf;
 
   constructor(
     private manifestacaoService: CtrManifestacaoService,
@@ -96,11 +77,10 @@ export class CtrManifestacoesComponent implements OnInit {
   ) {
     acompanharSecao(secao => {
       this.secao = secao;
-      // Sair de "nova" limpa a busca de processo: voltar depois começa do zero.
-      if (secao !== 'nova') this.limparSeletorProcesso();
       // A lista só é buscada quando é ela que está na tela: a mensagem de erro
       // dela mora na própria seção e ficaria muda em "nova manifestação".
       if (secao === 'lista' && !this.carregouLista) this.buscar();
+      if (secao === 'nova') this.carregarSiglas();
     });
   }
 
@@ -113,8 +93,8 @@ export class CtrManifestacoesComponent implements OnInit {
         if (id !== this.processo?.Id) this.carregarProcesso(id);
         return;
       }
-      // Sem processo na URL ("Trocar de processo"): a resposta que estiver em
-      // voo é abandonada, senão ela repovoaria a tela já trocada.
+      // Sem processo na URL ("Trocar"): a resposta que estiver em voo é
+      // abandonada, senão ela repovoaria a tela já trocada.
       this.requisicaoProcesso++;
       this.processo = null;
       this.carregandoProcesso = false;
@@ -179,7 +159,7 @@ export class CtrManifestacoesComponent implements OnInit {
     });
   }
 
-  // ── Nova manifestação ─────────────────────────────────────────────────────
+  // ── Nova comunicação ──────────────────────────────────────────────────────
 
   private carregarProcesso(id: number): void {
     const requisicao = ++this.requisicaoProcesso;
@@ -200,58 +180,11 @@ export class CtrManifestacoesComponent implements OnInit {
     });
   }
 
-  /** Zera a busca de processo da seção "nova". */
-  private limparSeletorProcesso(): void {
-    this.buscaProcesso = '';
-    this.resultados = [];
-    this.buscouProcessos = false;
-    this.cadastroTcdfAberto = false;
-  }
-
-  buscarProcessos(): void {
-    const termo = this.buscaProcesso.trim();
-    if (!termo) return;
-    // Com o cadastro do TCDF aberto a lista de resultados nem aparece: buscar
-    // ali não produziria nada visível.
-    if (this.cadastroTcdfAberto) return;
-    this.buscandoProcessos = true;
-    this.processoService.listar({ Filtro: termo, Page: 1, PageSize: 20 }).subscribe({
-      next: pagina => {
-        this.resultados = pagina.Items ?? [];
-        this.buscandoProcessos = false;
-        this.buscouProcessos = true;
-      },
-      error: () => {
-        this.resultados = [];
-        this.buscandoProcessos = false;
-        this.buscouProcessos = true;
-        this.notificationService.error('Não foi possível buscar os processos.');
-      }
-    });
-  }
-
-  /** Escolher o processo põe o contexto na URL: recarregar a página mantém. */
-  escolherProcesso(processo: CtrProcesso): void {
-    this.router.navigate(['/analises/manifestacoes/nova'], { queryParams: { processo: processo.Id } });
-  }
-
-  trocarProcesso(): void {
-    this.router.navigate(['/analises/manifestacoes/nova']);
-  }
-
-  // ── Processo cadastrado pelo próprio TCDF ─────────────────────────────────
-
-  /**
-   * Abre o formulário de processo embutido, em modo compacto e com a origem
-   * fixada em TCDF. É o caso da contratação que chega por análise interna do
-   * Tribunal, sem ter passado pelo órgão de origem.
-   */
-  abrirCadastroTcdf(): void {
-    this.cadastroTcdfAberto = true;
+  /** Autocompletar da sigla da contratação nova: conveniência, falha não bloqueia. */
+  private carregarSiglas(): void {
     if (this.carregouSiglas) return;
     this.processoService.listarSiglas().subscribe({
-      // Só marca no sucesso: falhando, abrir de novo tenta de novo (o
-      // autocompletar de siglas é conveniência, não bloqueia o cadastro).
+      // Só marca no sucesso: falhando, entrar de novo tenta de novo
       next: siglas => {
         this.siglas = siglas;
         this.carregouSiglas = true;
@@ -260,55 +193,37 @@ export class CtrManifestacoesComponent implements OnInit {
     });
   }
 
-  fecharCadastroTcdf(): void {
-    this.cadastroTcdfAberto = false;
-  }
-
   /**
-   * Cria o processo e já o deixa escolhido para a manifestação, sem sair da
-   * página: o processo criado entra direto no contexto e a URL ganha o
-   * `?processo=`, para recarregar a página manter a escolha.
-   *
-   * Erro mantém o formulário aberto com o que foi digitado (o componente do
-   * formulário guarda o próprio estado; nada é reinicializado aqui).
+   * Processo escolhido na busca do formulário: entra no contexto antes da
+   * navegação (a assinatura do queryParam vê o mesmo id e não refaz o GET) e a
+   * URL ganha o `?processo=`, para recarregar a página manter a escolha. O que
+   * já foi digitado no formulário continua lá.
    */
-  criarProcessoTcdf(form: CtrProcessoForm): void {
-    this.salvandoTcdf = true;
-    this.processoService.criar(form).subscribe({
-      next: criado => {
-        this.salvandoTcdf = false;
-        this.cadastroTcdfAberto = false;
-        this.notificationService.success('Processo do TCDF cadastrado e escolhido para a manifestação.');
-        // Entra no contexto antes da navegação: a assinatura do queryParam vê o
-        // mesmo id e não refaz o GET do processo recém-criado.
-        this.processo = criado;
-        this.erroProcesso = null;
-        this.limparSeletorProcesso();
-        this.router.navigate(['/analises/manifestacoes/nova'], { queryParams: { processo: criado.Id } });
-      },
-      error: () => {
-        this.salvandoTcdf = false;
-        this.notificationService.error(
-          'Não foi possível cadastrar o processo. Confira se o número já não está cadastrado e se as datas estão coerentes.'
-        );
-      }
-    });
+  escolherProcesso(processo: CtrProcesso): void {
+    this.processo = processo;
+    this.erroProcesso = null;
+    this.router.navigate(['/analises/manifestacoes/nova'], { queryParams: { processo: processo.Id }, replaceUrl: true });
   }
 
-  criar(form: CtrManifestacaoForm): void {
-    if (!this.processo) return;
+  trocarProcesso(): void {
+    this.router.navigate(['/analises/manifestacoes/nova'], { replaceUrl: true });
+  }
+
+  criar(form: CtrComunicacaoTcdfForm): void {
     this.salvando = true;
-    this.processoService.criarManifestacao(this.processo.Id, form).subscribe({
+    this.manifestacaoService.criar(form).subscribe({
       next: criada => {
         this.salvando = false;
-        this.notificationService.success('Manifestação registrada.');
+        this.notificationService.success(form.Contratacao
+          ? 'Comunicação registrada. A contratação foi cadastrada como processo de origem TCDF.'
+          : 'Comunicação registrada.');
         this.router.navigate(['/analises/manifestacoes/editar', criada.Id]);
       },
       error: () => {
         this.salvando = false;
-        this.notificationService.error(
-          'Não foi possível registrar a manifestação. Confira os campos do inciso escolhido.'
-        );
+        this.notificationService.error(form.Contratacao
+          ? 'Não foi possível registrar. Confira os campos e se o processo de comunicação já não está cadastrado.'
+          : 'Não foi possível registrar. Confira os campos do inciso escolhido.');
       }
     });
   }

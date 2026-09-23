@@ -31,7 +31,14 @@ import {
   valorNoLimite
 } from '../../../api/contratacoes/criticidade';
 import { CtrClassificacaoRiscoComponent, CtrClassificacaoRiscoEdicao } from './ctr-classificacao-risco.component';
-import { badgeCriticidade, formatarNumeroReais, formatarReais, lerReais } from './ctr-rotulos';
+import {
+  badgeCriticidade,
+  digitarCaixaAlta,
+  digitarNumeroSei,
+  formatarNumeroReais,
+  formatarReais,
+  lerReais
+} from './ctr-rotulos';
 
 /**
  * As seis datas do trâmite, na ordem em que o processo tramita. A assinatura do
@@ -71,18 +78,6 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   @Input() rotuloSalvar = 'Salvar processo';
   /** Rota de "Cancelar"; sem ela o botão não aparece. */
   @Input() rotaCancelar: string | null = null;
-  /**
-   * Modo compacto: o formulário é usado embutido em outra tela (o cadastro do
-   * processo do TCDF, dentro da nova manifestação). Fica só o essencial
-   * (identificação, fase e observação): processo de origem TCDF costuma nascer
-   * sem nenhuma data de trâmite, sem restituição e sem riscos da contratação.
-   */
-  @Input() compacto = false;
-  /**
-   * Origem imposta pela tela que embute o formulário (hoje só `TCDF`). Com ela
-   * o campo não é escolhido pelo usuário: é fixado e explicado num hint.
-   */
-  @Input() origemFixa: string | null = null;
   /**
    * Riscos da contratação gravados (vêm aninhados na resposta do GET/PUT do
    * processo). Nulo = processo sem riscos.
@@ -161,14 +156,6 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     if (changes['valor'] || changes['classificacao']) {
       this.risco = new CtrClassificacaoRiscoEdicao(this.classificacao);
     }
-    if (changes['origemFixa'] && this.origemFixa) {
-      this.form.Origem = this.origemFixa;
-    }
-  }
-
-  /** Origem que vai no envio: a imposta pela tela ou a que já estava gravada. */
-  get origemAtual(): string {
-    return this.origemFixa ?? this.form.Origem ?? ORIGEM_PADRAO;
   }
 
   // ── Criticidade: derivada dos critérios do art. 11, § 3º, da IN ──────────
@@ -211,54 +198,9 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
 
   // ── Máscara do número SEI ─────────────────────────────────────────────────
 
-  /**
-   * Formata enquanto o usuário digita: 00000-00000000/AAAA-DD.
-   *
-   * O campo mascarado usa `[value]` + `(input)`, não `ngModel`: quando o que foi
-   * digitado é descartado pela máscara (uma letra, por exemplo), o modelo não
-   * muda, o Angular não reescreve a caixa de texto e a tela ficaria mostrando o
-   * caractere recusado. Escrevendo direto no elemento, os dois ficam iguais.
-   *
-   * O cursor é reposicionado pela contagem de dígitos à esquerda dele: sem isso
-   * qualquer correção no meio do número jogaria o cursor para o fim.
-   */
+  /** Formata enquanto o usuário digita: 00000-00000000/AAAA-DD (ver `digitarNumeroSei`). */
   aoDigitarNumero(evento: Event): void {
-    const input = evento.target as HTMLInputElement;
-    const bruto = input.value || '';
-    const cursor = input.selectionStart ?? bruto.length;
-    const digitosAntes = bruto.slice(0, cursor).replace(/\D/g, '').length;
-    const formatado = CtrProcessoFormComponent.mascaraSei(bruto);
-
-    // Só reescrever quando a máscara mudou algo: reescrever à toa mexe no cursor.
-    if (bruto !== formatado) {
-      input.value = formatado;
-      const posicao = CtrProcessoFormComponent.depoisDoDigito(formatado, digitosAntes);
-      input.setSelectionRange(posicao, posicao);
-    }
-    this.form.NumeroProcesso = formatado;
-  }
-
-  /** 19 dígitos com a pontuação do SEI: 00000-00000000/AAAA-DD. */
-  private static mascaraSei(valor: string): string {
-    const digitos = (valor || '').replace(/\D/g, '').slice(0, 19);
-    let saida = digitos.slice(0, 5);
-    if (digitos.length > 5) saida += '-' + digitos.slice(5, 13);
-    if (digitos.length > 13) saida += '/' + digitos.slice(13, 17);
-    if (digitos.length > 17) saida += '-' + digitos.slice(17, 19);
-    return saida;
-  }
-
-  /** Posição logo depois do n-ésimo dígito do texto já mascarado. */
-  private static depoisDoDigito(texto: string, digitos: number): number {
-    if (digitos <= 0) return 0;
-    let vistos = 0;
-    for (let i = 0; i < texto.length; i++) {
-      if (texto[i] >= '0' && texto[i] <= '9') {
-        vistos++;
-        if (vistos === digitos) return i + 1;
-      }
-    }
-    return texto.length;
+    this.form.NumeroProcesso = digitarNumeroSei(evento.target as HTMLInputElement);
   }
 
   // ── Valor estimado ────────────────────────────────────────────────────────
@@ -277,15 +219,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
 
   /** Sigla sempre em caixa alta, pelo mesmo motivo do campo mascarado. */
   aoDigitarSigla(evento: Event): void {
-    const input = evento.target as HTMLInputElement;
-    const saida = (input.value || '').toUpperCase();
-    if (input.value !== saida) {
-      // A caixa alta não muda o tamanho do texto: o cursor fica onde estava.
-      const cursor = input.selectionStart;
-      input.value = saida;
-      if (cursor !== null) input.setSelectionRange(cursor, cursor);
-    }
-    this.form.OrgaoSigla = saida;
+    this.form.OrgaoSigla = digitarCaixaAlta(evento.target as HTMLInputElement);
   }
 
   /** "Não se aplica" na UGTIC limpa a data: os dois juntos são recusados. */
@@ -476,9 +410,8 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       && this.errDatas.length === 0;
   }
 
-  /** No modo compacto a seção de riscos nem aparece, então não pesa. */
   get riscosProntos(): boolean {
-    return this.compacto || this.risco.completa;
+    return this.risco.completa;
   }
 
   /**
@@ -490,7 +423,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     const itens = [
       this.errNumero, this.errCategoria, this.errOrgaoNome, this.errOrgaoSigla, this.errObjeto, this.errValor
     ].filter((e): e is string => !!e);
-    if (!this.compacto) itens.push(...this.risco.problemas);
+    itens.push(...this.risco.problemas);
     for (const e of [this.errEsclarecimentoDescricao, this.errRestituidoEm, this.errRestituidoMotivo]) {
       if (e) itens.push(e);
     }
@@ -504,8 +437,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   /** Só na edição: o que está na tela difere do que foi carregado ou salvo. */
   get alterado(): boolean {
     if (!this.valor) return false;
-    return CtrProcessoFormComponent.retratoDe(this.form) !== this.retratoForm
-      || (!this.compacto && this.risco.alterada);
+    return CtrProcessoFormComponent.retratoDe(this.form) !== this.retratoForm || this.risco.alterada;
   }
 
   /** Campos em ordem fixa, textos aparados e vazio igual a nulo: apagar o que se digitou não é alteração. */
@@ -521,17 +453,6 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   private texto(valor: string | null | undefined): string | null {
     const limpo = (valor || '').trim();
     return limpo ? limpo : null;
-  }
-
-  /**
-   * Chave dos riscos no corpo. Quem decide é o rastreio de alteração
-   * (`CtrClassificacaoRiscoEdicao.envio()`): só a lista alterada vai (vazia
-   * tira os gravados); sem mudança, `ClassificacaoRisco: null`. O cadastro
-   * rápido do TCDF nasce sem riscos.
-   */
-  private envioClassificacao(): Pick<CtrProcessoForm, 'ClassificacaoRisco'> {
-    if (this.compacto) return { ClassificacaoRisco: null };
-    return this.risco.envio();
   }
 
   /**
@@ -582,7 +503,8 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       // (processo anterior à regra automática) o valor gravado volta como veio.
       Criticidade: this.form.Criticidade || null,
       CriteriosCriticidade: this.form.CriteriosCriticidade ? { ...this.form.CriteriosCriticidade } : null,
-      Origem: this.origemAtual,
+      // A origem não se escolhe na tela: vai a gravada (processo novo = órgão comunicante)
+      Origem: this.form.Origem ?? ORIGEM_PADRAO,
       // Sem pedido não há descrição nem resposta (o servidor recusa).
       EsclarecimentoSolicitadoEm: this.form.EsclarecimentoSolicitadoEm || null,
       EsclarecimentoDescricao: this.form.EsclarecimentoSolicitadoEm
@@ -593,7 +515,9 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       RestituidoEm: this.form.Restituido ? (this.form.RestituidoEm || null) : null,
       RestituidoMotivo: this.form.Restituido ? this.texto(this.form.RestituidoMotivo) : null,
       Observacao: this.texto(this.form.Observacao),
-      ...this.envioClassificacao()
+      // Riscos: só a lista alterada vai (vazia tira os gravados); sem mudança,
+      // `ClassificacaoRisco: null` (ver `CtrClassificacaoRiscoEdicao.envio()`)
+      ...this.risco.envio()
     });
   }
 }

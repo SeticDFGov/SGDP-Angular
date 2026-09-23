@@ -97,6 +97,19 @@ export const ETAPAS_PLANEJAMENTO = [
 ] as const;
 
 /**
+ * Ato do TCDF que originou a comunicação à SGDI, gravado com o número dele
+ * (espelha CtrDominios.AtoTcdf).
+ */
+export const ATOS_TCDF = ['Despacho Singular', 'Decisão'] as const;
+
+/**
+ * Prazo do inciso II do despacho: 5 dias úteis para regularizar a pendência,
+ * contados do recebimento da notificação (art. 40, parágrafo único, da IN).
+ * É o valor sugerido; a pessoa pode mudar.
+ */
+export const PRAZO_REGULARIZACAO_PADRAO = 5;
+
+/**
  * Status do processo no TCDF: fato do Tribunal, vale em qualquer inciso e com
  * qualquer resultado. Nulo = sem status especial.
  */
@@ -352,6 +365,19 @@ export interface CtrProcessoFiltro {
 export interface CtrManifestacaoForm {
   OficioTcdf: string;
   DataOficio: string;
+  /**
+   * Dados da comunicação do TCDF (desde 2026-09-23): o processo SEI em que o
+   * Tribunal comunicou a SGDI (é o "Processo SEI nº" do despacho), a data em que
+   * ele chegou à SGDI (não antes do ofício) e o ato, Despacho Singular ou Decisão,
+   * com o número. Os quatro são obrigatórios na manifestação nova; nas registradas
+   * antes deles vêm os quatro ou nenhum.
+   */
+  ProcessoComunicacaoTcdf?: string | null;
+  DataRecebimento?: string | null;
+  /** Um dos ATOS_TCDF. */
+  AtoTcdf?: string | null;
+  /** Até 60 caracteres. */
+  NumeroAtoTcdf?: string | null;
   SituacaoPortfolio: string;
   ComunicadaDesde?: string | null;
   ResultadoAnalise?: string | null;
@@ -370,6 +396,30 @@ export interface CtrManifestacaoForm {
   Observacao?: string | null;
 }
 
+/** A contratação auditada de uma comunicação do TCDF que o módulo ainda não tem. */
+export interface CtrContratacaoTcdfForm {
+  /** Até 200. */
+  OrgaoNome: string;
+  /** Até 20; gravada em caixa alta. */
+  OrgaoSigla: string;
+  Objeto: string;
+  /** Um de CATEGORIAS_OBJETO. */
+  CategoriaObjeto: string;
+  /** Em reais; nulo = não informado. */
+  ValorEstimado?: number | null;
+}
+
+/**
+ * Corpo de POST manifestacao (CtrComunicacaoTcdfCreateDTO): a manifestação e,
+ * exatamente um dos dois, o processo já cadastrado da contratação (`ProcessoId`,
+ * obrigatório no inciso I) ou a contratação nova (`Contratacao`), que vira
+ * processo de origem TCDF com o número do processo de comunicação.
+ */
+export interface CtrComunicacaoTcdfForm extends CtrManifestacaoForm {
+  ProcessoId?: number | null;
+  Contratacao?: CtrContratacaoTcdfForm | null;
+}
+
 /** Resposta da manifestação (CtrManifestacaoResponse). */
 export interface CtrManifestacao extends CtrManifestacaoForm {
   Id: number;
@@ -378,6 +428,11 @@ export interface CtrManifestacao extends CtrManifestacaoForm {
   OrgaoSigla: string;
   OrgaoNome: string;
   Objeto: string;
+  /** Espelhos do processo, para o resumo da contratação. */
+  CategoriaObjeto: string;
+  ValorEstimado?: number | null;
+  /** Origem do processo: um de ORIGENS. */
+  Origem: string;
   /** Espelho somente leitura da criticidade do processo (o PDF imprime). */
   Criticidade?: string | null;
   /** Derivado no backend; o status no TCDF tem precedência sobre o resto. */

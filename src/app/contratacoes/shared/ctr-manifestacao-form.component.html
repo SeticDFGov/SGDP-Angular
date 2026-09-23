@@ -1,221 +1,499 @@
-<!-- Texto de abertura do despacho: o que a SGDI afirma em toda manifestação -->
-<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-5">
-  <p class="mb-2">Em atenção à comunicação do Tribunal de Contas do Distrito Federal (TCDF) acerca da contratação de TIC
-  acima identificada, manifesta-se esta SGDI, conforme abaixo, no âmbito do regime de supervisão contínua instituído
-  pelo Decreto nº 48.899/2026 e regulamentado pela Instrução Normativa SGDI nº 1/2026.</p>
-  <p>A supervisão contínua da SGDI compreende a classificação da contratação por criticidade (art. 11 da IN), a análise
-  técnica de alinhamento estratégico, arquitetura, interoperabilidade e segurança da informação (art. 25) e, quando
-  cabível, a emissão de recomendação técnica ou a adoção de medida cautelar (arts. 30 a 34).</p>
-</div>
-
-<!-- Referência da comunicação -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div>
-    <label for="ctr-oficio" class="block text-sm font-semibold mb-1">Ofício/Comunicação TCDF nº <span class="text-red-600">*</span></label>
-    <input id="ctr-oficio" type="text" [(ngModel)]="form.OficioTcdf" name="ctr-oficio" maxlength="60"
-           placeholder="1234/2026 (2ª ICE)"
-           class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-           [class.border-red-500]="submetido && errOficio"
-           [class.bg-red-50]="submetido && errOficio"
-           [class.border-gray-300]="!(submetido && errOficio)">
-    <p *ngIf="submetido && errOficio" class="text-xs text-red-600 mt-1">{{ errOficio }}</p>
-  </div>
-  <div>
-    <label for="ctr-data-oficio" class="block text-sm font-semibold mb-1">Data do ofício <span class="text-red-600">*</span></label>
-    <input id="ctr-data-oficio" type="date" [(ngModel)]="form.DataOficio" name="ctr-data-oficio"
-           class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-           [class.border-red-500]="submetido && errDataOficio"
-           [class.border-gray-300]="!(submetido && errDataOficio)">
-    <p *ngIf="submetido && errDataOficio" class="text-xs text-red-600 mt-1">{{ errDataOficio }}</p>
-  </div>
-</div>
-
-<h3 class="text-sm font-semibold text-blue-900 mt-6 mb-2">Situação no Portfólio Estratégico de Contratações de TIC</h3>
-
-<!-- I: contratação já comunicada -->
-<div class="border rounded-lg p-4 mb-3"
-     [ngClass]="incisoI ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200'">
-  <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
-    <input type="radio" name="ctr-inciso" [value]="'Comunicada previamente'"
-           [ngModel]="form.SituacaoPortfolio" (ngModelChange)="aoTrocarInciso($event)"
-           class="mt-1">
-    <span><strong>I -</strong> A contratação já se encontrava comunicada a esta SGDI e inserida no monitoramento contínuo
-    desde <strong>[data]</strong>. Foi, por sua vez, classificada como de criticidade <strong>[Alta/Média/Baixa]</strong>
-    (art. 11 da IN SGDI nº 1/2026) e apresentou como resultado da análise e providência adotada:</span>
-  </label>
-
-  <div *ngIf="incisoI" class="mt-4 pl-6 space-y-4">
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label for="ctr-comunicada-desde" class="block text-sm font-semibold mb-1">Comunicada e monitorada desde <span class="text-red-600">*</span></label>
-        <input id="ctr-comunicada-desde" type="date" [(ngModel)]="form.ComunicadaDesde" name="ctr-comunicada-desde"
-               class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-               [class.border-red-500]="submetido && errComunicadaDesde"
-               [class.border-gray-300]="!(submetido && errComunicadaDesde)">
-        <p *ngIf="submetido && errComunicadaDesde" class="text-xs text-red-600 mt-1">{{ errComunicadaDesde }}</p>
-        <p class="text-xs text-gray-500 italic mt-1">É o "[data]" do despacho.</p>
-      </div>
-      <!-- A criticidade é da contratação: vem do cadastro do processo -->
-      <div>
-        <label class="block text-sm font-semibold mb-1">Criticidade da contratação</label>
-        <p *ngIf="criticidadeProcesso" class="text-sm text-gray-800 py-2">
-          <strong>{{ criticidadeProcesso }}</strong>, definida no cadastro do processo.
-        </p>
-        <p *ngIf="!criticidadeProcesso" class="text-sm text-red-700 py-2">Ainda não definida no cadastro do processo.</p>
-        <a *ngIf="processoId" [routerLink]="['/analises/processos/editar', processoId]"
-           class="text-sm text-blue-700 underline">Editar o processo</a>
-        <p *ngIf="submetido && errCriticidade" class="text-xs text-red-600 mt-1">{{ errCriticidade }}</p>
-        <p class="text-xs text-gray-500 italic mt-1">Art. 11 da IN SGDI nº 1/2026. É atributo da contratação: o despacho
-        só reporta o valor do cadastro.</p>
-      </div>
-    </div>
-
-    <div class="space-y-2">
-      <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
-        <input type="radio" name="ctr-resultado" [value]="'Alinhada'"
-               [ngModel]="form.ResultadoAnalise" (ngModelChange)="aoTrocarResultado($event)"
-               class="mt-1">
-        <span>a contratação está alinhada às diretrizes da IN e segue em acompanhamento contínuo, sem necessidade de
-        ação adicional (art. 27, I, e art. 28 da IN);</span>
-      </label>
-
-      <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
-        <input type="radio" name="ctr-resultado" [value]="'Informações complementares'"
-               [ngModel]="form.ResultadoAnalise" (ngModelChange)="aoTrocarResultado($event)"
-               class="mt-1">
-        <span>foram identificadas oportunidades de melhoria ou pontos a esclarecer, desse modo, foi(foram) solicitada(s)
-        informação(ões) complementar(es) ao órgão/entidade, nos termos do art. 29 da IN;</span>
-      </label>
-
-      <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
-        <input type="radio" name="ctr-resultado" [value]="'Riscos significativos'"
-               [ngModel]="form.ResultadoAnalise" (ngModelChange)="aoTrocarResultado($event)"
-               class="mt-1">
-        <span>foram identificados riscos significativos ou desvios relevantes, conforme os critérios dos arts. 11 e 25
-        da IN, tendo a SGDI:</span>
-      </label>
-
-      <!-- Os cinco itens do "tendo a SGDI:", como no papel -->
-      <div class="pl-6 space-y-2" [class.opacity-50]="!temRiscos">
-        <label class="flex items-start gap-2 text-sm leading-relaxed"
-               [class.cursor-pointer]="temRiscos">
-          <input type="checkbox" [(ngModel)]="form.RecomendouSuspensao" name="ctr-suspensao"
-                 [disabled]="!temRiscos" class="mt-1">
-          <span>recomendado a suspensão temporária da contratação para reanálise (art. 33 da IN);</span>
-        </label>
-
-        <label class="flex items-start gap-2 text-sm leading-relaxed"
-               [class.cursor-pointer]="temRiscos">
-          <input type="checkbox" [(ngModel)]="form.ComunicouControleInterno" name="ctr-controle-interno"
-                 [disabled]="!temRiscos" class="mt-1">
-          <span>comunicado o fato ao órgão de controle interno competente, mediante nota de motivação (art. 34, VI, da
-          IN c/c art. 6º, IV, do Decreto nº 48.899/2026);</span>
-        </label>
-
-        <label class="flex items-start gap-2 text-sm leading-relaxed"
-               [class.cursor-pointer]="temRiscos">
-          <input type="radio" name="ctr-desfecho" [value]="'Aguardando resposta'"
-                 [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
-          <span>Aguardando resposta da área demandante sobre os riscos e desvios identificados;</span>
-        </label>
-
-        <label class="flex items-start gap-2 text-sm leading-relaxed"
-               [class.cursor-pointer]="temRiscos">
-          <input type="radio" name="ctr-desfecho" [value]="'Risco resolvido'"
-                 [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
-          <span>Risco resolvido: após recomendações da SGDI e ações de mitigação adotadas pela área demandante, os
-          riscos foram adequadamente tratados, prosseguindo a contratação em acompanhamento contínuo;</span>
-        </label>
-
-        <label class="flex items-start gap-2 text-sm leading-relaxed"
-               [class.cursor-pointer]="temRiscos">
-          <input type="radio" name="ctr-desfecho" [value]="'Não pode prosseguir'"
-                 [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
-          <span>Não pode prosseguir: os riscos apontados não foram adequadamente tratados, tendo a SGDI determinado a
-          suspensão completa da contratação, com prazo para nova manifestação do órgão/entidade, permanecendo o feito em
-          acompanhamento contínuo.</span>
-        </label>
-
-        <p *ngIf="temRiscos" class="text-xs text-gray-500 italic">As duas primeiras opções são providências que podem
-        estar as duas marcadas. As três últimas são o ponto em que o tratamento do risco está: escolha uma.</p>
-      </div>
-
-      <p *ngIf="submetido && errResultado" class="text-xs text-red-600">{{ errResultado }}</p>
-      <p *ngIf="submetido && errDesfecho" class="text-xs text-red-600">{{ errDesfecho }}</p>
+<!-- Cabeçalho de cada parte do formulário (mesmo desenho do formulário do processo) -->
+<ng-template #cabecalho let-icone="icone" let-titulo="titulo" let-ajuda="ajuda">
+  <div class="flex items-start gap-3 mb-4">
+    <span class="material-icons text-xl leading-none text-blue-700 bg-blue-50 rounded-full p-2" aria-hidden="true">{{ icone }}</span>
+    <div>
+      <h3 class="text-sm font-semibold text-blue-900">{{ titulo }}</h3>
+      <p *ngIf="ajuda" class="text-xs text-gray-500 italic mt-0.5">{{ ajuda }}</p>
     </div>
   </div>
-</div>
+</ng-template>
 
-<!-- II: contratação não comunicada -->
-<div class="border rounded-lg p-4"
-     [ngClass]="incisoII ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200'">
-  <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
-    <input type="radio" name="ctr-inciso" [value]="'Não comunicada previamente'"
-           [ngModel]="form.SituacaoPortfolio" (ngModelChange)="aoTrocarInciso($event)"
-           class="mt-1">
-    <span><strong>II -</strong> A contratação não constava como previamente comunicada a esta SGDI. Diante da comunicação
-    do TCDF, o órgão/a entidade demandante será notificado para regularizar a comunicação obrigatória (Anexo I/II da IN
-    SGDI nº 1/2026), no prazo de <strong>[__]</strong> dias (art. 40 da IN).</span>
-  </label>
+<!-- ── 1. Comunicação do TCDF ───────────────────────────────────────────── -->
+<section>
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'gavel', titulo: 'Comunicação do TCDF',
+    ajuda: 'O processo em que o Tribunal comunicou a SGDI, o ofício e o ato que originou a comunicação.' }"></ng-container>
 
-  <div *ngIf="incisoII" class="mt-4 pl-6 max-w-xs">
-    <label for="ctr-prazo" class="block text-sm font-semibold mb-1">Prazo para regularizar, em dias <span class="text-red-600">*</span></label>
-    <input id="ctr-prazo" type="number" min="1" max="365" step="1" [(ngModel)]="form.PrazoRegularizacaoDias" name="ctr-prazo"
-           class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-           [class.border-red-500]="submetido && errPrazo"
-           [class.border-gray-300]="!(submetido && errPrazo)">
-    <p *ngIf="submetido && errPrazo" class="text-xs text-red-600 mt-1">{{ errPrazo }}</p>
-    <p class="text-xs text-gray-500 italic mt-1">É o "[__] dias" do despacho (art. 40 da IN). De 1 a 365 dias.</p>
+  <p *ngIf="!exigirComunicacao" class="border-l-4 border-amber-400 bg-amber-50 p-3 rounded-r-md text-sm text-gray-800 mb-4">
+    Esta manifestação foi registrada antes destes campos. Preencha o processo de comunicação, a data de recebimento e
+    o ato do TCDF, ou deixe os quatro em branco.
+  </p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label for="ctr-processo-tcdf" class="block text-sm font-semibold mb-1">Nº do processo de comunicação do TCDF
+        <span *ngIf="comunicacaoObrigatoria" class="text-red-600">*</span></label>
+      <input id="ctr-processo-tcdf" type="text" inputmode="numeric" [value]="form.ProcessoComunicacaoTcdf || ''"
+             (input)="aoDigitarProcessoTcdf($event)" placeholder="00000-00000000/2026-00"
+             aria-describedby="ctr-processo-tcdf-ajuda"
+             [attr.data-erro]="submetido && errProcessoTcdf ? 'sim' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errProcessoTcdf"
+             [class.bg-red-50]="submetido && errProcessoTcdf"
+             [class.border-gray-300]="!(submetido && errProcessoTcdf)">
+      <p *ngIf="submetido && errProcessoTcdf" class="text-xs text-red-600 mt-1">{{ errProcessoTcdf }}</p>
+      <p id="ctr-processo-tcdf-ajuda" class="text-xs text-gray-500 italic mt-1">Processo SEI em que o TCDF comunicou a
+      SGDI. É o "Processo SEI nº" do despacho. Digite só os números.</p>
+    </div>
+
+    <div>
+      <label for="ctr-data-recebimento" class="block text-sm font-semibold mb-1">Data de recebimento do processo
+        <span *ngIf="comunicacaoObrigatoria" class="text-red-600">*</span></label>
+      <input id="ctr-data-recebimento" type="date" [(ngModel)]="form.DataRecebimento" name="ctr-data-recebimento"
+             [attr.data-erro]="submetido && errDataRecebimento ? 'sim' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errDataRecebimento"
+             [class.border-gray-300]="!(submetido && errDataRecebimento)">
+      <p *ngIf="submetido && errDataRecebimento" class="text-xs text-red-600 mt-1">{{ errDataRecebimento }}</p>
+      <p class="text-xs text-gray-500 italic mt-1">Quando o processo chegou à SGDI.</p>
+    </div>
+
+    <div>
+      <label for="ctr-oficio" class="block text-sm font-semibold mb-1">Nº do ofício do TCDF <span class="text-red-600">*</span></label>
+      <input id="ctr-oficio" type="text" [(ngModel)]="form.OficioTcdf" name="ctr-oficio" maxlength="60"
+             placeholder="6018/2026-GP"
+             [attr.data-erro]="submetido && errOficio ? 'sim' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errOficio"
+             [class.bg-red-50]="submetido && errOficio"
+             [class.border-gray-300]="!(submetido && errOficio)">
+      <p *ngIf="submetido && errOficio" class="text-xs text-red-600 mt-1">{{ errOficio }}</p>
+    </div>
+
+    <div>
+      <label for="ctr-data-oficio" class="block text-sm font-semibold mb-1">Data do ofício <span class="text-red-600">*</span></label>
+      <input id="ctr-data-oficio" type="date" [(ngModel)]="form.DataOficio" name="ctr-data-oficio"
+             [attr.data-erro]="submetido && errDataOficio ? 'sim' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errDataOficio"
+             [class.border-gray-300]="!(submetido && errDataOficio)">
+      <p *ngIf="submetido && errDataOficio" class="text-xs text-red-600 mt-1">{{ errDataOficio }}</p>
+      <p class="text-xs text-gray-500 italic mt-1">O despacho cita o ofício com esta data.</p>
+    </div>
+
+    <div class="md:col-span-2">
+      <span id="ctr-ato-rotulo" class="block text-sm font-semibold mb-1">Despacho Singular ou Decisão
+        <span *ngIf="comunicacaoObrigatoria" class="text-red-600">*</span></span>
+      <div class="flex flex-wrap gap-3" role="group" aria-labelledby="ctr-ato-rotulo">
+        <select id="ctr-ato" [(ngModel)]="form.AtoTcdf" name="ctr-ato" aria-label="Tipo do ato do TCDF"
+                [attr.data-erro]="submetido && errAto ? 'sim' : null"
+                class="w-64 px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class.border-red-500]="submetido && errAto"
+                [class.border-gray-300]="!(submetido && errAto)">
+          <option [ngValue]="null">Escolha o ato</option>
+          <option *ngFor="let a of atos" [ngValue]="a">{{ a }}</option>
+        </select>
+        <input id="ctr-numero-ato" type="text" [(ngModel)]="form.NumeroAtoTcdf" name="ctr-numero-ato" maxlength="60"
+               placeholder="nº 1234/2026" aria-label="Número do ato do TCDF"
+               [attr.data-erro]="submetido && errNumeroAto ? 'sim' : null"
+               class="flex-1 min-w-[12rem] px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+               [class.border-red-500]="submetido && errNumeroAto"
+               [class.bg-red-50]="submetido && errNumeroAto"
+               [class.border-gray-300]="!(submetido && errNumeroAto)">
+      </div>
+      <p *ngIf="submetido && errAto" class="text-xs text-red-600 mt-1">{{ errAto }}</p>
+      <p *ngIf="submetido && errNumeroAto" class="text-xs text-red-600 mt-1">{{ errNumeroAto }}</p>
+      <p class="text-xs text-gray-500 italic mt-1">O ato do Tribunal que originou a comunicação, com o número.</p>
+    </div>
   </div>
+</section>
+
+<!-- ── 2. Contratação auditada ──────────────────────────────────────────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'apartment', titulo: 'Contratação auditada',
+    ajuda: contratacao
+      ? 'Processo já cadastrado no módulo: os dados vêm dele.'
+      : 'Como o TCDF a comunicou. Ao registrar, ela é cadastrada como processo de origem TCDF, com o número do processo de comunicação.' }"></ng-container>
+
+  <!-- Processo escolhido (ou o da manifestação, na página dela) -->
+  <div *ngIf="contratacao" class="border border-gray-200 rounded-lg p-4 text-sm">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="font-semibold text-gray-900">Processo SEI nº {{ contratacao.NumeroProcesso }}</span>
+      <span *ngIf="contratacao.Situacao" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+            [ngClass]="badgeSituacao(contratacao.Situacao)">{{ contratacao.Situacao }}</span>
+      <span *ngIf="contratacao.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+            [ngClass]="badgeCriticidade(contratacao.Criticidade)">Criticidade {{ contratacao.Criticidade }}</span>
+      <span *ngIf="contratacao.Origem === origemTcdf"
+            class="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Origem TCDF</span>
+    </div>
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 mt-3">
+      <div>
+        <dt class="text-xs font-semibold text-gray-600">Órgão auditado</dt>
+        <dd class="text-gray-900">{{ contratacao.OrgaoNome }} ({{ contratacao.OrgaoSigla }})</dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold text-gray-600">Categoria do objeto</dt>
+        <dd class="text-gray-900">{{ contratacao.CategoriaObjeto || '-' }}</dd>
+      </div>
+      <div class="md:col-span-2">
+        <dt class="text-xs font-semibold text-gray-600">Objeto da contratação</dt>
+        <dd class="text-gray-900">{{ contratacao.Objeto }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold text-gray-600">Valor estimado</dt>
+        <dd class="text-gray-900">{{ contratacao.ValorEstimado != null ? formatarReais(contratacao.ValorEstimado) : 'Não informado' }}</dd>
+      </div>
+    </dl>
+    <div class="flex flex-wrap items-center gap-4 mt-3">
+      <a [routerLink]="['/analises/processos/editar', contratacao.Id]" class="text-sm text-blue-700 underline">Abrir o processo</a>
+      <button *ngIf="permitirVincular" type="button" (click)="desvincular.emit()"
+              class="text-sm text-blue-700 underline">Trocar: é outra contratação</button>
+    </div>
+  </div>
+
+  <!-- Contratação nova, ou a busca de um processo já cadastrado -->
+  <ng-container *ngIf="contratacaoNova">
+
+    <div *ngIf="sugestao" class="border-l-4 border-amber-400 bg-amber-50 p-3 rounded-r-md text-sm text-gray-800 mb-4"
+         [attr.data-erro]="submetido && errNumeroJaCadastrado ? 'sim' : null" tabindex="-1">
+      <p>Já existe um processo cadastrado com o número <strong>{{ sugestao.NumeroProcesso }}</strong>:
+        {{ sugestao.OrgaoSigla }} · {{ sugestao.Objeto }}.</p>
+      <button type="button" (click)="escolher(sugestao)"
+              class="mt-2 text-sm font-semibold text-blue-700 border border-blue-600 rounded-md px-3 py-1 bg-white hover:bg-blue-50">
+        Registrar a comunicação nesse processo
+      </button>
+    </div>
+
+    <ng-container *ngIf="!buscaAberta">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="ctr-orgao-auditado" class="block text-sm font-semibold mb-1">Órgão auditado <span class="text-red-600">*</span></label>
+          <input id="ctr-orgao-auditado" type="text" [(ngModel)]="nova.OrgaoNome" name="ctr-orgao-auditado" maxlength="200"
+                 placeholder="Nome completo do órgão ou entidade"
+                 [attr.data-erro]="submetido && errOrgaoNome ? 'sim' : null"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="submetido && errOrgaoNome"
+                 [class.bg-red-50]="submetido && errOrgaoNome"
+                 [class.border-gray-300]="!(submetido && errOrgaoNome)">
+          <p *ngIf="submetido && errOrgaoNome" class="text-xs text-red-600 mt-1">{{ errOrgaoNome }}</p>
+        </div>
+
+        <div>
+          <label for="ctr-orgao-auditado-sigla" class="block text-sm font-semibold mb-1">Sigla <span class="text-red-600">*</span></label>
+          <input id="ctr-orgao-auditado-sigla" type="text" [value]="nova.OrgaoSigla" (input)="aoDigitarSigla($event)" maxlength="20"
+                 list="ctr-siglas-tcdf" placeholder="DETRAN"
+                 [attr.data-erro]="submetido && errOrgaoSigla ? 'sim' : null"
+                 class="w-full px-3 py-2 border rounded-md text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="submetido && errOrgaoSigla"
+                 [class.bg-red-50]="submetido && errOrgaoSigla"
+                 [class.border-gray-300]="!(submetido && errOrgaoSigla)">
+          <datalist id="ctr-siglas-tcdf">
+            <option *ngFor="let s of siglas" [value]="s"></option>
+          </datalist>
+          <p *ngIf="submetido && errOrgaoSigla" class="text-xs text-red-600 mt-1">{{ errOrgaoSigla }}</p>
+        </div>
+
+        <div class="md:col-span-2">
+          <label for="ctr-objeto-tcdf" class="block text-sm font-semibold mb-1">Objeto da contratação <span class="text-red-600">*</span></label>
+          <textarea id="ctr-objeto-tcdf" rows="3" [(ngModel)]="nova.Objeto" name="ctr-objeto-tcdf"
+                    placeholder="O que está sendo contratado, como consta na comunicação do TCDF."
+                    [attr.data-erro]="submetido && errObjeto ? 'sim' : null"
+                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-500]="submetido && errObjeto"
+                    [class.bg-red-50]="submetido && errObjeto"
+                    [class.border-gray-300]="!(submetido && errObjeto)"></textarea>
+          <p *ngIf="submetido && errObjeto" class="text-xs text-red-600 mt-1">{{ errObjeto }}</p>
+        </div>
+
+        <div>
+          <label for="ctr-categoria-tcdf" class="block text-sm font-semibold mb-1">Categoria do objeto <span class="text-red-600">*</span></label>
+          <select id="ctr-categoria-tcdf" [(ngModel)]="nova.CategoriaObjeto" name="ctr-categoria-tcdf"
+                  [attr.data-erro]="submetido && errCategoria ? 'sim' : null"
+                  class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="submetido && errCategoria"
+                  [class.border-gray-300]="!(submetido && errCategoria)">
+            <option value="">Escolha a categoria</option>
+            <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+          </select>
+          <p *ngIf="submetido && errCategoria" class="text-xs text-red-600 mt-1">{{ errCategoria }}</p>
+        </div>
+
+        <div>
+          <label for="ctr-valor-tcdf" class="block text-sm font-semibold mb-1">Valor estimado</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-sm text-gray-600 pointer-events-none" aria-hidden="true">R$</span>
+            <input id="ctr-valor-tcdf" type="text" inputmode="decimal" [(ngModel)]="valorTexto" name="ctr-valor-tcdf"
+                   (blur)="aoSairDoValor()" placeholder="0,00" aria-describedby="ctr-valor-tcdf-ajuda"
+                   [attr.data-erro]="submetido && errValor ? 'sim' : null"
+                   class="w-full pl-10 pr-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [class.border-red-500]="submetido && errValor"
+                   [class.bg-red-50]="submetido && errValor"
+                   [class.border-gray-300]="!(submetido && errValor)">
+          </div>
+          <p *ngIf="submetido && errValor" class="text-xs text-red-600 mt-1">{{ errValor }}</p>
+          <p id="ctr-valor-tcdf-ajuda" class="text-xs text-gray-500 italic mt-1">Em reais. Deixe em branco se a comunicação não trouxer.</p>
+        </div>
+      </div>
+
+      <p class="text-sm text-gray-600 mt-4">A contratação já está no módulo (comunicada pelo órgão ou por um ofício anterior
+        do TCDF)?
+        <button type="button" (click)="abrirBusca()" class="text-blue-700 underline">Buscar o processo cadastrado</button></p>
+    </ng-container>
+
+    <!-- Busca de processo já cadastrado -->
+    <div *ngIf="buscaAberta" class="border border-blue-200 rounded-lg p-4">
+      <div class="flex items-start justify-between gap-4 mb-3">
+        <p class="text-sm text-gray-600">Busque pelo número do processo, pela sigla ou pelo nome do órgão e clique no
+        processo certo.</p>
+        <button type="button" (click)="fecharBusca()" class="text-sm text-blue-700 underline whitespace-nowrap">Voltar e
+          cadastrar a contratação</button>
+      </div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <input type="text" [(ngModel)]="termoBusca" name="ctr-busca-processo" (keyup.enter)="buscarProcessos()"
+               aria-label="Buscar processo cadastrado" placeholder="Número do processo, sigla ou órgão"
+               class="flex-1 min-w-[12rem] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button type="button" (click)="buscarProcessos()" [disabled]="buscando"
+                class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ buscando ? 'Buscando...' : 'Buscar' }}
+        </button>
+      </div>
+
+      <p *ngIf="buscou && erroBusca" class="text-sm text-red-700 mt-3">Não foi possível buscar os processos. Tente de novo.</p>
+      <p *ngIf="buscou && !erroBusca && resultados.length === 0" class="text-sm text-gray-600 mt-3">Nenhum processo
+        encontrado. Se a contratação ainda não está no módulo, volte e cadastre-a com os dados da comunicação.</p>
+
+      <div *ngIf="resultados.length > 0" class="divide-y divide-gray-200 border border-gray-200 rounded-lg mt-3">
+        <button *ngFor="let p of resultados" type="button" (click)="escolher(p)"
+                class="w-full text-left p-3 hover:bg-blue-50">
+          <span class="font-medium text-gray-900">{{ p.NumeroProcesso }}</span>
+          <span class="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold"
+                [ngClass]="badgeSituacao(p.Situacao)">{{ p.Situacao }}</span>
+          <span *ngIf="p.Origem === origemTcdf" class="ml-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">TCDF</span>
+          <span class="block text-xs text-gray-600">{{ p.OrgaoSigla }} · {{ p.OrgaoNome }}</span>
+          <span class="block text-xs text-gray-600 truncate">{{ p.Objeto }}</span>
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</section>
+
+<!-- ── 3. Situação no Portfólio: o corpo do despacho ─────────────────────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'fact_check', titulo: 'Situação no Portfólio Estratégico de Contratações de TIC',
+    ajuda: 'É o corpo do despacho da SGDI: as alternativas aparecem como no papel.' }"></ng-container>
+
+  <!-- Texto de abertura do despacho: o que a SGDI afirma em toda manifestação -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-5">
+    <p class="mb-2">Em atenção à comunicação do Tribunal de Contas do Distrito Federal (TCDF) acerca da contratação de TIC
+    acima identificada, manifesta-se esta SGDI, conforme abaixo, no âmbito do regime de supervisão contínua instituído
+    pelo Decreto nº 48.899/2026 e regulamentado pela Instrução Normativa SGDI nº 1/2026.</p>
+    <p>A supervisão contínua da SGDI compreende a classificação da contratação por criticidade (art. 11 da IN), a análise
+    técnica de alinhamento estratégico, arquitetura, interoperabilidade e segurança da informação (art. 25) e, quando
+    cabível, a emissão de recomendação técnica ou a adoção de medida cautelar (arts. 30 a 34).</p>
+  </div>
+
+  <p *ngIf="submetido && errSituacao" class="text-xs text-red-600 mb-2" data-erro="sim" tabindex="-1">{{ errSituacao }}</p>
+
+  <!-- I: contratação já comunicada -->
+  <div class="border rounded-lg p-4 mb-3"
+       [ngClass]="incisoI ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200'">
+    <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+      <input type="radio" name="ctr-inciso" [value]="'Comunicada previamente'"
+             [ngModel]="form.SituacaoPortfolio" (ngModelChange)="aoTrocarInciso($event)"
+             class="mt-1">
+      <span><strong>I -</strong> A contratação já se encontrava comunicada a esta SGDI e inserida no monitoramento contínuo
+      desde <strong>[data]</strong>. Foi, por sua vez, classificada como de criticidade <strong>[Alta/Média/Baixa]</strong>
+      (art. 11 da IN SGDI nº 1/2026) e apresentou como resultado da análise e providência adotada:</span>
+    </label>
+
+    <div *ngIf="incisoI" class="mt-4 pl-6 space-y-4">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="ctr-comunicada-desde" class="block text-sm font-semibold mb-1">Comunicada e monitorada desde <span class="text-red-600">*</span></label>
+          <input id="ctr-comunicada-desde" type="date" [(ngModel)]="form.ComunicadaDesde" name="ctr-comunicada-desde"
+                 [attr.data-erro]="submetido && errComunicadaDesde ? 'sim' : null"
+                 class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="submetido && errComunicadaDesde"
+                 [class.border-gray-300]="!(submetido && errComunicadaDesde)">
+          <p *ngIf="submetido && errComunicadaDesde" class="text-xs text-red-600 mt-1">{{ errComunicadaDesde }}</p>
+          <p class="text-xs text-gray-500 italic mt-1">É o "[data]" do despacho.</p>
+        </div>
+        <!-- A criticidade é da contratação: vem do cadastro do processo -->
+        <div [attr.data-erro]="submetido && errCriticidade ? 'sim' : null" tabindex="-1">
+          <span class="block text-sm font-semibold mb-1">Criticidade da contratação</span>
+          <p *ngIf="contratacao && contratacao.Criticidade" class="text-sm text-gray-800 py-2">
+            <strong>{{ contratacao.Criticidade }}</strong>, definida no cadastro do processo.
+          </p>
+          <p *ngIf="contratacao && !contratacao.Criticidade" class="text-sm text-red-700 py-2">Ainda não definida no
+            cadastro do processo.</p>
+          <p *ngIf="!contratacao" class="text-sm text-red-700 py-2">Vem do processo da contratação já acompanhada:
+            escolha-o em "Contratação auditada".</p>
+          <a *ngIf="contratacao" [routerLink]="['/analises/processos/editar', contratacao.Id]"
+             class="text-sm text-blue-700 underline">Editar o processo</a>
+          <p *ngIf="submetido && errCriticidade" class="text-xs text-red-600 mt-1">{{ errCriticidade }}</p>
+          <p class="text-xs text-gray-500 italic mt-1">Art. 11 da IN SGDI nº 1/2026. É atributo da contratação: o despacho
+          só reporta o valor do cadastro.</p>
+        </div>
+      </div>
+
+      <div class="space-y-2" [attr.data-erro]="submetido && (errResultado || errDesfecho) ? 'sim' : null" tabindex="-1">
+        <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+          <input type="radio" name="ctr-resultado" [value]="'Alinhada'"
+                 [ngModel]="form.ResultadoAnalise" (ngModelChange)="aoTrocarResultado($event)"
+                 class="mt-1">
+          <span>a contratação está alinhada às diretrizes da IN e segue em acompanhamento contínuo, sem necessidade de
+          ação adicional (art. 27, I, e art. 28 da IN);</span>
+        </label>
+
+        <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+          <input type="radio" name="ctr-resultado" [value]="'Informações complementares'"
+                 [ngModel]="form.ResultadoAnalise" (ngModelChange)="aoTrocarResultado($event)"
+                 class="mt-1">
+          <span>foram identificadas oportunidades de melhoria ou pontos a esclarecer, desse modo, foi(foram) solicitada(s)
+          informação(ões) complementar(es) ao órgão/entidade, nos termos do art. 29 da IN;</span>
+        </label>
+
+        <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+          <input type="radio" name="ctr-resultado" [value]="'Riscos significativos'"
+                 [ngModel]="form.ResultadoAnalise" (ngModelChange)="aoTrocarResultado($event)"
+                 class="mt-1">
+          <span>foram identificados riscos significativos ou desvios relevantes, conforme os critérios dos arts. 11 e 25
+          da IN, tendo a SGDI:</span>
+        </label>
+
+        <!-- Os cinco itens do "tendo a SGDI:", como no papel -->
+        <div class="pl-6 space-y-2" [class.opacity-50]="!temRiscos">
+          <label class="flex items-start gap-2 text-sm leading-relaxed"
+                 [class.cursor-pointer]="temRiscos">
+            <input type="checkbox" [(ngModel)]="form.RecomendouSuspensao" name="ctr-suspensao"
+                   [disabled]="!temRiscos" class="mt-1">
+            <span>recomendado a suspensão temporária da contratação para reanálise (art. 33 da IN);</span>
+          </label>
+
+          <label class="flex items-start gap-2 text-sm leading-relaxed"
+                 [class.cursor-pointer]="temRiscos">
+            <input type="checkbox" [(ngModel)]="form.ComunicouControleInterno" name="ctr-controle-interno"
+                   [disabled]="!temRiscos" class="mt-1">
+            <span>comunicado o fato ao órgão de controle interno competente, mediante nota de motivação (art. 34, VI, da
+            IN c/c art. 6º, IV, do Decreto nº 48.899/2026);</span>
+          </label>
+
+          <label class="flex items-start gap-2 text-sm leading-relaxed"
+                 [class.cursor-pointer]="temRiscos">
+            <input type="radio" name="ctr-desfecho" [value]="'Aguardando resposta'"
+                   [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
+            <span>Aguardando resposta da área demandante sobre os riscos e desvios identificados;</span>
+          </label>
+
+          <label class="flex items-start gap-2 text-sm leading-relaxed"
+                 [class.cursor-pointer]="temRiscos">
+            <input type="radio" name="ctr-desfecho" [value]="'Risco resolvido'"
+                   [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
+            <span>Risco resolvido: após recomendações da SGDI e ações de mitigação adotadas pela área demandante, os
+            riscos foram adequadamente tratados, prosseguindo a contratação em acompanhamento contínuo;</span>
+          </label>
+
+          <label class="flex items-start gap-2 text-sm leading-relaxed"
+                 [class.cursor-pointer]="temRiscos">
+            <input type="radio" name="ctr-desfecho" [value]="'Não pode prosseguir'"
+                   [(ngModel)]="form.DesfechoRisco" [disabled]="!temRiscos" class="mt-1">
+            <span>Não pode prosseguir: os riscos apontados não foram adequadamente tratados, tendo a SGDI determinado a
+            suspensão completa da contratação, com prazo para nova manifestação do órgão/entidade, permanecendo o feito em
+            acompanhamento contínuo.</span>
+          </label>
+
+          <p *ngIf="temRiscos" class="text-xs text-gray-500 italic">As duas primeiras opções são providências que podem
+          estar as duas marcadas. As três últimas são o ponto em que o tratamento do risco está: escolha uma.</p>
+        </div>
+
+        <p *ngIf="submetido && errResultado" class="text-xs text-red-600">{{ errResultado }}</p>
+        <p *ngIf="submetido && errDesfecho" class="text-xs text-red-600">{{ errDesfecho }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- II: contratação não comunicada -->
+  <div class="border rounded-lg p-4"
+       [ngClass]="incisoII ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200'">
+    <label class="flex items-start gap-2 text-sm leading-relaxed cursor-pointer">
+      <input type="radio" name="ctr-inciso" [value]="'Não comunicada previamente'"
+             [ngModel]="form.SituacaoPortfolio" (ngModelChange)="aoTrocarInciso($event)"
+             class="mt-1">
+      <span><strong>II -</strong> A contratação não constava como previamente comunicada a esta SGDI. Diante da comunicação
+      do TCDF, o órgão/a entidade demandante será notificado para regularizar a comunicação obrigatória (Anexo I/II da IN
+      SGDI nº 1/2026), no prazo de <strong>[__]</strong> dias (art. 40 da IN).</span>
+    </label>
+
+    <div *ngIf="incisoII" class="mt-4 pl-6 max-w-md">
+      <label for="ctr-prazo" class="block text-sm font-semibold mb-1">Dias para regularização <span class="text-red-600">*</span></label>
+      <input id="ctr-prazo" type="number" min="1" max="365" step="1" [(ngModel)]="form.PrazoRegularizacaoDias" name="ctr-prazo"
+             [attr.data-erro]="submetido && errPrazo ? 'sim' : null"
+             class="w-32 px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errPrazo"
+             [class.border-gray-300]="!(submetido && errPrazo)">
+      <p *ngIf="submetido && errPrazo" class="text-xs text-red-600 mt-1">{{ errPrazo }}</p>
+      <p class="text-xs text-gray-500 italic mt-1">É o "[__] dias" do despacho. O art. 40, parágrafo único, da IN prevê
+      {{ prazoPadrao }} dias úteis, contados do recebimento da notificação; por isso o campo já vem com {{ prazoPadrao }}.</p>
+    </div>
+  </div>
+
+  <!-- Fecho fixo do despacho -->
+  <div class="mt-5 border-l-4 border-gray-300 bg-gray-50 p-4 text-sm text-gray-700 leading-relaxed rounded-r-md">
+    <p class="mb-2">Cabe ressaltar que em todas as hipóteses supra descritas, a contratação é inserida e mantida no
+    portfólio estratégico de contratações de TIC, sob regime de supervisão contínua da SGDI, com acompanhamento a
+    prosseguir conforme o art. 34 da IN SGDI nº 1/2026.</p>
+    <p>Reitera-se que a supervisão exercida por esta SGDI tem natureza técnica e orientadora, não implicando aprovação,
+    validação ou substituição das competências dos órgãos de controle interno e externo (art. 9º e art. 25, §2º, da IN
+    SGDI nº 1/2026), permanecendo a SGDI à disposição para esclarecimentos adicionais.</p>
+    <p class="text-xs text-gray-500 italic mt-2">Estes dois parágrafos são fixos e entram no despacho gerado.</p>
+  </div>
+</section>
+
+<!-- ── 4. Acompanhamento: fica no sistema, fora do despacho ─────────────── -->
+<section class="mt-8 pt-4 border-t border-gray-200">
+  <ng-container *ngTemplateOutlet="cabecalho; context: {
+    icone: 'track_changes', titulo: 'Acompanhamento',
+    ajuda: 'Registros da equipe sobre esta comunicação. Valem nos dois incisos e não entram no despacho.' }"></ng-container>
+
+  <!-- Status no TCDF: fato do Tribunal, vale nos dois incisos -->
+  <div class="max-w-sm">
+    <label for="ctr-status-tcdf" class="block text-sm font-semibold mb-1">Status no TCDF</label>
+    <select id="ctr-status-tcdf" [(ngModel)]="form.StatusTcdf" name="ctr-status-tcdf"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <option [ngValue]="null">Sem status especial</option>
+      <option *ngFor="let s of statusTcdf" [ngValue]="s">{{ s }}</option>
+    </select>
+    <p class="text-xs text-gray-500 italic mt-1">O que aconteceu com o processo no Tribunal. Preenchido, passa a ser o
+    estágio da manifestação.</p>
+  </div>
+
+  <!-- Esclarecimentos adicionais: não confundir com o bloco "Esclarecimentos ao
+       órgão comunicante" do processo -->
+  <div class="mt-4">
+    <label for="ctr-esclarecimentos-adicionais" class="block text-sm font-semibold mb-1">Esclarecimentos Adicionais</label>
+    <textarea id="ctr-esclarecimentos-adicionais" rows="3" [(ngModel)]="form.EsclarecimentosAdicionais" name="ctr-esclarecimentos-adicionais" maxlength="4000"
+              placeholder="Informações complementares sobre esta comunicação do TCDF."
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+  </div>
+
+  <div class="mt-4">
+    <label for="ctr-manifestacao-observacao" class="block text-sm font-semibold mb-1">Observação interna</label>
+    <textarea id="ctr-manifestacao-observacao" rows="3" [(ngModel)]="form.Observacao" name="ctr-manifestacao-observacao"
+              placeholder="Anotações da equipe sobre esta manifestação."
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+  </div>
+</section>
+
+<!-- O que ainda impede o envio: aparece na tentativa de salvar -->
+<div *ngIf="submetido && problemas.length > 0" class="mt-6 border-l-4 border-red-500 bg-red-50 p-3 rounded-r-md" role="alert">
+  <p class="text-sm font-semibold text-red-800 mb-1">Antes de salvar, corrija:</p>
+  <ul class="list-disc pl-5 text-sm text-red-800 space-y-0.5">
+    <li *ngFor="let p of problemas">{{ p }}</li>
+  </ul>
 </div>
 
-<!-- Fecho fixo do despacho -->
-<div class="mt-5 border-l-4 border-gray-300 bg-gray-50 p-4 text-sm text-gray-700 leading-relaxed rounded-r-md">
-  <p class="mb-2">Cabe ressaltar que em todas as hipóteses supra descritas, a contratação é inserida e mantida no
-  portfólio estratégico de contratações de TIC, sob regime de supervisão contínua da SGDI, com acompanhamento a
-  prosseguir conforme o art. 34 da IN SGDI nº 1/2026.</p>
-  <p>Reitera-se que a supervisão exercida por esta SGDI tem natureza técnica e orientadora, não implicando aprovação,
-  validação ou substituição das competências dos órgãos de controle interno e externo (art. 9º e art. 25, §2º, da IN
-  SGDI nº 1/2026), permanecendo a SGDI à disposição para esclarecimentos adicionais.</p>
-  <p class="text-xs text-gray-500 italic mt-2">Estes dois parágrafos são fixos e entram no despacho gerado.</p>
-</div>
-
-<!-- Esclarecimentos adicionais: valem nos dois incisos e não vão no despacho.
-     Não confundir com o bloco "Esclarecimentos ao órgão comunicante" do processo. -->
-<div class="mt-4">
-  <label for="ctr-esclarecimentos-adicionais" class="block text-sm font-semibold mb-1">Esclarecimentos Adicionais</label>
-  <textarea id="ctr-esclarecimentos-adicionais" rows="3" [(ngModel)]="form.EsclarecimentosAdicionais" name="ctr-esclarecimentos-adicionais" maxlength="4000"
-            placeholder="Informações complementares sobre esta comunicação do TCDF."
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-  <p class="text-xs text-gray-500 italic mt-1">Registro de acompanhamento; não altera o texto do despacho.</p>
-</div>
-
-<!-- Status no TCDF: fato do Tribunal, vale nos dois incisos -->
-<div class="mt-4 max-w-sm">
-  <label for="ctr-status-tcdf" class="block text-sm font-semibold mb-1">Status no TCDF (opcional)</label>
-  <select id="ctr-status-tcdf" [(ngModel)]="form.StatusTcdf" name="ctr-status-tcdf"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-    <option [ngValue]="null">Sem status especial</option>
-    <option *ngFor="let s of statusTcdf" [ngValue]="s">{{ s }}</option>
-  </select>
-  <p class="text-xs text-gray-500 italic mt-1">Registro de acompanhamento do que aconteceu com o processo no Tribunal.
-  Vale para os dois incisos e não altera o texto do despacho.</p>
-</div>
-
-<div class="mt-4">
-  <label for="ctr-manifestacao-observacao" class="block text-sm font-semibold mb-1">Observação interna</label>
-  <textarea id="ctr-manifestacao-observacao" rows="3" [(ngModel)]="form.Observacao" name="ctr-manifestacao-observacao"
-            placeholder="Anotações da equipe sobre esta manifestação."
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-  <p class="text-xs text-gray-500 italic mt-1">Fica só no sistema: não entra no despacho.</p>
-</div>
-
-<div class="mt-5 flex items-center gap-3">
-  <button (click)="enviar()" [disabled]="salvando"
+<div class="mt-6 flex items-center gap-3 flex-wrap sticky bottom-0 z-10 py-3 bg-white border-t border-gray-200">
+  <button type="button" (click)="enviar()" [disabled]="salvando"
           class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
     {{ salvando ? 'Salvando...' : rotuloSalvar }}
   </button>
-  <button type="button" (click)="cancelar.emit()" class="text-sm text-blue-700 hover:underline">Cancelar</button>
-  <span *ngIf="submetido && !formValido" class="text-xs text-gray-500 italic">Há campos obrigatórios para preencher acima.</span>
+  <button type="button" (click)="cancelar.emit()"
+          class="text-sm text-gray-700 border border-gray-300 bg-white rounded-md py-2 px-4 hover:bg-gray-50">Cancelar</button>
+  <span *ngIf="submetido && problemas.length > 0" class="text-xs font-semibold text-red-700">
+    {{ problemas.length === 1 ? '1 item para corrigir' : problemas.length + ' itens para corrigir' }}
+  </span>
 </div>
