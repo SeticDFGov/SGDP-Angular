@@ -1,0 +1,15 @@
+<div class="mb-4 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3">
+  <span class="material-icons text-purple-700" aria-hidden="true">account_tree</span>
+  <div class="text-sm text-gray-800 leading-relaxed">
+    <p class="font-semibold text-purple-800">O cronograma ainda está vazio.</p>
+    <p class="mt-0.5">O sistema pode sugerir as atividades a partir dos fluxos de preparação, diagnóstico e planejamento: uma linha por
+      tarefa, com o responsável (a raia do fluxo) e a atividade que vem antes. Depois, complete o início e o término de cada uma.</p>
+    <p *ngIf="passoFluxos as p" class="mt-0.5">Valem os fluxos como o órgão adaptou. Para mudar as tarefas, ajuste os fluxos antes, no
+      <a [routerLink]="p.rota" [queryParams]="{ passo: p.numero }" data-sem-dica class="font-semibold text-purple-700 underline">passo {{ p.numero }}</a>.</p>
+    <button type="button" (click)="sugerir()" [disabled]="sugerindo"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+      <span class="material-icons text-base" aria-hidden="true">auto_awesome</span> {{ sugerindo ? 'Sugerindo...' : 'Sugerir o cronograma pelos fluxos' }}
+    </button>
+    <p *ngIf="erro" role="alert" class="mt-2 text-sm text-red-700">{{ erro }}</p>
+  </div>
+</div>

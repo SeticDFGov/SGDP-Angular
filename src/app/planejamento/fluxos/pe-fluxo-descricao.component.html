@@ -1,0 +1,18 @@
+<details class="rounded-lg border border-gray-200 bg-white" [open]="aberta" (toggle)="aoAlternar($event)">
+  <summary [id]="idTitulo" class="cursor-pointer px-4 py-2 text-sm font-semibold text-gray-900">
+    <span class="inline-flex items-center gap-1.5">
+      <span class="material-icons text-base text-purple-700" aria-hidden="true">format_list_numbered</span> Descrição do fluxo em texto
+    </span>
+  </summary>
+  <div class="px-4 pb-3 max-h-96 overflow-y-auto" tabindex="0" role="region" [attr.aria-label]="rotuloRegiao">
+    <p *ngIf="carregando && !descricao" role="status" class="text-sm text-gray-600">Carregando a descrição do fluxo...</p>
+    <p *ngIf="erro && !descricao" role="alert" class="text-sm text-red-700">{{ erro }}</p>
+    <ng-container *ngIf="descricao as d">
+      <p class="text-sm text-gray-700 leading-relaxed">{{ d.resumo }}</p>
+      <ol *ngIf="d.itens.length > 0" class="list-decimal ml-5 mt-1 space-y-1 text-sm text-gray-800 leading-relaxed">
+        <li *ngFor="let item of d.itens; let i = index; trackBy: porIndice">{{ item }}</li>
+      </ol>
+      <p *ngIf="d.itens.length === 0" class="mt-1 text-sm text-gray-600">O fluxo ainda não tem passos.</p>
+    </ng-container>
+  </div>
+</details>

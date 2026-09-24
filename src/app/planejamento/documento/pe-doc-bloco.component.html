@@ -180,16 +180,29 @@
   <ng-container *ngTemplateOutlet="linkDados"></ng-container>
 </ng-container>
 
-<!-- ── Fluxo (o desenho chega com a E6) ─────────────────────────────────── -->
+<!-- ── Fluxo (E6): o desenho, a descrição em texto e o passo onde se adapta ─ -->
 <ng-container *ngIf="bloco.Tipo === 'fluxo'">
-  <figure *ngIf="bloco.Fluxo as f; else semDados">
-    <img *ngIf="urlFluxo" [src]="urlFluxo" [alt]="'Fluxo: ' + f.Nome" style="max-width: 100%; height: auto;" />
-    <div *ngIf="!urlFluxo" class="rounded border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
-      <span class="material-icons text-gray-500" aria-hidden="true">account_tree</span>
-      <p>O desenho do fluxo "{{ f.Nome }}" entra aqui. Ele chega numa próxima etapa do desenvolvimento do módulo.</p>
-    </div>
-    <figcaption class="mt-1 text-xs text-gray-600 text-center">{{ f.Nome }}</figcaption>
-  </figure>
+  <ng-container *ngIf="bloco.Fluxo as f; else semDados">
+    <figure>
+      <app-pe-fluxo-desenho *ngIf="f.Svg" [svg]="f.Svg" [rotulo]="'Desenho do fluxo ' + f.Nome" [alt]="altFluxo"
+                            [idBase]="idBase + '-fluxo'" alturaMaxima="36rem"></app-pe-fluxo-desenho>
+      <div *ngIf="!f.Svg" class="rounded border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+        <span class="material-icons text-gray-500" aria-hidden="true">account_tree</span>
+        <p>O desenho do fluxo "{{ f.Nome }}" não veio do servidor. Confira o fluxo no passo dos fluxos: com algum problema nele, o desenho
+          não sai.</p>
+      </div>
+      <figcaption class="mt-1 text-xs text-gray-600 text-center">{{ f.Nome }}</figcaption>
+    </figure>
+    <app-pe-fluxo-descricao class="mt-2" [definicao]="defFluxo" [dicionario]="dicionarioFluxo" [numeros]="numerosFluxo"
+                            [idBase]="idBase + '-fluxo-descricao'" [nomeFluxo]="f.Nome" [carregando]="carregandoFluxo" [erro]="erroFluxo"
+                            (abriu)="carregarDescricaoFluxo()"></app-pe-fluxo-descricao>
+    <p *ngIf="passoDados as p" class="mt-1 text-right">
+      <a [routerLink]="p.rota" [queryParams]="{ passo: p.numero, fluxo: f.Chave }" data-sem-dica [attr.title]="p.titulo"
+         class="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:underline">
+        <span class="material-icons text-sm" aria-hidden="true">{{ podeEditar ? 'edit_note' : 'visibility' }}</span> {{ textoLinkFluxo }}
+      </a>
+    </p>
+  </ng-container>
 </ng-container>
 
 <!-- Tipo que esta tela não conhece -->

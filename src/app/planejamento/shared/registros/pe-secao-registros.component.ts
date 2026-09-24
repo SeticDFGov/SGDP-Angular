@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, TemplateRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { PeFormatoPlanilha, PeRegistro, PeRegistrosDaSecao } from '../../../../api/planejamento/interface';
@@ -42,6 +42,13 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
   @Input() semTitulo = false;
   /** Situação da seção para o dono (PDTIC: pelo nível do órgão): selo ao lado do título. */
   @Input() situacao: 'obrigatorio' | 'opcional' | null = null;
+  /**
+   * O que a tela oferece quando a tabela está vazia e a pessoa edita (E6: "Sugerir
+   * o cronograma pelos fluxos"). Aparece entre o título e a tabela.
+   */
+  @Input() acaoVazia: TemplateRef<unknown> | null = null;
+  /** Mudou: a seção é buscada de novo (a tela criou registros por fora, como na sugestão do cronograma). */
+  @Input() recarga = 0;
   /** A lista mudou (inclusão, alteração, exclusão, ordem) ou o formulário foi salvo. */
   @Output() readonly mudou = new EventEmitter<void>();
   /** Há mudança não salva na seção. */
@@ -51,11 +58,13 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
   carregando = false;
   erro: string | null = null;
   baixando: PeFormatoPlanilha | null = null;
+  /** Quantos registros a seção tem agora (a tabela avisa a cada mudança). */
+  quantidade = 0;
   private carga?: Subscription;
   private carregado = '';
 
   ngOnChanges(): void {
-    const chave = `${this.fonte?.chave}|${this.secaoChave}`;
+    const chave = `${this.fonte?.chave}|${this.secaoChave}|${this.recarga}`;
     if (chave === this.carregado) return;
     this.carregado = chave;
     // Outra seção (ou outro dono): a anterior sai da tela enquanto a nova carrega
@@ -83,6 +92,7 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
       next: dados => {
         this.carregando = false;
         this.dados = dados;
+        this.quantidade = dados.Registros?.length ?? 0;
       },
       error: erro => {
         this.carregando = false;
@@ -97,8 +107,15 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
     });
   }
 
-  aoMudar(_: PeRegistro[] | PeRegistro): void {
+  aoMudar(registros: PeRegistro[] | PeRegistro): void {
+    if (Array.isArray(registros)) this.quantidade = registros.length;
     this.mudou.emit();
+  }
+
+  /** A ação da tabela vazia aparece (quem edita, numa tabela sem registros). */
+  get mostraAcaoVazia(): boolean {
+    const d = this.dados;
+    return !!this.acaoVazia && !!d && d.PodeEditar && d.Secao.Tipo === 'tabela' && this.quantidade === 0;
   }
 
   /** Planilha da seção por blob, com o nome do `Content-Disposition`. */

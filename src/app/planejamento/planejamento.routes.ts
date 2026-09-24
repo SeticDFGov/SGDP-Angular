@@ -33,12 +33,14 @@ const confirmarSaida: CanDeactivateFn<ComMudancasPendentes> = tela => !tela?.pod
  *
  * - `pessoas`: pessoas e acessos (administrador do módulo e admin do SGDP).
  * - `modelo/niveis`, `modelo/estrutura`, `modelo/criterios`, `modelo/documento`
- *   (E5) e `orgaos/niveis`: o modelo configurável (administrador do módulo e
- *   admin do SGDP).
+ *   (E5), `modelo/fluxos` (E6) e `orgaos/niveis`: o modelo configurável
+ *   (administrador do módulo e admin do SGDP).
  * - `pdtic/:passo`: os passos do órgão pela chave no modelo (uma rota com
  *   parâmetro): as seções do PDTIC com os componentes genéricos de registros, o
  *   "não se aplica", os avisos e os comentários (E4); no passo do documento, a
- *   prévia editável, o PDF e as versões (E5).
+ *   prévia editável, o PDF e as versões (E5); no passo da metodologia (ou num
+ *   passo do tipo fluxo), o editor dos fluxos, e no do plano de trabalho, a
+ *   sugestão do cronograma pelos fluxos (E6).
  * - `consolidado` e `comentarios`: as planilhas consolidadas de todos os órgãos e
  *   a lista dos PDTICs para abrir a trilha de um órgão e comentar (E4; papéis
  *   globais e admin do SGDP).
@@ -87,6 +89,13 @@ export const planejamento_routes: Routes = [
         path: 'modelo/documento',
         loadComponent: () => import('./modelo/pe-modelo-documento.component').then(m => m.PeModeloDocumentoComponent),
         title: 'Modelo do documento',
+        canDeactivate: [confirmarSaida],
+        data: { prerender: false }
+      },
+      {
+        path: 'modelo/fluxos',
+        loadComponent: () => import('./modelo/pe-modelo-fluxos.component').then(m => m.PeModeloFluxosComponent),
+        title: 'Fluxos-modelo',
         canDeactivate: [confirmarSaida],
         data: { prerender: false }
       },

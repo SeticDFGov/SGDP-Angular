@@ -3,11 +3,17 @@ import {
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { PeDocBloco, PeDocCapitulo, PeDocLinha, PeDocMarcador, PeDocTextoRico } from '../../../api/planejamento/interface';
+import {
+  PeDocBloco, PeDocCapitulo, PeDocLinha, PeDocMarcador, PeDocTextoRico, PeFluxoDefinicao
+} from '../../../api/planejamento/interface';
 import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { PeFluxoDescricaoComponent } from '../fluxos/pe-fluxo-descricao.component';
+import { PeFluxoDesenhoComponent } from '../fluxos/pe-fluxo-desenho.component';
 import { PeDocumentoService } from '../services/pe-documento.service';
+import { PeFluxosService } from '../services/pe-fluxos.service';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { DicionarioFluxo, dicionarioPadrao, normalizarDefinicao, numerosDoServidor } from '../shared/pe-fluxo-rotulos';
 import {
   MARCADORES_PADRAO, PassoLinkDoc, descricaoMarcador, secaoDoMarcador, textoMarcador, tituloComNumero
 } from '../shared/pe-documento-rotulos';
@@ -54,7 +60,10 @@ interface QuadranteSwot {
  *   mudou" mostra a comparação com "Usar o texto do modelo".
  * - Tabela de uma seção, lista das ações de um tema e matriz SWOT: só leitura,
  *   com o link para o passo onde os dados se editam.
- * - Fluxo: o desenho (a partir da E6) ou o aviso.
+ * - Fluxo (E6): o desenho que o servidor manda (o SVG vira uma imagem, sem rodar
+ *   nada), com zoom e rolagem pelo teclado; a descrição em texto, em lista
+ *   numerada, que busca o fluxo do órgão só quando o bloco da descrição abre; e o
+ *   link para o passo onde o órgão adapta os fluxos.
  *
  * Quem decide se o editor está aberto é a prévia (`aberto`): um bloco de cada
  * vez. O bloco avisa a prévia do que ainda não foi salvo (`pendente`).
@@ -62,13 +71,17 @@ interface QuadranteSwot {
 @Component({
   selector: 'app-pe-doc-bloco',
   standalone: true,
-  imports: [CommonModule, RouterModule, PeEditorTextoRicoComponent, PeTextoRicoLeituraDirective],
+  imports: [
+    CommonModule, RouterModule, PeEditorTextoRicoComponent, PeTextoRicoLeituraDirective, PeFluxoDesenhoComponent,
+    PeFluxoDescricaoComponent
+  ],
   templateUrl: './pe-doc-bloco.component.html',
   // Elemento de bloco: o espaço entre os blocos da página vale para ele
   host: { class: 'block' }
 })
 export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private readonly documentoService = inject(PeDocumentoService);
+  private readonly fluxosService = inject(PeFluxosService);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
@@ -109,7 +122,14 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   gruposSemValor: GrupoSemValor[] = [];
   quadrantes: QuadranteSwot[] = [];
   temCodigo = false;
-  urlFluxo: string | null = null;
+
+  /** O fluxo do órgão para a descrição em texto (buscado quando o bloco da descrição abre). */
+  defFluxo: PeFluxoDefinicao | null = null;
+  numerosFluxo: ReadonlyMap<string, string> | null = null;
+  dicionarioFluxo: DicionarioFluxo = dicionarioPadrao();
+  carregandoFluxo = false;
+  erroFluxo: string | null = null;
+  private chaveFluxo: string | null = null;
 
   private rascunho: PeDocTextoRico | null = null;
   private versaoRascunho = 0;
@@ -231,7 +251,6 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     if (this.temporizador) clearTimeout(this.temporizador);
     // O bloco saiu da tela com texto pendente: o pedido segue sem a tela
     if (this.temMudanca() && !this.salvando) this.enviar();
-    if (this.urlFluxo) URL.revokeObjectURL(this.urlFluxo);
   }
 
   // ── Leitura ───────────────────────────────────────────────────────────────
@@ -266,11 +285,56 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
       { titulo: 'Ameaças', itens: s.Ameacas ?? [] }
     ] : [];
 
-    // O desenho do fluxo vira uma imagem (o SVG não roda script dentro de <img>)
-    if (this.urlFluxo) URL.revokeObjectURL(this.urlFluxo);
-    this.urlFluxo = this.noNavegador && b.Fluxo?.Svg
-      ? URL.createObjectURL(new Blob([b.Fluxo.Svg], { type: 'image/svg+xml' }))
-      : null;
+    // Outro fluxo no bloco: a descrição que já veio era do anterior
+    if ((b.Fluxo?.Chave ?? null) !== this.chaveFluxo) {
+      this.chaveFluxo = b.Fluxo?.Chave ?? null;
+      this.defFluxo = null;
+      this.numerosFluxo = null;
+      this.erroFluxo = null;
+    }
+  }
+
+  // ── Fluxo ─────────────────────────────────────────────────────────────────
+
+  /** Texto alternativo curto do desenho (a descrição completa fica no bloco logo abaixo). */
+  get altFluxo(): string {
+    const nome = this.bloco.Fluxo?.Nome ?? '';
+    return `Desenho do fluxo ${nome}. A descrição em texto, em lista numerada, está logo abaixo do desenho.`;
+  }
+
+  get textoLinkFluxo(): string {
+    const p = this.passoDados;
+    if (!p) return '';
+    return this.podeEditar ? `Ajustar o fluxo no passo ${p.numero}` : `Ver o fluxo no passo ${p.numero}`;
+  }
+
+  /**
+   * A descrição em texto: o fluxo do órgão (a cópia dele ou o modelo) e os nomes
+   * do dicionário, buscados só quando o bloco da descrição abre.
+   */
+  carregarDescricaoFluxo(): void {
+    const fluxo = this.bloco.Fluxo;
+    if (!fluxo || this.carregandoFluxo || this.defFluxo) return;
+    const chave = fluxo.Chave;
+    this.carregandoFluxo = true;
+    this.erroFluxo = null;
+    this.fluxosService.dicionarioDoPdtic(this.pdticId).subscribe(dicionario => this.dicionarioFluxo = dicionario);
+    this.fluxosService.fluxo(this.pdticId, chave).subscribe({
+      next: resposta => {
+        this.carregandoFluxo = false;
+        if (this.chaveFluxo !== chave) return;
+        const def = normalizarDefinicao(resposta.Definicao);
+        const numeros = numerosDoServidor(def);
+        this.defFluxo = def;
+        this.numerosFluxo = numeros.size ? numeros : null;
+      },
+      error: erro => {
+        this.carregandoFluxo = false;
+        // 403: o interceptor já tirou a pessoa do módulo
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a descrição do fluxo.');
+        if (mensagem !== null) this.erroFluxo = mensagem;
+      }
+    });
   }
 
   porChave(_: number, g: { chave: string }): string {

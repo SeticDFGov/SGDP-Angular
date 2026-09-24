@@ -79,6 +79,12 @@
         </div>
       </div>
 
+      <!-- Passo com fluxos: eles aparecem quando o PDTIC começa -->
+      <p *ngIf="temFluxos" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600 leading-relaxed">
+        Neste passo o órgão também adapta os fluxos de trabalho do Guia de PDTIC (quem faz cada atividade, a ordem, as decisões e os
+        documentos). Os fluxos aparecem aqui quando o PDTIC começar.
+      </p>
+
       <!-- Prévia do que o passo pede, enquanto o PDTIC não começa -->
       <ng-container *ngIf="temSecoes">
         <p *ngIf="p.Secoes.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">
@@ -151,9 +157,26 @@
         </p>
 
         <!-- As seções do passo, com os componentes genéricos de registros -->
-        <app-pe-secao-registros *ngFor="let s of p.Secoes; trackBy: porId" [fonte]="f" [secaoChave]="s.Chave" [situacao]="s.Situacao"
-                                [nomePlanilha]="nomePlanilha(s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura"
-                                (mudou)="aoMudarSecao(s)" (alterado)="aoAlterar(s, $event)"></app-pe-secao-registros>
+        <ng-container *ngFor="let s of p.Secoes; trackBy: porId">
+          <app-pe-secao-registros [fonte]="f" [secaoChave]="s.Chave" [situacao]="s.Situacao"
+                                  [nomePlanilha]="nomePlanilha(s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura"
+                                  [acaoVazia]="ehCronograma(s) ? sugerirCronograma : null" [recarga]="recargaDe(s)"
+                                  (mudou)="aoMudarSecao(s)" (alterado)="aoAlterar(s, $event)"></app-pe-secao-registros>
+          <!-- Cronograma do plano de trabalho vazio: a sugestão pelos fluxos (E6) -->
+          <ng-template #sugerirCronograma>
+            <app-pe-sugerir-cronograma [pdticId]="pd.Id" [passoFluxos]="passoFluxos" (sugeriu)="aoSugerirCronograma(s, $event)"
+                                       (recarregar)="recarregarSecao(s)"></app-pe-sugerir-cronograma>
+          </ng-template>
+        </ng-container>
+      </ng-container>
+
+      <!-- Fluxos do órgão (E6): o editor guiado, num pacote que só carrega nos passos com fluxo -->
+      <ng-container *ngIf="temFluxos && fonteFluxos as ff">
+        @defer (on idle) {
+          <app-pe-fluxo-editor [fonte]="ff" [avisoLeitura]="avisoLeitura" (alterado)="aoAlterarFluxos($event)"></app-pe-fluxo-editor>
+        } @placeholder {
+          <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando os fluxos do órgão...</p>
+        }
       </ng-container>
 
       <!-- Documento do PDTIC (E5): a prévia editável, o PDF e as versões, num pacote que só carrega neste passo -->

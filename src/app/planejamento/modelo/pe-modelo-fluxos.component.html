@@ -1,0 +1,22 @@
+<div citaPlanejamento class="tela-pgia max-w-7xl mx-auto space-y-5">
+
+  <!-- Esperando o meu-papel: nenhuma consulta antes dele -->
+  <p *ngIf="pode === null" role="status" class="text-sm text-gray-600">Conferindo o seu papel no módulo...</p>
+
+  <div *ngIf="pode === false && !erroPapel" class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Fluxos-modelo do Guia de PDTIC</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem ajusta os fluxos do guia que os
+      órgãos copiam. Os fluxos do seu órgão ficam no passo "Descreva a metodologia e ajuste o fluxo", na trilha do órgão.</p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <p class="mt-1">Sem ele, os fluxos-modelo não abrem. Tente de novo em alguns instantes.</p>
+    <button type="button" (click)="tentarDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <app-pe-fluxo-editor *ngIf="pode && fonte" [fonte]="fonte" (alterado)="aoAlterar($event)"></app-pe-fluxo-editor>
+</div>

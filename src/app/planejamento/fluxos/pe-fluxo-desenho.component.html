@@ -1,0 +1,36 @@
+<div class="space-y-2">
+  <!-- Zoom -->
+  <div class="flex flex-wrap items-center gap-1">
+    <div role="group" [attr.aria-label]="'Tamanho do desenho, agora ' + textoZoom" class="inline-flex flex-wrap items-center gap-1">
+      <button type="button" (click)="diminuir()" [disabled]="!url || falhou" aria-label="Afastar o desenho" title="Afastar (tecla -)"
+              class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+        <span class="material-icons text-base" aria-hidden="true">zoom_out</span>
+      </button>
+      <button type="button" (click)="aumentar()" [disabled]="!url || falhou" aria-label="Aproximar o desenho" title="Aproximar (tecla +)"
+              class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+        <span class="material-icons text-base" aria-hidden="true">zoom_in</span>
+      </button>
+      <button type="button" (click)="caberNaLargura()" [disabled]="!url || falhou" [attr.aria-pressed]="zoom === null"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+        <span class="material-icons text-sm" aria-hidden="true">fit_screen</span> Caber na largura
+      </button>
+      <button type="button" (click)="tamanhoReal()" [disabled]="!url || falhou" [attr.aria-pressed]="zoom === 1"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+        Tamanho real
+      </button>
+    </div>
+    <span class="ml-auto text-xs text-gray-600" aria-hidden="true">{{ textoZoom }}</span>
+  </div>
+
+  <!-- O desenho: a região rola e recebe o foco pelo teclado -->
+  <div [id]="idRegiao" class="overflow-auto border border-gray-200 rounded-lg bg-white" tabindex="0" role="region"
+       [attr.aria-label]="rotuloRegiao" [style.max-height]="alturaMaxima" (keydown)="aoTeclar($event)">
+    <!-- Fundo branco em todos os temas: o desenho do servidor pode ter fundo transparente e traço escuro -->
+    <img *ngIf="url && !falhou" [id]="idImagem" [src]="url" [alt]="alt" [style.width]="larguraCss"
+         style="max-width: none; height: auto; background-color: #ffffff;" (load)="aoCarregar($event)" (error)="aoFalhar()" />
+    <p *ngIf="!url" class="px-4 py-6 text-center text-sm text-gray-600">{{ vazio }}</p>
+    <p *ngIf="url && falhou" role="alert" class="px-4 py-6 text-center text-sm text-red-700">
+      O navegador não conseguiu mostrar o desenho. A descrição em texto continua valendo.
+    </p>
+  </div>
+</div>

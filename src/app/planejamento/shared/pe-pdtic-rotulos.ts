@@ -87,8 +87,22 @@ export function aceitaNaoSeAplica(passo: Pick<PePassoTrilha, 'Situacao' | 'Aceit
   return !!passo && passo.Situacao === 'opcional' && passo.AceitaNaoSeAplica && !passo.Travado;
 }
 
-/** Tipos de passo do órgão que têm tela (os demais: "em construção"); o documento entrou na E5. */
-export const TIPOS_PASSO_COM_TELA: ReadonlySet<string> = new Set(['dados', 'conferencia_temas', 'documento']);
+/** Tipos de passo do órgão que têm tela (os demais: "em construção"); o documento entrou na E5 e o fluxo, na E6. */
+export const TIPOS_PASSO_COM_TELA: ReadonlySet<string> = new Set(['dados', 'conferencia_temas', 'documento', 'fluxo']);
+
+/**
+ * Passos de dados que também mostram os fluxos do órgão (E6): o da metodologia
+ * ("Descreva a metodologia e ajuste o fluxo", 1.5 no Avançado), pela chave no modelo.
+ */
+const PASSOS_DE_DADOS_COM_FLUXOS: ReadonlySet<string> = new Set(['preparacao.metodologia']);
+
+/** O passo mostra o editor dos fluxos: o do tipo fluxo ou o da metodologia. */
+export function passoTemFluxos(passo: Pick<PePassoTrilha, 'Tipo' | 'Chave'> | null | undefined): boolean {
+  return !!passo && (passo.Tipo === 'fluxo' || PASSOS_DE_DADOS_COM_FLUXOS.has(passo.Chave));
+}
+
+/** Seção do cronograma do plano de trabalho (1.9 no Avançado): com ela vazia, o passo sugere as linhas pelos fluxos. */
+export const SECAO_CRONOGRAMA = 'cronograma_elaboracao';
 
 /** Selo da classificação de risco do PGIA (Decreto nº 48.901/2026), nas cores do PGIA. */
 export function classeRiscoPgia(classificacao: string | null | undefined): string {

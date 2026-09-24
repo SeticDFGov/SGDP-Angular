@@ -277,7 +277,7 @@ export function explicacaoTipoBloco(tipo: string | null | undefined): string {
     case 'tabela_secao': return 'Os registros de uma seção do PDTIC, com as colunas escolhidas. No documento, a tabela só se lê: os dados se editam no passo da seção.';
     case 'lista_tema': return 'As ações do plano marcadas com um tema, com o código e a situação de cada uma.';
     case 'matriz_swot': return 'O quadro com as forças, as fraquezas, as oportunidades e as ameaças da análise SWOT.';
-    case 'fluxo': return 'O desenho de um fluxo do órgão. O desenho chega numa próxima etapa do desenvolvimento: até lá, o bloco mostra só o nome.';
+    case 'fluxo': return 'O desenho de um fluxo: o que o órgão adaptou ou, sem adaptação, o modelo do guia. O desenho sai sozinho, com a descrição em texto.';
     case 'quebra_pagina': return 'O que vem depois começa numa página nova.';
     default: return '';
   }
@@ -312,11 +312,13 @@ export function numerosDoModelo(capitulos: readonly PeDocModeloCapitulo[]): Map<
   return numeros;
 }
 
-/** O que o modelo sabe dizer das seções e dos temas, para o resumo dos blocos. */
+/** O que o modelo sabe dizer das seções, dos temas e dos fluxos, para o resumo dos blocos. */
 export interface NomesDoDocumento {
   secao(chave: string): string | null;
   campo(secao: string, chave: string): string | null;
   tema(valor: string): string | null;
+  /** O nome do fluxo-modelo pela chave (E6). */
+  fluxo?(chave: string): string | null;
 }
 
 /** Uma linha sobre a configuração de um bloco de dados ("Tabela de Necessidades de TIC · colunas: ..."). */
@@ -341,7 +343,7 @@ export function resumoBlocoModelo(bloco: Pick<PeDocModeloBloco, 'Tipo' | 'Config
     case 'matriz_swot': return `Forças, fraquezas, oportunidades e ameaças da análise SWOT${deitada}`;
     case 'fluxo': {
       const fluxo = typeof config.Fluxo === 'string' ? config.Fluxo : '';
-      return fluxo ? `Fluxo "${fluxo}"${deitada}` : `Fluxo sem chave${deitada}`;
+      return fluxo ? `Fluxo "${nomes.fluxo?.(fluxo) ?? fluxo}"${deitada}` : `Fluxo sem escolha${deitada}`;
     }
     case 'quebra_pagina': return 'O que vem depois começa numa página nova';
     default: return deitada ? 'Página deitada' : '';

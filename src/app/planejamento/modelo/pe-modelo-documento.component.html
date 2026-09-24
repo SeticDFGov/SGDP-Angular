@@ -350,15 +350,25 @@
         código e a situação. Os temas vêm do campo tema das ações.</p>
     </div>
 
-    <!-- Fluxo -->
+    <!-- Fluxo: um dos fluxos-modelo (E6); sem a lista do servidor, a chave se escreve -->
     <div *ngIf="e.tipo === 'fluxo'">
       <label for="pe-md-fluxo" class="block text-sm font-semibold text-gray-800 mb-1">
-        Chave do fluxo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+        Fluxo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
       </label>
-      <input id="pe-md-fluxo" type="text" [(ngModel)]="e.fluxo" name="pe-md-fluxo" [maxlength]="maxFluxo" aria-describedby="pe-md-fluxo-ajuda"
+      <select *ngIf="fluxos.length > 0" id="pe-md-fluxo" [(ngModel)]="e.fluxo" name="pe-md-fluxo" aria-describedby="pe-md-fluxo-ajuda"
+              class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Escolha o fluxo</option>
+        <option *ngIf="e.fluxo && !fluxoConhecido(e.fluxo)" [value]="e.fluxo">{{ e.fluxo }}</option>
+        <option *ngFor="let f of fluxos" [value]="f.valor">{{ f.rotulo }}</option>
+      </select>
+      <input *ngIf="fluxos.length === 0" id="pe-md-fluxo" type="text" [(ngModel)]="e.fluxo" name="pe-md-fluxo" [maxlength]="maxFluxo"
+             aria-describedby="pe-md-fluxo-ajuda"
              class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <p id="pe-md-fluxo-ajuda" class="text-xs text-gray-500 italic mt-1">Os fluxos do guia chegam numa próxima etapa do desenvolvimento,
-        com a lista para escolher. Até lá, escreva a chave do fluxo; o documento mostra só o nome.</p>
+      <p id="pe-md-fluxo-ajuda" class="text-xs text-gray-500 italic mt-1">
+        {{ fluxos.length > 0
+          ? 'O documento de cada órgão mostra o desenho do fluxo como o órgão adaptou (ou o modelo, sem adaptação), com a descrição em texto.'
+          : 'A lista dos fluxos-modelo não veio do servidor: escreva a chave do fluxo (por exemplo, elaboracao).' }}
+      </p>
     </div>
 
     <!-- Página deitada -->

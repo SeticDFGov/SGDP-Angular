@@ -945,7 +945,10 @@ export interface PeDocSwot {
   Ameacas: string[];
 }
 
-/** Fluxo do documento; `Svg` fica nulo até a E6. */
+/**
+ * Fluxo do documento: o desenho (SVG) da cópia do órgão, ou do modelo se o órgão
+ * ainda não tem cópia (E6). Nulo quando o servidor não conseguiu desenhar.
+ */
 export interface PeDocFluxo {
   Chave: string;
   Nome: string;
@@ -1146,4 +1149,110 @@ export interface PeDocBlocoModeloForm {
 export interface PeDocBlocoModeloNovoForm extends PeDocBlocoModeloForm {
   CapituloId: number;
   Tipo: PeTipoBlocoDoc;
+}
+
+// ── E6 · Fluxos (editor guiado com desenho automático) ──────────────────────
+//
+// Os fluxos do Guia de PDTIC vêm prontos (modelos do administrador); o órgão
+// adapta a cópia dele em listas (raias, passos, decisões, paralelos,
+// artefatos), e o desenho sai sozinho no servidor, em SVG, igual na prévia e no
+// PDF. O fluxo não muda a trilha (decisão 35). Erros de validação na faixa 1090
+// a 1099, com a lista `Erros` em linguagem simples.
+
+/** Tipos de elemento de um fluxo (BPMN simplificado do guia). */
+export type PeTipoElementoFluxo = 'inicio' | 'fim' | 'ligacao' | 'tarefa' | 'subprocesso' | 'decisao' | 'paralelo';
+
+/** Uma raia (quem faz): texto ou marcador do dicionário de nomes ("{nomes.comite}"). */
+export interface PeFluxoRaia {
+  /** Texto curto gerado pelo front, único no fluxo. */
+  Id: string;
+  Nome: string;
+  Ordem: number;
+}
+
+export interface PeFluxoElemento {
+  /** Texto curto gerado pelo front, único no fluxo. */
+  Id: string;
+  Tipo: PeTipoElementoFluxo;
+  RaiaId: string;
+  Nome: string;
+  /** Calculado no servidor (tarefas e subprocessos, pela ordem do fluxo, com o prefixo); o que o front manda é ignorado. */
+  Numero: string | null;
+  /** Documentos ligados à tarefa (nomes). */
+  Artefatos: string[];
+}
+
+export interface PeFluxoLigacao {
+  Id: string;
+  De: string;
+  Para: string;
+  /** Rótulo da saída ("Sim", "Não"); obrigatório nas saídas de uma decisão. */
+  Rotulo: string | null;
+}
+
+/** Definição de um fluxo: a mesma forma no modelo e na cópia do órgão. */
+export interface PeFluxoDefinicao {
+  /** "1" numera 1.1, 1.2...; vazio ou nulo, 1, 2, 3... */
+  PrefixoNumeracao: string | null;
+  Raias: PeFluxoRaia[];
+  Elementos: PeFluxoElemento[];
+  Ligacoes: PeFluxoLigacao[];
+}
+
+/** Item de GET api/planejamento/modelo/fluxos (todos os papéis leem) e resposta do PUT modelo/fluxos/{chave}. */
+export interface PeFluxoModelo {
+  Chave: string;
+  Nome: string;
+  /** "Figura 6". */
+  FiguraGuia: string | null;
+  Ordem: number;
+  Definicao: PeFluxoDefinicao;
+}
+
+/** Item de GET api/planejamento/pdtic/{id}/fluxos (a cópia do órgão, ou o modelo enquanto não há cópia). */
+export interface PeFluxoResumo {
+  Chave: string;
+  Nome: string;
+  FiguraGuia: string | null;
+  /** O órgão adaptou o fluxo (tem cópia diferente do modelo). */
+  Personalizado: boolean;
+  /** O modelo mudou depois que o órgão adaptou o fluxo. */
+  ModeloMudou: boolean;
+  AlteradoEm: string | null;
+  /** E-mail de quem alterou. */
+  AlteradoPor: string | null;
+}
+
+/**
+ * GET, PUT e POST .../restaurar em api/planejamento/pdtic/{id}/fluxos/{chave}:
+ * sem cópia ainda, a do modelo com `Personalizado` falso.
+ */
+export interface PeFluxoDoOrgao {
+  Chave: string;
+  Nome: string;
+  FiguraGuia: string | null;
+  Definicao: PeFluxoDefinicao;
+  Personalizado: boolean;
+  ModeloMudou: boolean;
+  /** Quem está logado edita (equipe do órgão, em elaboração ou devolvido). */
+  PodeEditar: boolean;
+}
+
+/** Corpo do PUT de um fluxo (modelo ou cópia do órgão). */
+export interface PeFluxoForm {
+  Nome: string;
+  Definicao: PeFluxoDefinicao;
+}
+
+/** POST api/planejamento/fluxos/desenho: o SVG de uma definição ainda não salva (valida antes). */
+export interface PeFluxoDesenhoForm {
+  Definicao: PeFluxoDefinicao;
+  PdticId: number | null;
+}
+
+/** 400 de validação de um fluxo: a lista dos problemas em linguagem simples. */
+export interface PeErroFluxo {
+  Code?: number;
+  Message?: string;
+  Erros?: string[] | null;
 }

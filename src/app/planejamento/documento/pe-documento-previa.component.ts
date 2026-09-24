@@ -19,6 +19,7 @@ import {
 } from '../shared/pe-documento-rotulos';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { citacaoTravado } from '../shared/pe-modelo-rotulos';
+import { passoTemFluxos } from '../shared/pe-pdtic-rotulos';
 import { quandoEQuem, textoVigencia } from '../shared/pe-referenciais-rotulos';
 import { tamanhoLegivel } from '../shared/registros/pe-valores';
 import { PeImagensService } from '../shared/texto-rico/pe-imagens.service';
@@ -104,6 +105,8 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   /** Onde se preenche cada seção, na trilha à vista (links "no passo N.M"). */
   passosPorSecao: ReadonlyMap<string, PassoLinkDoc> = new Map();
   private passosPorChave = new Map<string, PassoLinkDoc>();
+  /** O passo onde o órgão adapta os fluxos (link dos blocos de fluxo, E6). */
+  private passoFluxos: PassoLinkDoc | null = null;
   private passosVistos: PassoNumeradoPe[] | null = null;
 
   private chavePdtic = '';
@@ -190,15 +193,18 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   private montarLinks(passos: PassoNumeradoPe[]): void {
     const porSecao = new Map<string, PassoLinkDoc>();
     const porChave = new Map<string, PassoLinkDoc>();
+    let fluxos: PassoLinkDoc | null = null;
     for (const p of passos) {
       const doOrgao = p.doOrgao;
       if (!doOrgao) continue;
       const link: PassoLinkDoc = { rota: p.rota, numero: p.numero, titulo: p.titulo };
       porChave.set(doOrgao.Chave, link);
       for (const s of doOrgao.Secoes) if (!porSecao.has(s.Chave)) porSecao.set(s.Chave, link);
+      if (!fluxos && passoTemFluxos(doOrgao)) fluxos = link;
     }
     this.passosPorSecao = porSecao;
     this.passosPorChave = porChave;
+    this.passoFluxos = fluxos;
   }
 
   /**
@@ -276,10 +282,14 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     return `${this.urlBase}#pe-doc-titulo-${c.Id}`;
   }
 
-  /** O passo onde se editam os dados de uma tabela, lista ou matriz (ou o passo do capítulo). */
+  /**
+   * O passo onde se editam os dados de uma tabela, lista ou matriz (ou o passo do
+   * capítulo); no bloco de fluxo, o passo onde o órgão adapta os fluxos.
+   */
   passoDoBloco(item: ItemPaginaDoc): PassoLinkDoc | null {
     const b = item.bloco;
     if (!b) return null;
+    if (b.Tipo === 'fluxo') return this.passoFluxos;
     let secao: string | null = null;
     if (b.Tipo === 'tabela_secao') secao = b.Tabela?.SecaoChave ?? null;
     else if (b.Tipo === 'lista_tema') secao = 'acoes';

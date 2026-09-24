@@ -1,5 +1,5 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AfterViewChecked, Component, DestroyRef, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Title } from '@angular/platform-browser';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -14,11 +14,13 @@ import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive
 import { mensagemErroPe } from '../shared/pe-erros';
 import { NomesDoModelo, citacaoTravado, descricaoCampo, rotuloTipoPasso } from '../shared/pe-modelo-rotulos';
 import {
-  TIPOS_PASSO_COM_TELA, aceitaNaoSeAplica, ehPassoSistemasIa, itemDaSecaoPdtic, pdticEmEdicao, rotuloSituacaoPdtic,
-  statusDoPassoPdtic
+  SECAO_CRONOGRAMA, TIPOS_PASSO_COM_TELA, aceitaNaoSeAplica, ehPassoSistemasIa, itemDaSecaoPdtic, passoTemFluxos, pdticEmEdicao,
+  rotuloSituacaoPdtic, statusDoPassoPdtic
 } from '../shared/pe-pdtic-rotulos';
 import { PeSecaoRegistrosComponent } from '../shared/registros/pe-secao-registros.component';
 import { PeFonteRegistros, PeRegistrosService } from '../services/pe-registros.service';
+import { PeFluxosService, PeFonteFluxos } from '../services/pe-fluxos.service';
+import { PeFluxoEditorComponent } from '../fluxos/pe-fluxo-editor.component';
 import { CargaPdticPe, PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { StatusPassoPe } from '../trilha/pe-trilha-status.service';
 import { BASE_PE, PassoNumeradoPe, TITULO_PASSO_GENERICO, passoDaUrl, rotuloGuia } from '../trilha/pe-trilhas';
@@ -26,6 +28,7 @@ import { PeDocumentoPreviaComponent } from '../documento/pe-documento-previa.com
 import { PeComentariosPassoComponent } from './pe-comentarios-passo.component';
 import { PeNaoSeAplicaComponent } from './pe-nao-se-aplica.component';
 import { PeSistemasIaPgiaComponent } from './pe-sistemas-ia-pgia.component';
+import { PeSugerirCronogramaComponent } from './pe-sugerir-cronograma.component';
 import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
 
 /**
@@ -47,6 +50,10 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
  * - Passo do documento (E5): a prévia editável do documento do PDTIC, o PDF e
  *   as versões (`pe-documento-previa`, num pacote próprio que só carrega neste
  *   passo, pelo `@defer`).
+ * - Passo da metodologia (ou passo do tipo fluxo, E6): o editor guiado dos
+ *   fluxos do órgão, depois das seções, também num pacote próprio pelo `@defer`.
+ *   Na seção do cronograma do plano de trabalho, enquanto ela está vazia, o
+ *   "Sugerir o cronograma pelos fluxos".
  *
  * Quem não edita lê (consulta do órgão, papéis globais, PDTIC fora de elaboração):
  * quem decide é o `PodeEditar` do servidor, e a tela explica o porquê.
@@ -58,18 +65,21 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
   standalone: true,
   imports: [
     CommonModule, RouterModule, CitaPlanejamentoDirective, PeSecaoRegistrosComponent, PeNaoSeAplicaComponent,
-    PeComentariosPassoComponent, PeSistemasIaPgiaComponent, PeTemasAcoesComponent, PeDocumentoPreviaComponent
+    PeComentariosPassoComponent, PeSistemasIaPgiaComponent, PeTemasAcoesComponent, PeDocumentoPreviaComponent,
+    PeFluxoEditorComponent, PeSugerirCronogramaComponent
   ],
   templateUrl: './pe-passo-orgao.component.html'
 })
-export class PePassoOrgaoComponent implements OnInit {
+export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   private readonly router = inject(Router);
   private readonly titulo = inject(Title);
   private readonly destroyRef = inject(DestroyRef);
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly registrosService = inject(PeRegistrosService);
+  private readonly fluxosService = inject(PeFluxosService);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly base = BASE_PE;
 
@@ -89,6 +99,12 @@ export class PePassoOrgaoComponent implements OnInit {
   /** Muda para os temas virem de novo (a justificativa foi salva). */
   recargaTemas = 0;
   abrindo = false;
+  /** Os fluxos do órgão para o editor (E6): a cópia do órgão neste PDTIC. */
+  fonteFluxos: PeFonteFluxos | null = null;
+  /** O passo onde o órgão adapta os fluxos (link da sugestão do cronograma). */
+  passoFluxos: { numero: string; rota: string } | null = null;
+  /** Recarga de cada seção (pela chave): a sugestão do cronograma cria registros por fora. */
+  private readonly recargas = new Map<string, number>();
 
   private chaveFonte = '';
   private chavePasso = '';
@@ -96,6 +112,9 @@ export class PePassoOrgaoComponent implements OnInit {
   private sujas = new Set<string>();
   /** Texto do documento mudado e ainda não salvo (passo do documento). */
   private documentoSujo = false;
+  /** Fluxo mudado e ainda não salvo (passo da metodologia). */
+  private fluxosSujos = false;
+  private focoPendente: string | null = null;
   /** Uma mudança foi salva: a próxima situação que chegar é comparada com a de antes. */
   private esperandoSituacao = false;
 
@@ -106,6 +125,14 @@ export class PePassoOrgaoComponent implements OnInit {
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.ler());
+  }
+
+  ngAfterViewChecked(): void {
+    if (!this.focoPendente || !this.noNavegador) return;
+    const alvo = document.getElementById(this.focoPendente);
+    if (!alvo) return;
+    this.focoPendente = null;
+    alvo.focus();
   }
 
   // ── Tipo do passo ─────────────────────────────────────────────────────────
@@ -131,6 +158,11 @@ export class PePassoOrgaoComponent implements OnInit {
 
   get passoTemas(): boolean {
     return this.passo?.Tipo === 'conferencia_temas';
+  }
+
+  /** O passo mostra o editor dos fluxos do órgão (o da metodologia ou um passo do tipo fluxo). */
+  get temFluxos(): boolean {
+    return passoTemFluxos(this.passo);
   }
 
   get rotuloTipo(): string {
@@ -248,15 +280,49 @@ export class PePassoOrgaoComponent implements OnInit {
     this.documentoSujo = sujo;
   }
 
-  /** Guarda de rota: mudança não salva numa seção do passo ou num texto do documento. */
+  /** Um fluxo ficou com mudança não salva (ou foi salvo). */
+  aoAlterarFluxos(sujo: boolean): void {
+    this.fluxosSujos = sujo;
+  }
+
+  /** Guarda de rota: mudança não salva numa seção do passo, num texto do documento ou num fluxo. */
   podeSair(): boolean {
-    if (this.sujas.size === 0 && !this.documentoSujo) return true;
+    if (this.sujas.size === 0 && !this.documentoSujo && !this.fluxosSujos) return true;
     const sair = confirm('Há mudanças que ainda não foram salvas neste passo. Sair assim mesmo? Elas vão se perder.');
     if (sair) {
       this.sujas.clear();
       this.documentoSujo = false;
+      this.fluxosSujos = false;
     }
     return sair;
+  }
+
+  // ── Cronograma sugerido pelos fluxos (E6) ─────────────────────────────────
+
+  /** A seção do cronograma do plano de trabalho ganha a sugestão pelos fluxos enquanto está vazia. */
+  ehCronograma(secao: PeSecaoTrilha): boolean {
+    return secao.Chave === SECAO_CRONOGRAMA;
+  }
+
+  recargaDe(secao: PeSecaoTrilha): number {
+    return this.recargas.get(secao.Chave) ?? 0;
+  }
+
+  /** A seção vem de novo (os registros foram criados por fora). */
+  recarregarSecao(secao: PeSecaoTrilha): void {
+    this.recargas.set(secao.Chave, this.recargaDe(secao) + 1);
+  }
+
+  /** O servidor criou as linhas: a seção vem de novo, a situação do passo também, e o foco vai para o título da seção. */
+  aoSugerirCronograma(secao: PeSecaoTrilha, quantas: number): void {
+    const texto = quantas === 1
+      ? 'O cronograma ganhou 1 atividade sugerida pelos fluxos. Complete o início e o término.'
+      : `O cronograma ganhou ${quantas} atividades sugeridas pelos fluxos. Complete o início e o término de cada uma.`;
+    this.notificacoes.success(texto);
+    this.acessibilidade.anunciar(texto);
+    this.recarregarSecao(secao);
+    this.focoPendente = `pe-secao-${secao.Chave}-titulo`;
+    this.aoMudarSecao(secao);
   }
 
   // ── PDTIC ─────────────────────────────────────────────────────────────────
@@ -316,6 +382,7 @@ export class PePassoOrgaoComponent implements OnInit {
       this.chavePasso = this.passo.Chave;
       this.sujas.clear();
       this.documentoSujo = false;
+      this.fluxosSujos = false;
       this.esperandoSituacao = false;
       this.status = null;
     }
@@ -326,6 +393,8 @@ export class PePassoOrgaoComponent implements OnInit {
     this.atualizarFonte();
     this.lerSituacao();
     this.passoAcoes = this.acharPassoAcoes();
+    const comFluxos = estado.passos.find(p => passoTemFluxos(p.doOrgao));
+    this.passoFluxos = comFluxos ? { numero: comFluxos.numero, rota: comFluxos.rota } : null;
 
     // Entrada direta pelo endereço: a aba nasceu com o título genérico
     const atual = this.titulo.getTitle();
@@ -334,13 +403,17 @@ export class PePassoOrgaoComponent implements OnInit {
     }
   }
 
-  /** A fonte dos registros do PDTIC; a situação e o `PodeEditar` entram na chave (mudou, as seções buscam de novo). */
+  /**
+   * A fonte dos registros e a dos fluxos do PDTIC; a situação e o `PodeEditar`
+   * entram na chave (mudou, as seções e o editor dos fluxos buscam de novo).
+   */
   private atualizarFonte(): void {
     const p = this.pdtic;
     const chave = p ? `${p.Id}:${p.Situacao}:${p.PodeEditar}` : '';
     if (chave === this.chaveFonte) return;
     this.chaveFonte = chave;
     this.fonte = p ? this.registrosService.fonte({ tipo: 'pdtic', id: p.Id }, `${p.Situacao}:${p.PodeEditar}`) : null;
+    this.fonteFluxos = p ? this.fluxosService.fonteDoPdtic(p) : null;
   }
 
   /**

@@ -70,8 +70,8 @@ export interface PassoNumeradoPe extends PassoTrilhaPe {
   indice: number;
   /**
    * A tela do passo ainda não existe: tela central na "em construção"; passo do
-   * órgão de um tipo que ganha tela nas próximas entregas (documento, fluxo,
-   * aprovação, envio, deliberação, publicação e monitoramento).
+   * órgão de um tipo que ganha tela nas próximas entregas (aprovação, envio,
+   * deliberação, publicação e monitoramento).
    */
   emConstrucao: boolean;
 }
@@ -91,6 +91,7 @@ export const ROTAS_PRONTAS: ReadonlySet<string> = new Set([
   `${BASE_PE}/modelo/estrutura`,
   `${BASE_PE}/modelo/criterios`,
   `${BASE_PE}/modelo/documento`,
+  `${BASE_PE}/modelo/fluxos`,
   `${BASE_PE}/orgaos/niveis`,
   `${BASE_PE}/referenciais/principios`,
   `${BASE_PE}/referenciais/petic`,
@@ -132,7 +133,6 @@ export const ATALHOS_REFERENCIAIS: { rota: string; titulo: string; texto: string
  * rota pela tela real.
  */
 export const TELAS_CENTRAIS_EM_CONSTRUCAO: Readonly<Record<string, string>> = {
-  'modelo/fluxos': 'Fluxos-modelo',
   'orgaos': 'Página do órgão',
   'painel': 'Painel e conformidade',
   'inadimplencia': 'Notificações e inadimplências'
@@ -213,7 +213,8 @@ const TRILHA_ADMIN: TrilhaPe = {
         {
           titulo: 'Ajuste os fluxos-modelo',
           rota: tela('modelo/fluxos'),
-          oQueFazer: 'Revise os fluxos do Guia de PDTIC que os órgãos copiam e adaptam: elaboração, diagnóstico, planejamento e acompanhamento.',
+          oQueFazer: 'Revise os fluxos do Guia de PDTIC que os órgãos copiam e adaptam: elaboração, diagnóstico, planejamento e acompanhamento. '
+            + 'Mude as raias, os passos, as decisões e os documentos em listas: o desenho sai sozinho.',
           baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
         }
       ]

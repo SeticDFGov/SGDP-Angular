@@ -1,0 +1,518 @@
+<div class="space-y-5">
+
+  <!-- Os fluxos: o que são e qual está à vista -->
+  <section aria-labelledby="pe-fx-titulo" class="bg-white rounded-lg shadow p-6">
+    <h2 id="pe-fx-titulo" class="text-base font-semibold text-gray-900">{{ doOrgao ? 'Fluxos de trabalho do órgão' : 'Fluxos-modelo do Guia de PDTIC' }}</h2>
+    <ng-container *ngIf="doOrgao">
+      <p class="text-sm text-gray-700 leading-relaxed mt-1">
+        Os fluxos do Guia de PDTIC vêm prontos. Adapte cada um ao jeito do seu órgão: as raias (quem faz), os passos, as decisões e
+        os documentos. O desenho sai sozinho, igual na prévia do documento e no PDF.
+      </p>
+      <p class="text-xs text-gray-500 italic mt-2">O fluxo vai para o documento do PDTIC e não muda a trilha: os passos do sistema
+        continuam os mesmos.</p>
+    </ng-container>
+    <ng-container *ngIf="!doOrgao">
+      <p class="text-sm text-gray-700 leading-relaxed mt-1">
+        Cada órgão recebe uma cópia destes fluxos e adapta a dele no passo da metodologia. O desenho sai sozinho, no padrão do guia.
+      </p>
+      <p class="text-xs text-gray-500 italic mt-2">A mudança no modelo vale para os órgãos que ainda não adaptaram o fluxo. Quem já
+        adaptou recebe o aviso "o modelo mudou" e escolhe entre a adaptação e o modelo novo.</p>
+    </ng-container>
+
+    <p *ngIf="carregandoLista && lista.length === 0" role="status" class="mt-3 text-sm text-gray-600">Carregando os fluxos...</p>
+    <div *ngIf="erroLista" role="alert" class="mt-3 text-sm text-red-700">
+      {{ erroLista }}
+      <button type="button" (click)="carregarLista()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+    <p *ngIf="!carregandoLista && !erroLista && lista.length === 0" class="mt-3 text-sm text-gray-600">
+      Nenhum fluxo cadastrado ainda. Os fluxos do guia chegam com a carga do modelo inicial; se eles não aparecerem, fale com o
+      administrador do módulo.
+    </p>
+
+    <nav *ngIf="lista.length > 0" aria-label="Fluxos" class="mt-4">
+      <ul class="flex flex-wrap gap-2">
+        <li *ngFor="let f of lista; trackBy: porChave">
+          <button type="button" (click)="escolher(f)" [attr.aria-current]="f.Chave === chaveAtual ? 'true' : null"
+                  class="flex flex-col items-start px-3 py-1.5 rounded-md border text-left text-sm"
+                  [ngClass]="f.Chave === chaveAtual ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'">
+            <span class="font-semibold">{{ f.FiguraGuia ? f.FiguraGuia + ' · ' : '' }}{{ f.Nome }}</span>
+            <span *ngIf="doOrgao" class="text-xs">{{ f.ModeloMudou ? 'O modelo mudou' : (f.Personalizado ? 'Adaptado pelo órgão' : 'Igual ao guia') }}</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+  </section>
+
+  <!-- O fluxo escolhido -->
+  <p *ngIf="carregandoFluxo && !aberto" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Abrindo o fluxo...</p>
+  <div *ngIf="erroFluxo" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+    {{ erroFluxo }}
+    <button type="button" (click)="tentarAbrirDeNovo()" class="font-semibold underline">Tentar de novo</button>
+  </div>
+
+  <section *ngIf="aberto as a" aria-labelledby="pe-fx-fluxo-titulo" class="bg-white rounded-lg shadow p-6 space-y-4">
+    <div class="flex flex-col md:flex-row items-start gap-3">
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">{{ doOrgao ? 'Fluxo do órgão' : 'Fluxo-modelo' }}</p>
+        <h3 id="pe-fx-fluxo-titulo" tabindex="-1" class="text-lg font-bold text-gray-900" style="scroll-margin-top: 6rem;">{{ tituloFluxo }}</h3>
+        <div class="flex flex-wrap gap-2 mt-2 text-xs">
+          <span *ngIf="doOrgao" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border font-semibold"
+                [ngClass]="a.Personalizado ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
+            <span class="material-icons text-sm" aria-hidden="true">{{ a.Personalizado ? 'tune' : 'menu_book' }}</span>
+            {{ a.Personalizado ? 'Adaptado pelo órgão' : 'Igual ao modelo do guia' }}
+          </span>
+          <span *ngIf="alteradoEm" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-50 font-semibold text-gray-600">
+            <span class="material-icons text-sm" aria-hidden="true">history</span> Salvo em {{ alteradoEm }}
+          </span>
+          <span *ngIf="!podeEditar" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-50 font-semibold text-gray-600">
+            <span class="material-icons text-sm" aria-hidden="true">visibility</span> Só para ler
+          </span>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button *ngIf="doOrgao" type="button" (click)="alternarComparacao()" [attr.aria-expanded]="comparando" aria-controls="pe-fx-comparacao"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-blue-200 bg-white text-xs font-semibold text-blue-800 hover:bg-gray-50">
+          <span class="material-icons text-sm" aria-hidden="true">{{ comparando ? 'expand_less' : 'compare' }}</span>
+          {{ comparando ? 'Fechar a comparação' : 'Comparar com o modelo do guia' }}
+        </button>
+        <button *ngIf="podeRestaurar" type="button" (click)="restaurar()" [disabled]="restaurando || salvando"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <span class="material-icons text-sm" aria-hidden="true">restore</span> {{ restaurando ? 'Voltando...' : 'Voltar ao modelo do guia' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- O modelo mudou depois que o órgão adaptou -->
+    <div *ngIf="doOrgao && a.ModeloMudou" class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+      <p class="font-semibold inline-flex items-center gap-1">
+        <span class="material-icons text-sm" aria-hidden="true">update</span> O modelo deste fluxo mudou depois que o órgão o adaptou.
+      </p>
+      <p class="mt-0.5">{{ podeEditar
+        ? 'Compare os dois desenhos e escolha: manter a adaptação do órgão ou voltar ao modelo do guia.'
+        : 'O órgão ainda não escolheu entre a adaptação dele e o modelo novo.' }}</p>
+      <div *ngIf="podeEditar" class="flex flex-wrap items-center gap-2 mt-2">
+        <button type="button" (click)="manterAdaptacao()" [disabled]="salvando || sujo"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <span class="material-icons text-sm" aria-hidden="true">done</span> Manter a adaptação do órgão
+        </button>
+        <span *ngIf="sujo" class="text-xs text-gray-600">Salve ou descarte as mudanças antes.</span>
+      </div>
+    </div>
+
+    <!-- Só para ler: por quê -->
+    <div *ngIf="!podeEditar" class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+      <span class="material-icons text-gray-500" aria-hidden="true">visibility</span>
+      <p class="leading-relaxed">{{ avisoLeitura || (doOrgao
+        ? 'Você pode consultar o fluxo. Quem adapta é a equipe do órgão.'
+        : 'Você pode consultar os fluxos-modelo. Quem edita é o administrador do módulo.') }}</p>
+    </div>
+
+    <!-- Os problemas que a API achou -->
+    <div *ngIf="podeEditar && temProblemas" id="pe-fx-problemas" tabindex="-1"
+         class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+      <p class="font-semibold">{{ totalProblemas === 1 ? 'O fluxo tem 1 problema' : 'O fluxo tem ' + totalProblemas + ' problemas' }}. Corrija para salvar:</p>
+      <ul class="list-disc ml-5 mt-1 space-y-0.5">
+        <li *ngFor="let erro of errosValidacao; let i = index; trackBy: porIndice">{{ erro }}</li>
+        <li *ngIf="mensagemValidacao">{{ mensagemValidacao }}</li>
+      </ul>
+    </div>
+
+    <div class="flex flex-col lg:flex-row items-start gap-5">
+
+      <!-- ── Edição: raias e passos ─────────────────────────────────────── -->
+      <div *ngIf="podeEditar && def as d" class="flex-1 min-w-0 w-full space-y-4">
+        <div class="flex flex-col md:flex-row gap-3">
+          <div class="flex-1 min-w-0">
+            <label for="pe-fx-nome" class="block text-sm font-semibold text-gray-800 mb-1">
+              Nome do fluxo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+            </label>
+            <input id="pe-fx-nome" type="text" [ngModel]="nome" (ngModelChange)="mudarNomeFluxo($event)" [maxlength]="maxNomeFluxo"
+                   [attr.aria-invalid]="erroNome ? true : null" [attr.aria-describedby]="erroNome ? 'pe-fx-nome-erro' : null"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [ngClass]="erroNome ? 'border-red-500' : 'border-gray-300'" />
+            <p *ngIf="erroNome" id="pe-fx-nome-erro" class="text-xs text-red-700 mt-1">{{ erroNome }}</p>
+          </div>
+          <div class="w-full md:w-72">
+            <label for="pe-fx-prefixo" class="block text-sm font-semibold text-gray-800 mb-1">Prefixo da numeração</label>
+            <input id="pe-fx-prefixo" type="text" [ngModel]="d.PrefixoNumeracao ?? ''" (ngModelChange)="mudarPrefixo($event)" [maxlength]="maxPrefixo"
+                   aria-describedby="pe-fx-prefixo-ajuda"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p id="pe-fx-prefixo-ajuda" class="text-xs text-gray-500 italic mt-1">Com "1", as tarefas saem 1.1, 1.2, 1.3. Vazio: 1, 2, 3.</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-start gap-2">
+          <div class="flex-1 min-w-0">
+            <h4 class="text-sm font-semibold text-gray-900">Raias e passos</h4>
+            <p class="text-xs text-gray-500 italic mt-0.5">Cada raia é quem faz os passos dela (no desenho, uma faixa). Os passos aparecem
+              na ordem do fluxo. Use "Editar" num passo para mudar o tipo, o nome, a raia, o que vem antes e, na decisão, as saídas.</p>
+          </div>
+          <button type="button" (click)="irParaPrevia()"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-sm" aria-hidden="true">account_tree</span> Ir para a prévia do desenho
+          </button>
+        </div>
+
+        <p *ngIf="raias.length === 0" class="text-sm text-gray-600">O fluxo ainda não tem raias. Inclua a primeira.</p>
+
+        <ol class="space-y-4">
+          <li *ngFor="let r of raias; let i = index; let primeira = first; let ultima = last; trackBy: porId"
+              class="rounded-lg border border-gray-200 p-4">
+            <div class="flex flex-wrap items-start gap-2">
+              <div class="flex-1 min-w-0">
+                <h5 [id]="idRaia(r, 'titulo')" tabindex="-1" class="text-sm font-semibold text-gray-900">
+                  Raia {{ i + 1 }} de {{ raias.length }}: {{ nomeRaia(r) }}
+                </h5>
+                <p *ngIf="marcadorDaRaia(r) as m" class="text-xs text-gray-600 mt-0.5">
+                  Nome do dicionário: {{ descricaoMarcador(m) }}<ng-container *ngIf="raiaSemNomeNoDicionario(r)">
+                  (o órgão ainda não escreveu este nome: vale o nome padrão do guia)</ng-container>.
+                </p>
+                <p class="text-xs text-gray-600 mt-0.5">{{ quantosNaRaia(r) === 1 ? '1 passo' : quantosNaRaia(r) + ' passos' }}</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-1">
+                <button type="button" [id]="idRaia(r, 'renomear')" (click)="renomear(r)" [disabled]="renomeando === r.Id"
+                        [attr.aria-label]="'Renomear a raia ' + nomeRaia(r)"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                  <span class="material-icons text-sm" aria-hidden="true">drive_file_rename_outline</span> Renomear
+                </button>
+                <button type="button" [id]="idRaia(r, 'subir')" (click)="subirOuDescer(r, -1)" [disabled]="primeira"
+                        [attr.aria-label]="'Subir a raia ' + nomeRaia(r)" title="Subir"
+                        class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+                  <span class="material-icons text-base" aria-hidden="true">arrow_upward</span>
+                </button>
+                <button type="button" [id]="idRaia(r, 'descer')" (click)="subirOuDescer(r, 1)" [disabled]="ultima"
+                        [attr.aria-label]="'Descer a raia ' + nomeRaia(r)" title="Descer"
+                        class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+                  <span class="material-icons text-base" aria-hidden="true">arrow_downward</span>
+                </button>
+                <button type="button" [id]="idRaia(r, 'remover')" (click)="tirarRaia(r)"
+                        [attr.aria-label]="'Remover a raia ' + nomeRaia(r)" title="Remover"
+                        class="p-1 rounded text-red-700 hover:bg-red-50">
+                  <span class="material-icons text-base" aria-hidden="true">delete</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Renomear a raia: um nome do dicionário ou outro nome -->
+            <form *ngIf="renomeando === r.Id" (ngSubmit)="confirmarRenomear(r)" (keydown.escape)="cancelarRenomear(r)"
+                  class="mt-3 space-y-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+              <div>
+                <label [for]="idRaia(r, 'marcador')" class="block text-sm font-semibold text-gray-800 mb-1">Nome da raia</label>
+                <select [id]="idRaia(r, 'marcador')" [(ngModel)]="formRaia.marcador" [name]="idRaia(r, 'marcador')"
+                        [attr.aria-describedby]="idRaia(r, 'marcador-ajuda')"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Outro nome, escrito no campo abaixo</option>
+                  <option *ngFor="let o of dicionario.opcoes" [value]="o.marcador">Do dicionário: {{ o.descricao }} ({{ valorMarcador(o.marcador) }})</option>
+                </select>
+                <p [id]="idRaia(r, 'marcador-ajuda')" class="text-xs text-gray-500 italic mt-1">{{ ajudaDicionario }}</p>
+              </div>
+              <div *ngIf="!formRaia.marcador">
+                <label [for]="idRaia(r, 'texto')" class="block text-sm font-semibold text-gray-800 mb-1">
+                  Outro nome<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+                </label>
+                <input [id]="idRaia(r, 'texto')" type="text" [(ngModel)]="formRaia.texto" [name]="idRaia(r, 'texto')" [maxlength]="maxNomeRaia"
+                       [attr.aria-invalid]="erroRaia ? true : null" [attr.aria-describedby]="erroRaia ? idRaia(r, 'erro') : null"
+                       class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       [ngClass]="erroRaia ? 'border-red-500' : 'border-gray-300'" />
+              </div>
+              <p *ngIf="erroRaia" [id]="idRaia(r, 'erro')" role="alert" class="text-xs text-red-700">{{ erroRaia }}</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+                  <span class="material-icons text-base" aria-hidden="true">check</span> Pronto
+                </button>
+                <button type="button" (click)="cancelarRenomear(r)"
+                        class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">Cancelar</button>
+                <span class="text-xs text-gray-500 italic">Esc cancela.</span>
+              </div>
+            </form>
+
+            <!-- Os passos da raia, na ordem do fluxo -->
+            <p *ngIf="quantosNaRaia(r) === 0" class="mt-3 text-sm text-gray-600">Esta raia ainda não tem passos.</p>
+            <ol *ngIf="quantosNaRaia(r) > 0" class="mt-3 space-y-2" [attr.aria-label]="'Passos da raia ' + nomeRaia(r)">
+              <li *ngFor="let e of passosDaRaia(r); trackBy: porId" class="rounded-lg border border-gray-200 bg-white">
+                <ng-container *ngTemplateOutlet="passo; context: { $implicit: e }"></ng-container>
+              </li>
+            </ol>
+            <button type="button" [id]="idRaia(r, 'incluir-passo')" (click)="incluirPassoNaRaia(r)"
+                    class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+              <span class="material-icons text-base" aria-hidden="true">add</span> Incluir passo nesta raia
+            </button>
+          </li>
+        </ol>
+
+        <button type="button" id="pe-fx-incluir-raia" (click)="novaRaia()"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+          <span class="material-icons text-base" aria-hidden="true">add</span> Incluir raia
+        </button>
+
+        <!-- Passos cuja raia não existe mais (dado antigo) -->
+        <div *ngIf="semRaia.length > 0" class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <h5 class="text-sm font-semibold text-amber-900">Passos sem raia</h5>
+          <p class="text-xs text-amber-900 mt-0.5">A raia destes passos não existe mais. Abra cada um e escolha a raia.</p>
+          <ol class="mt-3 space-y-2">
+            <li *ngFor="let e of semRaia; trackBy: porId" class="rounded-lg border border-gray-200 bg-white">
+              <ng-container *ngTemplateOutlet="passo; context: { $implicit: e }"></ng-container>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- ── Prévia do desenho e descrição em texto ─────────────────────── -->
+      <div class="flex-1 min-w-0 w-full space-y-4" [ngClass]="podeEditar ? 'sticky' : ''" [style.top]="podeEditar ? '5rem' : null">
+        <div class="flex flex-wrap items-center gap-2">
+          <h4 class="text-sm font-semibold text-gray-900">{{ podeEditar ? 'Prévia do desenho' : 'Desenho do fluxo' }}</h4>
+          <span class="text-xs text-gray-600">{{ textoEstadoDesenho }}</span>
+        </div>
+        <div *ngIf="estadoDesenho === 'erro'" role="alert" class="text-sm text-red-700">
+          {{ erroDesenho }}
+          <button type="button" (click)="desenharDeNovo()" class="font-semibold underline">Tentar de novo</button>
+        </div>
+        <app-pe-fluxo-desenho [svg]="svg" [rotulo]="'Desenho do fluxo ' + a.Nome" [alt]="altDesenho" idBase="pe-fx-desenho"
+                              [alturaMaxima]="podeEditar ? '60vh' : '75vh'"
+                              [vazio]="estadoDesenho === 'invalido' ? 'O desenho aparece quando o fluxo estiver sem problemas.' : 'Desenhando o fluxo...'"></app-pe-fluxo-desenho>
+        <app-pe-fluxo-descricao [descricaoPronta]="descricao" idBase="pe-fx-descricao" [nomeFluxo]="a.Nome"></app-pe-fluxo-descricao>
+      </div>
+    </div>
+
+    <!-- Comparação com o modelo do guia -->
+    <section *ngIf="comparando" id="pe-fx-comparacao" aria-labelledby="pe-fx-comparacao-titulo"
+             class="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-4">
+      <div class="flex flex-wrap items-start gap-2">
+        <h4 id="pe-fx-comparacao-titulo" class="flex-1 min-w-0 text-sm font-semibold text-blue-900">Modelo do guia: {{ tituloFluxo }}</h4>
+        <button type="button" (click)="alternarComparacao()"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-blue-200 bg-white text-xs font-semibold text-blue-800 hover:bg-gray-50">
+          <span class="material-icons text-sm" aria-hidden="true">close</span> Fechar a comparação
+        </button>
+      </div>
+      <p class="text-xs text-blue-900">É o fluxo como está no modelo do guia, com os nomes padrão nas raias. O órgão pode voltar a ele com
+        "Voltar ao modelo do guia".</p>
+      <p *ngIf="carregandoModelo" role="status" class="text-sm text-gray-600">Carregando o modelo do guia...</p>
+      <p *ngIf="erroModelo" role="alert" class="text-sm text-red-700">{{ erroModelo }}</p>
+      <app-pe-fluxo-desenho *ngIf="svgModelo" [svg]="svgModelo" [rotulo]="'Desenho do modelo do guia: ' + a.Nome"
+                            [alt]="'Desenho do modelo do guia do fluxo ' + a.Nome + '. A descrição em texto está logo abaixo do desenho.'"
+                            idBase="pe-fx-modelo-desenho" alturaMaxima="60vh"></app-pe-fluxo-desenho>
+      <app-pe-fluxo-descricao *ngIf="defModelo" [definicao]="defModelo" [dicionario]="dicionarioDoGuia" [numeros]="numerosModelo"
+                              idBase="pe-fx-modelo-descricao" [nomeFluxo]="'modelo do guia ' + a.Nome"></app-pe-fluxo-descricao>
+    </section>
+  </section>
+
+  <!-- Pé da tela: salvar, desfazer e descartar -->
+  <div *ngIf="aberto && podeEditar" role="region" aria-label="Ações do fluxo"
+       class="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white px-5 py-3 shadow-lg">
+    <span class="material-icons" [ngClass]="sujo ? 'text-amber-600' : 'text-green-600'" aria-hidden="true">{{ sujo ? 'edit_note' : 'cloud_done' }}</span>
+    <p class="flex-1 text-sm text-gray-800">
+      {{ sujo ? 'Há mudanças neste fluxo que ainda não foram salvas.' : 'O fluxo está salvo.' }}
+      <ng-container *ngIf="sujo && temProblemas"> Corrija os problemas para salvar.</ng-container>
+    </p>
+    <button type="button" (click)="desfazer()" [disabled]="!podeDesfazer" [attr.aria-label]="textoDesfazer" [title]="textoDesfazer"
+            class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+      <span class="material-icons text-base" aria-hidden="true">undo</span> Desfazer
+    </button>
+    <button type="button" (click)="descartar()" [disabled]="!sujo || salvando"
+            class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+      <span class="material-icons text-base" aria-hidden="true">restart_alt</span> Descartar as mudanças
+    </button>
+    <button type="button" (click)="salvar()" [disabled]="!sujo || salvando"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+      <span class="material-icons text-base" aria-hidden="true">save</span> {{ salvando ? 'Salvando...' : 'Salvar o fluxo' }}
+    </button>
+  </div>
+</div>
+
+<!-- ── Um passo: o resumo e, aberto, os campos ─────────────────────────── -->
+<ng-template #passo let-e>
+  <div class="flex flex-wrap items-start gap-2 px-3 py-2">
+    <span class="material-icons text-base text-purple-700" aria-hidden="true">{{ icone(e) }}</span>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold text-gray-900">{{ rotulo(e) }}<span *ngIf="numerado(e)" class="font-normal text-gray-600"> · {{ rotuloTipo(e.Tipo) }}</span></p>
+      <p class="text-xs text-gray-600 mt-0.5">{{ resumo(e) }}</p>
+      <p *ngIf="numerado(e) && e.Artefatos.length > 0" class="text-xs text-gray-600 mt-0.5">Gera: {{ artefatos(e) }}</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-1">
+      <button type="button" [id]="idEl(e, 'editar')" (click)="alternar(e)" [attr.aria-expanded]="estaAberto(e)" [attr.aria-controls]="idEl(e, 'corpo')"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+        <span class="material-icons text-sm" aria-hidden="true">{{ estaAberto(e) ? 'expand_less' : 'edit' }}</span>
+        {{ estaAberto(e) ? 'Fechar' : 'Editar' }}<span class="sr-only"> {{ rotulo(e) }}</span>
+      </button>
+      <button *ngIf="aceitaDepois(e)" type="button" (click)="incluirDepois(e)" [attr.aria-label]="'Incluir um passo depois de ' + rotulo(e)"
+              title="Incluir um passo depois deste" class="p-1 rounded text-blue-700 hover:bg-blue-50">
+        <span class="material-icons text-base" aria-hidden="true">playlist_add</span>
+      </button>
+      <button type="button" (click)="removerPasso(e)" [attr.aria-label]="'Remover ' + rotulo(e)" title="Remover"
+              class="p-1 rounded text-red-700 hover:bg-red-50">
+        <span class="material-icons text-base" aria-hidden="true">delete</span>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="estaAberto(e)" [id]="idEl(e, 'corpo')" class="border-t border-gray-100 px-3 py-3 space-y-4">
+    <div class="grid gap-3 md:grid-cols-2">
+      <div>
+        <label [for]="idEl(e, 'tipo')" class="block text-xs font-semibold text-gray-700 mb-1">Tipo</label>
+        <select [id]="idEl(e, 'tipo')" [ngModel]="e.Tipo" (ngModelChange)="mudarTipo(e, $event)" [attr.aria-describedby]="idEl(e, 'tipo-ajuda')"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option *ngFor="let t of tipos" [value]="t.valor">{{ t.rotulo }}</option>
+        </select>
+        <p [id]="idEl(e, 'tipo-ajuda')" class="text-xs text-gray-500 italic mt-1">{{ explicacaoTipo(e.Tipo) }}</p>
+      </div>
+      <div>
+        <label [for]="idEl(e, 'raia')" class="block text-xs font-semibold text-gray-700 mb-1">Raia (quem faz)</label>
+        <select [id]="idEl(e, 'raia')" [ngModel]="e.RaiaId" (ngModelChange)="mudarRaia(e, $event)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option *ngIf="!existeRaia(e.RaiaId)" [value]="e.RaiaId">Escolha a raia</option>
+          <option *ngFor="let r of raias; trackBy: porId" [value]="r.Id">{{ nomeRaia(r) }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label [for]="idEl(e, 'nome')" class="block text-xs font-semibold text-gray-700 mb-1">
+        {{ rotuloNome(e) }}<ng-container *ngIf="pedeNome(e)"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
+      </label>
+      <input [id]="idEl(e, 'nome')" type="text" [ngModel]="e.Nome" (ngModelChange)="mudarNome(e, $event)" [maxlength]="maxNomeElemento"
+             [attr.aria-describedby]="numerado(e) ? idEl(e, 'numero') : null"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <p *ngIf="numerado(e)" [id]="idEl(e, 'numero')" class="text-xs text-gray-600 mt-1">
+        Número automático: {{ numero(e) || 'sai no desenho' }}, pela ordem do fluxo.<ng-container *ngIf="sujo"> Ao salvar, vale o
+        número do desenho.</ng-container>
+      </p>
+    </div>
+
+    <!-- Vem depois de (as saídas das decisões mudam na decisão) -->
+    <p *ngIf="e.Tipo === 'inicio'" class="text-xs text-gray-500 italic">O início não vem depois de nenhum passo. O passo seguinte diz, em
+      "Vem depois de", que vem depois do início.</p>
+    <fieldset *ngIf="e.Tipo !== 'inicio'">
+      <legend class="block text-xs font-semibold text-gray-700 mb-1">Vem depois de</legend>
+      <p *ngIf="antesDe(e).length === 0 && deDecisao(e).length === 0" class="text-xs text-gray-600 mb-1">Ainda não vem depois de nenhum passo.</p>
+      <ul *ngIf="antesDe(e).length > 0" class="space-y-1">
+        <li *ngFor="let l of antesDe(e); let i = index; trackBy: porId" class="flex flex-wrap items-center gap-2">
+          <label [for]="idLig(l, 'origem')" class="sr-only">Vem depois de, caminho {{ i + 1 }}</label>
+          <select [id]="idLig(l, 'origem')" [ngModel]="l.De" (ngModelChange)="mudarOrigem(l, $event, e)"
+                  class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngIf="!existe(l.De)" [value]="l.De">Um passo que não existe mais</option>
+            <option *ngFor="let o of origensDe(e); trackBy: porId" [value]="o.Id" [disabled]="o.Id !== l.De && jaVemDepois(e, o)">{{ rotulo(o) }}</option>
+          </select>
+          <button type="button" (click)="tirarLigacao(l, e, 'antes-novo')"
+                  [attr.aria-label]="'Tirar: ' + rotulo(e) + ' deixa de vir depois de ' + rotuloPorId(l.De)"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-sm" aria-hidden="true">link_off</span> Tirar
+          </button>
+        </li>
+      </ul>
+      <p *ngFor="let l of deDecisao(e); trackBy: porId" class="text-xs text-gray-600 mt-1">
+        Também chega aqui pela saída "{{ l.Rotulo || 'sem rótulo' }}" de {{ rotuloPorId(l.De) }}. Isso muda na decisão.
+      </p>
+      <div class="flex flex-wrap items-end gap-2 mt-2">
+        <div class="flex-1 min-w-0">
+          <label [for]="idEl(e, 'antes-novo')" class="block text-xs text-gray-700 mb-1">{{ antesDe(e).length > 0 ? 'Mais um passo antes deste' : 'O passo que vem antes' }}</label>
+          <select [id]="idEl(e, 'antes-novo')" [ngModel]="novoAntes.get(e.Id) ?? ''" (ngModelChange)="escolherAntes(e, $event)"
+                  [attr.aria-describedby]="erroLocal('antes:' + e.Id) ? idEl(e, 'antes-erro') : idEl(e, 'antes-ajuda')"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Escolha o passo</option>
+            <option *ngFor="let o of origensDe(e); trackBy: porId" [value]="o.Id" [disabled]="jaVemDepois(e, o)">{{ rotulo(o) }}</option>
+          </select>
+        </div>
+        <button type="button" (click)="incluirAntes(e)"
+                class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+          <span class="material-icons text-base" aria-hidden="true">add</span> Incluir
+        </button>
+      </div>
+      <p *ngIf="erroLocal('antes:' + e.Id) as erro" [id]="idEl(e, 'antes-erro')" role="alert" class="text-xs text-red-700 mt-1">{{ erro }}</p>
+      <p [id]="idEl(e, 'antes-ajuda')" class="text-xs text-gray-500 italic mt-1">Para ligar a saída de uma decisão a este passo, use as saídas
+        da decisão. Um passo que vem depois de dois ou mais passos junta os caminhos.</p>
+    </fieldset>
+
+    <p *ngIf="e.Tipo === 'paralelo'" class="text-xs text-gray-500 italic">Para dividir o caminho, diga em "Vem depois de" de cada passo que
+      ele vem depois deste paralelo: esses passos acontecem ao mesmo tempo. Para juntar os caminhos, diga aqui que este paralelo vem depois
+      de cada um deles.</p>
+
+    <!-- Saídas da decisão -->
+    <fieldset *ngIf="e.Tipo === 'decisao'">
+      <legend class="block text-xs font-semibold text-gray-700 mb-1">Saídas da decisão</legend>
+      <p class="text-xs text-gray-500 italic mb-1">Cada saída tem um rótulo, como "Sim" ou "Não", e leva a um passo. A decisão precisa de
+        pelo menos duas saídas com rótulo. A saída que volta a um passo anterior aparece no desenho por baixo, como um retorno.</p>
+      <p *ngIf="saidasDe(e).length === 0" class="text-xs text-gray-600">Ainda não tem saídas.</p>
+      <ul *ngIf="saidasDe(e).length > 0" class="space-y-2">
+        <li *ngFor="let l of saidasDe(e); let i = index; trackBy: porId" class="flex flex-wrap items-end gap-2">
+          <div class="w-full md:w-auto">
+            <label [for]="idLig(l, 'rotulo')" class="block text-xs text-gray-700 mb-1">Rótulo da saída {{ i + 1 }}</label>
+            <input [id]="idLig(l, 'rotulo')" type="text" [ngModel]="l.Rotulo ?? ''" (ngModelChange)="mudarRotulo(l, $event, e)" [maxlength]="maxRotulo"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <label [for]="idLig(l, 'destino')" class="block text-xs text-gray-700 mb-1">Vai para</label>
+            <select [id]="idLig(l, 'destino')" [ngModel]="l.Para" (ngModelChange)="mudarDestino(l, $event, e)"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option *ngIf="!existe(l.Para)" [value]="l.Para">Um passo que não existe mais</option>
+              <option *ngFor="let o of destinosDe(e); trackBy: porId" [value]="o.Id" [disabled]="o.Id !== l.Para && jaESaida(e, o)">{{ rotulo(o) }}</option>
+            </select>
+          </div>
+          <button type="button" (click)="tirarLigacao(l, e, 'saida-nova-rotulo')"
+                  [attr.aria-label]="'Tirar a saída ' + (l.Rotulo || (i + 1)) + ' de ' + rotulo(e)"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-sm" aria-hidden="true">link_off</span> Tirar
+          </button>
+        </li>
+      </ul>
+      <div class="mt-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+        <p class="text-xs font-semibold text-gray-700">Nova saída</p>
+        <div class="flex flex-wrap items-end gap-2 mt-1">
+          <div class="w-full md:w-auto">
+            <label [for]="idEl(e, 'saida-nova-rotulo')" class="block text-xs text-gray-700 mb-1">Rótulo</label>
+            <input [id]="idEl(e, 'saida-nova-rotulo')" type="text" [ngModel]="novaSaidaDe(e).rotulo" (ngModelChange)="novaSaidaDe(e).rotulo = $event"
+                   (keydown.enter)="incluirSaida(e)" [maxlength]="maxRotulo" placeholder="Por exemplo: Sim"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <label [for]="idEl(e, 'saida-nova-destino')" class="block text-xs text-gray-700 mb-1">Vai para</label>
+            <select [id]="idEl(e, 'saida-nova-destino')" [ngModel]="novaSaidaDe(e).destino" (ngModelChange)="novaSaidaDe(e).destino = $event"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Escolha o passo</option>
+              <option *ngFor="let o of destinosDe(e); trackBy: porId" [value]="o.Id" [disabled]="jaESaida(e, o)">{{ rotulo(o) }}</option>
+            </select>
+          </div>
+          <button type="button" (click)="incluirSaida(e)"
+                  class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+            <span class="material-icons text-base" aria-hidden="true">add</span> Incluir saída
+          </button>
+        </div>
+        <p *ngIf="erroLocal('saida:' + e.Id) as erro" role="alert" class="text-xs text-red-700 mt-1">{{ erro }}</p>
+      </div>
+    </fieldset>
+
+    <!-- Documentos (artefatos) -->
+    <div *ngIf="numerado(e)">
+      <p [id]="idEl(e, 'artefatos-titulo')" class="text-xs font-semibold text-gray-700 mb-1">
+        Documentos que {{ e.Tipo === 'subprocesso' ? 'o subprocesso' : 'a tarefa' }} gera
+      </p>
+      <ul *ngIf="e.Artefatos.length > 0" class="flex flex-wrap gap-2" [attr.aria-labelledby]="idEl(e, 'artefatos-titulo')">
+        <li *ngFor="let a of e.Artefatos; let i = index; trackBy: porIndice"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-50 text-xs text-gray-800">
+          <span class="material-icons text-sm text-gray-500" aria-hidden="true">description</span> {{ a }}
+          <button type="button" (click)="tirarArtefato(e, i)" [attr.aria-label]="'Tirar o documento ' + a" title="Tirar"
+                  class="p-1 rounded text-gray-700 hover:bg-gray-100">
+            <span class="material-icons text-sm" aria-hidden="true">close</span>
+          </button>
+        </li>
+      </ul>
+      <p *ngIf="e.Artefatos.length === 0" class="text-xs text-gray-600">Nenhum documento.</p>
+      <div class="flex flex-wrap items-end gap-2 mt-2">
+        <div class="flex-1 min-w-0">
+          <label [for]="idEl(e, 'artefato-novo')" class="block text-xs text-gray-700 mb-1">Novo documento</label>
+          <input [id]="idEl(e, 'artefato-novo')" type="text" [ngModel]="novoArtefato.get(e.Id) ?? ''" (ngModelChange)="escreverArtefato(e, $event)"
+                 (keydown.enter)="incluirArtefato(e, $event)" [maxlength]="maxArtefato" placeholder="Por exemplo: Portaria de designação"
+                 [attr.aria-describedby]="erroLocal('artefato:' + e.Id) ? idEl(e, 'artefato-erro') : null"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <button type="button" (click)="incluirArtefato(e)"
+                class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+          <span class="material-icons text-base" aria-hidden="true">add</span> Incluir documento
+        </button>
+      </div>
+      <p *ngIf="erroLocal('artefato:' + e.Id) as erro" [id]="idEl(e, 'artefato-erro')" role="alert" class="text-xs text-red-700 mt-1">{{ erro }}</p>
+      <p class="text-xs text-gray-500 italic mt-1">No desenho, cada documento aparece como uma folha ligada {{ e.Tipo === 'subprocesso' ? 'ao subprocesso' : 'à tarefa' }}
+        por uma linha pontilhada.</p>
+    </div>
+  </div>
+</ng-template>

@@ -24,6 +24,7 @@ import { PeEditorTextoRicoComponent } from '../shared/texto-rico/pe-editor-texto
 import { PeTextoRicoLeituraDirective } from '../shared/texto-rico/pe-texto-rico-leitura.directive';
 import { docParaEnvio, docVazio, normalizarDocumento } from '../shared/texto-rico/pe-texto-rico-doc';
 import { PeDocumentoService } from '../services/pe-documento.service';
+import { PeFluxosService } from '../services/pe-fluxos.service';
 import { PeModeloService } from '../services/pe-modelo.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
@@ -134,6 +135,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly documentoService = inject(PeDocumentoService);
   private readonly modeloService = inject(PeModeloService);
+  private readonly fluxosService = inject(PeFluxosService);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
   private readonly router = inject(Router);
@@ -163,12 +165,15 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   gruposSecoes: GrupoSecoes[] = [];
   gruposPassos: GrupoOpcoes[] = [];
   temas: OpcaoSimples[] = [];
+  /** Os fluxos-modelo (E6), para o bloco de fluxo; vazio se não vieram (aí a chave se escreve). */
+  fluxos: OpcaoSimples[] = [];
   private secoes = new Map<string, SecaoParaTabela>();
   private titulosPassos = new Map<string, string>();
   private readonly nomes: NomesDoDocumento = {
     secao: chave => this.secoes.get(chave)?.titulo ?? null,
     campo: (secao, chave) => this.secoes.get(secao)?.campos.find(c => c.valor === chave)?.rotulo ?? null,
-    tema: valor => this.temas.find(t => t.valor === valor)?.rotulo ?? null
+    tema: valor => this.temas.find(t => t.valor === valor)?.rotulo ?? null,
+    fluxo: chave => this.fluxos.find(f => f.valor === chave)?.rotulo ?? null
   };
 
   selecionadoId: number | null = null;
@@ -234,12 +239,14 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
     this.erroCarga = null;
     forkJoin({
       documento: this.documentoService.modelo('pdtic'),
-      trilha: this.modeloService.modelo().pipe(catchError(() => of(null)))
+      trilha: this.modeloService.modelo().pipe(catchError(() => of(null))),
+      fluxos: this.fluxosService.modelos().pipe(catchError(() => of(null)))
     }).subscribe({
-      next: ({ documento, trilha }) => {
+      next: ({ documento, trilha, fluxos }) => {
         this.carregando = false;
         this.semModeloDaTrilha = !trilha;
         if (trilha) this.lerModeloDaTrilha(modeloOrdenado(trilha));
+        this.fluxos = (fluxos ?? []).map(f => ({ valor: f.Chave, rotulo: f.FiguraGuia ? `${f.FiguraGuia} · ${f.Nome}` : f.Nome }));
         this.aplicarModelo(documento);
         depois?.();
       },
@@ -364,6 +371,10 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
 
   nomeTemaConhecido(valor: string): boolean {
     return this.temas.some(t => t.valor === valor);
+  }
+
+  fluxoConhecido(chave: string): boolean {
+    return this.fluxos.some(f => f.valor === chave);
   }
 
   rotuloTipo(tipo: string): string {
@@ -718,7 +729,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
         return !e.todasColunas && e.colunas.length === 0 ? ['Escolha ao menos uma coluna, ou use todas as colunas da planilha.'] : [];
       }
       case 'lista_tema': return e.tema ? [] : ['Escolha o tema das ações.'];
-      case 'fluxo': return e.fluxo.trim() ? [] : ['Escreva a chave do fluxo.'];
+      case 'fluxo': return e.fluxo.trim() ? [] : [this.fluxos.length ? 'Escolha o fluxo.' : 'Escreva a chave do fluxo.'];
       default: return [];
     }
   }
