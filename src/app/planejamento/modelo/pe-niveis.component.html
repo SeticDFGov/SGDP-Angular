@@ -50,7 +50,7 @@
         Nenhum nível ainda. Crie o primeiro com o botão "Novo nível".
       </p>
 
-      <div *ngIf="niveis.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+      <div *ngIf="niveis.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: níveis de maturidade">
         <table class="w-full text-sm">
           <caption class="sr-only">Níveis de maturidade, do mais simples ao mais completo, com o que cada um pede</caption>
           <thead>

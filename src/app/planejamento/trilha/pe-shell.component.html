@@ -67,9 +67,9 @@
          class="mb-3 flex flex-col md:flex-row md:items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
       <span class="material-icons text-amber-600" aria-hidden="true">visibility</span>
       <p class="flex-1 leading-relaxed">
-        <strong>Você está vendo a trilha do {{ t.OrgaoSigla }} como o órgão vê.</strong>
+        <strong>Você está vendo a trilha do órgão {{ t.OrgaoSigla }} como ele vê.</strong>
         É só para ler: os passos, as seções e os campos saem do nível do órgão ({{ t.NivelNome }}<ng-container *ngIf="t.NivelPadrao">, o padrão</ng-container>)
-        e dos ajustes feitos para ele.
+        e dos ajustes feitos para ele, e os dados são os do PDTIC dele.
       </p>
       <button type="button" (click)="voltarParaMinhaTrilha()"
               class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-300 bg-white text-sm font-semibold text-amber-900 hover:bg-gray-50 whitespace-nowrap">
@@ -87,7 +87,7 @@
           <h1 class="text-lg font-bold text-gray-900 truncate">
             {{ trilha.nome }}<span *ngIf="siglaOrgao" class="text-gray-500 font-medium"> · {{ siglaOrgao }}</span>
           </h1>
-          <p *ngIf="rotuloNivel" class="text-xs text-gray-600">{{ rotuloNivel }}</p>
+          <p *ngIf="rotuloNivel" class="text-xs text-gray-600">{{ rotuloNivel }}<ng-container *ngIf="rotuloPdtic as r"> · {{ r }}</ng-container></p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <form *ngIf="podeTrocarVisao" (ngSubmit)="verTrilha()" class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
@@ -117,7 +117,8 @@
         </div>
       </div>
 
-      <!-- Etapas numeradas -->
+      <!-- Etapas numeradas. Com rolagem lateral (tela estreita), cada etapa é um botão: o Tab
+           chega a todas, e o navegador rola a lista até o botão com o foco -->
       <ol class="px-3 py-3 flex gap-1 overflow-x-auto" aria-label="Etapas da trilha">
         <li *ngFor="let etapa of trilha.etapas; let i = index" class="flex-1 min-w-[8.5rem]">
           <button type="button" (click)="abrirEtapa(i)"
@@ -150,7 +151,7 @@
              [attr.aria-current]="passoAtual?.numero === p.numero ? 'step' : null">
             <span class="px-1.5 py-0.5 rounded-full text-xs font-bold"
                   [ngClass]="passoAtual?.numero === p.numero ? 'bg-white/10' : 'bg-gray-100 text-gray-700'">{{ p.numero }}</span>
-            {{ p.titulo }}<span *ngIf="p.emConstrucao" class="sr-only"> (tela em construção)</span><span *ngIf="p.previa" class="sr-only"> (por enquanto, só a prévia dos campos)</span>
+            {{ p.titulo }}<span *ngIf="p.emConstrucao" class="sr-only"> (tela em construção)</span><span *ngIf="status(p) as s" class="sr-only"> ({{ s.texto }})</span>
             <span *ngIf="status(p) as s" class="material-icons text-base" aria-hidden="true"
                   [ngClass]="passoAtual?.numero === p.numero ? 'text-white' : corIconeEstado(s.estado)">{{ iconeEstado(s.estado) }}</span>
           </a>

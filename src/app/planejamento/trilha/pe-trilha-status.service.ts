@@ -1,17 +1,21 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { PeAndamentoPdtic } from '../../../api/planejamento/interface';
 import { PedidosAcessoService } from '../../core/acessos/pedidos-acesso.service';
 import { Modulos } from '../../core/modulos/modulos';
 import { PeDeliberacoesService, PePeticService } from '../services/pe-petic.service';
+import { PePdticService } from '../services/pe-pdtic.service';
+import { statusDoPassoPdtic } from '../shared/pe-pdtic-rotulos';
 import { statusDoPetic } from '../shared/pe-referenciais-rotulos';
 import { ChaveStatusPe, PerfilTrilhaPe } from './pe-trilhas';
 
 /**
- * feito: nada esperando · atencao: fila com itens esperando ou algo devolvido ·
- * pendente: há o que fazer · atrasado: prazo vencido (chega com o PDTIC, na E4).
+ * feito: nada esperando · atencao: fila com itens esperando, algo devolvido ou
+ * comentário aberto · pendente: há o que fazer · atrasado: prazo vencido ·
+ * nao_se_aplica: passo do PDTIC que o órgão marcou como não se aplica.
  */
-export type EstadoPassoPe = 'feito' | 'atencao' | 'pendente' | 'atrasado';
+export type EstadoPassoPe = 'feito' | 'atencao' | 'pendente' | 'atrasado' | 'nao_se_aplica';
 
 export interface StatusPassoPe {
   estado: EstadoPassoPe;
@@ -19,7 +23,14 @@ export interface StatusPassoPe {
 }
 
 export interface SituacaoTrilhaPe {
+  /** Trilhas centrais: situação pela chave de status do passo. */
   status: Partial<Record<ChaveStatusPe, StatusPassoPe>>;
+  /** Trilha de um órgão com PDTIC: a situação de cada passo (GET pdtic/{id}/situacao). */
+  andamento?: PeAndamentoPdtic | null;
+  /** Situação de cada passo do órgão pela chave do passo (feita a partir do `andamento`). */
+  passosOrgao?: Record<string, StatusPassoPe>;
+  /** A situação do PDTIC não veio do servidor (a trilha fica sem as bolinhas). */
+  erroAndamento?: boolean;
 }
 
 const VAZIA: SituacaoTrilhaPe = { status: {} };
@@ -30,6 +41,16 @@ function fila(quantidade: number, singular: string, plural: string, vazia: strin
     : { estado: 'feito', texto: vazia };
 }
 
+/** Situação dos passos do órgão, pela chave do passo. */
+function porPasso(andamento: PeAndamentoPdtic): Record<string, StatusPassoPe> {
+  const mapa: Record<string, StatusPassoPe> = {};
+  for (const passo of andamento.Passos ?? []) {
+    const status = statusDoPassoPdtic(passo);
+    if (status) mapa[passo.Chave] = status;
+  }
+  return mapa;
+}
+
 /**
  * Situação dos passos da trilha, calculada só com consultas que o papel já pode
  * fazer (o 403 tira a pessoa da tela):
@@ -38,6 +59,9 @@ function fila(quantidade: number, singular: string, plural: string, vazia: strin
  *   pedidos de acesso ao módulo esperando decisão e a situação do PETIC-DF.
  * - Secretaria do CGTIC (trilha da Secretaria: ela e o admin do SGDP): o que
  *   espera a decisão do comitê.
+ * - Trilha de um órgão com PDTIC aberto: a situação real de cada passo, os
+ *   avisos do guia e o próximo passo recomendado, do servidor (quem vê a trilha
+ *   pode ler o PDTIC: o próprio órgão, os papéis globais e o admin do SGDP).
  *
  * Falha de uma consulta só deixa o passo dela sem situação.
  */
@@ -46,8 +70,9 @@ export class PeTrilhaStatusService {
   private readonly pedidosAcesso = inject(PedidosAcessoService);
   private readonly peticService = inject(PePeticService);
   private readonly deliberacoesService = inject(PeDeliberacoesService);
+  private readonly pdticService = inject(PePdticService);
 
-  carregar(perfil: PerfilTrilhaPe): Observable<SituacaoTrilhaPe> {
+  carregar(perfil: PerfilTrilhaPe, pdticId: number | null = null): Observable<SituacaoTrilhaPe> {
     if (perfil === 'admin') {
       return forkJoin({
         pedidos: this.pedidosAcesso.contarPendentes(Modulos.Planejamento).pipe(
@@ -69,6 +94,12 @@ export class PeTrilhaStatusService {
           status: { deliberacoes: fila(total, 'envio aguardando a decisão', 'envios aguardando a decisão', 'Nada aguardando o comitê') }
         })),
         catchError(() => of(VAZIA))
+      );
+    }
+    if (perfil === 'orgao' && pdticId) {
+      return this.pdticService.situacao(pdticId).pipe(
+        map(andamento => ({ status: {}, andamento, passosOrgao: porPasso(andamento) })),
+        catchError(() => of({ status: {}, andamento: null, passosOrgao: {}, erroAndamento: true }))
       );
     }
     return of(VAZIA);

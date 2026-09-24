@@ -7,6 +7,7 @@ import { PeFonteRegistros, PeRegistrosService } from '../../services/pe-registro
 import { mensagemErroPe } from '../pe-erros';
 import { mensagemErroDownload, salvarResposta } from '../pe-download';
 import { descricaoCalculo } from '../pe-modelo-rotulos';
+import { PeEditorTextoRicoComponent } from '../texto-rico/pe-editor-texto-rico.component';
 import { PeLigacaoCampoComponent } from './pe-ligacao-campo.component';
 import {
   aceitaDoArquivo, dicaDoArquivo, dicaDoCampo, ehArquivoRef, ehLigacao, ehNumerico, erroDoCampo,
@@ -19,8 +20,8 @@ const PERTO_DO_LIMITE = 0.8;
 /**
  * Um campo de um registro, pelo tipo que o modelo configurou: texto curto e
  * longo, número, valor em reais, percentual, data, sim ou não, lista, lista
- * múltipla, ligação com busca, arquivo e calculado (só leitura). Texto rico
- * mostra um aviso (o editor chega na E4).
+ * múltipla, ligação com busca, arquivo, texto rico (o editor, carregado só
+ * quando o campo aparece) e calculado (só leitura).
  *
  * Acessibilidade: rótulo ligado ao campo (`for`/`id`) ou `fieldset`/`legend`
  * nos grupos; ajuda e erro ligados por `aria-describedby`; obrigatório com o
@@ -33,7 +34,7 @@ const PERTO_DO_LIMITE = 0.8;
 @Component({
   selector: 'app-pe-campo',
   standalone: true,
-  imports: [CommonModule, FormsModule, PeLigacaoCampoComponent],
+  imports: [CommonModule, FormsModule, PeLigacaoCampoComponent, PeEditorTextoRicoComponent],
   templateUrl: './pe-campo.component.html'
 })
 export class PeCampoComponent {
@@ -70,14 +71,19 @@ export class PeCampoComponent {
     return this.campo.Tipo === 'sim_nao' || this.campo.Tipo === 'lista_multipla';
   }
 
-  /** Só leitura na tela: calculado e texto rico. */
+  /** Só leitura na tela: calculado. */
   get semControle(): boolean {
-    return this.campo.Tipo === 'calculado' || this.campo.Tipo === 'texto_rico';
+    return this.campo.Tipo === 'calculado';
+  }
+
+  /** Texto rico: o rótulo liga ao editor por `aria-labelledby` (não há `label for` num texto editável). */
+  get rico(): boolean {
+    return this.campo.Tipo === 'texto_rico';
   }
 
   /** Um controle só, com `label for`. */
   get simples(): boolean {
-    return !this.ligacao && !this.grupo && !this.semControle;
+    return !this.ligacao && !this.grupo && !this.semControle && !this.rico;
   }
 
   get numerico(): boolean {
@@ -199,9 +205,9 @@ export class PeCampoComponent {
     return descricaoCalculo(this.campo.Config, nomes);
   }
 
-  get textoRicoGuardado(): boolean {
-    const v = this.registro?.Dados?.[this.campo.Chave];
-    return v !== null && v !== undefined && v !== '';
+  /** Clique no rótulo do texto rico leva o foco ao texto (o que o `label for` faria). */
+  focarTexto(): void {
+    document.getElementById(this.idBase)?.focus();
   }
 
   // ── Arquivo ───────────────────────────────────────────────────────────────

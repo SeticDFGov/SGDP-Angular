@@ -1,10 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { AuthService, Perfis } from '../../auth/services/auth';
-import { PeMeuPapel, PeOrgaoNivel, PeTrilhaOrgao } from '../../../api/planejamento/interface';
+import { PeMeuPapel, PeOrgaoNivel, PePdtic, PeSituacaoPassoPdtic, PeTrilhaOrgao } from '../../../api/planejamento/interface';
 import { PePessoasService } from '../services/pe-pessoas.service';
 import { PeModeloService } from '../services/pe-modelo.service';
 import { PeOrgaosService } from '../services/pe-orgaos.service';
+import { PePdticService } from '../services/pe-pdtic.service';
 import { PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
 import { mensagemErroPe } from '../shared/pe-erros';
 import {
@@ -21,6 +23,12 @@ import { PeVisaoService } from './pe-visao.service';
  * não pôde ser consultado · erro-trilha: a trilha do órgão não veio do servidor.
  */
 export type CargaTrilhaPe = 'carregando' | 'pronta' | 'sem-papel' | 'sem-orgao' | 'erro' | 'erro-trilha';
+
+/**
+ * O PDTIC atual do órgão à vista: carregando · ok (aberto) · sem-pdtic (204: o
+ * órgão ainda não começou) · erro. null fora da trilha de um órgão.
+ */
+export type CargaPdticPe = 'carregando' | 'ok' | 'sem-pdtic' | 'erro';
 
 export interface EstadoTrilhaPe {
   carga: CargaTrilhaPe;
@@ -46,14 +54,20 @@ export interface EstadoTrilhaPe {
   orgaoVisto: number | null;
   /** Mensagem do servidor quando a trilha do órgão não veio. */
   erroTrilha: string | null;
+  /** PDTIC atual do órgão à vista (E4); null sem PDTIC aberto, enquanto carrega ou fora da trilha de um órgão. */
+  pdtic: PePdtic | null;
+  cargaPdtic: CargaPdticPe | null;
+  erroPdtic: string | null;
 }
 
 /** Intervalo mínimo entre duas atualizações automáticas do status (troca de passo). */
 const INTERVALO_STATUS_MS = 5000;
 
+const SEM_PDTIC: Pick<EstadoTrilhaPe, 'pdtic' | 'cargaPdtic' | 'erroPdtic'> = { pdtic: null, cargaPdtic: null, erroPdtic: null };
+
 const SEM_TRILHA: Omit<EstadoTrilhaPe, 'carga' | 'consultaPapel'> = {
   adminGeral: false, meuPapel: null, perfil: null, perfilProprio: null, trilha: null, passos: [], situacao: null,
-  trilhaOrgao: null, orgaoVisto: null, erroTrilha: null
+  trilhaOrgao: null, orgaoVisto: null, erroTrilha: null, ...SEM_PDTIC
 };
 
 /** Valor do "Ver a trilha de" para a trilha de um órgão. */
@@ -73,6 +87,9 @@ export function valorVisaoOrgao(orgaoId: number): string {
  *   órgão = o da pessoa), pelo nível do órgão e pelos ajustes.
  * - Papéis globais e admin do SGDP podem ver a trilha de um órgão como ele vê
  *   (GET modelo/trilha?orgaoId=), só para ler.
+ * - Na trilha de um órgão, depois da trilha vem o PDTIC atual dele (GET
+ *   pdtic/atual; 204 = o órgão ainda não começou) e, com ele, a situação real de
+ *   cada passo (GET pdtic/{id}/situacao), que faz as bolinhas e o próximo passo.
  */
 @Injectable({ providedIn: 'root' })
 export class PeTrilhaEstadoService {
@@ -80,8 +97,12 @@ export class PeTrilhaEstadoService {
   private readonly pessoasService = inject(PePessoasService);
   private readonly modeloService = inject(PeModeloService);
   private readonly orgaosService = inject(PeOrgaosService);
+  private readonly pdticService = inject(PePdticService);
   private readonly visaoService = inject(PeVisaoService);
   private readonly statusService = inject(PeTrilhaStatusService);
+
+  /** E-mail de quem está logado (o autor de um comentário também o resolve). */
+  private email: string | null = null;
 
   private readonly estado = new BehaviorSubject<EstadoTrilhaPe | null>(null);
   readonly estado$ = this.estado.asObservable();
@@ -95,6 +116,7 @@ export class PeTrilhaEstadoService {
   private cargaPapel?: Subscription;
   private cargaTrilha?: Subscription;
   private cargaOrgaos?: Subscription;
+  private cargaPdtic?: Subscription;
 
   get atual(): EstadoTrilhaPe | null {
     return this.estado.value;
@@ -160,11 +182,50 @@ export class PeTrilhaEstadoService {
     return !!e && (e.adminGeral || e.perfilProprio !== null);
   }
 
+  /** Equipe do órgão (não a consulta) na trilha do próprio órgão. */
+  get ehEquipeDoOrgao(): boolean {
+    const e = this.estado.value;
+    return !!e && !e.adminGeral && e.orgaoVisto === null && e.meuPapel?.Papel === PapeisPlanejamento.Orgao;
+  }
+
+  /** "Começar o PDTIC": só a equipe do órgão, no próprio órgão sem PDTIC (os demais veem só para ler). */
+  get podeAbrirPdtic(): boolean {
+    return this.ehEquipeDoOrgao && this.estado.value?.cargaPdtic === 'sem-pdtic';
+  }
+
+  /**
+   * Comenta um passo do PDTIC: administrador do módulo, equipe da SGDI e admin do
+   * SGDP (quadro de papéis do plano; a Secretaria do CGTIC não comenta), sempre
+   * pelo `meu-papel` e na trilha de um órgão.
+   */
+  get podeComentarPdtic(): boolean {
+    const e = this.estado.value;
+    if (!e || e.orgaoVisto === null || !e.pdtic) return false;
+    const papel = e.meuPapel;
+    return e.adminGeral || !!papel?.EhAdminGeral || papel?.Papel === PapeisPlanejamento.Admin || papel?.Papel === PapeisPlanejamento.Sgdi;
+  }
+
+  /** Responde aos comentários e os marca como resolvidos: a equipe do órgão. */
+  get podeResponderComentario(): boolean {
+    return this.ehEquipeDoOrgao && !!this.estado.value?.pdtic;
+  }
+
+  get emailUsuario(): string | null {
+    return this.email;
+  }
+
+  /** Situação de um passo do PDTIC à vista (null sem PDTIC ou enquanto carrega). */
+  andamentoDoPasso(chave: string): PeSituacaoPassoPdtic | null {
+    return this.estado.value?.situacao?.andamento?.Passos.find(p => p.Chave === chave) ?? null;
+  }
+
   /** Monta a trilha de quem está logado (chamado ao entrar no módulo e no "Tentar de novo"). */
   iniciar(): void {
     this.cargaPapel?.unsubscribe();
     this.cargaTrilha?.unsubscribe();
+    this.cargaPdtic?.unsubscribe();
     this.authService.getUser().subscribe(user => {
+      this.email = user?.Email ?? null;
       const adminGeral = user?.Perfil === Perfis.Admin;
       if (adminGeral) {
         this.abrirVisaoDoAdminGeral(null, 'carregando');
@@ -241,21 +302,74 @@ export class PeTrilhaEstadoService {
   atualizarStatus(forcar = false): void {
     const atual = this.estado.value;
     if (!atual || atual.carga !== 'pronta' || !atual.perfil) return;
+    // Trilha de um órgão sem PDTIC aberto: não há situação para buscar
+    if (atual.perfil === 'orgao' && !atual.pdtic) return;
     if (!forcar && Date.now() - this.ultimaCarga < INTERVALO_STATUS_MS) return;
 
     this.ultimaCarga = Date.now();
     const perfil = atual.perfil;
+    const pdticId = atual.pdtic?.Id ?? null;
     this.cargaStatus?.unsubscribe();
-    this.cargaStatus = this.statusService.carregar(perfil).subscribe(situacao => {
+    this.cargaStatus = this.statusService.carregar(perfil, pdticId).subscribe(situacao => {
       const agora = this.estado.value;
-      // Resposta de uma trilha que já foi trocada é descartada
-      if (agora && agora.perfil === perfil) this.estado.next({ ...agora, situacao });
+      // Resposta de uma trilha (ou de um PDTIC) que já foi trocada é descartada
+      if (agora && agora.perfil === perfil && (agora.pdtic?.Id ?? null) === pdticId) this.estado.next({ ...agora, situacao });
     });
   }
 
   statusDoPasso(passo: PassoNumeradoPe): StatusPassoPe | null {
+    const situacao = this.estado.value?.situacao;
+    if (passo.doOrgao) return situacao?.passosOrgao?.[passo.doOrgao.Chave] ?? null;
     if (!passo.status) return null;
-    return this.estado.value?.situacao?.status[passo.status] ?? null;
+    return situacao?.status[passo.status] ?? null;
+  }
+
+  // ── PDTIC do órgão à vista ────────────────────────────────────────────────
+
+  /** O PDTIC atual de novo (o "Tentar de novo" e depois de uma mudança de situação). */
+  recarregarPdtic(): void {
+    const atual = this.estado.value;
+    if (!atual || atual.perfil !== 'orgao' || atual.carga !== 'pronta') return;
+    this.carregarPdtic(atual.orgaoVisto);
+  }
+
+  /**
+   * "Começar o PDTIC" (equipe do órgão): abre a versão 1.0, em elaboração, e
+   * passa a trilha a mostrar a situação dos passos. 409 (alguém abriu antes): a
+   * tela avisa e o PDTIC atual vem de novo.
+   */
+  abrirPdtic(): Observable<PePdtic> {
+    return this.pdticService.abrir(null).pipe(map(pdtic => {
+      const agora = this.estado.value;
+      if (agora && agora.perfil === 'orgao' && agora.orgaoVisto === null) {
+        this.estado.next({ ...agora, pdtic, cargaPdtic: 'ok', erroPdtic: null, situacao: null });
+        this.atualizarStatus(true);
+      }
+      return pdtic;
+    }));
+  }
+
+  private carregarPdtic(orgaoId: number | null): void {
+    this.cargaPdtic?.unsubscribe();
+    const antes = this.estado.value;
+    if (!antes) return;
+    this.estado.next({ ...antes, ...SEM_PDTIC, cargaPdtic: 'carregando', situacao: null });
+    this.cargaPdtic = this.pdticService.atual(orgaoId).subscribe({
+      next: pdtic => {
+        const agora = this.estado.value;
+        if (!agora || agora.perfil !== 'orgao' || agora.orgaoVisto !== orgaoId) return;
+        this.estado.next({ ...agora, pdtic, cargaPdtic: pdtic ? 'ok' : 'sem-pdtic', erroPdtic: null });
+        if (pdtic) this.atualizarStatus(true);
+      },
+      error: erro => {
+        const agora = this.estado.value;
+        if (!agora || agora.perfil !== 'orgao' || agora.orgaoVisto !== orgaoId) return;
+        // 403: o interceptor já tirou a pessoa do módulo
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar o PDTIC do órgão.');
+        if (mensagem === null) return;
+        this.estado.next({ ...agora, pdtic: null, cargaPdtic: 'erro', erroPdtic: mensagem });
+      }
+    });
   }
 
   // ── Montagem ──────────────────────────────────────────────────────────────
@@ -304,10 +418,11 @@ export class PeTrilhaEstadoService {
 
   private montarCentral(perfil: PerfilCentralPe, base: EstadoTrilhaPe): void {
     this.cargaTrilha?.unsubscribe();
+    this.cargaPdtic?.unsubscribe();
     const trilha = trilhaDoPerfil(perfil);
     this.estado.next({
       ...base, carga: 'pronta', perfil, trilha, passos: passosNumerados(trilha), situacao: null,
-      trilhaOrgao: null, orgaoVisto: null, erroTrilha: null
+      trilhaOrgao: null, orgaoVisto: null, erroTrilha: null, ...SEM_PDTIC
     });
     this.atualizarStatus(true);
   }
@@ -319,9 +434,10 @@ export class PeTrilhaEstadoService {
    */
   private carregarTrilhaOrgao(orgaoId: number | null, base: EstadoTrilhaPe): void {
     this.cargaTrilha?.unsubscribe();
+    this.cargaPdtic?.unsubscribe();
     this.estado.next({
       ...base, carga: 'carregando', perfil: 'orgao', trilha: null, passos: [], situacao: null,
-      trilhaOrgao: null, orgaoVisto: orgaoId, erroTrilha: null
+      trilhaOrgao: null, orgaoVisto: orgaoId, erroTrilha: null, ...SEM_PDTIC
     });
     this.cargaTrilha = this.modeloService.trilha(orgaoId).subscribe({
       next: resolvida => {
@@ -331,7 +447,8 @@ export class PeTrilhaEstadoService {
         this.estado.next({
           ...agora, carga: 'pronta', trilha, passos: passosNumerados(trilha), trilhaOrgao: resolvida, erroTrilha: null
         });
-        this.atualizarStatus(true);
+        // A situação dos passos vem do PDTIC atual do órgão
+        this.carregarPdtic(orgaoId);
       },
       error: erro => {
         const agora = this.estado.value;

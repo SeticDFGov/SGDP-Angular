@@ -16,7 +16,8 @@ import { PeTabelaRegistrosComponent } from './pe-tabela-registros.component';
  * formulário ou a tabela, conforme o tipo da seção. Quem não pode editar lê.
  *
  * É o ponto de entrada dos componentes genéricos: a tela só diz a fonte (o dono)
- * e a chave da seção. A E4 usa o mesmo componente nas seções do PDTIC.
+ * e a chave da seção. Serve ao catálogo do DF, ao PETIC-DF e às seções do PDTIC
+ * (a tela do passo do órgão).
  */
 @Component({
   selector: 'app-pe-secao-registros',
@@ -39,6 +40,8 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
   @Input() avisoLeitura: string | null = null;
   /** Esconde o título (a tela já mostra o nome da seção). */
   @Input() semTitulo = false;
+  /** Situação da seção para o dono (PDTIC: pelo nível do órgão): selo ao lado do título. */
+  @Input() situacao: 'obrigatorio' | 'opcional' | null = null;
   /** A lista mudou (inclusão, alteração, exclusão, ordem) ou o formulário foi salvo. */
   @Output() readonly mudou = new EventEmitter<void>();
   /** Há mudança não salva na seção. */

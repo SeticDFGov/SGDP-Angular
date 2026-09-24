@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
 import { PeOrgaoNivel } from '../../../api/planejamento/interface';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
+import { rotuloSituacaoPdtic } from '../shared/pe-pdtic-rotulos';
 import { EstadoTrilhaPe, PeTrilhaEstadoService, valorVisaoOrgao } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
 import {
@@ -138,6 +139,14 @@ export class PeShellComponent implements OnInit {
     return t.NivelPadrao ? `Nível ${t.NivelNome} (o padrão: o nível do órgão ainda não foi definido)` : `Nível ${t.NivelNome}`;
   }
 
+  /** "PDTIC 1.0 · Em elaboração" (ou "PDTIC ainda não começado") na trilha do órgão. */
+  get rotuloPdtic(): string | null {
+    const e = this.estado;
+    if (e?.perfil !== 'orgao') return null;
+    if (e.pdtic) return `PDTIC ${e.pdtic.Versao} · ${rotuloSituacaoPdtic(e.pdtic.Situacao)}`;
+    return e.cargaPdtic === 'sem-pdtic' ? 'PDTIC ainda não começado' : null;
+  }
+
   guia(passo: PassoNumeradoPe): string {
     return rotuloGuia(passo.guia);
   }
@@ -205,13 +214,17 @@ export class PeShellComponent implements OnInit {
     return this.estadoService.statusDoPasso(passo);
   }
 
-  /** Pior situação entre os passos da etapa (vale para a bolinha da barra). */
+  /**
+   * Pior situação entre os passos da etapa (vale para a bolinha da barra). Passo
+   * marcado como "não se aplica" conta como resolvido.
+   */
   private estadoEtapa(indice: number): EstadoPassoPe | null {
     const estados = this.passosDaEtapa(indice).map(p => this.status(p)?.estado).filter((e): e is EstadoPassoPe => !!e);
     for (const e of ['atrasado', 'atencao', 'pendente'] as EstadoPassoPe[]) {
       if (estados.includes(e)) return e;
     }
-    return estados.length > 0 ? 'feito' : null;
+    if (estados.includes('feito')) return 'feito';
+    return estados.length > 0 ? 'nao_se_aplica' : null;
   }
 
   classeEstado(estado: EstadoPassoPe | undefined): string {
@@ -229,6 +242,7 @@ export class PeShellComponent implements OnInit {
       case 'feito': return 'check_circle';
       case 'atrasado': return 'error';
       case 'atencao': return 'notifications_active';
+      case 'nao_se_aplica': return 'do_not_disturb_on';
       default: return 'schedule';
     }
   }
@@ -238,6 +252,7 @@ export class PeShellComponent implements OnInit {
       case 'feito': return 'text-green-600';
       case 'atrasado': return 'text-red-600';
       case 'atencao': return 'text-amber-600';
+      case 'nao_se_aplica': return 'text-gray-500';
       default: return 'text-blue-600';
     }
   }

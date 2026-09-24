@@ -44,10 +44,17 @@ export interface PeFonteRegistros {
   ordenar(secao: string, ids: number[]): Observable<unknown>;
   /** Planilha da seção, com o nome do arquivo no `Content-Disposition`. */
   planilha(secao: string, formato: PeFormatoPlanilha): Observable<HttpResponse<Blob>>;
+  /** Itens de um catálogo para os campos de ligação (no PDTIC, `pgia_sistema` traz os sistemas do órgão dele). */
+  catalogo(catalogo: string): Observable<PeItemCatalogo[]>;
+  /** O catálogo existe para este dono (`pgia_sistema` só no PDTIC, que diz de qual órgão). */
+  aceitaCatalogo(catalogo: string): boolean;
 }
 
-/** Catálogos que a API da E3 responde (os de ligação com catálogo; `pgia_sistema` chega na E4). */
-export const CATALOGOS_DISPONIVEIS: ReadonlySet<string> = new Set(['petic_objetivo', 'petic_eixo', 'principio']);
+/** Catálogos que a API responde (os de ligação com catálogo). */
+export const CATALOGOS_DISPONIVEIS: ReadonlySet<string> = new Set(['petic_objetivo', 'petic_eixo', 'principio', 'pgia_sistema']);
+
+/** Catálogo que depende do órgão do PDTIC (GET catalogos/pgia_sistema?pdticId=). */
+export const CATALOGO_PGIA = 'pgia_sistema';
 
 /**
  * Motor de registros da Governança Estratégica (api/planejamento): registros de
@@ -85,11 +92,13 @@ export class PeRegistrosService {
         params: new HttpParams().set('formato', formato),
         responseType: 'blob',
         observe: 'response'
-      })
+      }),
+      catalogo: catalogo => this.catalogo(catalogo, dono.tipo === 'pdtic' ? dono.id : null),
+      aceitaCatalogo: catalogo => CATALOGOS_DISPONIVEIS.has(catalogo) && (catalogo !== CATALOGO_PGIA || dono.tipo === 'pdtic')
     };
   }
 
-  /** Planilha completa de um PETIC (e, na E4, de um PDTIC): um XLSX com uma aba por seção e a aba Leia-me. */
+  /** Planilha completa de um PETIC ou de um PDTIC: um XLSX com uma aba por seção e a aba Leia-me. */
   planilhaCompleta(dono: Exclude<PeDono, { tipo: 'df' }>): Observable<HttpResponse<Blob>> {
     return this.http.get(`${this.apiUrl}/${caminhoDono(dono)}/planilha`, {
       params: new HttpParams().set('formato', 'xlsx'),
@@ -98,9 +107,13 @@ export class PeRegistrosService {
     });
   }
 
-  /** Itens de um catálogo (`petic_objetivo` e `petic_eixo` da versão vigente; `principio` do DF). */
-  catalogo(catalogo: string): Observable<PeItemCatalogo[]> {
-    return this.http.get<PeItemCatalogo[]>(`${this.apiUrl}/catalogos/${encodeURIComponent(catalogo)}`);
+  /**
+   * Itens de um catálogo (`petic_objetivo` e `petic_eixo` da versão vigente;
+   * `principio` do DF; `pgia_sistema`, os sistemas de IA do órgão do PDTIC).
+   */
+  catalogo(catalogo: string, pdticId: number | null = null): Observable<PeItemCatalogo[]> {
+    const params = catalogo === CATALOGO_PGIA && pdticId ? new HttpParams().set('pdticId', pdticId) : undefined;
+    return this.http.get<PeItemCatalogo[]>(`${this.apiUrl}/catalogos/${encodeURIComponent(catalogo)}`, { params });
   }
 
   /**

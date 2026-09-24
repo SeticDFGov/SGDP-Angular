@@ -1,9 +1,9 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { PeCampoRegistro, PeVinculo } from '../../../../api/planejamento/interface';
-import { CATALOGOS_DISPONIVEIS, PeFonteRegistros, PeRegistrosService } from '../../services/pe-registros.service';
+import { CATALOGO_PGIA, PeFonteRegistros } from '../../services/pe-registros.service';
 import { mensagemErroPe } from '../pe-erros';
 import { rotuloCatalogo } from '../pe-modelo-rotulos';
 import { resumoDoRegistro } from './pe-valores';
@@ -35,7 +35,8 @@ function normalizar(texto: string): string {
  * botões de opção), sem combobox.
  *
  * As opções da ligação com seção vêm da própria fonte (outra seção do mesmo
- * dono); as do catálogo, de GET catalogos/{catalogo}. O registro em edição não
+ * dono); as do catálogo, de GET catalogos/{catalogo}, também pela fonte (o
+ * PDTIC diz o órgão dos sistemas de IA do PGIA). O registro em edição não
  * aparece na lista da própria seção.
  */
 @Component({
@@ -45,8 +46,6 @@ function normalizar(texto: string): string {
   templateUrl: './pe-ligacao-campo.component.html'
 })
 export class PeLigacaoCampoComponent implements OnChanges, OnDestroy {
-  private readonly registrosService = inject(PeRegistrosService);
-
   @Input({ required: true }) campo!: PeCampoRegistro;
   @Input({ required: true }) fonte!: PeFonteRegistros;
   @Input() escolhidos: PeVinculo[] = [];
@@ -116,7 +115,11 @@ export class PeLigacaoCampoComponent implements OnChanges, OnDestroy {
   get semOpcoes(): string {
     const catalogo = this.campo.Config?.catalogo ?? '';
     if (this.campo.Tipo === 'ligacao_catalogo' && catalogo.startsWith('petic_')) {
-      return 'Ainda não há itens: a lista vem do PETIC-DF vigente, e nenhuma versão foi aprovada pelo CGTIC.';
+      return 'Ainda não há itens: a lista vem do PETIC-DF vigente, e nenhuma versão foi aprovada pelo CGTIC. '
+        + 'Enquanto não houver versão vigente, a ligação com o PETIC-DF fica opcional.';
+    }
+    if (this.campo.Tipo === 'ligacao_catalogo' && catalogo === CATALOGO_PGIA) {
+      return 'O órgão ainda não tem sistemas de IA no inventário do PGIA (Governança de IA).';
     }
     return this.campo.Tipo === 'ligacao_secao'
       ? `"${this.alvo || 'A seção ligada'}" ainda não tem registros. Inclua lá primeiro e volte aqui.`
@@ -200,12 +203,14 @@ export class PeLigacaoCampoComponent implements OnChanges, OnDestroy {
 
     const catalogo = config?.catalogo ?? '';
     this.alvo = rotuloCatalogo(catalogo);
-    if (!CATALOGOS_DISPONIVEIS.has(catalogo)) {
-      this.indisponivel = 'A escolha deste catálogo chega numa próxima etapa do desenvolvimento do módulo.';
+    if (!this.fonte.aceitaCatalogo(catalogo)) {
+      this.indisponivel = catalogo === CATALOGO_PGIA
+        ? 'Os sistemas de IA vêm do inventário do órgão no PGIA: a escolha só existe no PDTIC de um órgão.'
+        : 'Este catálogo não está disponível. Fale com o administrador do módulo.';
       return;
     }
     this.carregando = true;
-    this.carga = this.registrosService.catalogo(catalogo).subscribe({
+    this.carga = this.fonte.catalogo(catalogo).subscribe({
       next: itens => {
         this.carregando = false;
         this.opcoes = itens.map(i => this.opcao(i.Id, i.Codigo, i.Rotulo));

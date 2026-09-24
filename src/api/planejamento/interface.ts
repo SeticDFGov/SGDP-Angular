@@ -686,3 +686,199 @@ export interface PaginaPeDeliberacoes {
   HasPreviousPage: boolean;
   HasNextPage: boolean;
 }
+
+// ── E4 · Trilha do PDTIC (etapas 1 a 3) e planilhas ─────────────────────────
+//
+// O PDTIC de um órgão é o terceiro dono do motor de registros
+// (api/planejamento/pdtic/{id}/secoes/{secaoChave}/registros), com a
+// visibilidade e a obrigatoriedade do nível do órgão e dos ajustes. Só a equipe
+// do órgão edita, e só em elaboração ou devolvido; a consulta do órgão e os
+// papéis globais leem. Erros desta entrega na faixa 1050 a 1069 (a tela mostra a
+// `Message` do servidor).
+
+/** Ciclo do PDTIC (a E4 usa em elaboração; as demais chegam com a E7). */
+export type PeSituacaoPdtic =
+  | 'em_elaboracao' | 'em_aprovacao' | 'devolvido' | 'aprovado' | 'publicado'
+  | 'em_acompanhamento' | 'encerrado' | 'substituido';
+
+/**
+ * O PDTIC de um órgão: GET pdtic/atual?orgaoId= (204 sem PDTIC atual),
+ * GET pdtic/{id}, resposta do POST pdtic e item da lista dos papéis globais.
+ */
+export interface PePdtic {
+  Id: number;
+  OrgaoId: number;
+  OrgaoSigla: string;
+  OrgaoNome: string;
+  /** "1.0", "1.1"... */
+  Versao: string;
+  Situacao: PeSituacaoPdtic;
+  /** Datas puras ("aaaa-mm-dd"), copiadas do passo 1.1 ao gravar. */
+  VigenciaInicio: string | null;
+  VigenciaFim: string | null;
+  /** PDTIC aprovado fora do sistema (E7). */
+  RegistradoExternamente: boolean;
+  AnteriorId: number | null;
+  NivelId: number | null;
+  NivelNome: string | null;
+  /** Quem está logado preenche este PDTIC (equipe do órgão, em elaboração ou devolvido). */
+  PodeEditar: boolean;
+  CriadoEm: string;
+  CriadoPor: string | null;
+}
+
+/** POST api/planejamento/pdtic: o órgão abre o próprio (`OrgaoId` nulo); o admin do SGDP informa o órgão. 409 se já há um atual. */
+export interface PePdticNovoForm {
+  OrgaoId: number | null;
+}
+
+/** GET api/planejamento/pdtic (papéis globais e admin do SGDP): os PDTICs atuais de todos os órgãos. */
+export interface PePdticsConsulta {
+  Situacao?: PeSituacaoPdtic | null;
+  /** Parte da sigla ou do nome do órgão. */
+  Filtro?: string | null;
+  Page: number;
+  PageSize: number;
+}
+
+export interface PaginaPePdtics {
+  Items: PePdtic[];
+  CurrentPage: number;
+  PageSize: number;
+  TotalItems: number;
+  TotalPages: number;
+  HasPreviousPage: boolean;
+  HasNextPage: boolean;
+}
+
+/**
+ * Situação de um passo do PDTIC: feito (as seções obrigatórias com os
+ * obrigatórios preenchidos; tabela obrigatória com ao menos um registro) ·
+ * pendente · atencao (comentário aberto no passo) · nao_se_aplica · continuo
+ * (passo de um tipo que ganha tela nas próximas entregas: sem situação por enquanto).
+ */
+export type PeSituacaoPasso = 'feito' | 'pendente' | 'atencao' | 'nao_se_aplica' | 'continuo';
+
+/** "Não se aplica" marcado num passo (só em passo opcional no nível do órgão que aceita). */
+export interface PeNaoSeAplica {
+  Justificativa: string;
+  MarcadoEm: string;
+  /** E-mail de quem marcou. */
+  MarcadoPor: string | null;
+}
+
+export interface PeSituacaoPassoPdtic {
+  PassoId: number;
+  Chave: string;
+  /** "2.3", pela posição na trilha do órgão. */
+  Numero: string;
+  Situacao: PeSituacaoPasso;
+  NaoSeAplica: PeNaoSeAplica | null;
+  ComentariosAbertos: number;
+  /** Avisos do guia em linguagem simples (não impedem de seguir). */
+  Avisos: string[];
+}
+
+/** GET api/planejamento/pdtic/{id}/situacao: a moldura usa para as bolinhas e o próximo passo. */
+export interface PeAndamentoPdtic {
+  /** Número do passo recomendado ("2.3"); nulo quando nada espera. */
+  ProximoPasso: string | null;
+  Passos: PeSituacaoPassoPdtic[];
+}
+
+/** PUT api/planejamento/pdtic/{id}/passos/{passoId}/nao-se-aplica (DELETE do mesmo desfaz). */
+export interface PeNaoSeAplicaForm {
+  Justificativa: string;
+}
+
+/** Uma ação do plano (seção `acoes`) marcada com o tema. */
+export interface PeAcaoDoTema {
+  RegistroId: number;
+  Codigo: string | null;
+  Descricao: string | null;
+  /** Rótulo da situação da ação, pronto para exibir. */
+  Situacao: string | null;
+}
+
+/** Um dos três temas do decreto (art. 12, § 2º, V, VI e IX) no passo de conferência. */
+export interface PeTemaDoPdtic {
+  /** Valor da opção no campo tema das ações (seguranca, transformacao_digital, governanca_dados). */
+  Valor: string;
+  Rotulo: string;
+  Inciso: 'V' | 'VI' | 'IX';
+  Acoes: PeAcaoDoTema[];
+  /** Justificativa do tema sem ação (gravada pela seção formulário `temas_sem_acao`). */
+  Justificativa: string | null;
+}
+
+/** GET api/planejamento/pdtic/{id}/temas. */
+export interface PeTemasDoPdtic {
+  Temas: PeTemaDoPdtic[];
+}
+
+/** Item de GET api/planejamento/pdtic/{id}/ia/pgia: o inventário do órgão no PGIA (só leitura). */
+export interface PeSistemaIaPgia {
+  Id: number;
+  Nome: string;
+  Finalidade: string | null;
+  /** Classificação de risco do Decreto nº 48.901/2026 (Risco Excessivo, Alto Risco, Risco Moderado, Baixo Risco). */
+  Classificacao: string | null;
+  Base: string | null;
+  Situacao: string | null;
+}
+
+/** Resposta a um comentário (segundo nível). */
+export interface PeRespostaComentario {
+  Id: number;
+  Texto: string;
+  AutorNome: string | null;
+  AutorEmail: string | null;
+  CriadoEm: string;
+}
+
+/** Comentário de um passo (GET pdtic/{id}/comentarios?passoId=: só os de primeiro nível no topo). */
+export interface PeComentario {
+  Id: number;
+  PassoId: number;
+  Texto: string;
+  AutorNome: string | null;
+  AutorEmail: string | null;
+  CriadoEm: string;
+  ResolvidoEm: string | null;
+  ResolvidoPor: string | null;
+  Respostas: PeRespostaComentario[];
+}
+
+/** POST api/planejamento/pdtic/{id}/comentarios: `PaiId` nulo é comentário novo; com ele, resposta. Texto até 2000. */
+export interface PeComentarioForm {
+  PassoId: number;
+  PaiId: number | null;
+  Texto: string;
+}
+
+/**
+ * Texto rico: o valor de um campo `texto_rico` em `Dados` é o JSON do TipTap
+ * (`{ "type": "doc", "content": [...] }`). O back-end valida contra uma lista
+ * fechada: nós doc, paragraph, heading (level 3 ou 4), bulletList, orderedList,
+ * listItem, table, tableRow, tableHeader, tableCell, image (src
+ * `api/planejamento/arquivos/{id}`), hardBreak e text; marcas bold, italic,
+ * underline e link (href http ou https).
+ */
+export interface PeNoTextoRico {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: PeNoTextoRico[];
+  text?: string;
+  marks?: PeMarcaTextoRico[];
+}
+
+export interface PeMarcaTextoRico {
+  type: string;
+  attrs?: Record<string, unknown>;
+}
+
+/** O documento de um campo de texto rico. */
+export interface PeDocTextoRico extends PeNoTextoRico {
+  type: 'doc';
+  content: PeNoTextoRico[];
+}

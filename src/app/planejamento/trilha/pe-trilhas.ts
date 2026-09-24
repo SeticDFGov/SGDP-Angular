@@ -16,6 +16,7 @@
  */
 import { PePassoTrilha, PeTrilhaOrgao } from '../../../api/planejamento/interface';
 import { aparenciaEtapa } from '../shared/pe-modelo-rotulos';
+import { TIPOS_PASSO_COM_TELA } from '../shared/pe-pdtic-rotulos';
 
 /** Trilha efetiva (o admin do SGDP escolhe qual quer ver; os papéis globais podem ver a de um órgão). */
 export type PerfilTrilhaPe = 'admin' | 'sgdi' | 'cgtic' | 'orgao';
@@ -67,13 +68,12 @@ export interface PassoNumeradoPe extends PassoTrilhaPe {
   numero: string;
   etapa: number;
   indice: number;
-  /** A tela do passo ainda não existe: abre a tela "em construção". */
-  emConstrucao: boolean;
   /**
-   * Passo de dados do órgão: por enquanto a tela mostra só a prévia das seções e
-   * dos campos que ele vai pedir (o preenchimento chega numa próxima entrega).
+   * A tela do passo ainda não existe: tela central na "em construção"; passo do
+   * órgão de um tipo que ganha tela nas próximas entregas (documento, fluxo,
+   * aprovação, envio, deliberação, publicação e monitoramento).
    */
-  previa: boolean;
+  emConstrucao: boolean;
 }
 
 export const BASE_PE = '/planejamento';
@@ -96,7 +96,9 @@ export const ROTAS_PRONTAS: ReadonlySet<string> = new Set([
   `${BASE_PE}/referenciais/diretrizes`,
   `${BASE_PE}/cgtic/recebidos`,
   `${BASE_PE}/cgtic/deliberacao`,
-  `${BASE_PE}/cgtic/historico`
+  `${BASE_PE}/cgtic/historico`,
+  `${BASE_PE}/comentarios`,
+  `${BASE_PE}/consolidado`
 ]);
 
 /**
@@ -123,9 +125,6 @@ export const ATALHOS_REFERENCIAIS: { rota: string; titulo: string; texto: string
   }
 ];
 
-/** Tipos de passo do órgão que já têm tela (a prévia dos campos, nos passos de dados). */
-const TIPOS_COM_PREVIA: ReadonlySet<string> = new Set(['dados']);
-
 /**
  * Telas centrais (administrador, SGDI e CGTIC) que ainda não existem: caminho sob
  * /planejamento e título da aba do navegador. Cada entrega troca o componente da
@@ -135,10 +134,8 @@ export const TELAS_CENTRAIS_EM_CONSTRUCAO: Readonly<Record<string, string>> = {
   'modelo/documento': 'Modelo do documento',
   'modelo/fluxos': 'Fluxos-modelo',
   'orgaos': 'Página do órgão',
-  'comentarios': 'Comentários nos passos',
   'painel': 'Painel e conformidade',
-  'inadimplencia': 'Notificações e inadimplências',
-  'consolidado': 'Planilhas consolidadas'
+  'inadimplencia': 'Notificações e inadimplências'
 };
 
 export const ROTULOS_PERFIL_TRILHA_PE: Record<PerfilTrilhaPe, string> = {
@@ -323,7 +320,7 @@ const TRILHA_SGDI: TrilhaPe = {
         {
           titulo: 'Comente os passos do órgão',
           rota: tela('comentarios'),
-          oQueFazer: 'Comente um passo do PDTIC do órgão. A equipe do órgão responde e marca o comentário como resolvido.',
+          oQueFazer: 'Escolha o órgão, abra a trilha dele e comente um passo do PDTIC. A equipe do órgão responde e marca o comentário como resolvido.',
           baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
         }
       ]
@@ -485,8 +482,7 @@ export function passosNumerados(trilha: TrilhaPe): PassoNumeradoPe[] {
         numero: doOrgao?.Numero || `${e + 1}.${p + 1}`,
         etapa: e,
         indice: passos.length,
-        emConstrucao: doOrgao ? !TIPOS_COM_PREVIA.has(doOrgao.Tipo) : !ROTAS_PRONTAS.has(passo.rota),
-        previa: !!doOrgao && TIPOS_COM_PREVIA.has(doOrgao.Tipo)
+        emConstrucao: doOrgao ? !TIPOS_PASSO_COM_TELA.has(doOrgao.Tipo) : !ROTAS_PRONTAS.has(passo.rota)
       });
     }));
   return passos;

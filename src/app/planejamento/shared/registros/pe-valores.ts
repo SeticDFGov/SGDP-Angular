@@ -15,6 +15,7 @@ import {
   PeVinculo
 } from '../../../../api/planejamento/interface';
 import { juntar } from '../pe-modelo-rotulos';
+import { MAX_CARACTERES_DOCUMENTO, docParaEnvio, docVazio, normalizarDocumento, textoPlano } from '../texto-rico/pe-texto-rico-doc';
 
 /** Tipos digitados como número (texto na tela, número no envio). */
 const NUMERICOS: ReadonlySet<string> = new Set(['numero', 'moeda', 'percentual']);
@@ -40,12 +41,9 @@ export function ehLigacao(tipo: PeTipoCampo | string): boolean {
   return tipo === 'ligacao_secao' || tipo === 'ligacao_catalogo';
 }
 
-/**
- * Campos que a tela não edita: o calculado (o servidor calcula ao gravar) e o
- * texto rico (o editor chega na E4; o valor guardado volta como veio).
- */
+/** Campo que a tela não edita: o calculado (o servidor calcula ao gravar). */
 export function ehSomenteLeitura(tipo: PeTipoCampo | string): boolean {
-  return tipo === 'calculado' || tipo === 'texto_rico';
+  return tipo === 'calculado';
 }
 
 function pad(n: number): string {
@@ -200,7 +198,7 @@ export function textoBruto(campo: PeCampoRegistro, valor: unknown): string {
     case 'lista_multipla':
       return Array.isArray(valor) ? juntar(valor.map(v => rotuloOpcao(campo, v))) : rotuloOpcao(campo, valor);
     case 'arquivo': return ehArquivoRef(valor) ? valor.Nome : '-';
-    case 'texto_rico': return 'Texto com formatação';
+    case 'texto_rico': return textoPlano(valor) || '-';
     default: return typeof valor === 'string' ? valor : String(valor);
   }
 }
@@ -309,11 +307,13 @@ export function dicaDoCampo(campo: PeCampoRegistro): string {
 export function campoVazio(campo: PeCampoRegistro, valor: unknown, vinculos: PeVinculo[] | undefined): boolean {
   if (ehLigacao(campo.Tipo)) return !(vinculos?.length);
   if (campo.Tipo === 'arquivo') return !ehArquivoRef(valor);
+  if (campo.Tipo === 'texto_rico') return docVazio(normalizarDocumento(valor));
   return vazio(valor);
 }
 
 function mensagemObrigatorio(campo: PeCampoRegistro): string {
   switch (campo.Tipo) {
+    case 'texto_rico': return 'Escreva o texto.';
     case 'lista': return 'Escolha uma opção.';
     case 'lista_multipla': return 'Marque ao menos uma opção.';
     case 'sim_nao': return 'Responda sim ou não.';
@@ -376,6 +376,10 @@ export function erroDoCampo(campo: PeCampoRegistro, valor: unknown, vinculos?: P
     }
     case 'data':
       return dataValida(String(valor)) ? null : 'Informe uma data válida (dia, mês e ano).';
+    case 'texto_rico':
+      return JSON.stringify(docParaEnvio(valor)).length > MAX_CARACTERES_DOCUMENTO
+        ? 'O texto ficou grande demais para guardar. Tire uma parte dele (ou divida em mais de um registro).'
+        : null;
     default:
       return null;
   }
@@ -406,6 +410,8 @@ export function estadoInicial(secao: PeSecaoDoDono, registro: PeRegistro | null)
       valores[campo.Chave] = Array.isArray(bruto) ? bruto.map(String) : (vazio(bruto) ? [] : [String(bruto)]);
     } else if (campo.Tipo === 'arquivo') {
       valores[campo.Chave] = ehArquivoRef(bruto) ? { ArquivoId: bruto.ArquivoId, Nome: bruto.Nome } : null;
+    } else if (campo.Tipo === 'texto_rico') {
+      valores[campo.Chave] = normalizarDocumento(bruto);
     } else if (ehSomenteLeitura(campo.Tipo)) {
       valores[campo.Chave] = bruto ?? null;
     } else {
@@ -439,9 +445,10 @@ function valorParaEnvio(campo: PeCampoRegistro, valor: unknown): unknown {
 /**
  * Corpo do POST e do PUT: os campos visíveis da seção, com vazio como null.
  * Calculado não vai (o servidor calcula); ligações vão em `Vinculos` (lista vazia
- * tira as ligações do campo); texto rico volta como veio (o editor chega na E4).
+ * tira as ligações do campo); texto rico vai como o JSON do TipTap, só com a
+ * lista fechada de nós e marcas (vazio vira null).
  */
-export function montarForm(secao: PeSecaoDoDono, estado: EstadoRegistro, original: PeRegistro | null): PeRegistroForm {
+export function montarForm(secao: PeSecaoDoDono, estado: EstadoRegistro, _original: PeRegistro | null): PeRegistroForm {
   const Dados: Record<string, unknown> = {};
   const Vinculos: Record<string, number[]> = {};
   for (const campo of secao.Campos) {
@@ -449,7 +456,7 @@ export function montarForm(secao: PeSecaoDoDono, estado: EstadoRegistro, origina
     if (ehLigacao(campo.Tipo)) {
       Vinculos[chave] = (estado.vinculos[chave] ?? []).map(v => v.RegistroId);
     } else if (campo.Tipo === 'texto_rico') {
-      Dados[chave] = original?.Dados?.[chave] ?? null;
+      Dados[chave] = docParaEnvio(estado.valores[chave]);
     } else if (campo.Tipo !== 'calculado') {
       Dados[chave] = valorParaEnvio(campo, estado.valores[chave]);
     }

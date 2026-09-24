@@ -35,7 +35,11 @@ const confirmarSaida: CanDeactivateFn<ComMudancasPendentes> = tela => !tela?.pod
  * - `modelo/niveis`, `modelo/estrutura`, `modelo/criterios` e `orgaos/niveis`:
  *   o modelo configurável (administrador do módulo e admin do SGDP).
  * - `pdtic/:passo`: os passos do órgão pela chave no modelo (uma rota com
- *   parâmetro), com a prévia dos campos dos passos de dados.
+ *   parâmetro): as seções do PDTIC com os componentes genéricos de registros, o
+ *   "não se aplica", os avisos e os comentários (E4).
+ * - `consolidado` e `comentarios`: as planilhas consolidadas de todos os órgãos e
+ *   a lista dos PDTICs para abrir a trilha de um órgão e comentar (E4; papéis
+ *   globais e admin do SGDP).
  * - `referenciais/principios`, `referenciais/diretrizes` (mesma tela, pela
  *   `data.referencial`) e `referenciais/petic`: os referenciais do DF (E3), para
  *   editar (administrador do módulo e admin do SGDP) ou ler (os demais papéis).
@@ -88,6 +92,20 @@ export const planejamento_routes: Routes = [
         path: 'pdtic/:passo',
         loadComponent: () => import('./pdtic/pe-passo-orgao.component').then(m => m.PePassoOrgaoComponent),
         title: tituloDoPassoDoOrgao,
+        canDeactivate: [confirmarSaida],
+        data: { prerender: false }
+      },
+      // E4: planilhas consolidadas e a lista dos PDTICs dos órgãos (papéis globais e admin do SGDP)
+      {
+        path: 'consolidado',
+        loadComponent: () => import('./consolidado/pe-consolidado.component').then(m => m.PeConsolidadoComponent),
+        title: 'Planilhas consolidadas',
+        data: { prerender: false }
+      },
+      {
+        path: 'comentarios',
+        loadComponent: () => import('./pdtic/pe-pdtics-orgaos.component').then(m => m.PePdticsOrgaosComponent),
+        title: 'PDTICs dos órgãos',
         data: { prerender: false }
       },
       // E3: referenciais do DF (catálogo do DF e PETIC-DF), com os componentes genéricos de registros

@@ -59,7 +59,7 @@
       </div>
       <p *ngIf="!carregandoFila && !erroFila && aguardando.length === 0" class="text-sm text-gray-600">Nada aguardando o comitê agora.</p>
 
-      <div *ngIf="aguardando.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+      <div *ngIf="aguardando.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: enviados ao comitê aguardando a decisão">
         <table class="w-full text-sm">
           <caption class="sr-only">Enviados ao comitê que aguardam a decisão, do mais antigo para o mais novo</caption>
           <thead>
@@ -243,7 +243,7 @@
         <button type="button" (click)="carregarHistorico(itens.length ? pagina + 1 : 1)" class="font-semibold underline">Tentar de novo</button>
       </div>
 
-      <div *ngIf="itens.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+      <div *ngIf="itens.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: deliberações do CGTIC">
         <table class="w-full text-sm">
           <caption class="sr-only">Deliberações do CGTIC: as que aguardam a decisão primeiro, depois as decididas, da mais nova para a mais antiga</caption>
           <thead>

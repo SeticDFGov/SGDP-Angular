@@ -1,0 +1,100 @@
+<section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="idBase + '-titulo'">
+  <h2 [id]="idBase + '-titulo'" tabindex="-1" class="text-base font-semibold text-gray-900">Comentários deste passo</h2>
+  <p class="text-sm text-gray-600 leading-relaxed mt-0.5">
+    A SGDI comenta os passos do PDTIC. A equipe do órgão responde e marca como resolvido. Enquanto houver comentário aberto, o
+    passo pede atenção na trilha.
+  </p>
+
+  <p *ngIf="carregando && comentarios.length === 0" role="status" class="text-sm text-gray-600 mt-3">Carregando os comentários...</p>
+  <div *ngIf="erroCarga" role="alert" class="text-sm text-red-700 mt-3">
+    {{ erroCarga }}
+    <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+  </div>
+
+  <ng-container *ngIf="!erroCarga && !(carregando && comentarios.length === 0)">
+    <p class="text-sm text-gray-700 mt-3" aria-live="polite">{{ resumo }}</p>
+
+    <!-- Abertos -->
+    <ul *ngIf="abertos.length > 0" class="mt-3 space-y-4">
+      <li *ngFor="let c of abertos; trackBy: porId" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+        <p class="text-xs text-gray-700"><strong class="text-gray-900">{{ autor(c.AutorNome, c.AutorEmail) }}</strong> · {{ quando(c.CriadoEm) }}</p>
+        <p class="text-sm text-gray-900 mt-1 whitespace-pre-line break-words">{{ c.Texto }}</p>
+
+        <ul *ngIf="respostas(c).length > 0" class="mt-3 space-y-2 border-l-4 border-gray-200 pl-3" [attr.aria-label]="'Respostas ao comentário de ' + autor(c.AutorNome, c.AutorEmail)">
+          <li *ngFor="let r of respostas(c); trackBy: porId">
+            <p class="text-xs text-gray-700"><strong class="text-gray-900">{{ autor(r.AutorNome, r.AutorEmail) }}</strong> · {{ quando(r.CriadoEm) }}</p>
+            <p class="text-sm text-gray-900 whitespace-pre-line break-words">{{ r.Texto }}</p>
+          </li>
+        </ul>
+
+        <!-- Resposta (equipe do órgão) -->
+        <form *ngIf="respondendo === c.Id" (ngSubmit)="responder(c)" class="mt-3 space-y-2">
+          <label [for]="idBase + '-resposta-' + c.Id" class="block text-sm font-semibold text-gray-800">Sua resposta</label>
+          <textarea [id]="idBase + '-resposta-' + c.Id" name="pe-coment-resposta" rows="3" [ngModel]="resposta" (ngModelChange)="resposta = $event"
+                    [maxlength]="maxTexto" aria-required="true" [attr.aria-invalid]="erroResposta ? true : null"
+                    [attr.aria-describedby]="erroResposta ? idBase + '-resposta-erro' : null"
+                    class="w-full px-3 py-2 border rounded-md text-sm bg-white resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [ngClass]="erroResposta ? 'border-red-500' : 'border-gray-300'"></textarea>
+          <p *ngIf="erroResposta" [id]="idBase + '-resposta-erro'" class="text-xs text-red-600">{{ erroResposta }}</p>
+          <div class="flex flex-wrap gap-2">
+            <button type="submit" [disabled]="enviandoResposta"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+              <span class="material-icons text-base" aria-hidden="true">reply</span> {{ enviandoResposta ? 'Enviando...' : 'Enviar a resposta' }}
+            </button>
+            <button type="button" (click)="cancelarResposta(c)" [disabled]="enviandoResposta"
+                    class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+          </div>
+        </form>
+
+        <div *ngIf="respondendo !== c.Id && (podeResponder || podeResolver(c))" class="flex flex-wrap gap-2 mt-3">
+          <button *ngIf="podeResponder" type="button" [id]="idBase + '-responder-' + c.Id" (click)="abrirResposta(c)"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-base" aria-hidden="true">reply</span> Responder
+          </button>
+          <button *ngIf="podeResolver(c)" type="button" (click)="resolver(c)" [disabled]="resolvendo !== null"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-green-200 bg-white text-sm font-semibold text-green-800 hover:bg-green-50 disabled:opacity-50">
+            <span class="material-icons text-base" aria-hidden="true">check_circle</span> {{ resolvendo === c.Id ? 'Marcando...' : 'Marcar como resolvido' }}
+          </button>
+        </div>
+      </li>
+    </ul>
+
+    <!-- Resolvidos: abre e fecha -->
+    <details *ngIf="resolvidos.length > 0" class="mt-4">
+      <summary class="cursor-pointer text-sm font-semibold text-gray-700">Comentários resolvidos ({{ resolvidos.length }})</summary>
+      <ul class="mt-2 space-y-4">
+        <li *ngFor="let c of resolvidos; trackBy: porId" class="rounded-lg border border-gray-200 px-4 py-3">
+          <p class="text-xs text-gray-700"><strong class="text-gray-900">{{ autor(c.AutorNome, c.AutorEmail) }}</strong> · {{ quando(c.CriadoEm) }}</p>
+          <p class="text-sm text-gray-900 mt-1 whitespace-pre-line break-words">{{ c.Texto }}</p>
+          <ul *ngIf="respostas(c).length > 0" class="mt-2 space-y-2 border-l-4 border-gray-200 pl-3">
+            <li *ngFor="let r of respostas(c); trackBy: porId">
+              <p class="text-xs text-gray-700"><strong class="text-gray-900">{{ autor(r.AutorNome, r.AutorEmail) }}</strong> · {{ quando(r.CriadoEm) }}</p>
+              <p class="text-sm text-gray-900 whitespace-pre-line break-words">{{ r.Texto }}</p>
+            </li>
+          </ul>
+          <p class="text-xs text-green-800 mt-2 inline-flex items-center gap-1">
+            <span class="material-icons text-sm" aria-hidden="true">check_circle</span> Resolvido em {{ resolvidoEm(c) }}
+          </p>
+        </li>
+      </ul>
+    </details>
+
+    <!-- Comentário novo (SGDI) -->
+    <form *ngIf="podeComentar" (ngSubmit)="comentar()" class="mt-5 space-y-2 border-t border-gray-100 pt-4">
+      <label [for]="idBase + '-novo'" class="block text-sm font-semibold text-gray-800">Novo comentário para a equipe do órgão</label>
+      <p [id]="idBase + '-novo-ajuda'" class="text-xs text-gray-500 italic">Diga o que precisa ser visto ou ajustado neste passo. Até {{ maxTexto }} caracteres.</p>
+      <textarea [id]="idBase + '-novo'" name="pe-coment-novo" rows="3" [ngModel]="novo" (ngModelChange)="novo = $event" [maxlength]="maxTexto"
+                aria-required="true" [attr.aria-invalid]="erroNovo ? true : null"
+                [attr.aria-describedby]="erroNovo ? idBase + '-novo-ajuda ' + idBase + '-novo-erro' : idBase + '-novo-ajuda'"
+                class="w-full px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [ngClass]="erroNovo ? 'border-red-500' : 'border-gray-300'"></textarea>
+      <p *ngIf="erroNovo" [id]="idBase + '-novo-erro'" class="text-xs text-red-600">{{ erroNovo }}</p>
+      <div class="flex justify-end">
+        <button type="submit" [disabled]="enviandoNovo"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+          <span class="material-icons text-base" aria-hidden="true">add_comment</span> {{ enviandoNovo ? 'Enviando...' : 'Comentar' }}
+        </button>
+      </div>
+    </form>
+  </ng-container>
+</section>

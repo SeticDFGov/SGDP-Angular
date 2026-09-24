@@ -22,7 +22,9 @@
     Nenhum registro ainda.<ng-container *ngIf="dados.PodeEditar"> Use o botão "Incluir {{ rotuloItem }}".</ng-container>
   </p>
 
-  <div *ngIf="registros.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+  <!-- Região com rolagem lateral: alcançável e rolável pelo teclado (tabindex), com o nome da tabela -->
+  <div *ngIf="registros.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region"
+       [attr.aria-label]="'Tabela: ' + dados.Secao.Titulo">
     <table class="w-full text-sm">
       <caption class="sr-only">{{ dados.Secao.Titulo }}. {{ contagem }}</caption>
       <thead>

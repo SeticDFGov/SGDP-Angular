@@ -4,18 +4,20 @@ import { PeArquivoRef, PeCampoRegistro, PeRegistro, PeSecaoDoDono, PeVinculo } f
 import { NotificationService } from '../../../core/services/notification.service';
 import { PeRegistrosService } from '../../services/pe-registros.service';
 import { mensagemErroDownload, salvarResposta } from '../pe-download';
+import { PeTextoRicoLeituraDirective } from '../texto-rico/pe-texto-rico-leitura.directive';
 import { ehArquivoRef, ehLigacao, textoDataHora, textoDoValor, textoVinculo } from './pe-valores';
 
 /**
  * Um registro só para ler: cada campo visível com o rótulo e o valor pronto
  * (o texto que o servidor mandou em `Rotulos`, ou o valor formatado), as
- * ligações com o código e o resumo do destino, o arquivo com "Baixar" e quem
- * incluiu e alterou. Serve à consulta (quem não edita) e aos registros do sistema.
+ * ligações com o código e o resumo do destino, o arquivo com "Baixar", o texto
+ * rico montado sem o editor e quem incluiu e alterou. Serve à consulta (quem
+ * não edita) e aos registros do sistema.
  */
 @Component({
   selector: 'app-pe-registro-leitura',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PeTextoRicoLeituraDirective],
   templateUrl: './pe-registro-leitura.component.html'
 })
 export class PeRegistroLeituraComponent {
@@ -47,6 +49,10 @@ export class PeRegistroLeituraComponent {
     if (campo.Tipo !== 'arquivo') return null;
     const valor = this.registro.Dados?.[campo.Chave];
     return ehArquivoRef(valor) ? valor : null;
+  }
+
+  valor(campo: PeCampoRegistro): unknown {
+    return this.registro.Dados?.[campo.Chave] ?? null;
   }
 
   get auditoria(): string {

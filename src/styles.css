@@ -3,6 +3,10 @@
 /* O gerador dos temas cita classes nos textos dele: não é uso em tela */
 @source not "../scripts";
 
+/* "table" é nome de nó do texto rico (Governança Estratégica) e de elemento no CSS do
+   editor, não classe de tela: sem isto, a palavra viraria uma classe no CSS inicial */
+@source not inline("table");
+
 /*
  * Telas do módulo PGIA, da transparência pública e do modo local de testes:
  * o texto de exemplo dos campos (placeholder) segue o mesmo tom dos textos de

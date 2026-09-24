@@ -4,11 +4,19 @@
     <!-- O passo -->
     <div class="bg-white rounded-lg shadow p-6">
       <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">
-        Passo {{ p.Numero }}<ng-container *ngIf="siglaOrgao"> · PDTIC do {{ siglaOrgao }}</ng-container>
+        Passo {{ p.Numero }}<ng-container *ngIf="siglaOrgao"> · PDTIC · {{ siglaOrgao }}</ng-container>
       </p>
       <h2 class="text-xl font-bold text-gray-900 mt-0.5">{{ p.Titulo }}</h2>
 
       <div class="flex flex-wrap gap-2 mt-3">
+        <span *ngIf="status as s" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
+              [ngClass]="s.estado === 'feito' ? 'bg-green-50 text-green-800 border-green-200'
+                : s.estado === 'atencao' ? 'bg-amber-50 text-amber-900 border-amber-200'
+                : s.estado === 'pendente' ? 'bg-blue-50 text-blue-800 border-blue-200'
+                : 'bg-gray-50 text-gray-600 border-gray-200'">
+          <span class="material-icons text-sm" aria-hidden="true">{{ s.estado === 'feito' ? 'check_circle' : s.estado === 'atencao' ? 'notifications_active' : s.estado === 'nao_se_aplica' ? 'do_not_disturb_on' : 'schedule' }}</span>
+          <span><span class="sr-only">Situação do passo: </span>{{ s.texto }}</span>
+        </span>
         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
               [ngClass]="p.Situacao === 'obrigatorio' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
           {{ p.Situacao === 'obrigatorio' ? 'Obrigatório' : 'Opcional' }} no nível {{ nomeNivel }}
@@ -21,90 +29,136 @@
         </span>
       </div>
 
-      <div class="mt-4 space-y-2 text-sm leading-relaxed">
-        <p class="text-gray-800"><strong class="text-gray-900">O que você vai fazer aqui:</strong> {{ p.OQueFazer }}</p>
-        <p *ngIf="p.BaseLegal" class="text-gray-600">Base legal: {{ p.BaseLegal }}</p>
-        <p *ngIf="guia" class="text-gray-600">{{ guia }}</p>
-        <p *ngIf="p.Travado" class="text-gray-600">
-          Este passo é um dos nove conteúdos mínimos do PDTIC ({{ citacaoTravado }}): aparece em todos os níveis e não pode ser
-          marcado como "não se aplica".
-        </p>
-        <p *ngIf="aceitaNaoSeAplica" class="text-gray-600">
-          Este passo é opcional no nível do órgão. Quando o preenchimento chegar, dá para marcar "não se aplica", com a justificativa.
-        </p>
-      </div>
-
-      <!-- Passo de dados: prévia do que vai ser pedido -->
-      <div *ngIf="tipoComPrevia" class="mt-5 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3">
-        <span class="material-icons text-purple-700" aria-hidden="true">visibility</span>
-        <div class="text-sm text-gray-800 leading-relaxed">
-          <p class="font-semibold text-purple-800">Por enquanto, esta tela só mostra o que o passo vai pedir.</p>
-          <p class="mt-0.5">O preenchimento chega numa próxima etapa do desenvolvimento do módulo. Abaixo estão as seções e os campos
-            deste passo no nível {{ nomeNivel }}. Os campos marcados como "Obrigatório" vão precisar de resposta.</p>
-        </div>
-      </div>
-
-      <!-- Outros tipos de passo: em construção -->
-      <div *ngIf="!tipoComPrevia" class="mt-5 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3">
-        <span class="material-icons text-purple-700" aria-hidden="true">construction</span>
-        <div class="text-sm text-gray-800 leading-relaxed">
-          <p class="font-semibold text-purple-800">Esta tela está em construção.</p>
-          <p class="mt-0.5">É um passo do tipo "{{ rotuloTipo }}", que ganha tela numa próxima etapa do desenvolvimento do módulo.
-            Por enquanto, use a trilha para conhecer o caminho completo: os botões "Passo anterior" e "Próximo passo", no fim da
-            página, seguem a ordem das etapas.</p>
-        </div>
-      </div>
-
-      <a *ngIf="!tipoComPrevia" [routerLink]="base" class="inline-flex items-center gap-1.5 mt-5 text-sm font-semibold text-purple-700 hover:underline">
-        <span class="material-icons text-base" aria-hidden="true">dashboard</span> Voltar à visão geral
-      </a>
-    </div>
-
-    <!-- Seções e campos do passo de dados (só para ler) -->
-    <ng-container *ngIf="tipoComPrevia">
-      <p *ngIf="p.Secoes.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">
-        Este passo ainda não tem seções ligadas no nível {{ nomeNivel }}. Se você esperava encontrar campos aqui, fale com o
-        administrador do módulo.
+      <p *ngIf="p.Travado" class="mt-4 text-sm text-gray-600 leading-relaxed">
+        Este passo é um dos nove conteúdos mínimos do PDTIC ({{ citacaoTravado }}): aparece em todos os níveis e não pode ser
+        marcado como "não se aplica".
+      </p>
+      <p *ngIf="temTela && pdtic && podeEditar" class="mt-3 text-sm text-gray-600 leading-relaxed">
+        Preencha as seções abaixo e salve cada uma. O passo fica feito quando as seções obrigatórias estão preenchidas; os campos
+        com asterisco são obrigatórios.
       </p>
 
-      <section *ngFor="let s of p.Secoes; trackBy: porId" class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="'pe-secao-' + s.Id">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <h3 [id]="'pe-secao-' + s.Id" class="text-base font-semibold text-gray-900">{{ s.Titulo }}</h3>
-          <div class="flex flex-wrap gap-1.5">
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap bg-gray-50 text-gray-700 border-gray-200">
-              <span class="material-icons text-sm" aria-hidden="true">{{ s.Tipo === 'tabela' ? 'table_rows' : 'description' }}</span>
-              {{ s.Tipo === 'tabela' ? 'Tabela: vários registros' : 'Formulário: um registro' }}
-            </span>
+      <!-- Outros tipos de passo: em construção -->
+      <ng-container *ngIf="!temTela">
+        <div class="mt-5 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3">
+          <span class="material-icons text-purple-700" aria-hidden="true">construction</span>
+          <div class="text-sm text-gray-800 leading-relaxed">
+            <p class="font-semibold text-purple-800">Esta tela está em construção.</p>
+            <p class="mt-0.5">É um passo do tipo "{{ rotuloTipo }}", que ganha tela numa próxima etapa do desenvolvimento do módulo.
+              Por enquanto, use a trilha para conhecer o caminho completo: os botões "Passo anterior" e "Próximo passo", no fim da
+              página, seguem a ordem das etapas.</p>
+          </div>
+        </div>
+        <a [routerLink]="base" class="inline-flex items-center gap-1.5 mt-5 text-sm font-semibold text-purple-700 hover:underline">
+          <span class="material-icons text-base" aria-hidden="true">dashboard</span> Voltar à visão geral
+        </a>
+      </ng-container>
+    </div>
+
+    <!-- O PDTIC do órgão: carregando, com erro ou ainda não começado -->
+    <p *ngIf="cargaPdtic === 'carregando'" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o PDTIC do órgão...</p>
+
+    <div *ngIf="cargaPdtic === 'erro'" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      {{ erroPdtic }}
+      <button type="button" (click)="tentarPdticDeNovo()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+
+    <ng-container *ngIf="cargaPdtic === 'sem-pdtic'">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3">
+          <span class="material-icons text-purple-700" aria-hidden="true">flag</span>
+          <div class="text-sm text-gray-800 leading-relaxed">
+            <p class="font-semibold text-purple-800">O PDTIC do órgão {{ siglaOrgao }} ainda não foi começado.</p>
+            <p *ngIf="podeAbrirPdtic" class="mt-0.5">Comece o PDTIC para preencher este passo. O sistema abre a versão 1.0, em elaboração.</p>
+            <p *ngIf="!podeAbrirPdtic" class="mt-0.5">{{ quemAbre }}</p>
+            <button *ngIf="podeAbrirPdtic" type="button" (click)="abrirPdtic()" [disabled]="abrindo"
+                    class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+              <span class="material-icons text-base" aria-hidden="true">play_arrow</span> {{ abrindo ? 'Começando...' : 'Começar o PDTIC' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prévia do que o passo pede, enquanto o PDTIC não começa -->
+      <ng-container *ngIf="temTela">
+        <p *ngIf="p.Secoes.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+          Este passo ainda não tem seções ligadas no nível {{ nomeNivel }}. Se você esperava encontrar campos aqui, fale com o
+          administrador do módulo.
+        </p>
+        <section *ngFor="let s of p.Secoes; trackBy: porId" class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="'pe-previa-' + s.Id">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <h3 [id]="'pe-previa-' + s.Id" class="text-base font-semibold text-gray-900">{{ s.Titulo }}</h3>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
                   [ngClass]="s.Situacao === 'obrigatorio' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
               {{ s.Situacao === 'obrigatorio' ? 'Seção obrigatória' : 'Seção opcional' }}
             </span>
           </div>
+          <p *ngIf="s.Ajuda" class="text-sm text-gray-600 mt-1 leading-relaxed">{{ s.Ajuda }}</p>
+          <p class="text-xs text-gray-600 mt-3">
+            {{ s.Campos.length === 1 ? '1 campo' : s.Campos.length + ' campos' }},
+            {{ obrigatorios(s) === 1 ? '1 obrigatório' : obrigatorios(s) + ' obrigatórios' }}
+          </p>
+          <ul *ngIf="s.Campos.length > 0" class="mt-2 divide-y divide-gray-100 border border-gray-200 rounded-lg">
+            <li *ngFor="let c of s.Campos; trackBy: porId" class="px-4 py-3 flex flex-col md:flex-row items-start gap-1 md:gap-4">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-900">{{ c.Rotulo }}</p>
+                <p class="text-xs text-gray-600 mt-0.5">{{ descricao(c, s) }}</p>
+              </div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start"
+                    [ngClass]="c.Obrigatorio ? 'bg-red-50 text-red-800 border-red-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
+                {{ c.Obrigatorio ? 'Obrigatório' : 'Opcional' }}
+              </span>
+            </li>
+          </ul>
+        </section>
+      </ng-container>
+    </ng-container>
+
+    <!-- Com o PDTIC aberto -->
+    <ng-container *ngIf="pdtic as pd">
+
+      <!-- Só leitura: por quê -->
+      <div *ngIf="temTela && !pd.PodeEditar" class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white shadow px-4 py-3 text-sm text-gray-700">
+        <span class="material-icons text-gray-500" aria-hidden="true">visibility</span>
+        <p class="leading-relaxed">{{ avisoLeitura }}</p>
+      </div>
+
+      <!-- Avisos do guia (não impedem de seguir) -->
+      <div *ngIf="avisos.length > 0" class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <span class="material-icons text-amber-600" aria-hidden="true">tips_and_updates</span>
+        <div class="leading-relaxed">
+          <p class="font-semibold">{{ avisos.length === 1 ? 'Aviso do Guia de PDTIC' : 'Avisos do Guia de PDTIC' }} (não impedem de seguir)</p>
+          <ul class="list-disc ml-5 mt-1 space-y-1">
+            <li *ngFor="let a of avisos">{{ a }}</li>
+          </ul>
         </div>
-        <p *ngIf="s.Ajuda" class="text-sm text-gray-600 mt-1 leading-relaxed">{{ s.Ajuda }}</p>
-        <p *ngIf="s.Tipo === 'tabela'" class="text-xs text-gray-500 italic mt-1">
-          Cada linha da tabela ganha um código<ng-container *ngIf="s.PrefixoCodigo"> ({{ s.PrefixoCodigo }}01, {{ s.PrefixoCodigo }}02...)</ng-container>,
-          que as outras seções usam para se ligar a ela.
+      </div>
+
+      <!-- Não se aplica (passo opcional no nível do órgão que aceita) -->
+      <app-pe-nao-se-aplica *ngIf="aceitaNsa" [pdticId]="pd.Id" [passoId]="p.Id" [numero]="p.Numero" [marcado]="naoSeAplica"
+                            [podeEditar]="podeEditar" (mudou)="aoMudarSituacao()"></app-pe-nao-se-aplica>
+
+      <ng-container *ngIf="temTela && fonte as f">
+        <!-- Sistemas de IA: o inventário do PGIA, só para ler -->
+        <app-pe-sistemas-ia-pgia *ngIf="passoIa" [pdticId]="pd.Id" [siglaOrgao]="siglaOrgao"></app-pe-sistemas-ia-pgia>
+
+        <!-- Conferência dos temas: as ações de cada tema do decreto -->
+        <app-pe-temas-acoes *ngIf="passoTemas" [pdticId]="pd.Id" [recarga]="recargaTemas" [passoAcoes]="passoAcoes"></app-pe-temas-acoes>
+
+        <p *ngIf="p.Secoes.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+          Este passo ainda não tem seções ligadas no nível {{ nomeNivel }}. Se você esperava encontrar campos aqui, fale com o
+          administrador do módulo.
         </p>
 
-        <p class="text-xs text-gray-600 mt-3">
-          {{ s.Campos.length === 1 ? '1 campo' : s.Campos.length + ' campos' }},
-          {{ obrigatorios(s) === 1 ? '1 obrigatório' : obrigatorios(s) + ' obrigatórios' }}
-        </p>
-        <ul *ngIf="s.Campos.length > 0" class="mt-2 divide-y divide-gray-100 border border-gray-200 rounded-lg">
-          <li *ngFor="let c of s.Campos; trackBy: porId" class="px-4 py-3 flex flex-col md:flex-row items-start gap-1 md:gap-4">
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-gray-900">{{ c.Rotulo }}</p>
-              <p class="text-xs text-gray-600 mt-0.5">{{ descricao(c, s) }}</p>
-              <p *ngIf="c.Ajuda" class="text-xs text-gray-500 italic mt-0.5">{{ c.Ajuda }}</p>
-            </div>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start"
-                  [ngClass]="c.Obrigatorio ? 'bg-red-50 text-red-800 border-red-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
-              {{ c.Obrigatorio ? 'Obrigatório' : 'Opcional' }}
-            </span>
-          </li>
-        </ul>
-      </section>
+        <!-- As seções do passo, com os componentes genéricos de registros -->
+        <app-pe-secao-registros *ngFor="let s of p.Secoes; trackBy: porId" [fonte]="f" [secaoChave]="s.Chave" [situacao]="s.Situacao"
+                                [nomePlanilha]="nomePlanilha(s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura"
+                                (mudou)="aoMudarSecao(s)" (alterado)="aoAlterar(s, $event)"></app-pe-secao-registros>
+      </ng-container>
+
+      <!-- Comentários do passo -->
+      <app-pe-comentarios-passo [pdticId]="pd.Id" [passoId]="p.Id" [podeComentar]="podeComentar" [podeResponder]="podeResponder"
+                                [email]="email" (mudou)="aoMudarSituacao()"></app-pe-comentarios-passo>
     </ng-container>
   </ng-container>
 </div>

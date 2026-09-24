@@ -52,7 +52,7 @@
         {{ podeEditar ? 'Ainda não há PETIC-DF cadastrado. Crie o primeiro rascunho.' : 'Ainda não há PETIC-DF aprovado. Quando o CGTIC aprovar a primeira versão, ela aparece aqui.' }}
       </p>
 
-      <div *ngIf="versoes.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+      <div *ngIf="versoes.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: versões do PETIC-DF">
         <table class="w-full text-sm">
           <caption class="sr-only">Versões do PETIC-DF, da mais nova para a mais antiga</caption>
           <thead>
