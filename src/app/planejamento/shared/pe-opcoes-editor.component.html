@@ -1,0 +1,80 @@
+<div class="border border-gray-200 rounded-lg">
+  <p *ngIf="linhas.length === 0" class="px-4 py-3 text-sm text-gray-600">Esta lista ainda não tem opções.</p>
+
+  <ul *ngIf="linhas.length > 0" class="divide-y divide-gray-100">
+    <li *ngFor="let l of linhas; let i = index; trackBy: porId" class="px-3 py-2.5" [ngClass]="l.ativa ? '' : 'bg-gray-50'">
+      <div class="flex flex-col md:flex-row md:items-end gap-2">
+        <div class="flex-1 min-w-0">
+          <label [for]="prefixoId + '-rotulo-' + l.opcao.Id" class="block text-xs font-semibold text-gray-700 mb-0.5">Opção {{ i + 1 }}</label>
+          <input [id]="prefixoId + '-rotulo-' + l.opcao.Id" type="text" [(ngModel)]="l.rotulo" [name]="prefixoId + '-rotulo-' + l.opcao.Id"
+                 [ngModelOptions]="{ standalone: true }" [maxlength]="maxRotulo" [disabled]="somenteLeitura || l.salvando"
+                 class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+          <p class="text-xs text-gray-500 mt-0.5">Valor gravado: <span class="font-mono">{{ l.opcao.Valor }}</span><ng-container *ngIf="l.opcao.Sistema"> · veio do guia ou do decreto</ng-container></p>
+        </div>
+        <div>
+          <label [for]="prefixoId + '-cor-' + l.opcao.Id" class="block text-xs font-semibold text-gray-700 mb-0.5">Cor</label>
+          <select [id]="prefixoId + '-cor-' + l.opcao.Id" [(ngModel)]="l.cor" [name]="prefixoId + '-cor-' + l.opcao.Id"
+                  [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura || l.salvando"
+                  class="px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+            <option value="">Sem cor</option>
+            <option *ngFor="let c of cores" [value]="c.valor">{{ c.rotulo }}</option>
+            <option *ngIf="corDesconhecida(l.opcao.Cor ?? '')" [value]="l.opcao.Cor">{{ l.opcao.Cor }}</option>
+          </select>
+        </div>
+        <label class="inline-flex items-center gap-1.5 text-sm text-gray-700 py-1.5">
+          <input type="checkbox" [(ngModel)]="l.ativa" [name]="prefixoId + '-ativa-' + l.opcao.Id" [ngModelOptions]="{ standalone: true }"
+                 [disabled]="somenteLeitura || l.salvando" class="w-4 h-4" />
+          Ativa
+        </label>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold self-start md:self-center" [ngClass]="classeCor(l.cor || null)"
+              aria-hidden="true">{{ l.rotulo || 'Opção' }}</span>
+      </div>
+
+      <div *ngIf="!somenteLeitura" class="flex flex-wrap gap-2 mt-2">
+        <ng-container *ngIf="mudouLinha(l)">
+          <button type="button" (click)="salvar(l)" [disabled]="l.salvando"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
+            <span class="material-icons text-sm" aria-hidden="true">save</span> {{ l.salvando ? 'Salvando...' : 'Salvar a opção ' + (i + 1) }}
+          </button>
+          <button type="button" (click)="desfazer(l)" [disabled]="l.salvando"
+                  class="px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            Desfazer
+          </button>
+        </ng-container>
+        <button *ngIf="!l.opcao.Sistema" type="button" (click)="apagar(l)" [disabled]="l.salvando"
+                [attr.aria-label]="'Apagar a opção ' + l.opcao.Rotulo"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 bg-white text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
+          <span class="material-icons text-sm" aria-hidden="true">delete</span> Apagar
+        </button>
+      </div>
+    </li>
+  </ul>
+
+  <!-- Nova opção -->
+  <div *ngIf="!somenteLeitura" class="border-t border-gray-100 px-3 py-3 bg-gray-50">
+    <div class="flex flex-col md:flex-row md:items-end gap-2">
+      <div class="flex-1 min-w-0">
+        <label [for]="prefixoId + '-nova'" class="block text-xs font-semibold text-gray-700 mb-0.5">Nova opção</label>
+        <input [id]="prefixoId + '-nova'" type="text" [(ngModel)]="novaRotulo" [name]="prefixoId + '-nova'" [ngModelOptions]="{ standalone: true }"
+               [maxlength]="maxRotulo" placeholder="Ex.: Em análise" (keydown.enter)="$event.preventDefault(); incluir()"
+               [attr.aria-invalid]="!!erroNova" [attr.aria-describedby]="erroNova ? prefixoId + '-nova-erro' : null"
+               class="w-full px-2 py-1.5 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+               [ngClass]="erroNova ? 'border-red-500' : 'border-gray-300'" />
+      </div>
+      <div>
+        <label [for]="prefixoId + '-nova-cor'" class="block text-xs font-semibold text-gray-700 mb-0.5">Cor</label>
+        <select [id]="prefixoId + '-nova-cor'" [(ngModel)]="novaCor" [name]="prefixoId + '-nova-cor'" [ngModelOptions]="{ standalone: true }"
+                class="px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Sem cor</option>
+          <option *ngFor="let c of cores" [value]="c.valor">{{ c.rotulo }}</option>
+        </select>
+      </div>
+      <button type="button" (click)="incluir()" [disabled]="criando"
+              class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
+        <span class="material-icons text-base" aria-hidden="true">add</span> {{ criando ? 'Incluindo...' : 'Incluir opção' }}
+      </button>
+    </div>
+    <p *ngIf="erroNova" [id]="prefixoId + '-nova-erro'" class="text-xs text-red-600 mt-1">{{ erroNova }}</p>
+    <p class="text-xs text-gray-500 italic mt-1">A opção nova vale na hora para todos os órgãos que veem este campo.</p>
+  </div>
+</div>

@@ -1,0 +1,127 @@
+<ng-container>
+
+  <!-- Textos: tamanho máximo -->
+  <div *ngIf="tipo === 'texto_curto' || tipo === 'texto_longo'">
+    <ng-container *ngTemplateOutlet="tamanhoMaximo"></ng-container>
+  </div>
+
+  <!-- Número: faixa, casas e unidade -->
+  <div *ngIf="tipo === 'numero'">
+   <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div>
+      <label [for]="prefixoId + '-min'" class="block text-sm font-semibold text-gray-800 mb-1">Menor valor</label>
+      <input [id]="prefixoId + '-min'" type="number" [(ngModel)]="config.min" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+    </div>
+    <div>
+      <label [for]="prefixoId + '-max'" class="block text-sm font-semibold text-gray-800 mb-1">Maior valor</label>
+      <input [id]="prefixoId + '-max'" type="number" [(ngModel)]="config.max" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+    </div>
+    <div>
+      <label [for]="prefixoId + '-casas'" class="block text-sm font-semibold text-gray-800 mb-1">Casas decimais</label>
+      <input [id]="prefixoId + '-casas'" type="number" min="0" max="6" [(ngModel)]="config.casas" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+    </div>
+    <div>
+      <label [for]="prefixoId + '-unidade'" class="block text-sm font-semibold text-gray-800 mb-1">Unidade</label>
+      <input [id]="prefixoId + '-unidade'" type="text" maxlength="30" [(ngModel)]="config.unidade" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+             placeholder="Ex.: horas"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+    </div>
+   </div>
+   <p class="text-xs text-gray-500 italic mt-1">Deixe em branco o que não tiver limite.</p>
+  </div>
+
+  <!-- Ligação com outra seção -->
+  <div *ngIf="tipo === 'ligacao_secao'" class="space-y-4">
+    <div>
+      <label [for]="prefixoId + '-secao'" class="block text-sm font-semibold text-gray-800 mb-1">Seção ligada <span class="text-red-600">*</span></label>
+      <select [id]="prefixoId + '-secao'" [(ngModel)]="config.secao" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+        <option [ngValue]="null" disabled>Escolha a seção</option>
+        <option *ngFor="let s of secoes" [ngValue]="s.chave">{{ s.titulo }}</option>
+      </select>
+      <p class="text-xs text-gray-500 italic mt-1">O órgão escolhe registros dessa seção do mesmo PDTIC (por exemplo, a meta ligada às necessidades).</p>
+    </div>
+    <ng-container *ngTemplateOutlet="multipla"></ng-container>
+  </div>
+
+  <!-- Ligação com um catálogo -->
+  <div *ngIf="tipo === 'ligacao_catalogo'" class="space-y-4">
+    <div>
+      <label [for]="prefixoId + '-catalogo'" class="block text-sm font-semibold text-gray-800 mb-1">Catálogo</label>
+      <select [id]="prefixoId + '-catalogo'" [(ngModel)]="config.catalogo" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+        <option *ngFor="let c of catalogos" [ngValue]="c.valor">{{ c.rotulo }}</option>
+      </select>
+    </div>
+    <ng-container *ngTemplateOutlet="multipla"></ng-container>
+  </div>
+
+  <!-- Arquivo -->
+  <div *ngIf="tipo === 'arquivo'" class="space-y-4">
+    <fieldset>
+      <legend class="block text-sm font-semibold text-gray-800 mb-1">Tipos de arquivo aceitos</legend>
+      <div class="flex flex-wrap gap-4">
+        <label *ngFor="let t of tiposArquivo" class="inline-flex items-center gap-1.5 text-sm text-gray-700">
+          <input type="checkbox" class="w-4 h-4" [checked]="temTipoArquivo(t.valor)" (change)="alternarTipoArquivo(t.valor, $event)" [disabled]="somenteLeitura" />
+          {{ t.rotulo }}
+        </label>
+      </div>
+    </fieldset>
+    <div>
+      <label [for]="prefixoId + '-maxmb'" class="block text-sm font-semibold text-gray-800 mb-1">Tamanho máximo (MB)</label>
+      <input [id]="prefixoId + '-maxmb'" type="number" min="1" max="25" [(ngModel)]="config.maxMb" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+             class="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+      <p class="text-xs text-gray-500 italic mt-1">O sistema aceita até 25 MB por arquivo.</p>
+    </div>
+  </div>
+
+  <!-- Calculado -->
+  <div *ngIf="tipo === 'calculado'" class="space-y-4">
+    <div>
+      <label [for]="prefixoId + '-calculo'" class="block text-sm font-semibold text-gray-800 mb-1">Como calcular</label>
+      <select [id]="prefixoId + '-calculo'" [(ngModel)]="config.calculo" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+        <option *ngFor="let c of calculos" [ngValue]="c.valor">{{ c.rotulo }}</option>
+      </select>
+    </div>
+    <fieldset>
+      <legend class="block text-sm font-semibold text-gray-800 mb-1">Campos que entram no cálculo</legend>
+      <p *ngIf="calculaveis.length === 0" class="text-sm text-gray-600">Esta seção ainda não tem campos de número, valor, percentual ou lista para calcular.</p>
+      <ul class="space-y-1.5">
+        <li *ngFor="let c of calculaveis" class="flex flex-wrap items-center gap-3">
+          <label class="inline-flex items-center gap-1.5 text-sm text-gray-700">
+            <input type="checkbox" class="w-4 h-4" [checked]="temCampo(c.chave)" (change)="alternarCampo(c.chave, $event)" [disabled]="somenteLeitura" />
+            {{ c.rotulo }} <span class="text-xs text-gray-500">({{ rotuloTipo(c.tipo) }})</span>
+            <span *ngIf="temCampo(c.chave) && pedeDois" class="text-xs font-semibold text-purple-700">{{ posicao(c.chave) }}º</span>
+          </label>
+          <span *ngIf="temCampo(c.chave) && config.calculo === 'soma_ponderada'" class="inline-flex items-center gap-1.5 text-sm text-gray-700">
+            <label [for]="prefixoId + '-peso-' + c.chave">Peso</label>
+            <input [id]="prefixoId + '-peso-' + c.chave" type="number" min="0" step="0.5" [ngModel]="peso(c.chave)"
+                   (ngModelChange)="definirPeso(c.chave, $event)" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+                   class="w-24 px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+          </span>
+        </li>
+      </ul>
+      <p *ngIf="avisoCalculo" class="text-xs text-amber-700 mt-1">{{ avisoCalculo }}</p>
+    </fieldset>
+  </div>
+
+  <p *ngIf="semConfiguracao" class="text-sm text-gray-600">Este tipo de campo não tem configuração.</p>
+</ng-container>
+
+<ng-template #tamanhoMaximo>
+  <label [for]="prefixoId + '-max'" class="block text-sm font-semibold text-gray-800 mb-1">Tamanho máximo (caracteres)</label>
+  <input [id]="prefixoId + '-max'" type="number" min="1" [(ngModel)]="config.max" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+         class="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+  <p class="text-xs text-gray-500 italic mt-1">Em branco, vale o limite do sistema.</p>
+</ng-template>
+
+<ng-template #multipla>
+  <label class="inline-flex items-center gap-1.5 text-sm text-gray-700">
+    <input type="checkbox" class="w-4 h-4" [(ngModel)]="config.multipla" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura" />
+    Permite escolher mais de um
+  </label>
+</ng-template>

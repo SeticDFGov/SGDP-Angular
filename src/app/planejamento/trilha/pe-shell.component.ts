@@ -4,13 +4,19 @@ import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
+import { PeOrgaoNivel } from '../../../api/planejamento/interface';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
-import { EstadoTrilhaPe, PeTrilhaEstadoService } from './pe-trilha-estado.service';
+import { EstadoTrilhaPe, PeTrilhaEstadoService, valorVisaoOrgao } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
 import {
-  BASE_PE, EtapaTrilhaPe, PERFIS_TRILHA_PE, PassoNumeradoPe, PerfilTrilhaPe, ROTULOS_PERFIL_TRILHA_PE,
+  BASE_PE, EtapaTrilhaPe, PERFIS_CENTRAIS_PE, PassoNumeradoPe, ROTULOS_PERFIL_TRILHA_PE,
   passoDaUrl, rotuloGuia
 } from './pe-trilhas';
+
+interface OpcaoVisao {
+  valor: string;
+  rotulo: string;
+}
 
 /**
  * Moldura de todas as telas da Governança Estratégica, no molde da trilha do PGIA
@@ -24,6 +30,11 @@ import {
  * (cada tela tem o seu no raiz; dois no mesmo texto duplicariam os chips).
  * Sem papel ou sem conseguir consultar o papel, a moldura mostra o aviso no lugar
  * da trilha e não abre tela nenhuma.
+ *
+ * "Ver a trilha de" (admin do SGDP e papéis globais): escolher e confirmar no
+ * botão "Ver" (mudar a lista não troca a trilha sozinha, o que numa lista com os
+ * órgãos faria uma consulta a cada seta do teclado). A trilha de um órgão fica
+ * só para ler, com a faixa que diz de quem é e o botão para voltar.
  */
 @Component({
   selector: 'app-pe-shell',
@@ -36,8 +47,6 @@ export class PeShellComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly estadoService = inject(PeTrilhaEstadoService);
 
-  readonly perfis = PERFIS_TRILHA_PE;
-  readonly rotulosPerfil = ROTULOS_PERFIL_TRILHA_PE;
   readonly base = BASE_PE;
 
   estado: EstadoTrilhaPe | null = null;
@@ -46,6 +55,18 @@ export class PeShellComponent implements OnInit {
   /** Etapa aberta na barra (a do passo atual, ou a escolhida pelo usuário). */
   etapaAberta: number | null = null;
 
+  /** Opções do "Ver a trilha de" (papéis globais e admin do SGDP), refeitas quando o estado ou os órgãos mudam. */
+  opcoesCentrais: OpcaoVisao[] = [];
+  opcoesOrgaos: OpcaoVisao[] = [];
+  /** O órgão à vista ainda não está na lista (lista carregando ou sem ele): a opção dele entra assim mesmo. */
+  opcaoOrgaoAvulsa: OpcaoVisao | null = null;
+  /** Aviso no lugar dos órgãos quando a lista ainda não chegou ou veio vazia. */
+  avisoOrgaos: string | null = null;
+  /** Escolha no "Ver a trilha de", ainda não confirmada no botão "Ver". */
+  visaoEscolhida = '';
+  private visaoMostrada = '';
+  private orgaos: PeOrgaoNivel[] | null = null;
+
   ngOnInit(): void {
     this.estadoService.estado$
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -53,6 +74,20 @@ export class PeShellComponent implements OnInit {
         const trocouTrilha = estado?.trilha !== this.estado?.trilha;
         this.estado = estado;
         if (trocouTrilha) this.lerUrl(this.router.url);
+        // A lista acompanha a trilha à vista só quando ela muda: a situação dos passos
+        // chegando não desfaz a escolha que a pessoa ainda não confirmou no "Ver"
+        const visao = this.estadoService.visaoAtual;
+        if (visao !== this.visaoMostrada) {
+          this.visaoMostrada = visao;
+          this.visaoEscolhida = visao;
+        }
+        this.montarOpcoes();
+      });
+    this.estadoService.orgaos$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(orgaos => {
+        this.orgaos = orgaos;
+        this.montarOpcoes();
       });
     this.estadoService.iniciar();
 
@@ -90,9 +125,17 @@ export class PeShellComponent implements OnInit {
     return this.estado.passos[this.passoAtual.indice + 1] ?? null;
   }
 
-  /** Sigla do órgão ao lado do nome da trilha (papéis de órgão). */
+  /** Sigla do órgão ao lado do nome da trilha (a do órgão da pessoa ou a do órgão à vista). */
   get siglaOrgao(): string | null {
-    return this.estado?.perfil === 'orgao' && !this.estado.adminGeral ? this.estado.meuPapel?.OrgaoSigla ?? null : null;
+    if (this.estado?.perfil !== 'orgao') return null;
+    return this.estado.trilhaOrgao?.OrgaoSigla ?? this.estado.meuPapel?.OrgaoSigla ?? null;
+  }
+
+  /** "Nível Avançado" (ou "Nível Básico, o padrão") na trilha do órgão. */
+  get rotuloNivel(): string | null {
+    const t = this.estado?.trilhaOrgao;
+    if (!t) return null;
+    return t.NivelPadrao ? `Nível ${t.NivelNome} (o padrão: o nível do órgão ainda não foi definido)` : `Nível ${t.NivelNome}`;
   }
 
   guia(passo: PassoNumeradoPe): string {
@@ -104,6 +147,56 @@ export class PeShellComponent implements OnInit {
     this.passoAtual = passoDaUrl(this.estado?.passos ?? [], url);
     if (this.passoAtual) this.etapaAberta = this.passoAtual.etapa;
     else if (this.naVisaoGeral) this.etapaAberta = null;
+  }
+
+  // ── "Ver a trilha de" ─────────────────────────────────────────────────────
+
+  get podeTrocarVisao(): boolean {
+    return this.estadoService.podeVerOutrosOrgaos;
+  }
+
+  /**
+   * Trilhas centrais (todas para o admin do SGDP; a própria para os papéis
+   * globais) e os órgãos. O órgão à vista que ainda não está na lista entra à parte.
+   */
+  private montarOpcoes(): void {
+    const e = this.estado;
+    const perfis = !e ? [] : e.adminGeral ? PERFIS_CENTRAIS_PE : e.perfilProprio ? [e.perfilProprio] : [];
+    this.opcoesCentrais = perfis.map(p => ({
+      valor: p,
+      rotulo: e?.adminGeral ? ROTULOS_PERFIL_TRILHA_PE[p] : `Minha trilha (${ROTULOS_PERFIL_TRILHA_PE[p]})`
+    }));
+    this.opcoesOrgaos = (this.orgaos ?? []).map(o => ({ valor: valorVisaoOrgao(o.OrgaoId), rotulo: `${o.Sigla} · ${o.Nome}` }));
+    this.avisoOrgaos = this.orgaos === null ? 'Carregando os órgãos...' : this.orgaos.length === 0 ? 'Nenhum órgão encontrado' : null;
+
+    this.opcaoOrgaoAvulsa = null;
+    if (e && e.orgaoVisto !== null) {
+      const valor = valorVisaoOrgao(e.orgaoVisto);
+      if (!this.opcoesOrgaos.some(o => o.valor === valor)) {
+        const t = e.trilhaOrgao;
+        this.opcaoOrgaoAvulsa = { valor, rotulo: t ? `${t.OrgaoSigla} · ${t.OrgaoNome}` : 'Órgão escolhido' };
+      }
+    }
+  }
+
+  porValor(_: number, opcao: OpcaoVisao): string {
+    return opcao.valor;
+  }
+
+  get escolhaPendente(): boolean {
+    return !!this.visaoEscolhida && this.visaoEscolhida !== this.estadoService.visaoAtual;
+  }
+
+  verTrilha(): void {
+    if (!this.visaoEscolhida || !this.escolhaPendente) return;
+    this.estadoService.trocarVisao(this.visaoEscolhida);
+    // Outra trilha, outras telas: recomeça pela visão geral
+    this.router.navigate([BASE_PE]);
+  }
+
+  voltarParaMinhaTrilha(): void {
+    this.estadoService.verMinhaTrilha();
+    this.router.navigate([BASE_PE]);
   }
 
   // ── Status ────────────────────────────────────────────────────────────────
@@ -168,12 +261,6 @@ export class PeShellComponent implements OnInit {
   abrirEtapa(indice: number): void {
     const primeiro = this.passosDaEtapa(indice)[0];
     if (primeiro) this.irPara(primeiro);
-  }
-
-  trocarVisao(perfil: PerfilTrilhaPe): void {
-    this.estadoService.trocarVisao(perfil);
-    // Outra trilha, outras telas: recomeça pela visão geral
-    this.router.navigate([BASE_PE]);
   }
 
   tentarDeNovo(): void {

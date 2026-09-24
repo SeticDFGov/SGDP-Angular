@@ -10,9 +10,11 @@ import { papelPlanejamentoDeOrgao, rotuloCurtoPapelPlanejamento } from '../../co
 
 /**
  * Visão geral da Governança Estratégica (primeira tela do módulo): o que o módulo
- * faz, em linguagem simples, o papel e o órgão de quem está logado, o próximo
- * passo recomendado e todas as etapas e passos numerados, com a situação de cada
- * um (ou "em construção", para os passos cuja tela chega nas próximas entregas).
+ * faz, em linguagem simples, o papel e o órgão de quem está logado (e, na trilha
+ * de um órgão, o nível de maturidade dele), o próximo passo recomendado e todas
+ * as etapas e passos numerados, com a situação de cada um (ou "em construção",
+ * para os passos cuja tela chega nas próximas entregas, e "prévia dos campos",
+ * para os passos de dados do órgão).
  */
 @Component({
   selector: 'app-pe-inicio',
@@ -79,10 +81,11 @@ export class PeInicioComponent implements OnInit {
     return rotuloCurtoPapelPlanejamento(e.meuPapel?.Papel);
   }
 
-  /** Papel de órgão, mas a unidade da pessoa não está ligada a um órgão. */
-  get orgaoFaltando(): boolean {
-    const papel = this.estado?.meuPapel;
-    return !this.estado?.adminGeral && !!papel && papelPlanejamentoDeOrgao(papel.Papel) && papel.OrgaoId === null;
+  /** Nível de maturidade na trilha de um órgão (a do órgão da pessoa ou a do órgão à vista). */
+  get rotuloNivel(): string | null {
+    const t = this.estado?.trilhaOrgao;
+    if (!t) return null;
+    return t.NivelPadrao ? `${t.NivelNome} (o padrão, até o administrador do módulo definir o nível do órgão)` : t.NivelNome;
   }
 
   /** "SES · Secretaria de Estado de Saúde" ou "Todos os órgãos" para os papéis centrais. */

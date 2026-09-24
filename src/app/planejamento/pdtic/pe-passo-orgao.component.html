@@ -1,0 +1,110 @@
+<div citaPlanejamento class="tela-pgia max-w-5xl mx-auto space-y-5">
+  <ng-container *ngIf="passo as p">
+
+    <!-- O passo -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">
+        Passo {{ p.Numero }}<ng-container *ngIf="siglaOrgao"> · PDTIC do {{ siglaOrgao }}</ng-container>
+      </p>
+      <h2 class="text-xl font-bold text-gray-900 mt-0.5">{{ p.Titulo }}</h2>
+
+      <div class="flex flex-wrap gap-2 mt-3">
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
+              [ngClass]="p.Situacao === 'obrigatorio' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
+          {{ p.Situacao === 'obrigatorio' ? 'Obrigatório' : 'Opcional' }} no nível {{ nomeNivel }}
+        </span>
+        <span *ngIf="p.Travado" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap bg-purple-50 text-purple-800 border-purple-200">
+          <span class="material-icons text-sm" aria-hidden="true">lock</span> Conteúdo mínimo do PDTIC
+        </span>
+        <span *ngIf="p.AjustadoParaOrgao" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap bg-amber-50 text-amber-900 border-amber-200">
+          <span class="material-icons text-sm" aria-hidden="true">tune</span> Ajustado para este órgão
+        </span>
+      </div>
+
+      <div class="mt-4 space-y-2 text-sm leading-relaxed">
+        <p class="text-gray-800"><strong class="text-gray-900">O que você vai fazer aqui:</strong> {{ p.OQueFazer }}</p>
+        <p *ngIf="p.BaseLegal" class="text-gray-600">Base legal: {{ p.BaseLegal }}</p>
+        <p *ngIf="guia" class="text-gray-600">{{ guia }}</p>
+        <p *ngIf="p.Travado" class="text-gray-600">
+          Este passo é um dos nove conteúdos mínimos do PDTIC ({{ citacaoTravado }}): aparece em todos os níveis e não pode ser
+          marcado como "não se aplica".
+        </p>
+        <p *ngIf="aceitaNaoSeAplica" class="text-gray-600">
+          Este passo é opcional no nível do órgão. Quando o preenchimento chegar, dá para marcar "não se aplica", com a justificativa.
+        </p>
+      </div>
+
+      <!-- Passo de dados: prévia do que vai ser pedido -->
+      <div *ngIf="tipoComPrevia" class="mt-5 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3">
+        <span class="material-icons text-purple-700" aria-hidden="true">visibility</span>
+        <div class="text-sm text-gray-800 leading-relaxed">
+          <p class="font-semibold text-purple-800">Por enquanto, esta tela só mostra o que o passo vai pedir.</p>
+          <p class="mt-0.5">O preenchimento chega numa próxima etapa do desenvolvimento do módulo. Abaixo estão as seções e os campos
+            deste passo no nível {{ nomeNivel }}. Os campos marcados como "Obrigatório" vão precisar de resposta.</p>
+        </div>
+      </div>
+
+      <!-- Outros tipos de passo: em construção -->
+      <div *ngIf="!tipoComPrevia" class="mt-5 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3">
+        <span class="material-icons text-purple-700" aria-hidden="true">construction</span>
+        <div class="text-sm text-gray-800 leading-relaxed">
+          <p class="font-semibold text-purple-800">Esta tela está em construção.</p>
+          <p class="mt-0.5">É um passo do tipo "{{ rotuloTipo }}", que ganha tela numa próxima etapa do desenvolvimento do módulo.
+            Por enquanto, use a trilha para conhecer o caminho completo: os botões "Passo anterior" e "Próximo passo", no fim da
+            página, seguem a ordem das etapas.</p>
+        </div>
+      </div>
+
+      <a *ngIf="!tipoComPrevia" [routerLink]="base" class="inline-flex items-center gap-1.5 mt-5 text-sm font-semibold text-purple-700 hover:underline">
+        <span class="material-icons text-base" aria-hidden="true">dashboard</span> Voltar à visão geral
+      </a>
+    </div>
+
+    <!-- Seções e campos do passo de dados (só para ler) -->
+    <ng-container *ngIf="tipoComPrevia">
+      <p *ngIf="p.Secoes.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+        Este passo ainda não tem seções ligadas no nível {{ nomeNivel }}. Se você esperava encontrar campos aqui, fale com o
+        administrador do módulo.
+      </p>
+
+      <section *ngFor="let s of p.Secoes; trackBy: porId" class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="'pe-secao-' + s.Id">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <h3 [id]="'pe-secao-' + s.Id" class="text-base font-semibold text-gray-900">{{ s.Titulo }}</h3>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap bg-gray-50 text-gray-700 border-gray-200">
+              <span class="material-icons text-sm" aria-hidden="true">{{ s.Tipo === 'tabela' ? 'table_rows' : 'description' }}</span>
+              {{ s.Tipo === 'tabela' ? 'Tabela: vários registros' : 'Formulário: um registro' }}
+            </span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
+                  [ngClass]="s.Situacao === 'obrigatorio' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
+              {{ s.Situacao === 'obrigatorio' ? 'Seção obrigatória' : 'Seção opcional' }}
+            </span>
+          </div>
+        </div>
+        <p *ngIf="s.Ajuda" class="text-sm text-gray-600 mt-1 leading-relaxed">{{ s.Ajuda }}</p>
+        <p *ngIf="s.Tipo === 'tabela'" class="text-xs text-gray-500 italic mt-1">
+          Cada linha da tabela ganha um código<ng-container *ngIf="s.PrefixoCodigo"> ({{ s.PrefixoCodigo }}01, {{ s.PrefixoCodigo }}02...)</ng-container>,
+          que as outras seções usam para se ligar a ela.
+        </p>
+
+        <p class="text-xs text-gray-600 mt-3">
+          {{ s.Campos.length === 1 ? '1 campo' : s.Campos.length + ' campos' }},
+          {{ obrigatorios(s) === 1 ? '1 obrigatório' : obrigatorios(s) + ' obrigatórios' }}
+        </p>
+        <ul *ngIf="s.Campos.length > 0" class="mt-2 divide-y divide-gray-100 border border-gray-200 rounded-lg">
+          <li *ngFor="let c of s.Campos; trackBy: porId" class="px-4 py-3 flex flex-col md:flex-row items-start gap-1 md:gap-4">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-900">{{ c.Rotulo }}</p>
+              <p class="text-xs text-gray-600 mt-0.5">{{ descricao(c, s) }}</p>
+              <p *ngIf="c.Ajuda" class="text-xs text-gray-500 italic mt-0.5">{{ c.Ajuda }}</p>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start"
+                  [ngClass]="c.Obrigatorio ? 'bg-red-50 text-red-800 border-red-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
+              {{ c.Obrigatorio ? 'Obrigatório' : 'Opcional' }}
+            </span>
+          </li>
+        </ul>
+      </section>
+    </ng-container>
+  </ng-container>
+</div>

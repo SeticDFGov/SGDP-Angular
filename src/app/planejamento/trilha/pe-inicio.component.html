@@ -35,13 +35,15 @@
           <li>No fim de cada tela, o botão "Próximo passo" leva adiante, sem precisar procurar em menus.</li>
           <li>Os passos marcados como "em construção" ganham tela nas próximas etapas do desenvolvimento do módulo. Por enquanto,
             eles mostram o que será feito ali.</li>
+          <li *ngIf="e.perfil === 'orgao'">Os passos marcados como "prévia dos campos" já mostram as seções e os campos que vão ser
+            pedidos. O preenchimento chega numa próxima etapa do desenvolvimento.</li>
         </ol>
       </div>
 
       <!-- Papel e órgão -->
       <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-base font-semibold text-gray-900 mb-3">Seu acesso</h2>
-        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
             <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Seu papel</dt>
             <dd class="text-gray-900 font-medium mt-0.5">{{ rotuloPapel }}</dd>
@@ -50,21 +52,26 @@
             <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Órgão</dt>
             <dd class="text-gray-900 font-medium mt-0.5">{{ rotuloOrgao }}</dd>
           </div>
+          <div *ngIf="e.trilhaOrgao as t">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {{ e.orgaoVisto !== null ? 'Nível de maturidade do ' + t.OrgaoSigla : 'Nível de maturidade do órgão' }}
+            </dt>
+            <dd class="text-gray-900 font-medium mt-0.5">{{ rotuloNivel }}</dd>
+          </div>
         </dl>
+        <p *ngIf="e.trilhaOrgao" class="text-xs text-gray-500 italic mt-3">
+          O nível de maturidade diz quais passos e campos o órgão preenche. Quem define o nível de cada órgão é o administrador
+          do módulo; a numeração dos passos segue a posição entre os passos que o nível liga.
+        </p>
         <p *ngIf="e.meuPapel?.Papel === 'pe_orgao_consulta' && !e.adminGeral" class="text-xs text-gray-500 italic mt-3">
           O papel de consulta só lê o PDTIC do seu órgão e baixa o documento e as planilhas.
         </p>
-        <div *ngIf="orgaoFaltando" class="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          <span class="material-icons text-base text-amber-600 mt-0.5" aria-hidden="true">warning</span>
-          <span>A sua unidade não está ligada a um órgão, e o seu papel é de órgão. Enquanto isso, você não vê o PDTIC de órgão
-            nenhum. Fale com o administrador do módulo para conferir a sua unidade.</span>
-        </div>
       </div>
 
       <!-- Próximo passo recomendado -->
       <div *ngIf="recomendado as r" class="bg-purple-600 text-white rounded-lg shadow p-5 flex flex-col md:flex-row md:items-center gap-4">
         <div class="flex-1">
-          <p class="text-xs uppercase tracking-wide font-semibold">Seu próximo passo</p>
+          <p class="text-xs uppercase tracking-wide font-semibold">{{ e.orgaoVisto !== null ? 'Primeiro passo do órgão' : 'Seu próximo passo' }}</p>
           <p class="text-lg font-bold mt-0.5">{{ r.numero }} · {{ r.titulo }}</p>
           <p class="text-sm mt-1 leading-relaxed">{{ r.oQueFazer }}</p>
           <p *ngIf="status(r) as s" class="inline-flex items-center gap-1 mt-2 text-xs font-semibold bg-white text-purple-800 rounded-full px-2 py-0.5">
@@ -111,6 +118,9 @@
                 <ng-container *ngIf="p.baseLegal && p.guia"> · </ng-container>
                 <ng-container *ngIf="p.guia">{{ guia(p) }}</ng-container>
               </p>
+              <p *ngIf="p.doOrgao as d" class="text-xs text-gray-500 mt-0.5">
+                {{ d.Situacao === 'obrigatorio' ? 'Obrigatório' : 'Opcional' }} neste nível<ng-container *ngIf="d.Travado"> · conteúdo mínimo do PDTIC</ng-container><ng-container *ngIf="d.AjustadoParaOrgao"> · ajustado para este órgão</ng-container>
+              </p>
             </div>
             <span *ngIf="status(p) as s; else semStatus"
                   class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center"
@@ -119,6 +129,10 @@
               <span *ngIf="p.emConstrucao"
                     class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center bg-gray-50 text-gray-600 border-gray-200">
                 <span class="material-icons text-sm" aria-hidden="true">construction</span> Em construção
+              </span>
+              <span *ngIf="p.previa"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center bg-purple-50 text-purple-800 border-purple-200">
+                <span class="material-icons text-sm" aria-hidden="true">visibility</span> Prévia dos campos
               </span>
               <span *ngIf="!p.emConstrucao && p.status"
                     class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center bg-gray-50 text-gray-600 border-gray-200">
