@@ -160,10 +160,24 @@ export function juntar(itens: string[]): string {
   return `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
 }
 
-/** Citação do conteúdo mínimo de um item travado ("art. 12, § 2º, II"), no formato das dicas. */
+/**
+ * Citação do conteúdo mínimo de um item travado, no formato das dicas: "art. 12,
+ * § 2º, II"; com vários incisos ("V,VI,IX", como o servidor guarda), "art. 12,
+ * § 2º, V, VI e IX".
+ */
 export function citacaoTravado(inciso: string | null | undefined): string {
-  return inciso ? `art. 12, § 2º, ${inciso}` : 'art. 12, § 2º';
+  const incisos = (inciso ?? '').split(',').map(i => i.trim()).filter(Boolean);
+  return incisos.length ? `art. 12, § 2º, ${juntar(incisos)}` : 'art. 12, § 2º';
 }
+
+/** Por que o campo tema das ações (travado por si) não desliga, com a citação que vira dica. */
+export const EXPLICACAO_CAMPO_TRAVADO =
+  'Travado: é por ele que as ações mostram os conteúdos mínimos de segurança da informação, de transformação digital e de '
+  + 'governança de dados (art. 12, § 2º, V, VI e IX). Não desliga em nenhum nível.';
+
+/** Por que uma opção travada (um dos três temas do decreto) não sai da lista. */
+export const EXPLICACAO_OPCAO_TRAVADA =
+  'Tema do decreto (art. 12, § 2º, V, VI e IX): não pode ser desativado nem apagado. Dá para mudar o rótulo e a cor.';
 
 // ── Como o campo se responde ─────────────────────────────────────────────────
 

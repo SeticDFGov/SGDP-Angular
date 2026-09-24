@@ -157,6 +157,11 @@ export interface PeOpcaoModelo {
   Ordem: number;
   Ativa: boolean;
   Cor: string | null;
+  /**
+   * Um dos três temas do decreto (art. 12, § 2º, V, VI e IX) no campo tema das
+   * ações: não é desativada nem apagada. Opcional para aceitar resposta antiga.
+   */
+  Travada?: boolean;
   Sistema: boolean;
 }
 
@@ -170,6 +175,12 @@ export interface PeCampoModelo {
   Config: PeConfigCampo | null;
   /** Campo principal da seção (a descrição): numa seção travada, não desliga. */
   Principal: boolean;
+  /**
+   * Não desliga em nenhum nível: o campo tema das ações (temas do art. 12, § 2º,
+   * V, VI e IX) e o campo principal de uma seção travada. Opcional para aceitar
+   * resposta antiga (aí vale só a regra do principal).
+   */
+  Travado?: boolean;
   Ordem: number;
   NoDocumento: boolean;
   NaPlanilha: boolean;
@@ -473,6 +484,201 @@ export interface PeHistoricoConsulta {
 
 export interface PaginaPeHistorico {
   Items: PeModeloHistorico[];
+  CurrentPage: number;
+  PageSize: number;
+  TotalItems: number;
+  TotalPages: number;
+  HasPreviousPage: boolean;
+  HasNextPage: boolean;
+}
+
+// ── E3 · Registros, referenciais do DF, PETIC-DF e deliberações do CGTIC ────
+//
+// O motor de registros grava os dados descritos pelo modelo. A mesma forma serve
+// aos três donos: o catálogo do DF (api/planejamento/df), uma versão do PETIC-DF
+// (api/planejamento/petic/{id}) e, a partir da E4, o PDTIC de um órgão
+// (api/planejamento/pdtic/{id}). Rotas: {dono}/secoes/{secaoChave}/registros.
+
+/** Campo visível da seção para o dono, com a obrigatoriedade que vale para ele (mesma forma do campo da trilha). */
+export type PeCampoRegistro = PeCampoTrilha;
+
+/** Opção ativa de uma lista, na ordem (mesma forma da opção da trilha). */
+export type PeOpcaoRegistro = PeOpcaoTrilha;
+
+/** A seção como o motor de registros a descreve para um dono (só os campos visíveis, na ordem). */
+export interface PeSecaoDoDono {
+  Id: number;
+  Chave: string;
+  Titulo: string;
+  Ajuda: string | null;
+  Tipo: PeTipoSecao;
+  /** Tabela: os registros ganham código com ele (PR01, OE02...). */
+  PrefixoCodigo: string | null;
+  Campos: PeCampoRegistro[];
+}
+
+/** Destino de uma ligação (campo `ligacao_secao` ou `ligacao_catalogo`). */
+export interface PeVinculo {
+  RegistroId: number;
+  Codigo: string | null;
+  /** O texto principal do registro ligado, pronto para exibir. */
+  Resumo: string | null;
+}
+
+/** Valor de um campo `arquivo` nos dados do registro (o arquivo fica em pe_arquivo). */
+export interface PeArquivoRef {
+  ArquivoId: number;
+  Nome: string;
+}
+
+/**
+ * Um registro de uma seção (a linha de uma tabela ou o formulário).
+ *
+ * `Dados`, pela chave do campo: texto (string), número, moeda (2 casas) e
+ * percentual (0 a 100) como número, data "aaaa-mm-dd", sim ou não (bool), lista
+ * (o `Valor` da opção), lista múltipla (array de valores), arquivo
+ * (`PeArquivoRef`), calculado (número calculado no servidor; o front não manda)
+ * e texto rico (JSON do editor, a partir da E4). Ligações não vão em `Dados`: vão
+ * em `Vinculos`. `Rotulos` traz o texto pronto para exibir de cada campo.
+ */
+export interface PeRegistro {
+  Id: number;
+  /** Código na tabela (OE01); nulo no formulário. Nunca se reaproveita código apagado. */
+  Codigo: string | null;
+  Ordem: number;
+  /** Registro do sistema (os 11 princípios do art. 4º): não se edita nem se apaga. */
+  Sistema: boolean;
+  Dados: Record<string, unknown>;
+  Rotulos: Record<string, string>;
+  Vinculos: Record<string, PeVinculo[]>;
+  CriadoEm: string;
+  CriadoPor: string | null;
+  AlteradoEm: string | null;
+  AlteradoPor: string | null;
+}
+
+/** GET {dono}/secoes/{secaoChave}/registros. */
+export interface PeRegistrosDaSecao {
+  Secao: PeSecaoDoDono;
+  Registros: PeRegistro[];
+  /** Quem está logado pode incluir, editar, apagar e reordenar nesta seção deste dono. */
+  PodeEditar: boolean;
+}
+
+/**
+ * Corpo do POST e do PUT de um registro. `Vinculos`: para cada campo de ligação,
+ * os ids dos registros ligados (lista vazia tira todas as ligações do campo).
+ */
+export interface PeRegistroForm {
+  Dados: Record<string, unknown>;
+  Vinculos: Record<string, number[]>;
+}
+
+/** Corpo do 400 de validação de um registro: a mensagem de cada campo em linguagem simples. */
+export interface PeErroValidacao {
+  Code?: number;
+  Message?: string;
+  Campos?: Record<string, string> | null;
+}
+
+/** Formatos das planilhas (Content-Disposition com o nome do arquivo). */
+export type PeFormatoPlanilha = 'csv' | 'xlsx';
+
+/** Item de GET api/planejamento/catalogos/{catalogo} (`Id` é o id do registro). */
+export interface PeItemCatalogo {
+  Id: number;
+  Codigo: string | null;
+  Rotulo: string;
+}
+
+/** POST api/planejamento/arquivos (multipart, campo `arquivo`). */
+export interface PeArquivo {
+  Id: number;
+  Nome: string;
+  TipoMime: string;
+  Tamanho: number;
+}
+
+export type PeSituacaoPetic = 'rascunho' | 'em_deliberacao' | 'aprovado' | 'substituido';
+
+export type PeSituacaoDeliberacao = 'aguardando' | 'aprovado' | 'devolvido';
+
+/** petic agora; pdtic a partir da E7. */
+export type PeObjetoDeliberacao = 'petic' | 'pdtic';
+
+/** Uma deliberação do CGTIC sobre uma versão do PETIC-DF (ou, na E7, de um PDTIC). */
+export interface PeDeliberacao {
+  Id: number;
+  ObjetoTipo: PeObjetoDeliberacao;
+  ObjetoId: number;
+  VersaoObjeto: string;
+  /** "PETIC-DF 1.0" (na E7, "PDTIC SES 1.0"). */
+  Titulo: string;
+  OrgaoSigla: string | null;
+  EnviadoEm: string;
+  EnviadoPor: string | null;
+  Situacao: PeSituacaoDeliberacao;
+  DecididoEm: string | null;
+  DecididoPor: string | null;
+  AtoTipo: string | null;
+  AtoNumero: string | null;
+  /** Data pura ("aaaa-mm-dd"). */
+  AtoData: string | null;
+  Sei: string | null;
+  Observacao: string | null;
+}
+
+/** Uma versão do PETIC-DF (GET api/planejamento/petic, da mais nova para a mais antiga). */
+export interface PePetic {
+  Id: number;
+  /** "1.0", "1.1"... */
+  Versao: string;
+  Titulo: string;
+  /** Datas puras ("aaaa-mm-dd"). */
+  VigenciaInicio: string | null;
+  VigenciaFim: string | null;
+  Situacao: PeSituacaoPetic;
+  AprovadoEm: string | null;
+  AnteriorId: number | null;
+  /** A deliberação mais recente desta versão (nula enquanto nunca foi enviada). */
+  Deliberacao: PeDeliberacao | null;
+}
+
+/** PUT api/planejamento/petic/{id} (só rascunho). */
+export interface PePeticForm {
+  Titulo: string;
+  VigenciaInicio: string | null;
+  VigenciaFim: string | null;
+}
+
+/** POST api/planejamento/petic: rascunho novo, copiando a vigente (registros e códigos) ou vazio. */
+export interface PePeticNovoForm extends PePeticForm {
+  CopiarDaVigente: boolean;
+}
+
+/**
+ * POST api/planejamento/deliberacoes/{id}/decidir: aprovado exige `AtoNumero` e
+ * `AtoData`; devolvido exige `Observacao`. Deliberação já decidida não muda (409).
+ */
+export interface PeDecisaoForm {
+  Decisao: Exclude<PeSituacaoDeliberacao, 'aguardando'>;
+  AtoTipo: string | null;
+  AtoNumero: string | null;
+  AtoData: string | null;
+  Sei: string | null;
+  Observacao: string | null;
+}
+
+/** GET api/planejamento/deliberacoes: aguardando primeiro (a mais antiga antes), depois as decididas (a mais nova antes). */
+export interface PeDeliberacoesConsulta {
+  Situacao?: PeSituacaoDeliberacao | null;
+  ObjetoTipo?: PeObjetoDeliberacao | null;
+  Page: number;
+  PageSize: number;
+}
+
+export interface PaginaPeDeliberacoes {
+  Items: PeDeliberacao[];
   CurrentPage: number;
   PageSize: number;
   TotalItems: number;

@@ -59,9 +59,18 @@ export function nomesDoModelo(modelo: PeModelo, secaoAtual?: PeSecaoModelo | nul
   };
 }
 
-/** O campo principal de uma seção travada não desliga (é a descrição do conteúdo mínimo). */
+/**
+ * Campo que não desliga: o principal de uma seção travada (é a descrição do
+ * conteúdo mínimo) e o campo travado por si (o tema das ações, que mostra os
+ * conteúdos V, VI e IX do art. 12, § 2º). O servidor manda `Travado` nos dois casos.
+ */
 export function campoNaoDesliga(campo: PeCampoModelo, secao: PeSecaoModelo): boolean {
-  return campo.Principal && secao.Travada;
+  return !!campo.Travado || (campo.Principal && secao.Travada);
+}
+
+/** Travado por si, e não por ser o principal de uma seção travada (o campo tema das ações). */
+export function campoTravadoPorSi(campo: PeCampoModelo, secao: PeSecaoModelo): boolean {
+  return !!campo.Travado && !(campo.Principal && secao.Travada);
 }
 
 /** Código estável a partir do nome ("Muito avançado" → "muito_avancado"). */

@@ -32,7 +32,9 @@
       </ul>
       <p class="text-xs text-gray-500 italic mt-2">O campo só aparece se a seção dele aparece, e a seção, se o passo aparece. Os
         passos e as seções dos nove conteúdos mínimos do PDTIC (art. 12, § 2º) ficam travados: não desligam em nenhum nível, nem
-        o campo principal dessas seções. Toda mudança vale na hora para os órgãos e fica no histórico.</p>
+        o campo principal dessas seções. O campo tema das ações também é travado, e os três temas do decreto (art. 12, § 2º, V,
+        VI e IX) não saem da lista dele. Os itens travados têm o cadeado. Toda mudança vale na hora para os órgãos e fica no
+        histórico.</p>
 
       <div class="flex flex-wrap items-center gap-2 mt-4">
         <button type="button" (click)="abrirTudo()"
@@ -238,7 +240,8 @@
         <div class="flex-1">
           <h2 class="text-base font-semibold text-gray-900">Seções fora do PDTIC</h2>
           <p class="text-sm text-gray-600 leading-relaxed mt-0.5">São as seções do PETIC-DF e dos referenciais do DF (princípios e
-            diretrizes do ciclo). Elas não dependem do nível de maturidade dos órgãos: têm uma situação só.</p>
+            diretrizes do ciclo). Elas não dependem do nível de maturidade dos órgãos: têm uma situação só. Os dados delas são
+            preenchidos nas telas da etapa "Cadastre os referenciais".</p>
         </div>
         <button type="button" (click)="novaSecaoFora()"
                 class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 whitespace-nowrap">
@@ -246,7 +249,8 @@
         </button>
       </div>
       <p *ngIf="m.SecoesForaDoPdtic.length === 0" class="px-6 pb-5 text-sm text-gray-600">
-        Nenhuma seção fora do PDTIC ainda. As do PETIC-DF e dos referenciais chegam numa próxima etapa do desenvolvimento.
+        Nenhuma seção fora do PDTIC. As do PETIC-DF e dos referenciais do DF entram com o conteúdo inicial do módulo: se elas não
+        aparecem, avise a equipe que administra o sistema.
       </p>
       <div *ngIf="m.SecoesForaDoPdtic.length > 0" class="overflow-x-auto border-t border-gray-200">
         <table class="w-full text-sm">
@@ -373,12 +377,16 @@
     </p>
     <p class="text-xs text-gray-600 mt-0.5">{{ descricaoDoCampo(campo) }}</p>
     <p class="text-xs text-gray-600 flex flex-wrap gap-x-3">
-      <span *ngIf="naoDesliga('campo', campo)" class="text-purple-800">principal de seção travada: não desliga</span>
+      <span *ngIf="travadoPorSi(campo)" class="inline-flex items-center gap-1 text-purple-800 font-semibold">
+        <span class="material-icons text-sm" aria-hidden="true">lock</span> Travado
+      </span>
+      <span *ngIf="naoDesliga('campo', campo) && !travadoPorSi(campo)" class="text-purple-800">principal de seção travada: não desliga</span>
       <span *ngIf="!campo.NoDocumento">fora do documento</span>
       <span *ngIf="!campo.NaPlanilha">fora da planilha</span>
       <span *ngIf="!campo.Sistema" class="text-blue-800">criado pelo administrador</span>
       <span *ngIf="campo.Excluido" class="font-semibold text-red-700">apagado</span>
     </p>
+    <p *ngIf="travadoPorSi(campo)" class="text-xs text-purple-800 mt-0.5">{{ explicacaoCampoTravado }}</p>
   </div>
 </ng-template>
 
@@ -639,6 +647,9 @@
             <p *ngIf="e.campo as c" class="text-xs text-gray-600">
               Chave nos registros: <span class="font-mono">{{ c.Chave }}</span><ng-container *ngIf="c.Principal"> · campo principal da
               seção (a descrição de cada registro)<ng-container *ngIf="e.secao?.Travada">: numa seção travada, não desliga</ng-container></ng-container>
+            </p>
+            <p *ngIf="e.campo && travadoPorSi(e.campo)" class="flex items-start gap-1.5 text-xs text-purple-800">
+              <span class="material-icons text-sm" aria-hidden="true">lock</span> <span>{{ explicacaoCampoTravado }}</span>
             </p>
           </ng-container>
 

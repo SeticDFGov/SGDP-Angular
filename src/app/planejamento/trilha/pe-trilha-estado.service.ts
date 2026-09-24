@@ -114,9 +114,44 @@ export class PeTrilhaEstadoService {
     return !!papel && (papel.EhAdminGeral || papel.Papel === PapeisPlanejamento.Admin);
   }
 
-  /** Configura o modelo, os níveis e os órgãos: os mesmos de `podeGerirPessoas`. */
+  /**
+   * Configura o modelo, os níveis e os órgãos, e cadastra os referenciais do DF
+   * (princípios, PETIC-DF e diretrizes do ciclo): os mesmos de `podeGerirPessoas`.
+   */
   get podeConfigurar(): boolean | null {
     return this.podeGerirPessoas;
+  }
+
+  /**
+   * Secretaria do CGTIC ou admin do SGDP: registra a deliberação do comitê. Pelo
+   * `meu-papel`, como os demais. null enquanto o papel não chegou.
+   */
+  get podeDeliberar(): boolean | null {
+    const e = this.estado.value;
+    if (!e || e.consultaPapel === 'carregando') return null;
+    const papel = e.meuPapel;
+    return !!papel && (papel.EhAdminGeral || papel.Papel === PapeisPlanejamento.Cgtic);
+  }
+
+  /**
+   * Papéis globais (administrador do módulo, SGDI e CGTIC) e admin do SGDP: veem a
+   * fila e o histórico das deliberações. Papel de órgão recebe 403 nessa consulta,
+   * e o interceptor tiraria a pessoa do módulo. null enquanto o papel não chegou.
+   */
+  get veDeliberacoes(): boolean | null {
+    const e = this.estado.value;
+    if (!e || e.consultaPapel === 'carregando') return null;
+    const papel = e.meuPapel;
+    if (!papel) return false;
+    return papel.EhAdminGeral || papel.Papel === PapeisPlanejamento.Admin
+      || papel.Papel === PapeisPlanejamento.Sgdi || papel.Papel === PapeisPlanejamento.Cgtic;
+  }
+
+  /** Papel de órgão (equipe ou consulta), sem ser admin do SGDP: lê só o que é publicado. */
+  get ehPapelDeOrgao(): boolean {
+    const papel = this.estado.value?.meuPapel;
+    return !!papel && !papel.EhAdminGeral
+      && (papel.Papel === PapeisPlanejamento.Orgao || papel.Papel === PapeisPlanejamento.OrgaoConsulta);
   }
 
   /** Papéis globais e admin do SGDP: escolhem um órgão para ver a trilha dele. */

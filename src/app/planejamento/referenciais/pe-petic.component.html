@@ -1,0 +1,254 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <!-- O que é o PETIC-DF -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">PETIC-DF</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">
+      O Plano Estratégico de TIC do Distrito Federal (PETIC-DF) é o planejamento estratégico de TIC comum a todos os órgãos
+      (art. 11). Ele traz diretrizes, objetivos estratégicos, prioridades, indicadores e iniciativas (art. 11, § 1º). Quem aprova
+      e revisa é o comitê de governança de TIC, o CGTIC (art. 11, § 3º). Os órgãos ligam o PDTIC aos objetivos e aos eixos da
+      versão vigente.
+    </p>
+    <ul *ngIf="podeEditar" class="mt-2 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
+      <li>Trabalhe sempre num rascunho. Ele nasce da versão vigente, com os registros e os códigos, ou vazio.</li>
+      <li>Preencha cada seção: escolha a seção na lista e inclua os registros.</li>
+      <li>Envie ao CGTIC. Aprovada, a versão passa a valer e a anterior fica no histórico. Devolvida, ela volta a rascunho, com o
+        que precisa ser ajustado.</li>
+    </ul>
+    <p *ngIf="!podeEditar" class="text-sm text-gray-700 leading-relaxed mt-2">Aqui você consulta a versão vigente e as anteriores, e
+      baixa as planilhas. Quem cadastra o PETIC-DF é o administrador do módulo.</p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <p class="mt-1">Por enquanto, esta tela fica só para ler. Tente de novo em alguns instantes.</p>
+    <button type="button" (click)="tentarPapelDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <p *ngIf="carregando && versoes.length === 0" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o PETIC-DF...</p>
+  <div *ngIf="erroCarga" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+    {{ erroCarga }}
+    <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+  </div>
+
+  <ng-container *ngIf="iniciado && !erroCarga && !(carregando && versoes.length === 0)">
+
+    <!-- Versões -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+        <h2 class="text-base font-semibold text-gray-900">Versões</h2>
+        <button *ngIf="podeEditar" type="button" id="pe-petic-novo" (click)="abrirNovo()" [disabled]="!podeCriar"
+                [attr.aria-describedby]="motivoNaoCria ? 'pe-petic-motivo' : null"
+                class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+          <span class="material-icons text-base" aria-hidden="true">add</span> Criar rascunho
+        </button>
+      </div>
+      <p *ngIf="motivoNaoCria as m" id="pe-petic-motivo" class="text-xs text-gray-500 italic mb-3">{{ m }}</p>
+
+      <p *ngIf="versoes.length === 0" class="text-sm text-gray-600">
+        {{ podeEditar ? 'Ainda não há PETIC-DF cadastrado. Crie o primeiro rascunho.' : 'Ainda não há PETIC-DF aprovado. Quando o CGTIC aprovar a primeira versão, ela aparece aqui.' }}
+      </p>
+
+      <div *ngIf="versoes.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+        <table class="w-full text-sm">
+          <caption class="sr-only">Versões do PETIC-DF, da mais nova para a mais antiga</caption>
+          <thead>
+            <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+              <th scope="col" class="px-3 py-2.5">Versão</th>
+              <th scope="col" class="px-3 py-2.5">Título</th>
+              <th scope="col" class="px-3 py-2.5">Vigência</th>
+              <th scope="col" class="px-3 py-2.5">Situação</th>
+              <th scope="col" class="px-3 py-2.5">Deliberação do CGTIC</th>
+              <th scope="col" class="px-3 py-2.5"><span class="sr-only">Abrir</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let v of versoes; trackBy: porId" class="border-t border-gray-100 align-top"
+                [ngClass]="v.Id === selecionada?.Id ? 'bg-purple-50' : ''">
+              <th scope="row" class="px-3 py-2.5 text-left font-mono font-semibold text-gray-900 whitespace-nowrap">{{ v.Versao }}</th>
+              <td class="px-3 py-2.5 text-gray-800">{{ v.Titulo }}</td>
+              <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ vigencia(v) }}</td>
+              <td class="px-3 py-2.5">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeSituacao(v)">{{ rotuloSituacao(v) }}</span>
+              </td>
+              <td class="px-3 py-2.5 text-gray-700">{{ resumoDeliberacao(v) }}</td>
+              <td class="px-3 py-2.5 text-right">
+                <button *ngIf="v.Id !== selecionada?.Id; else aberta" type="button" (click)="irParaVersao(v)"
+                        [attr.aria-label]="'Abrir a versão ' + v.Versao"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
+                  Abrir <span class="material-icons text-sm" aria-hidden="true">arrow_downward</span>
+                </button>
+                <ng-template #aberta><span class="text-xs font-semibold text-purple-700 whitespace-nowrap">Aberta abaixo</span></ng-template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- A versão aberta -->
+    <ng-container *ngIf="selecionada as v">
+      <div class="bg-white rounded-lg shadow p-6">
+        <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">PETIC-DF · versão {{ v.Versao }}</p>
+        <h2 class="text-xl font-bold text-gray-900 mt-0.5">{{ v.Titulo }}</h2>
+        <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-700">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="classeSituacao(v)">{{ rotuloSituacao(v) }}</span>
+          <span>Vigência: {{ vigencia(v) }}</span>
+        </div>
+
+        <!-- Situação da deliberação -->
+        <div *ngIf="v.Situacao === 'em_deliberacao'" class="mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span class="material-icons text-amber-600" aria-hidden="true">hourglass_top</span>
+          <p class="leading-relaxed">Enviada ao CGTIC em {{ enviadaEm(v) }}. O comitê aprova ou devolve (art. 5º), e a Secretaria do CGTIC
+            registra a decisão. Enquanto isso, esta versão não muda.</p>
+        </div>
+        <div *ngIf="devolvida(v)" class="mt-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          <span class="material-icons text-red-600" aria-hidden="true">undo</span>
+          <div class="leading-relaxed">
+            <p><strong>O CGTIC devolveu esta versão</strong> em {{ decididaEm(v) }}<ng-container *ngIf="ato(v) as a"> ({{ a }})</ng-container>.</p>
+            <p *ngIf="v.Deliberacao?.Observacao as o" class="mt-1 whitespace-pre-line">O que ajustar: {{ o }}</p>
+            <p class="mt-1">Ajuste o que for preciso e envie de novo.</p>
+          </div>
+        </div>
+        <div *ngIf="v.Situacao === 'aprovado'" class="mt-4 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+          <span class="material-icons text-green-600" aria-hidden="true">verified</span>
+          <p class="leading-relaxed">Aprovada pelo CGTIC em {{ decididaEm(v) }}<ng-container *ngIf="ato(v) as a"> ({{ a }})</ng-container>. É a
+            versão que vale hoje.</p>
+        </div>
+        <div *ngIf="v.Situacao === 'substituido'" class="mt-4 flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+          <span class="material-icons text-gray-500" aria-hidden="true">history</span>
+          <p class="leading-relaxed">Esta versão foi substituída por uma mais nova. Fica só para consulta<ng-container *ngIf="ato(v) as a">; foi aprovada
+            com {{ a }}</ng-container>.</p>
+        </div>
+
+        <!-- Ações -->
+        <div class="flex flex-wrap gap-2 mt-4">
+          <button *ngIf="editavel(v)" type="button" (click)="enviar(v)" [disabled]="enviando"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+            <span class="material-icons text-base" aria-hidden="true">send</span> {{ enviando ? 'Enviando...' : 'Enviar ao CGTIC' }}
+          </button>
+          <button *ngIf="editavel(v)" type="button" (click)="abrirDados(v)"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-base" aria-hidden="true">edit</span> Editar título e vigência
+          </button>
+          <button type="button" (click)="baixarCompleta(v)" [disabled]="baixandoCompleta"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixandoCompleta ? 'Gerando...' : 'Planilha completa (XLSX)' }}
+          </button>
+          <button *ngIf="apagavel(v)" type="button" (click)="apagar(v)" [disabled]="apagando"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-200 bg-white text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
+            <span class="material-icons text-base" aria-hidden="true">delete</span> {{ apagando ? 'Apagando...' : 'Apagar o rascunho' }}
+          </button>
+        </div>
+        <p class="text-xs text-gray-500 italic mt-2">A planilha completa tem uma aba por seção e a aba Leia-me, com a ajuda de cada coluna.</p>
+      </div>
+
+      <!-- Seções da versão aberta -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-gray-900">Seções desta versão</h2>
+        <p class="text-sm text-gray-600 mt-0.5 mb-3">Escolha a seção para {{ editavel(v) ? 'preencher' : 'consultar' }}.</p>
+        <p *ngIf="secoes.length === 0" class="text-sm text-gray-600">O modelo ainda não tem as seções do PETIC-DF. Elas são
+          configuradas pelo administrador do módulo, no editor do modelo.</p>
+        <nav *ngIf="secoes.length > 0" aria-label="Seções do PETIC-DF">
+          <ul class="flex flex-wrap gap-2">
+            <li *ngFor="let s of secoes; trackBy: porChave">
+              <button type="button" (click)="irParaSecao(s)" [attr.aria-current]="s.Chave === secaoAtual?.Chave ? 'page' : null"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-colors"
+                      [ngClass]="s.Chave === secaoAtual?.Chave ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
+                <span class="material-icons text-base" aria-hidden="true">{{ s.Tipo === 'tabela' ? 'table_rows' : 'description' }}</span>
+                {{ s.Titulo }}
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <app-pe-secao-registros *ngIf="fonte && secaoAtual as s" [fonte]="fonte" [secaoChave]="s.Chave"
+                              [nomePlanilha]="nomePlanilha(v, s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura(v)"
+                              (alterado)="aoAlterar($event)"></app-pe-secao-registros>
+    </ng-container>
+  </ng-container>
+</div>
+
+<!-- ── Janela: rascunho novo, ou título e vigência ────────────────────────── -->
+<div *ngIf="janela as j" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div appDialogo aria-labelledby="pe-petic-janela-titulo" (fechar)="fecharJanela()" class="bg-white rounded-xl shadow-xl w-full max-w-lg">
+    <form (ngSubmit)="salvarJanela()" citaPlanejamento class="tela-pgia">
+      <div class="px-6 pt-4 pb-3 border-b border-gray-100">
+        <h2 id="pe-petic-janela-titulo" class="text-lg font-bold text-gray-900">
+          {{ j.modo === 'novo' ? 'Criar rascunho do PETIC-DF' : 'Título e vigência da versão ' + (j.versao?.Versao ?? '') }}
+        </h2>
+      </div>
+
+      <div class="px-6 py-4 space-y-4">
+        <div *ngIf="errosJanela.length > 0" id="pe-petic-janela-erros" tabindex="-1" role="alert"
+             class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p class="font-semibold">Antes de salvar, corrija:</p>
+          <ul class="list-disc ml-5 mt-1 space-y-0.5">
+            <li *ngFor="let e of errosJanela">{{ e }}</li>
+          </ul>
+        </div>
+
+        <div>
+          <label for="pe-petic-titulo" class="block text-sm font-semibold text-gray-800 mb-1">
+            Título<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <input id="pe-petic-titulo" type="text" [(ngModel)]="j.titulo" name="pe-petic-titulo" [maxlength]="maxTitulo"
+                 aria-required="true" [attr.aria-invalid]="erroJanela('titulo') ? true : null"
+                 [attr.aria-describedby]="erroJanela('titulo') ? 'pe-petic-titulo-erro' : null"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erroJanela('titulo') ? 'border-red-500' : 'border-gray-300'" />
+          <p *ngIf="erroJanela('titulo') as e" id="pe-petic-titulo-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="pe-petic-inicio" class="block text-sm font-semibold text-gray-800 mb-1">Início da vigência</label>
+            <input id="pe-petic-inicio" type="date" [(ngModel)]="j.inicio" name="pe-petic-inicio"
+                   [attr.aria-invalid]="erroJanela('inicio') ? true : null"
+                   [attr.aria-describedby]="erroJanela('inicio') ? 'pe-petic-inicio-erro' : null"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [ngClass]="erroJanela('inicio') ? 'border-red-500' : 'border-gray-300'" />
+            <p *ngIf="erroJanela('inicio') as e" id="pe-petic-inicio-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
+          </div>
+          <div>
+            <label for="pe-petic-fim" class="block text-sm font-semibold text-gray-800 mb-1">Fim da vigência</label>
+            <input id="pe-petic-fim" type="date" [(ngModel)]="j.fim" name="pe-petic-fim"
+                   [attr.aria-invalid]="erroJanela('fim') ? true : null"
+                   [attr.aria-describedby]="erroJanela('fim') ? 'pe-petic-fim-erro' : null"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [ngClass]="erroJanela('fim') ? 'border-red-500' : 'border-gray-300'" />
+            <p *ngIf="erroJanela('fim') as e" id="pe-petic-fim-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 italic">A vigência pode ficar para depois: dá para mudar enquanto a versão for rascunho.</p>
+
+        <div *ngIf="j.modo === 'novo'">
+          <label class="inline-flex items-start gap-2 text-sm text-gray-800">
+            <input type="checkbox" class="w-4 h-4 mt-0.5" [(ngModel)]="j.copiar" name="pe-petic-copiar" [disabled]="!vigente"
+                   aria-describedby="pe-petic-copiar-ajuda" />
+            Começar com os registros da versão vigente
+          </label>
+          <p id="pe-petic-copiar-ajuda" class="text-xs text-gray-500 italic mt-1 ml-6">
+            {{ vigente ? 'Copia os registros e os códigos da versão ' + vigente.Versao + '. Sem marcar, o rascunho começa vazio.' : 'Ainda não há versão vigente: o rascunho começa vazio.' }}
+          </p>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+        <button type="button" (click)="fecharJanela()" [disabled]="salvandoJanela"
+                class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          Cancelar
+        </button>
+        <button type="submit" [disabled]="salvandoJanela"
+                class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+          <span class="material-icons text-lg" aria-hidden="true">{{ j.modo === 'novo' ? 'add' : 'save' }}</span>
+          {{ salvandoJanela ? 'Salvando...' : (j.modo === 'novo' ? 'Criar rascunho' : 'Salvar') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

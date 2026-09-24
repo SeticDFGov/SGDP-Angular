@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { PeCampoModelo, PeOpcaoModelo } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PeModeloService } from '../services/pe-modelo.service';
-import { CORES_OPCAO, OpcaoRotulo, classeCorOpcao } from './pe-modelo-rotulos';
+import { CORES_OPCAO, EXPLICACAO_OPCAO_TRAVADA, OpcaoRotulo, classeCorOpcao } from './pe-modelo-rotulos';
 import { mensagemErroPe } from './pe-erros';
 
 interface LinhaOpcao {
@@ -23,6 +23,8 @@ const MAX_ROTULO = 200;
  * reativar, apagar as criadas pelo administrador e incluir novas. Cada ação
  * grava na hora, com o próprio botão. O valor gravado nos registros não muda;
  * opção do sistema ou já usada por algum órgão não se apaga, só se desativa.
+ * Opção travada (os três temas do decreto no campo tema das ações) tem o
+ * cadeado: não se desativa nem se apaga; o rótulo e a cor mudam.
  */
 @Component({
   selector: 'app-pe-opcoes-editor',
@@ -43,6 +45,7 @@ export class PeOpcoesEditorComponent implements OnChanges {
 
   readonly maxRotulo = MAX_ROTULO;
   readonly cores: OpcaoRotulo[] = CORES_OPCAO;
+  readonly explicacaoTravada = EXPLICACAO_OPCAO_TRAVADA;
 
   linhas: LinhaOpcao[] = [];
   novaRotulo = '';
@@ -94,8 +97,13 @@ export class PeOpcoesEditorComponent implements OnChanges {
     });
   }
 
+  /** Um dos três temas do decreto: não se desativa nem se apaga. */
+  travada(l: LinhaOpcao): boolean {
+    return !!l.opcao.Travada;
+  }
+
   apagar(l: LinhaOpcao): void {
-    if (l.opcao.Sistema) return;
+    if (l.opcao.Sistema || this.travada(l)) return;
     if (!confirm(`Apagar a opção "${l.opcao.Rotulo}"? Se algum órgão já escolheu essa opção, ela só é desativada: o que foi gravado continua guardado.`)) return;
     l.salvando = true;
     this.modeloService.apagarOpcao(l.opcao.Id).subscribe({

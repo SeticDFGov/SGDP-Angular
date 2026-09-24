@@ -36,6 +36,11 @@ const confirmarSaida: CanDeactivateFn<ComMudancasPendentes> = tela => !tela?.pod
  *   o modelo configurável (administrador do módulo e admin do SGDP).
  * - `pdtic/:passo`: os passos do órgão pela chave no modelo (uma rota com
  *   parâmetro), com a prévia dos campos dos passos de dados.
+ * - `referenciais/principios`, `referenciais/diretrizes` (mesma tela, pela
+ *   `data.referencial`) e `referenciais/petic`: os referenciais do DF (E3), para
+ *   editar (administrador do módulo e admin do SGDP) ou ler (os demais papéis).
+ * - `cgtic/recebidos`, `cgtic/deliberacao` e `cgtic/historico` (mesma tela, pela
+ *   `data.modo`): as deliberações do CGTIC (E3).
  * - Telas centrais ainda sem tela: uma rota por tela, todas na tela "em
  *   construção"; cada entrega troca o componente da sua rota.
  */
@@ -84,6 +89,47 @@ export const planejamento_routes: Routes = [
         loadComponent: () => import('./pdtic/pe-passo-orgao.component').then(m => m.PePassoOrgaoComponent),
         title: tituloDoPassoDoOrgao,
         data: { prerender: false }
+      },
+      // E3: referenciais do DF (catálogo do DF e PETIC-DF), com os componentes genéricos de registros
+      {
+        path: 'referenciais/principios',
+        loadComponent: () => import('./referenciais/pe-referencial-df.component').then(m => m.PeReferencialDfComponent),
+        title: 'Princípios da política',
+        canDeactivate: [confirmarSaida],
+        data: { prerender: false, referencial: 'principios' }
+      },
+      {
+        path: 'referenciais/diretrizes',
+        loadComponent: () => import('./referenciais/pe-referencial-df.component').then(m => m.PeReferencialDfComponent),
+        title: 'Diretrizes do ciclo',
+        canDeactivate: [confirmarSaida],
+        data: { prerender: false, referencial: 'diretrizes' }
+      },
+      {
+        path: 'referenciais/petic',
+        loadComponent: () => import('./referenciais/pe-petic.component').then(m => m.PePeticComponent),
+        title: 'PETIC-DF',
+        canDeactivate: [confirmarSaida],
+        data: { prerender: false }
+      },
+      // E3: deliberações do CGTIC (fila, registro da decisão e histórico), uma tela por passo da Secretaria
+      {
+        path: 'cgtic/recebidos',
+        loadComponent: () => import('./cgtic/pe-deliberacoes.component').then(m => m.PeDeliberacoesComponent),
+        title: 'O que chegou para o comitê',
+        data: { prerender: false, modo: 'fila' }
+      },
+      {
+        path: 'cgtic/deliberacao',
+        loadComponent: () => import('./cgtic/pe-deliberacoes.component').then(m => m.PeDeliberacoesComponent),
+        title: 'Deliberação do comitê',
+        data: { prerender: false, modo: 'decisao' }
+      },
+      {
+        path: 'cgtic/historico',
+        loadComponent: () => import('./cgtic/pe-deliberacoes.component').then(m => m.PeDeliberacoesComponent),
+        title: 'Histórico das deliberações',
+        data: { prerender: false, modo: 'historico' }
       },
       ...Object.entries(TELAS_CENTRAIS_EM_CONSTRUCAO).map(([caminho, titulo]) => ({
         path: caminho,

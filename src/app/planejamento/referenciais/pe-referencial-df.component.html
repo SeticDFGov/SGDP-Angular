@@ -1,0 +1,38 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <!-- Princípios da política (art. 4º) -->
+  <div *ngIf="referencial === 'principios'" class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Princípios da política</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">
+      A Política de Governança de TIC do DF tem onze princípios, no art. 4º do Decreto nº 48.900/2026. Eles valem para todos os
+      órgãos e são o primeiro nível do planejamento: o PETIC-DF e o PDTIC de cada órgão seguem esses princípios.
+    </p>
+    <ul class="mt-2 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
+      <li>Os onze do decreto já vêm cadastrados, com o texto de cada inciso, e não mudam. Passe o mouse sobre o fundamento, ou
+        chegue nele pelo teclado, para ler o texto do decreto.</li>
+      <li>O administrador do módulo pode acrescentar outros princípios ou diretrizes, por exemplo, os de uma resolução do CGTIC.</li>
+      <li>Os princípios marcados como critério de priorização podem ser usados para ordenar as necessidades dos órgãos.</li>
+    </ul>
+  </div>
+
+  <!-- Diretrizes do ciclo (art. 9º, VIII, do Decreto nº 48.899/2026) -->
+  <div *ngIf="referencial === 'diretrizes'" class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Diretrizes do ciclo</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">
+      Antes de os órgãos começarem a elaborar os PDTICs, a SGDI propõe ao comitê as diretrizes e as prioridades do ciclo de
+      planejamento de TIC do ano seguinte (art. 9º, VIII, do Decreto nº 48.899/2026).
+    </p>
+    <ul class="mt-2 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
+      <li>Cadastre cada diretriz ou prioridade com o ano do ciclo.</li>
+      <li>Registre em que pé está a deliberação de cada uma no comitê.</li>
+      <li>Os órgãos consultam as diretrizes aqui e seguem as do ciclo no PDTIC.</li>
+    </ul>
+  </div>
+
+  <app-pe-secao-registros [fonte]="fonte" [secaoChave]="config.secao" [rotuloItem]="config.rotuloItem"
+                         (alterado)="aoAlterar($event)"></app-pe-secao-registros>
+
+  <a routerLink="/planejamento" class="inline-flex items-center gap-1.5 text-sm font-semibold text-purple-700 hover:underline">
+    <span class="material-icons text-base" aria-hidden="true">dashboard</span> Voltar à visão geral
+  </a>
+</div>

@@ -8,7 +8,7 @@ import {
 import { NotificationService } from '../../core/services/notification.service';
 import { SITUACOES, citacaoTravado, corSituacao, rotuloSituacao } from '../shared/pe-modelo-rotulos';
 import {
-  SituacaoEfetiva, campoNaoDesliga, chaveAjuste, modeloOrdenado, situacaoNoNivel
+  SituacaoEfetiva, campoNaoDesliga, campoTravadoPorSi, chaveAjuste, modeloOrdenado, situacaoNoNivel
 } from '../shared/pe-modelo-arvore';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { PeModeloService } from '../services/pe-modelo.service';
@@ -257,6 +257,11 @@ export class PeOrgaoAjustesComponent implements OnChanges {
 
   naoDesligaCampo(campo: PeCampoModelo, secao: PeSecaoModelo): boolean {
     return campoNaoDesliga(campo, secao);
+  }
+
+  /** O campo tema das ações (travado por si), e não o principal de uma seção travada. */
+  travadoPorSi(campo: PeCampoModelo, secao: PeSecaoModelo): boolean {
+    return campoTravadoPorSi(campo, secao);
   }
 
   // ── Gravação ──────────────────────────────────────────────────────────────

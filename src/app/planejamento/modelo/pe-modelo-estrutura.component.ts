@@ -17,12 +17,12 @@ import { PeHistoricoComponent } from '../shared/pe-historico.component';
 import { PeOpcoesEditorComponent } from '../shared/pe-opcoes-editor.component';
 import { CampoParaCalculo, PeConfigCampoComponent, SecaoParaLigar } from '../shared/pe-config-campo.component';
 import {
-  ESCOPOS_FORA_DO_PDTIC, LARGURAS, OpcaoRotulo, SITUACOES, TIPOS_CAMPO, TIPOS_SECAO,
+  ESCOPOS_FORA_DO_PDTIC, EXPLICACAO_CAMPO_TRAVADO, LARGURAS, OpcaoRotulo, SITUACOES, TIPOS_CAMPO, TIPOS_SECAO,
   citacaoTravado, configPadrao, configParaEnvio, corSituacao, descricaoCampo, rotuloEscopo,
   rotuloSituacao, rotuloTipoCampo, rotuloTipoPasso, tipoComOpcoes
 } from '../shared/pe-modelo-rotulos';
 import {
-  ItemComSituacao, campoNaoDesliga, modeloOrdenado, nomesDoModelo, situacaoNoNivel, todasAsSecoes
+  ItemComSituacao, campoNaoDesliga, campoTravadoPorSi, modeloOrdenado, nomesDoModelo, situacaoNoNivel, todasAsSecoes
 } from '../shared/pe-modelo-arvore';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { PeModeloService, PeTipoItemModelo } from '../services/pe-modelo.service';
@@ -130,6 +130,7 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
   readonly larguras: OpcaoRotulo[] = LARGURAS;
   readonly escoposFora = ESCOPOS_FORA_DO_PDTIC;
   readonly limites = LIMITES_MODELO;
+  readonly explicacaoCampoTravado = EXPLICACAO_CAMPO_TRAVADO;
 
   pode: boolean | null = null;
   erroPapel = false;
@@ -380,7 +381,16 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
     return `${corSituacao(valor)} ${mudou ? 'border-amber-400 bg-amber-50' : 'border-gray-300 bg-white'}`;
   }
 
-  /** Passo e seção travados não desligam; nem o campo principal da seção travada. */
+  /**
+   * Campo travado por si (o tema das ações, com os três temas do decreto), e não
+   * por ser o principal de uma seção travada: ganha o cadeado e a explicação.
+   */
+  travadoPorSi(campo: PeCampoModelo): boolean {
+    const secao = this.secaoDoCampo(campo);
+    return !!secao && campoTravadoPorSi(campo, secao);
+  }
+
+  /** Passo e seção travados não desligam; nem o campo principal da seção travada, nem o campo travado. */
   naoDesliga(tipo: TipoComSituacao, item: ItemComSituacao): boolean {
     if (tipo === 'passo') return (item as PePassoModelo).Travado;
     if (tipo === 'secao') return (item as PeSecaoModelo).Travada;

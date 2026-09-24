@@ -5,7 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { EstadoTrilhaPe, PeTrilhaEstadoService } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
-import { PassoNumeradoPe, rotuloGuia } from './pe-trilhas';
+import { ATALHOS_REFERENCIAIS, PassoNumeradoPe, rotuloGuia } from './pe-trilhas';
 import { papelPlanejamentoDeOrgao, rotuloCurtoPapelPlanejamento } from '../../core/acessos/papeis-planejamento';
 
 /**
@@ -14,7 +14,9 @@ import { papelPlanejamentoDeOrgao, rotuloCurtoPapelPlanejamento } from '../../co
  * de um órgão, o nível de maturidade dele), o próximo passo recomendado e todas
  * as etapas e passos numerados, com a situação de cada um (ou "em construção",
  * para os passos cuja tela chega nas próximas entregas, e "prévia dos campos",
- * para os passos de dados do órgão).
+ * para os passos de dados do órgão). Desde a E3, o acesso rápido aos
+ * referenciais do DF (princípios, PETIC-DF e diretrizes do ciclo), que todo papel
+ * lê, e às deliberações do CGTIC, que só os papéis globais veem.
  */
 @Component({
   selector: 'app-pe-inicio',
@@ -47,6 +49,12 @@ export class PeInicioComponent implements OnInit {
 
   guia(passo: PassoNumeradoPe): string {
     return rotuloGuia(passo.guia);
+  }
+
+  /** Referenciais do DF para todos; as deliberações, só para quem pode vê-las (o papel já chegou). */
+  get atalhos(): typeof ATALHOS_REFERENCIAIS {
+    const globais = this.estadoService.veDeliberacoes === true;
+    return ATALHOS_REFERENCIAIS.filter(a => !a.soGlobais || globais);
   }
 
   get temStatus(): boolean {

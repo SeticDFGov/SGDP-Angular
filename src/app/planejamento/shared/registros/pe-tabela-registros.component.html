@@ -1,0 +1,111 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <p class="text-sm text-gray-600">{{ contagem }}</p>
+    <button *ngIf="dados.PodeEditar" type="button" [id]="prefixoId + '-incluir'" (click)="incluir()"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+      <span class="material-icons text-base" aria-hidden="true">add</span> Incluir {{ rotuloItem }}
+    </button>
+  </div>
+
+  <!-- Não deu para apagar: a mensagem do servidor diz quem liga a este registro -->
+  <div *ngIf="avisoApagar" [id]="prefixoId + '-aviso-apagar'" tabindex="-1" role="alert"
+       class="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <span class="material-icons text-red-600" aria-hidden="true">link</span>
+    <p class="flex-1 leading-relaxed">{{ avisoApagar }}</p>
+    <button type="button" (click)="avisoApagar = null" aria-label="Fechar o aviso" title="Fechar o aviso"
+            class="p-1 rounded text-red-700 hover:bg-red-100">
+      <span class="material-icons text-base" aria-hidden="true">close</span>
+    </button>
+  </div>
+
+  <p *ngIf="registros.length === 0" class="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+    Nenhum registro ainda.<ng-container *ngIf="dados.PodeEditar"> Use o botão "Incluir {{ rotuloItem }}".</ng-container>
+  </p>
+
+  <div *ngIf="registros.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ dados.Secao.Titulo }}. {{ contagem }}</caption>
+      <thead>
+        <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+          <th scope="col" class="px-3 py-2.5 w-24">Código</th>
+          <th *ngFor="let c of colunas; trackBy: porChave" scope="col" class="px-3 py-2.5" [ngClass]="larguraDe(c)">{{ c.Rotulo }}</th>
+          <th scope="col" class="px-3 py-2.5">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of registros; let i = index; trackBy: porId" class="border-t border-gray-100 align-top">
+          <th scope="row" class="px-3 py-2.5 text-left font-normal whitespace-nowrap">
+            <span class="font-mono font-semibold text-gray-900">{{ r.Codigo || (i + 1) }}</span>
+            <span *ngIf="r.Sistema" class="block text-xs text-purple-700">do decreto</span>
+          </th>
+          <td *ngFor="let c of colunas; trackBy: porChave" class="px-3 py-2.5 text-gray-800 break-words">{{ celula(c, r) }}</td>
+          <td class="px-3 py-2.5">
+            <div class="flex flex-wrap items-center gap-1">
+              <button type="button" [id]="prefixoId + '-abrir-' + r.Id" (click)="abrir(r)"
+                      [attr.aria-label]="(editavel(r) ? 'Editar ' : 'Ver ') + nome(r)"
+                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
+                <span class="material-icons text-sm" aria-hidden="true">{{ editavel(r) ? 'edit' : 'visibility' }}</span>
+                {{ editavel(r) ? 'Editar' : 'Ver' }}
+              </button>
+              <ng-container *ngIf="podeMover">
+                <button type="button" [id]="prefixoId + '-subir-' + r.Id" (click)="mover(r, -1)" [disabled]="i === 0 || movendo"
+                        [attr.aria-label]="'Subir ' + nome(r)" title="Subir"
+                        class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+                  <span class="material-icons text-base" aria-hidden="true">arrow_upward</span>
+                </button>
+                <button type="button" [id]="prefixoId + '-descer-' + r.Id" (click)="mover(r, 1)" [disabled]="i === registros.length - 1 || movendo"
+                        [attr.aria-label]="'Descer ' + nome(r)" title="Descer"
+                        class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+                  <span class="material-icons text-base" aria-hidden="true">arrow_downward</span>
+                </button>
+              </ng-container>
+              <button *ngIf="editavel(r)" type="button" (click)="apagar(r)" [disabled]="apagando !== null"
+                      [attr.aria-label]="'Apagar ' + nome(r)"
+                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 bg-white text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50 whitespace-nowrap">
+                <span class="material-icons text-sm" aria-hidden="true">delete</span> {{ apagando === r.Id ? 'Apagando...' : 'Apagar' }}
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Painel lateral: incluir, editar ou ler um registro -->
+<div *ngIf="painel as p" class="fixed inset-0 z-50 bg-black/40 flex justify-end">
+  <div appDialogo [attr.aria-labelledby]="prefixoId + '-painel-titulo'" (fechar)="fecharPainel()"
+       class="h-full w-full max-w-2xl bg-white shadow-xl overflow-y-auto">
+    <div class="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">{{ dados.Secao.Titulo }}</p>
+        <h2 [id]="prefixoId + '-painel-titulo'" class="text-lg font-bold text-gray-900">{{ tituloPainel }}</h2>
+      </div>
+      <button type="button" (click)="fecharPainel()" aria-label="Fechar o painel" title="Fechar"
+              class="p-1 rounded text-gray-700 hover:bg-gray-100">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    </div>
+
+    <div class="px-6 py-5">
+      <p *ngIf="!p.registro && dados.Secao.PrefixoCodigo" class="text-xs text-gray-600 mb-4">
+        O código é dado pelo sistema ao incluir: {{ dados.Secao.PrefixoCodigo }} e o número seguinte da tabela.
+      </p>
+      <p *ngIf="p.registro?.Sistema" class="mb-4 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-gray-800">
+        Este registro veio do decreto: não se edita nem se apaga.
+      </p>
+
+      <app-pe-registro-edicao *ngIf="!p.leitura" [secao]="dados.Secao" [registro]="p.registro" [fonte]="fonte"
+                              [prefixoId]="prefixoId + '-painel'" [rotuloSalvar]="p.registro ? 'Salvar' : 'Incluir'" [mostrarCancelar]="true"
+                              (salvou)="aoSalvar($event)" (cancelou)="fecharPainel()" (alterado)="aoAlterar($event)"></app-pe-registro-edicao>
+
+      <ng-container *ngIf="p.leitura && p.registro">
+        <app-pe-registro-leitura [secao]="dados.Secao" [registro]="p.registro"></app-pe-registro-leitura>
+        <div class="mt-5 flex justify-end">
+          <button type="button" (click)="fecharPainel()"
+                  class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">Fechar</button>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>

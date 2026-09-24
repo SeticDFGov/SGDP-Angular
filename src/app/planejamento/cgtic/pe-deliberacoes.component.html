@@ -1,0 +1,288 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <!-- Apresentação de cada passo -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <ng-container *ngIf="modo === 'fila'">
+      <h2 class="text-base font-semibold text-gray-900 mb-1">O que chegou para o comitê</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">O CGTIC aprova, avalia e revisa o PETIC-DF e aprova o PDTIC de cada órgão
+        (art. 5º). Aqui ficam as versões enviadas que esperam a decisão do comitê, da mais antiga para a mais nova. Os PDTICs dos
+        órgãos passam a chegar aqui numa próxima etapa do desenvolvimento do módulo.</p>
+    </ng-container>
+    <ng-container *ngIf="modo === 'decisao'">
+      <h2 class="text-base font-semibold text-gray-900 mb-1">Registre a deliberação do comitê</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">A Secretaria Executiva do CGTIC registra a decisão tomada em reunião
+        (arts. 9º e 10): aprovado, com o ato e a data, ou devolvido, com o que precisa ser ajustado. A decisão registrada não muda
+        depois.</p>
+    </ng-container>
+    <ng-container *ngIf="modo === 'historico'">
+      <h2 class="text-base font-semibold text-gray-900 mb-1">Histórico das deliberações</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">Todas as deliberações do comitê sobre o PETIC-DF e os PDTICs, com o ato, a data
+        e o que foi pedido nas devoluções (art. 10). As que esperam decisão aparecem primeiro.</p>
+    </ng-container>
+  </div>
+
+  <!-- Papel -->
+  <p *ngIf="ve === null" role="status" class="text-sm text-gray-600">Conferindo o seu papel no módulo...</p>
+  <div *ngIf="ve === false && !erroPapel" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700 leading-relaxed">
+    Esta tela é da Secretaria do CGTIC e dos papéis que acompanham todos os órgãos (administrador do módulo e equipe da SGDI).
+    O PETIC-DF vigente fica em "Referenciais do DF", na visão geral.
+  </div>
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <p class="mt-1">Sem ele, as deliberações não abrem. Tente de novo em alguns instantes.</p>
+    <button type="button" (click)="tentarPapelDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <ng-container *ngIf="ve">
+
+    <!-- ── Fila (o que chegou) e escolha da deliberação a registrar ─────────── -->
+    <div *ngIf="modo === 'fila' || (modo === 'decisao' && !escolhida)" id="pe-dec-fila" tabindex="-1" class="bg-white rounded-lg shadow p-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+        <h2 class="text-base font-semibold text-gray-900">Aguardando a decisão do comitê</h2>
+        <button type="button" (click)="carregarFila()" [disabled]="carregandoFila"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <span class="material-icons text-base" aria-hidden="true">refresh</span> Atualizar
+        </button>
+      </div>
+
+      <p *ngIf="escolhidaSumiu" role="alert" class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        A deliberação pedida não está mais esperando decisão: ela já foi registrada. Veja no histórico.
+      </p>
+
+      <p *ngIf="carregandoFila && aguardando.length === 0" role="status" class="text-sm text-gray-600">Carregando...</p>
+      <div *ngIf="erroFila" role="alert" class="text-sm text-red-700">
+        {{ erroFila }}
+        <button type="button" (click)="carregarFila()" class="font-semibold underline">Tentar de novo</button>
+      </div>
+      <p *ngIf="!carregandoFila && !erroFila && aguardando.length === 0" class="text-sm text-gray-600">Nada aguardando o comitê agora.</p>
+
+      <div *ngIf="aguardando.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+        <table class="w-full text-sm">
+          <caption class="sr-only">Enviados ao comitê que aguardam a decisão, do mais antigo para o mais novo</caption>
+          <thead>
+            <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+              <th scope="col" class="px-3 py-2.5">O que foi enviado</th>
+              <th scope="col" class="px-3 py-2.5">Enviado em</th>
+              <th scope="col" class="px-3 py-2.5">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of aguardando; trackBy: porId" class="border-t border-gray-100 align-top">
+              <th scope="row" class="px-3 py-2.5 text-left font-semibold text-gray-900">
+                {{ objeto(d) }}
+                <span *ngIf="d.OrgaoSigla" class="block text-xs font-normal text-gray-600">{{ d.OrgaoSigla }}</span>
+              </th>
+              <td class="px-3 py-2.5 text-gray-700">{{ enviado(d) }}</td>
+              <td class="px-3 py-2.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <a *ngIf="ehPetic(d)" routerLink="/planejamento/referenciais/petic" [queryParams]="{ versao: d.ObjetoId }"
+                     class="inline-flex items-center gap-1 text-sm font-semibold text-purple-700 hover:underline whitespace-nowrap">
+                    <span class="material-icons text-base" aria-hidden="true">visibility</span> Ler o PETIC-DF {{ d.VersaoObjeto }}
+                  </a>
+                  <button *ngIf="ehPetic(d)" type="button" (click)="baixarPlanilha(d)" [disabled]="baixando !== null"
+                          [attr.aria-label]="'Baixar a planilha completa do ' + objeto(d)"
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
+                    <span class="material-icons text-sm" aria-hidden="true">table_view</span> {{ baixando === d.Id ? 'Gerando...' : 'Planilha' }}
+                  </button>
+                  <button *ngIf="podeDecidir" type="button" (click)="registrar(d)"
+                          [attr.aria-label]="'Registrar a decisão sobre o ' + objeto(d)"
+                          class="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 whitespace-nowrap">
+                    <span class="material-icons text-sm" aria-hidden="true">gavel</span> Registrar a decisão
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p *ngIf="!podeDecidir && aguardando.length > 0" class="text-xs text-gray-500 italic mt-2">Quem registra a decisão é a Secretaria do
+        CGTIC.</p>
+    </div>
+
+    <!-- ── Registrar a decisão ─────────────────────────────────────────────── -->
+    <ng-container *ngIf="modo === 'decisao' && escolhida as d">
+      <div class="bg-white rounded-lg shadow p-6">
+        <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Aguardando a decisão do comitê</p>
+        <h2 class="text-xl font-bold text-gray-900 mt-0.5">{{ objeto(d) }}</h2>
+        <p class="text-sm text-gray-700 mt-1">Enviado em {{ enviado(d) }}.</p>
+        <div class="flex flex-wrap gap-3 mt-3">
+          <a *ngIf="ehPetic(d)" routerLink="/planejamento/referenciais/petic" [queryParams]="{ versao: d.ObjetoId }"
+             class="inline-flex items-center gap-1 text-sm font-semibold text-purple-700 hover:underline">
+            <span class="material-icons text-base" aria-hidden="true">visibility</span> Ler o PETIC-DF {{ d.VersaoObjeto }}
+          </a>
+          <button *ngIf="ehPetic(d)" type="button" (click)="baixarPlanilha(d)" [disabled]="baixando !== null"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando === d.Id ? 'Gerando...' : 'Planilha completa (XLSX)' }}
+          </button>
+          <button type="button" (click)="voltarParaFila()"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar para a fila
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="!podeDecidir" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700">
+        Quem registra a decisão é a Secretaria do CGTIC. Você pode ler o que foi enviado e baixar a planilha.
+      </div>
+
+      <form *ngIf="podeDecidir" (ngSubmit)="decidir()" class="bg-white rounded-lg shadow p-6 space-y-5">
+        <h2 class="text-base font-semibold text-gray-900">Decisão do comitê</h2>
+
+        <div *ngIf="errosForm.length > 0" id="pe-dec-erros" tabindex="-1" role="alert"
+             class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p class="font-semibold">Antes de registrar, corrija:</p>
+          <ul class="list-disc ml-5 mt-1 space-y-0.5">
+            <li *ngFor="let e of errosForm"><button type="button" (click)="focarCampo(e.campo)" class="text-left underline">{{ e.mensagem }}</button></li>
+          </ul>
+        </div>
+
+        <fieldset id="pe-dec-decisao" tabindex="-1" [attr.aria-describedby]="descritores('decisao')">
+          <legend class="block text-sm font-semibold text-gray-800">
+            O que o comitê decidiu?<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </legend>
+          <div class="mt-2 space-y-2">
+            <label class="flex items-start gap-2 text-sm text-gray-800">
+              <input type="radio" class="w-4 h-4 mt-0.5" name="pe-dec-decisao" value="aprovado" [(ngModel)]="form.decisao" />
+              <span><strong>Aprovado.</strong> {{ ehPetic(d) ? 'A versão passa a ser a vigente, e a anterior fica no histórico.' : 'O PDTIC do órgão passa a valer.' }}</span>
+            </label>
+            <label class="flex items-start gap-2 text-sm text-gray-800">
+              <input type="radio" class="w-4 h-4 mt-0.5" name="pe-dec-decisao" value="devolvido" [(ngModel)]="form.decisao" />
+              <span><strong>Devolvido para ajustes.</strong> {{ ehPetic(d) ? 'A versão volta a rascunho para o administrador do módulo ajustar.' : 'O PDTIC volta ao órgão para ajustar.' }}</span>
+            </label>
+          </div>
+          <p *ngIf="erroDe('decisao') as e" id="pe-dec-decisao-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </fieldset>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="pe-dec-tipo" class="block text-sm font-semibold text-gray-800 mb-1">Tipo do ato</label>
+            <select id="pe-dec-tipo" [(ngModel)]="form.atoTipo" name="pe-dec-tipo"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option *ngFor="let t of tiposAto" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+          <div>
+            <label for="pe-dec-numero" class="block text-sm font-semibold text-gray-800 mb-1">
+              Número do ato<ng-container *ngIf="aprovar"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
+            </label>
+            <input id="pe-dec-numero" type="text" [(ngModel)]="form.atoNumero" name="pe-dec-numero" [maxlength]="limites.atoNumero"
+                   [attr.aria-required]="aprovar || null" [attr.aria-invalid]="erroDe('atoNumero') ? true : null"
+                   [attr.aria-describedby]="descritores('atoNumero')" placeholder="Ex.: 3/2026"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [ngClass]="erroDe('atoNumero') ? 'border-red-500' : 'border-gray-300'" />
+            <p *ngIf="erroDe('atoNumero') as e" id="pe-dec-atoNumero-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
+          </div>
+          <div>
+            <label for="pe-dec-data" class="block text-sm font-semibold text-gray-800 mb-1">
+              Data do ato<ng-container *ngIf="aprovar"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
+            </label>
+            <input id="pe-dec-data" type="date" [(ngModel)]="form.atoData" name="pe-dec-data" [max]="hoje"
+                   [attr.aria-required]="aprovar || null" [attr.aria-invalid]="erroDe('atoData') ? true : null"
+                   [attr.aria-describedby]="descritores('atoData')"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [ngClass]="erroDe('atoData') ? 'border-red-500' : 'border-gray-300'" />
+            <p *ngIf="erroDe('atoData') as e" id="pe-dec-atoData-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
+          </div>
+          <div>
+            <label for="pe-dec-sei" class="block text-sm font-semibold text-gray-800 mb-1">Número do processo SEI</label>
+            <input id="pe-dec-sei" type="text" [(ngModel)]="form.sei" name="pe-dec-sei" [maxlength]="limites.sei"
+                   aria-describedby="pe-dec-sei-ajuda" placeholder="Ex.: 00000-00000000/2026-00"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p id="pe-dec-sei-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional: o processo em que o ato foi juntado.</p>
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 italic">Para aprovar, o número e a data do ato são obrigatórios. Na devolução, o ato é opcional.</p>
+
+        <div>
+          <label for="pe-dec-observacao" class="block text-sm font-semibold text-gray-800 mb-1">
+            {{ devolver ? 'O que precisa ser ajustado' : 'Observação' }}<ng-container *ngIf="devolver"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
+          </label>
+          <textarea id="pe-dec-observacao" rows="4" [(ngModel)]="form.observacao" name="pe-dec-observacao" [maxlength]="limites.observacao"
+                    [attr.aria-required]="devolver || null" [attr.aria-invalid]="erroDe('observacao') ? true : null"
+                    [attr.aria-describedby]="descritores('observacao', 'pe-dec-observacao-ajuda')"
+                    class="w-full px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [ngClass]="erroDe('observacao') ? 'border-red-500' : 'border-gray-300'"></textarea>
+          <p id="pe-dec-observacao-ajuda" class="text-xs text-gray-500 italic mt-1">
+            {{ devolver ? 'Quem enviou lê este texto para ajustar e enviar de novo.' : 'Opcional.' }}
+          </p>
+          <p *ngIf="erroDe('observacao') as e" id="pe-dec-observacao-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <button type="button" (click)="voltarParaFila()" [disabled]="decidindo"
+                  class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            Cancelar
+          </button>
+          <button type="submit" [disabled]="decidindo"
+                  class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-60">
+            <span class="material-icons text-lg" aria-hidden="true">gavel</span> {{ decidindo ? 'Registrando...' : 'Registrar a decisão' }}
+          </button>
+        </div>
+      </form>
+    </ng-container>
+
+    <!-- ── Histórico ───────────────────────────────────────────────────────── -->
+    <div *ngIf="modo === 'historico'" class="bg-white rounded-lg shadow p-6">
+      <div class="flex flex-wrap gap-2 mb-4" role="group" aria-label="Filtrar as deliberações pela situação">
+        <button *ngFor="let f of filtros" type="button" (click)="filtrar(f.valor)" [attr.aria-pressed]="filtro === f.valor"
+                class="px-3 py-1.5 rounded-full border text-sm transition-colors"
+                [ngClass]="filtro === f.valor ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
+          {{ f.rotulo }}
+        </button>
+      </div>
+
+      <div aria-live="polite">
+        <p *ngIf="carregandoHistorico && itens.length === 0" class="text-sm text-gray-600">Carregando o histórico...</p>
+        <p *ngIf="!carregandoHistorico && !erroHistorico" class="text-sm text-gray-600 mb-3">{{ contagemHistorico }}</p>
+      </div>
+      <div *ngIf="erroHistorico" role="alert" class="text-sm text-red-700 mb-3">
+        {{ erroHistorico }}
+        <button type="button" (click)="carregarHistorico(itens.length ? pagina + 1 : 1)" class="font-semibold underline">Tentar de novo</button>
+      </div>
+
+      <div *ngIf="itens.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+        <table class="w-full text-sm">
+          <caption class="sr-only">Deliberações do CGTIC: as que aguardam a decisão primeiro, depois as decididas, da mais nova para a mais antiga</caption>
+          <thead>
+            <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+              <th scope="col" class="px-3 py-2.5">O que foi enviado</th>
+              <th scope="col" class="px-3 py-2.5">Enviado em</th>
+              <th scope="col" class="px-3 py-2.5">Situação</th>
+              <th scope="col" class="px-3 py-2.5">Decisão</th>
+              <th scope="col" class="px-3 py-2.5">Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of itens; trackBy: porId" class="border-t border-gray-100 align-top">
+              <th scope="row" class="px-3 py-2.5 text-left font-semibold text-gray-900">
+                {{ objeto(d) }}
+                <a *ngIf="ehPetic(d)" routerLink="/planejamento/referenciais/petic" [queryParams]="{ versao: d.ObjetoId }"
+                   class="block text-xs font-semibold text-purple-700 hover:underline mt-0.5">Ler esta versão</a>
+              </th>
+              <td class="px-3 py-2.5 text-gray-700">{{ enviado(d) }}</td>
+              <td class="px-3 py-2.5">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeSituacao(d)">{{ rotuloSituacao(d) }}</span>
+              </td>
+              <td class="px-3 py-2.5 text-gray-700">
+                <ng-container *ngIf="d.Situacao !== 'aguardando'; else semDecisao">
+                  <span class="block">{{ decidido(d) }}</span>
+                  <span class="block text-xs text-gray-600">{{ ato(d) }}</span>
+                </ng-container>
+                <ng-template #semDecisao>-</ng-template>
+              </td>
+              <td class="px-3 py-2.5 text-gray-700 whitespace-pre-line break-words">{{ d.Observacao || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <button *ngIf="temMais" type="button" (click)="carregarMais()" [disabled]="carregandoHistorico"
+              class="mt-3 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        {{ carregandoHistorico ? 'Carregando...' : 'Carregar mais' }}
+      </button>
+    </div>
+  </ng-container>
+</div>

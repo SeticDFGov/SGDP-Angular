@@ -1,0 +1,119 @@
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
+import { PeFormatoPlanilha, PeRegistro, PeRegistrosDaSecao } from '../../../../api/planejamento/interface';
+import { NotificationService } from '../../../core/services/notification.service';
+import { PeFonteRegistros } from '../../services/pe-registros.service';
+import { mensagemErroPe } from '../pe-erros';
+import { mensagemErroDownload, salvarResposta } from '../pe-download';
+import { PeFormularioSecaoComponent } from './pe-formulario-secao.component';
+import { PeTabelaRegistrosComponent } from './pe-tabela-registros.component';
+
+/**
+ * Uma seção de dados de um dono, pronta para usar numa tela: busca a seção e os
+ * registros (GET {dono}/secoes/{secaoChave}/registros), mostra o título, a ajuda
+ * e os botões de planilha (CSV e XLSX, por blob, com o nome do servidor) e usa o
+ * formulário ou a tabela, conforme o tipo da seção. Quem não pode editar lê.
+ *
+ * É o ponto de entrada dos componentes genéricos: a tela só diz a fonte (o dono)
+ * e a chave da seção. A E4 usa o mesmo componente nas seções do PDTIC.
+ */
+@Component({
+  selector: 'app-pe-secao-registros',
+  standalone: true,
+  imports: [CommonModule, PeFormularioSecaoComponent, PeTabelaRegistrosComponent],
+  templateUrl: './pe-secao-registros.component.html'
+})
+export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
+  private readonly notificacoes = inject(NotificationService);
+
+  @Input({ required: true }) fonte!: PeFonteRegistros;
+  @Input({ required: true }) secaoChave!: string;
+  /** Mostra os botões de planilha da seção. */
+  @Input() planilha = true;
+  /** Nome da planilha quando o servidor não manda o nome ("PETIC-DF_1.0_objetivos"). */
+  @Input() nomePlanilha: string | null = null;
+  /** Nome de um item da tabela ("princípio"): o botão diz "Incluir princípio". */
+  @Input() rotuloItem = 'registro';
+  /** Explica por que a pessoa só lê (ex.: "Só o rascunho muda."). Sem ele, um texto padrão. */
+  @Input() avisoLeitura: string | null = null;
+  /** Esconde o título (a tela já mostra o nome da seção). */
+  @Input() semTitulo = false;
+  /** A lista mudou (inclusão, alteração, exclusão, ordem) ou o formulário foi salvo. */
+  @Output() readonly mudou = new EventEmitter<void>();
+  /** Há mudança não salva na seção. */
+  @Output() readonly alterado = new EventEmitter<boolean>();
+
+  dados: PeRegistrosDaSecao | null = null;
+  carregando = false;
+  erro: string | null = null;
+  baixando: PeFormatoPlanilha | null = null;
+  private carga?: Subscription;
+  private carregado = '';
+
+  ngOnChanges(): void {
+    const chave = `${this.fonte?.chave}|${this.secaoChave}`;
+    if (chave === this.carregado) return;
+    this.carregado = chave;
+    // Outra seção (ou outro dono): a anterior sai da tela enquanto a nova carrega
+    this.dados = null;
+    this.carregar();
+  }
+
+  ngOnDestroy(): void {
+    this.carga?.unsubscribe();
+  }
+
+  get idTitulo(): string {
+    return `pe-secao-${this.secaoChave}-titulo`;
+  }
+
+  get prefixoId(): string {
+    return `pe-${this.secaoChave}`;
+  }
+
+  carregar(): void {
+    this.carga?.unsubscribe();
+    this.carregando = true;
+    this.erro = null;
+    this.carga = this.fonte.listar(this.secaoChave).subscribe({
+      next: dados => {
+        this.carregando = false;
+        this.dados = dados;
+      },
+      error: erro => {
+        this.carregando = false;
+        this.dados = null;
+        const status = (erro as { status?: number } | null)?.status;
+        const padrao = status === 404
+          ? 'Esta seção não foi encontrada. Ela pode ter sido desligada ou apagada no modelo.'
+          : 'Não foi possível carregar esta seção.';
+        // 403: o interceptor já tirou a pessoa da tela
+        this.erro = mensagemErroPe(erro, padrao);
+      }
+    });
+  }
+
+  aoMudar(_: PeRegistro[] | PeRegistro): void {
+    this.mudou.emit();
+  }
+
+  /** Planilha da seção por blob, com o nome do `Content-Disposition`. */
+  baixarPlanilha(formato: PeFormatoPlanilha): void {
+    if (this.baixando) return;
+    this.baixando = formato;
+    const reserva = `${this.nomePlanilha || this.secaoChave}.${formato}`;
+    this.fonte.planilha(this.secaoChave, formato).subscribe({
+      next: resposta => {
+        this.baixando = null;
+        salvarResposta(resposta, reserva);
+      },
+      error: erro => {
+        this.baixando = null;
+        mensagemErroDownload(erro, 'Não foi possível gerar a planilha. Tente de novo.').then(m => {
+          if (m) this.notificacoes.error(m);
+        });
+      }
+    });
+  }
+}

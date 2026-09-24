@@ -23,8 +23,11 @@ export type PerfilTrilhaPe = 'admin' | 'sgdi' | 'cgtic' | 'orgao';
 /** As trilhas fixas, dos papéis que enxergam todos os órgãos. */
 export type PerfilCentralPe = Exclude<PerfilTrilhaPe, 'orgao'>;
 
-/** Status calculado a partir dos dados (ver PeTrilhaStatusService). */
-export type ChaveStatusPe = 'pedidos-acesso';
+/**
+ * Status calculado a partir dos dados (ver PeTrilhaStatusService): pedidos de
+ * acesso ao módulo, situação do PETIC-DF e deliberações esperando o comitê.
+ */
+export type ChaveStatusPe = 'pedidos-acesso' | 'petic' | 'deliberacoes';
 
 export interface PassoTrilhaPe {
   /** Ação no imperativo. */
@@ -87,8 +90,38 @@ export const ROTAS_PRONTAS: ReadonlySet<string> = new Set([
   `${BASE_PE}/modelo/niveis`,
   `${BASE_PE}/modelo/estrutura`,
   `${BASE_PE}/modelo/criterios`,
-  `${BASE_PE}/orgaos/niveis`
+  `${BASE_PE}/orgaos/niveis`,
+  `${BASE_PE}/referenciais/principios`,
+  `${BASE_PE}/referenciais/petic`,
+  `${BASE_PE}/referenciais/diretrizes`,
+  `${BASE_PE}/cgtic/recebidos`,
+  `${BASE_PE}/cgtic/deliberacao`,
+  `${BASE_PE}/cgtic/historico`
 ]);
+
+/**
+ * Referenciais do DF e deliberações, para o acesso rápido da visão geral: todo
+ * papel lê os três referenciais (a E4 usa na etapa 1 do órgão); as deliberações
+ * só os papéis globais e o admin do SGDP (`soGlobais`).
+ */
+export const ATALHOS_REFERENCIAIS: { rota: string; titulo: string; texto: string; icone: string; soGlobais?: boolean }[] = [
+  {
+    rota: `${BASE_PE}/referenciais/principios`, titulo: 'Princípios da política', icone: 'looks_one',
+    texto: 'Os onze princípios do decreto e os que o administrador do módulo acrescentou.'
+  },
+  {
+    rota: `${BASE_PE}/referenciais/petic`, titulo: 'PETIC-DF', icone: 'looks_two',
+    texto: 'A versão vigente do plano estratégico de TIC do DF e as anteriores.'
+  },
+  {
+    rota: `${BASE_PE}/referenciais/diretrizes`, titulo: 'Diretrizes do ciclo', icone: 'event_note',
+    texto: 'O que a SGDI propôs para o ciclo de planejamento dos PDTICs.'
+  },
+  {
+    rota: `${BASE_PE}/cgtic/historico`, titulo: 'Deliberações do CGTIC', icone: 'gavel', soGlobais: true,
+    texto: 'O que foi enviado ao comitê e o que ele decidiu.'
+  }
+];
 
 /** Tipos de passo do órgão que já têm tela (a prévia dos campos, nos passos de dados). */
 const TIPOS_COM_PREVIA: ReadonlySet<string> = new Set(['dados']);
@@ -101,17 +134,11 @@ const TIPOS_COM_PREVIA: ReadonlySet<string> = new Set(['dados']);
 export const TELAS_CENTRAIS_EM_CONSTRUCAO: Readonly<Record<string, string>> = {
   'modelo/documento': 'Modelo do documento',
   'modelo/fluxos': 'Fluxos-modelo',
-  'referenciais/principios': 'Princípios da política',
-  'referenciais/petic': 'PETIC-DF',
-  'referenciais/diretrizes': 'Diretrizes do ciclo',
   'orgaos': 'Página do órgão',
   'comentarios': 'Comentários nos passos',
   'painel': 'Painel e conformidade',
   'inadimplencia': 'Notificações e inadimplências',
-  'consolidado': 'Planilhas consolidadas',
-  'cgtic/recebidos': 'PDTICs e PETIC enviados ao comitê',
-  'cgtic/deliberacao': 'Deliberação do comitê',
-  'cgtic/historico': 'Histórico das deliberações'
+  'consolidado': 'Planilhas consolidadas'
 };
 
 export const ROTULOS_PERFIL_TRILHA_PE: Record<PerfilTrilhaPe, string> = {
@@ -209,8 +236,9 @@ const TRILHA_ADMIN: TrilhaPe = {
         {
           titulo: 'Cadastre o PETIC-DF',
           rota: tela('referenciais/petic'),
-          oQueFazer: 'Registre as diretrizes, os objetivos estratégicos, as prioridades, os indicadores e as iniciativas do Plano Estratégico de TIC do DF (PETIC-DF).',
-          baseLegal: 'art. 11, § 1º'
+          oQueFazer: 'Registre num rascunho as diretrizes, os objetivos estratégicos, as prioridades, os indicadores e as iniciativas do Plano Estratégico de TIC do DF (PETIC-DF) e envie ao CGTIC, que aprova.',
+          baseLegal: 'art. 11, § 1º',
+          status: 'petic'
         },
         {
           titulo: 'Publique as diretrizes do ciclo',
@@ -268,9 +296,17 @@ const TRILHA_SGDI: TrilhaPe = {
     {
       rotulo: 'Acompanhamento',
       titulo: 'Acompanhe',
-      resumo: 'Painel e conformidade dos órgãos.',
+      resumo: 'Painel e conformidade dos órgãos e as deliberações do CGTIC.',
       icone: 'insights',
-      passos: [PAINEL]
+      passos: [
+        PAINEL,
+        {
+          titulo: 'Acompanhe as deliberações do CGTIC',
+          rota: tela('cgtic/historico'),
+          oQueFazer: 'Veja o que foi enviado ao comitê de governança de TIC (CGTIC) e o que ele decidiu: o PETIC-DF agora e, numa próxima etapa, os PDTICs dos órgãos.',
+          baseLegal: 'art. 5º'
+        }
+      ]
     },
     {
       rotulo: 'Análise',
@@ -326,8 +362,9 @@ const TRILHA_CGTIC: TrilhaPe = {
         {
           titulo: 'Confira o que chegou para o comitê',
           rota: tela('cgtic/recebidos'),
-          oQueFazer: 'Veja os PDTICs dos órgãos e o PETIC-DF enviados para o comitê, com o documento de cada um.',
-          baseLegal: 'art. 5º'
+          oQueFazer: 'Veja o PETIC-DF e, numa próxima etapa, os PDTICs dos órgãos enviados para o comitê, e leia o que foi enviado.',
+          baseLegal: 'art. 5º',
+          status: 'deliberacoes'
         }
       ]
     },
@@ -340,8 +377,9 @@ const TRILHA_CGTIC: TrilhaPe = {
         {
           titulo: 'Registre a deliberação do comitê',
           rota: tela('cgtic/deliberacao'),
-          oQueFazer: 'Registre a decisão tomada em reunião, aprovado ou devolvido com ajustes, e anexe a resolução ou a ata.',
-          baseLegal: 'art. 10'
+          oQueFazer: 'Registre a decisão tomada em reunião: aprovado, com o ato (resolução ou ata) e a data, ou devolvido, com o que precisa ser ajustado.',
+          baseLegal: 'art. 10',
+          status: 'deliberacoes'
         }
       ]
     },

@@ -94,6 +94,26 @@
 
       <p *ngIf="carregandoStatus" class="text-sm text-gray-600">Conferindo a situação dos passos...</p>
 
+      <!-- Referenciais do DF (e as deliberações, para os papéis globais) -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-gray-900 mb-1">Referenciais do DF</h2>
+        <p class="text-sm text-gray-600 leading-relaxed">Os princípios, o PETIC-DF e as diretrizes do ciclo valem para todos os órgãos.
+          Consulte sempre que precisar.</p>
+        <ul class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          <li *ngFor="let a of atalhos">
+            <!-- data-sem-dica: citação dentro de link não vira chip -->
+            <a [routerLink]="a.rota" data-sem-dica
+               class="flex items-start gap-3 h-full rounded-lg border border-gray-200 px-4 py-3 hover:bg-gray-50">
+              <span class="material-icons text-purple-600" aria-hidden="true">{{ a.icone }}</span>
+              <span class="min-w-0">
+                <span class="block text-sm font-semibold text-purple-700">{{ a.titulo }}</span>
+                <span class="block text-xs text-gray-600 mt-0.5">{{ a.texto }}</span>
+              </span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
       <!-- Etapas e passos numerados -->
       <div *ngFor="let etapa of trilha.etapas; let i = index" class="bg-white rounded-lg shadow overflow-hidden">
         <div class="px-5 py-4 flex items-start gap-4 border-b border-gray-100">
