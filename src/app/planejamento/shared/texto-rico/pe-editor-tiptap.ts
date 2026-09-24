@@ -11,8 +11,10 @@
  * próprios (sem o linkify do pacote oficial; a imagem aparece baixada com o
  * token). O Tab não fica preso no editor (WCAG 2.1.2): listas e tabelas usam os
  * botões e os atalhos Ctrl+] e Ctrl+[ para o recuo, e as setas entre as células.
+ * No documento do PDTIC (E5), os marcadores escritos no texto ("{orgao.nome}")
+ * ficam em destaque (só decoração: o documento guarda o texto como está).
  */
-import { Editor, Mark, Node, mergeAttributes } from '@tiptap/core';
+import { Editor, Extension, Mark, Node, mergeAttributes } from '@tiptap/core';
 import type { KeyboardShortcutCommand } from '@tiptap/core';
 import { Document } from '@tiptap/extension-document';
 import { Paragraph } from '@tiptap/extension-paragraph';
@@ -33,6 +35,8 @@ import { UndoRedo } from '@tiptap/extensions/undo-redo';
 import { Gapcursor } from '@tiptap/extensions/gap-cursor';
 import { Dropcursor } from '@tiptap/extensions/drop-cursor';
 import type { Node as NoProseMirror } from '@tiptap/pm/model';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import {
   CLASSES_TEXTO_RICO,
   ComandoTextoRico,
@@ -41,12 +45,49 @@ import {
   EditorTextoRico,
   EstadoFormatacao,
   OpcoesEditorTextoRico,
+  REGEX_MARCADOR_NO_TEXTO,
   docVazio,
   hrefSeguro,
   idDaImagem,
   normalizarDocumento,
   srcDaImagem
 } from './pe-texto-rico-doc';
+
+/** Os marcadores de um documento em destaque (decoração: o texto guardado não muda). */
+function decoracoesDosMarcadores(doc: NoProseMirror): DecorationSet {
+  const decoracoes: Decoration[] = [];
+  doc.descendants((no, posicao) => {
+    if (!no.isText || !no.text) return;
+    const regex = new RegExp(REGEX_MARCADOR_NO_TEXTO.source, 'g');
+    let achado = regex.exec(no.text);
+    while (achado) {
+      decoracoes.push(Decoration.inline(posicao + achado.index, posicao + achado.index + achado[0].length, {
+        class: CLASSES_TEXTO_RICO.marcador
+      }));
+      achado = regex.exec(no.text);
+    }
+  });
+  return DecorationSet.create(doc, decoracoes);
+}
+
+/** Destaque dos marcadores ("{orgao.nome}") enquanto se escreve o texto do documento. */
+const Marcadores = Extension.create({
+  name: 'marcadores',
+  addProseMirrorPlugins() {
+    return [new Plugin<DecorationSet>({
+      key: new PluginKey('marcadores'),
+      state: {
+        init: (_, estado) => decoracoesDosMarcadores(estado.doc),
+        apply: (transacao, anteriores) => transacao.docChanged ? decoracoesDosMarcadores(transacao.doc) : anteriores
+      },
+      props: {
+        decorations(estado) {
+          return this.getState(estado);
+        }
+      }
+    })];
+  }
+});
 
 /** Tira o Tab e o Shift+Tab dos atalhos de uma extensão (o foco sai do editor normalmente). */
 function semTab(atalhos: Record<string, KeyboardShortcutCommand> | undefined): Record<string, KeyboardShortcutCommand> {
@@ -261,7 +302,8 @@ export const criarEditorTextoRico: CriarEditorTextoRico = (opcoes: OpcoesEditorT
       Imagem.configure({ resolverImagem: opcoes.resolverImagem }),
       UndoRedo,
       Gapcursor,
-      Dropcursor
+      Dropcursor,
+      ...(opcoes.destacarMarcadores ? [Marcadores] : [])
     ],
     editorProps: propsDoEditor(),
     onUpdate: ({ editor: e }) => opcoes.aoMudar(documentoDe(e)),
@@ -308,6 +350,9 @@ export const criarEditorTextoRico: CriarEditorTextoRico = (opcoes: OpcoesEditorT
     },
     inserirImagem: (src, alt) => {
       editor.chain().focus().insertContent({ type: 'image', attrs: { src, alt } }).run();
+    },
+    inserirTexto: texto => {
+      if (texto) editor.chain().focus().insertContent({ type: 'text', text: texto }).run();
     },
     focar: () => {
       editor.commands.focus();

@@ -882,3 +882,268 @@ export interface PeDocTextoRico extends PeNoTextoRico {
   type: 'doc';
   content: PeNoTextoRico[];
 }
+
+// ── E5 · Documento do PDTIC (prévia editável, PDF e versões) ────────────────
+//
+// O documento sai do modelo da SGDI (capítulos e blocos, que o administrador
+// edita) com os textos que o órgão editou na prévia e as tabelas vindas dos
+// dados. Texto que o órgão não editou segue o modelo na hora (decisão 14); o
+// editado fica e ganha o aviso "o modelo mudou". Erros desta entrega na faixa
+// 1070 a 1089 (a tela mostra a `Message` do servidor).
+
+/** Tipos de bloco de um capítulo. */
+export type PeTipoBlocoDoc = 'texto' | 'tabela_secao' | 'lista_tema' | 'matriz_swot' | 'fluxo' | 'quebra_pagina';
+
+/** Situação de uma versão em PDF (a E7 usa as três últimas). */
+export type PeSituacaoVersaoDoc = 'minuta' | 'enviada' | 'aprovada' | 'publicada';
+
+export interface PeDocColuna {
+  Chave: string;
+  Rotulo: string;
+}
+
+export interface PeDocLinha {
+  Codigo: string | null;
+  /** Texto pronto de cada coluna, pela chave do campo ("-" quando vazio). */
+  Celulas: Record<string, string>;
+  /** A mais que o contrato: nas colunas de texto formatado, o JSON do TipTap. */
+  Ricos?: Record<string, PeDocTextoRico | null> | null;
+}
+
+/** Tabela de uma seção (só leitura: os dados se editam no passo da seção). */
+export interface PeDocTabela {
+  SecaoChave: string;
+  SecaoTitulo: string;
+  /** A mais que o contrato: `formulario` (um registro, mostrado como rótulo e valor) ou `tabela`. */
+  SecaoTipo?: string | null;
+  /** A mais que o contrato: o número do passo da seção na trilha do órgão ("2.4"). */
+  PassoNumero?: string | null;
+  Colunas: PeDocColuna[];
+  Linhas: PeDocLinha[];
+  Vazia: boolean;
+}
+
+export interface PeDocItemLista {
+  Codigo: string | null;
+  Texto: string;
+  Situacao: string | null;
+}
+
+/** As ações do plano marcadas com um tema (incisos V, VI e IX e os temas criados). */
+export interface PeDocLista {
+  /** O rótulo do tema. */
+  Tema: string;
+  Itens: PeDocItemLista[];
+  /** A mais que o contrato: sem ação no tema, a justificativa do órgão (passo da conferência dos temas). */
+  Justificativa?: string | null;
+}
+
+export interface PeDocSwot {
+  Forcas: string[];
+  Fraquezas: string[];
+  Oportunidades: string[];
+  Ameacas: string[];
+}
+
+/** Fluxo do documento; `Svg` fica nulo até a E6. */
+export interface PeDocFluxo {
+  Chave: string;
+  Nome: string;
+  Svg: string | null;
+}
+
+/**
+ * Um bloco do documento resolvido para o órgão. Texto: `TextoBruto` é o JSON do
+ * TipTap com os marcadores escritos como texto ("{orgao.nome}"), o que o editor
+ * mostra; `TextoResolvido`, o mesmo com os marcadores trocados pelos valores, o
+ * que a prévia mostra. Os demais tipos trazem os dados prontos.
+ */
+export interface PeDocBloco {
+  Id: number;
+  Tipo: PeTipoBlocoDoc;
+  Ordem: number;
+  PaginaDeitada: boolean;
+  TextoBruto: PeDocTextoRico | null;
+  TextoResolvido: PeDocTextoRico | null;
+  /** O órgão tem a própria cópia deste texto (sem ela, o texto segue o modelo na hora). */
+  EditadoPeloOrgao: boolean;
+  /** O modelo mudou depois que o órgão editou: `TextoModeloAtual` traz o texto novo do modelo. */
+  ModeloMudou: boolean;
+  TextoModeloAtual: PeDocTextoRico | null;
+  EditadoEm: string | null;
+  /** E-mail de quem editou. */
+  EditadoPor: string | null;
+  /** Chaves dos marcadores do texto que ainda não têm valor ("nomes.comite"): saem em branco no PDF. */
+  MarcadoresSemValor: string[];
+  Tabela: PeDocTabela | null;
+  Lista: PeDocLista | null;
+  Swot: PeDocSwot | null;
+  Fluxo: PeDocFluxo | null;
+}
+
+/**
+ * Um capítulo do documento, na ordem (subcapítulo com `Nivel` 2). Capítulo
+ * oculto vem sem blocos (só o título), para a prévia oferecer "Mostrar de
+ * novo"; capítulo cujo passo está desligado para o órgão não vem.
+ */
+export interface PeDocCapitulo {
+  Id: number;
+  Chave: string;
+  /** "6" ou "6.1"; nulo nos capítulos sem número (capa, sumário, apresentação...). */
+  Numero: string | null;
+  Nivel: 1 | 2;
+  /** O título que vale: o próprio do órgão ou o do modelo. */
+  Titulo: string;
+  TituloModelo: string;
+  TituloProprio: string | null;
+  Oculto: boolean;
+  Obrigatorio: boolean;
+  /** Um dos nove conteúdos mínimos (art. 12, § 2º): não se esconde. */
+  Travado: boolean;
+  IncisoDecreto: string | null;
+  /** O passo que alimenta o capítulo (chave e número na trilha do órgão). */
+  PassoChave: string | null;
+  PassoNumero: string | null;
+  Blocos: PeDocBloco[];
+}
+
+/** Uma versão do documento em PDF (item de `Versoes`, de GET .../versoes e resposta do POST .../pdf). */
+export interface PeDocVersao {
+  /** Sequencial no PDTIC. */
+  Numero: number;
+  Situacao: PeSituacaoVersaoDoc;
+  GeradoEm: string;
+  /** E-mail de quem gerou. */
+  GeradoPor: string | null;
+  /** Tamanho do arquivo em bytes. */
+  Tamanho: number | null;
+  Paginas: number | null;
+}
+
+/** GET api/planejamento/pdtic/{id}/documento: a estrutura resolvida para o órgão. */
+export interface PeDocumento {
+  PdticId: number;
+  Versao: string;
+  OrgaoSigla: string;
+  OrgaoNome: string;
+  /** "Plano Diretor de Tecnologia da Informação e Comunicação". */
+  Titulo: string;
+  /** Quem está logado edita os textos e os capítulos (equipe do órgão, em elaboração ou devolvido). */
+  PodeEditar: boolean;
+  /** A mais que o contrato: o logotipo do órgão ("api/planejamento/arquivos/{id}", do dicionário de nomes) ou null. */
+  Logotipo?: string | null;
+  Capitulos: PeDocCapitulo[];
+  Versoes: PeDocVersao[];
+}
+
+/** PUT api/planejamento/pdtic/{id}/documento/blocos/{blocoId}: o texto do órgão, com os marcadores como texto. */
+export interface PeDocBlocoForm {
+  Texto: PeDocTextoRico;
+}
+
+/** PUT api/planejamento/pdtic/{id}/documento/capitulos/{capituloId} (capítulo travado não se oculta: 409). */
+export interface PeDocCapituloForm {
+  Oculto: boolean;
+  /** null volta ao título do modelo. */
+  TituloProprio: string | null;
+}
+
+// ── Modelo do documento (administrador do módulo e admin do SGDP) ─────────────
+
+/** Um marcador que o texto pode usar ("{orgao.nome}"). */
+export interface PeDocMarcador {
+  /** Sem as chaves: "orgao.nome". */
+  Chave: string;
+  Descricao: string;
+  Exemplo: string | null;
+}
+
+/**
+ * Configuração de um bloco do modelo (jsonb), conforme o tipo: texto
+ * `{ Texto }` · tabela `{ Secao, Colunas, Filtro }` (Colunas null = os campos
+ * marcados "no documento"; Secao `pgia_sistemas` = o inventário de IA do PGIA) ·
+ * lista de tema `{ Tema }` · fluxo `{ Fluxo }`; `PaginaDeitada` em qualquer
+ * bloco. O servidor recusa (400) chave que o tipo não aceita; as que a tela não
+ * mexe (o `Filtro`) vão de volta como vieram.
+ */
+export interface PeDocConfigBloco {
+  Texto?: PeDocTextoRico | null;
+  Secao?: string | null;
+  Colunas?: string[] | null;
+  /** Só as linhas cujo campo tem o valor (com `Excluir`, as outras): separa as necessidades priorizadas das não priorizadas. */
+  Filtro?: PeDocFiltroTabela | null;
+  Tema?: string | null;
+  Fluxo?: string | null;
+  PaginaDeitada?: boolean | null;
+  [chave: string]: unknown;
+}
+
+export interface PeDocFiltroTabela {
+  Campo: string;
+  Valor: unknown;
+  Excluir?: boolean | null;
+}
+
+export interface PeDocModeloBloco {
+  Id: number;
+  Ordem: number;
+  Tipo: PeTipoBlocoDoc;
+  Config: PeDocConfigBloco | null;
+}
+
+export interface PeDocModeloCapitulo {
+  Id: number;
+  /** Capítulo de cima, no subcapítulo; null no capítulo. */
+  PaiId: number | null;
+  Chave: string;
+  Titulo: string;
+  Numerado: boolean;
+  Ordem: number;
+  Obrigatorio: boolean;
+  /** Um dos nove conteúdos mínimos (art. 12, § 2º): não se apaga nem fica opcional. */
+  Travado: boolean;
+  IncisoDecreto: string | null;
+  /** O passo que alimenta o capítulo: desligado para o órgão, o capítulo some do documento dele. */
+  PassoChave: string | null;
+  /** Veio do modelo da SGDI (carregador): não se apaga. */
+  Sistema: boolean;
+  Blocos: PeDocModeloBloco[];
+}
+
+/** GET api/planejamento/modelo/documento?tipo=pdtic. */
+export interface PeDocModelo {
+  Id: number;
+  Tipo: string;
+  Nome: string;
+  /** Todos os capítulos (os subcapítulos com `PaiId`), cada um com os blocos. */
+  Capitulos: PeDocModeloCapitulo[];
+  Marcadores: PeDocMarcador[];
+}
+
+/** PUT api/planejamento/modelo/documento/capitulos/{id}. */
+export interface PeDocCapituloModeloForm {
+  Titulo: string;
+  Numerado: boolean;
+  Obrigatorio: boolean;
+  PassoChave: string | null;
+}
+
+/** POST api/planejamento/modelo/documento/capitulos: nasce no fim dos irmãos. */
+export interface PeDocCapituloModeloNovoForm extends PeDocCapituloModeloForm {
+  /** O tipo do modelo (pdtic). */
+  Tipo: string;
+  PaiId: number | null;
+  /** Gerada do título (sem ela, o servidor gera). */
+  Chave: string;
+}
+
+/** PUT api/planejamento/modelo/documento/blocos/{id}: só a configuração (o tipo não muda). */
+export interface PeDocBlocoModeloForm {
+  Config: PeDocConfigBloco;
+}
+
+/** POST api/planejamento/modelo/documento/blocos: nasce no fim do capítulo. */
+export interface PeDocBlocoModeloNovoForm extends PeDocBlocoModeloForm {
+  CapituloId: number;
+  Tipo: PeTipoBlocoDoc;
+}

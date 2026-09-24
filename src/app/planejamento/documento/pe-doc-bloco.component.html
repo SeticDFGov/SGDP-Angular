@@ -1,0 +1,211 @@
+<!-- ── Texto ───────────────────────────────────────────────────────────── -->
+<ng-container *ngIf="bloco.Tipo === 'texto'">
+
+  <!-- Para ler (quem edita: o clique no texto abre o editor; o botão faz o mesmo pelo teclado) -->
+  <div *ngIf="!aberto" class="rounded-md" [ngClass]="podeEditar ? 'cursor-pointer hover:bg-gray-50' : ''" (click)="aoClicar($event)">
+    <div *ngIf="podeEditar" class="flex justify-end">
+      <button type="button" [id]="idBotaoEditar" (click)="pedirEdicao()" [attr.aria-label]="'Editar o texto de ' + tituloCapitulo"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-purple-700 hover:bg-gray-100">
+        <span class="material-icons text-sm" aria-hidden="true">edit</span> Editar o texto
+      </button>
+    </div>
+    <div [appPeTextoRico]="bloco.TextoResolvido" [rotuloTexto]="tituloCapitulo" [nivelTitulo]="nivelTitulo"
+         [destacar]="bloco.MarcadoresSemValor" [dicaDestaque]="dicaSemValor" vazio="Este texto está em branco: no PDF, o bloco sai vazio."></div>
+  </div>
+
+  <!-- Editor aberto ali mesmo: Esc (sem painel aberto) ou "Pronto" fecham, depois de salvar -->
+  <div *ngIf="aberto" class="rounded-lg border border-purple-200 bg-white p-3 space-y-2" (keydown.escape)="aoEsc($event)">
+    <p [id]="idRotulo" class="text-sm font-semibold text-gray-900">Texto de "{{ tituloCapitulo }}"</p>
+    <p [id]="idAjuda" class="text-xs text-gray-500 italic">
+      O texto se salva sozinho enquanto você escreve. Os marcadores entre chaves, como {{ exemploMarcador }}, viram os dados do
+      órgão na prévia e no PDF. Para inserir um, use o botão "Inserir marcador" da barra. Esc ou "Pronto" fecham o editor.
+    </p>
+    <app-pe-editor-texto-rico [valor]="valorInicial" [idBase]="idBase + '-texto'" [idRotulo]="idRotulo" [rotulo]="'texto de ' + tituloCapitulo"
+                              [descritores]="idAjuda" [marcadores]="marcadores" [focarAoCarregar]="true"
+                              (valorChange)="aoMudarTexto($event)"></app-pe-editor-texto-rico>
+    <p *ngIf="rascunhoVazio" class="flex items-start gap-1 text-xs text-amber-900">
+      <span class="material-icons text-sm text-amber-600" aria-hidden="true">info</span>
+      <span>O texto ficou vazio: no PDF, este bloco sai em branco. Para voltar ao texto do modelo, use o botão "Voltar ao texto do modelo".</span>
+    </p>
+    <div class="flex flex-wrap items-center gap-2">
+      <p *ngIf="situacaoSalvar !== 'erro'" class="flex-1 inline-flex items-center gap-1 text-xs text-gray-600">
+        <span class="material-icons text-sm" aria-hidden="true">{{ iconeSituacao }}</span> {{ textoSituacao }}
+      </p>
+      <p *ngIf="situacaoSalvar === 'erro'" role="alert" class="flex-1 text-xs text-red-700">
+        {{ erroSalvar }}
+        <button type="button" (click)="tentarDeNovo()" class="font-semibold underline">Tentar de novo</button>
+      </p>
+      <button *ngIf="bloco.EditadoPeloOrgao" type="button" (click)="voltarAoModelo()" [disabled]="voltando"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        <span class="material-icons text-base" aria-hidden="true">restore</span> Voltar ao texto do modelo
+      </button>
+      <button type="button" (click)="pronto()"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+        <span class="material-icons text-base" aria-hidden="true">check</span> Pronto
+      </button>
+    </div>
+  </div>
+
+  <!-- Dados que faltam: saem em branco no PDF -->
+  <div *ngIf="quantosSemValor > 0" class="mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+    <span class="material-icons text-sm text-amber-600" aria-hidden="true">error_outline</span>
+    <div class="leading-relaxed">
+      <p class="font-semibold">{{ quantosSemValor === 1 ? 'Falta um dado neste texto' : 'Faltam ' + quantosSemValor + ' dados neste texto' }}: no PDF, sai em branco.</p>
+      <ul class="mt-0.5 space-y-0.5">
+        <li *ngFor="let g of gruposSemValor; trackBy: porChave">
+          {{ g.descricoes }}:
+          <a *ngIf="g.passo as p" [routerLink]="p.rota" [queryParams]="{ passo: p.numero }" data-sem-dica
+             class="font-semibold underline">{{ podeEditar ? 'preencha no passo ' + p.numero : 'o dado vem do passo ' + p.numero }}</a>
+          <ng-container *ngIf="!g.passo">o dado vem do cadastro do órgão ou do sistema.</ng-container>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- O modelo mudou depois que o órgão editou -->
+  <div *ngIf="bloco.ModeloMudou" class="mt-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+    <p class="font-semibold inline-flex items-center gap-1">
+      <span class="material-icons text-sm" aria-hidden="true">update</span> O modelo deste texto mudou depois que o órgão o editou.
+    </p>
+    <p class="mt-0.5">{{ podeEditar ? 'Compare e escolha: usar o texto novo do modelo ou manter o texto do órgão.' : 'O órgão ainda não escolheu entre o texto novo do modelo e o dele.' }}</p>
+    <div class="flex flex-wrap gap-2 mt-2">
+      <button type="button" (click)="comparando = !comparando" [attr.aria-expanded]="comparando"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-blue-200 bg-white text-xs font-semibold text-blue-800 hover:bg-gray-50">
+        <span class="material-icons text-sm" aria-hidden="true">{{ comparando ? 'expand_less' : 'compare' }}</span>
+        {{ comparando ? 'Fechar a comparação' : 'Comparar os textos' }}
+      </button>
+      <ng-container *ngIf="podeEditar && !aberto">
+        <button type="button" (click)="voltarAoModelo()" [disabled]="voltando || mantendo"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
+          <span class="material-icons text-sm" aria-hidden="true">restore</span> Usar o texto do modelo
+        </button>
+        <button type="button" (click)="manterTextoDoOrgao()" [disabled]="voltando || mantendo"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <span class="material-icons text-sm" aria-hidden="true">done</span> Manter o texto do órgão
+        </button>
+      </ng-container>
+    </div>
+    <div *ngIf="comparando" class="grid gap-3 md:grid-cols-2 mt-3">
+      <div class="rounded border border-gray-200 bg-white p-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">Texto do órgão</p>
+        <div [appPeTextoRico]="bloco.TextoResolvido" [rotuloTexto]="'texto do órgão'" [nivelTitulo]="nivelTitulo + 1"
+             [destacar]="bloco.MarcadoresSemValor" [dicaDestaque]="dicaSemValor" vazio="Texto vazio."></div>
+      </div>
+      <div class="rounded border border-gray-200 bg-white p-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">Texto novo do modelo</p>
+        <div [appPeTextoRico]="bloco.TextoModeloAtual" [rotuloTexto]="'texto novo do modelo'" [nivelTitulo]="nivelTitulo + 1" vazio="Texto vazio."></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Texto do órgão, sem mudança no modelo: quem editou e como voltar -->
+  <p *ngIf="bloco.EditadoPeloOrgao && !bloco.ModeloMudou && !aberto" class="mt-1 text-xs text-gray-500 italic">
+    Texto editado pelo órgão em {{ editadoEm }}.
+    <button *ngIf="podeEditar" type="button" (click)="voltarAoModelo()" [disabled]="voltando"
+            class="font-semibold text-purple-700 underline disabled:opacity-50">Voltar ao texto do modelo</button>
+  </p>
+</ng-container>
+
+<!-- ── Tabela de uma seção (só leitura) ─────────────────────────────────── -->
+<ng-container *ngIf="bloco.Tipo === 'tabela_secao'">
+  <ng-container *ngIf="bloco.Tabela as t; else semDados">
+    <p *ngIf="t.Vazia || t.Linhas.length === 0" class="text-sm text-gray-800">
+      <strong>{{ t.SecaoTitulo }}</strong>: <span class="text-gray-600 italic">{{ ehFormulario ? 'ainda não preenchido.' : 'nenhum registro ainda.' }}</span>
+    </p>
+
+    <!-- Seção de formulário (um registro): rótulo e valor -->
+    <div *ngIf="ehFormulario && !t.Vazia && t.Linhas.length > 0">
+      <p class="text-sm font-semibold text-gray-900">{{ t.SecaoTitulo }}</p>
+      <dl class="mt-1 space-y-1 text-sm">
+        <div *ngFor="let col of t.Colunas" class="flex flex-wrap gap-1">
+          <dt class="font-semibold text-gray-900">{{ col.Rotulo }}:</dt>
+          <dd *ngIf="rico(t.Linhas[0], col.Chave) as doc; else valorSimples" class="w-full" [appPeTextoRico]="doc" [rotuloTexto]="col.Rotulo" [nivelTitulo]="nivelTitulo"></dd>
+          <ng-template #valorSimples><dd class="text-gray-800 whitespace-pre-line">{{ t.Linhas[0].Celulas[col.Chave] || '-' }}</dd></ng-template>
+        </div>
+      </dl>
+    </div>
+
+    <div *ngIf="!ehFormulario && !t.Vazia && t.Linhas.length > 0" class="overflow-x-auto" tabindex="0" role="region" [attr.aria-label]="'Tabela: ' + t.SecaoTitulo">
+      <table [ngClass]="classes.tabela">
+        <caption class="text-left text-sm font-semibold text-gray-900 mb-1">{{ t.SecaoTitulo }}</caption>
+        <thead>
+          <tr>
+            <th *ngIf="temCodigo" scope="col" [ngClass]="classes.cabecalho">Código</th>
+            <th *ngFor="let col of t.Colunas" scope="col" [ngClass]="classes.cabecalho">{{ col.Rotulo }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let linha of t.Linhas; let i = index; trackBy: porIndice">
+            <td *ngIf="temCodigo" class="whitespace-nowrap font-semibold" [ngClass]="classes.celula">{{ linha.Codigo || '-' }}</td>
+            <td *ngFor="let col of t.Colunas" class="whitespace-pre-line" [ngClass]="classes.celula">
+              <div *ngIf="rico(linha, col.Chave) as doc; else celulaSimples" [appPeTextoRico]="doc" [rotuloTexto]="col.Rotulo" [nivelTitulo]="nivelTitulo"></div>
+              <ng-template #celulaSimples>{{ linha.Celulas[col.Chave] || '-' }}</ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+  <ng-container *ngTemplateOutlet="linkDados"></ng-container>
+</ng-container>
+
+<!-- ── Ações de um tema (só leitura) ────────────────────────────────────── -->
+<ng-container *ngIf="bloco.Tipo === 'lista_tema'">
+  <ng-container *ngIf="bloco.Lista as l; else semDados">
+    <p class="text-sm font-semibold text-gray-900">Ações do tema {{ l.Tema }}</p>
+    <ul *ngIf="l.Itens.length > 0" [ngClass]="classes.listaMarcadores" class="mt-1 text-sm text-gray-800">
+      <li *ngFor="let item of l.Itens; let i = index; trackBy: porIndice">
+        <strong *ngIf="item.Codigo">{{ item.Codigo }}</strong> {{ item.Texto }}<span *ngIf="item.Situacao" class="text-gray-600"> ({{ item.Situacao }})</span>
+      </li>
+    </ul>
+    <p *ngIf="l.Itens.length === 0" class="mt-1 text-sm text-gray-600 italic">Nenhuma ação com este tema ainda.</p>
+    <p *ngIf="l.Itens.length === 0 && l.Justificativa" class="mt-1 text-sm text-gray-800">
+      <strong>Justificativa do órgão:</strong> {{ l.Justificativa }}
+    </p>
+  </ng-container>
+  <ng-container *ngTemplateOutlet="linkDados"></ng-container>
+</ng-container>
+
+<!-- ── Matriz SWOT (só leitura) ─────────────────────────────────────────── -->
+<ng-container *ngIf="bloco.Tipo === 'matriz_swot'">
+  <div *ngIf="bloco.Swot; else semDados" role="group" aria-label="Matriz SWOT" class="grid gap-2 md:grid-cols-2">
+    <div *ngFor="let q of quadrantes; let i = index" class="rounded border border-gray-300 p-3">
+      <p [id]="idBase + '-swot-' + i" class="text-sm font-semibold text-gray-900">{{ q.titulo }}</p>
+      <ul *ngIf="q.itens.length > 0" [attr.aria-labelledby]="idBase + '-swot-' + i" [ngClass]="classes.listaMarcadores" class="mt-1 text-sm text-gray-800">
+        <li *ngFor="let item of q.itens; let j = index; trackBy: porIndice">{{ item }}</li>
+      </ul>
+      <p *ngIf="q.itens.length === 0" class="mt-1 text-xs text-gray-500 italic">Nada registrado.</p>
+    </div>
+  </div>
+  <ng-container *ngTemplateOutlet="linkDados"></ng-container>
+</ng-container>
+
+<!-- ── Fluxo (o desenho chega com a E6) ─────────────────────────────────── -->
+<ng-container *ngIf="bloco.Tipo === 'fluxo'">
+  <figure *ngIf="bloco.Fluxo as f; else semDados">
+    <img *ngIf="urlFluxo" [src]="urlFluxo" [alt]="'Fluxo: ' + f.Nome" style="max-width: 100%; height: auto;" />
+    <div *ngIf="!urlFluxo" class="rounded border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+      <span class="material-icons text-gray-500" aria-hidden="true">account_tree</span>
+      <p>O desenho do fluxo "{{ f.Nome }}" entra aqui. Ele chega numa próxima etapa do desenvolvimento do módulo.</p>
+    </div>
+    <figcaption class="mt-1 text-xs text-gray-600 text-center">{{ f.Nome }}</figcaption>
+  </figure>
+</ng-container>
+
+<!-- Tipo que esta tela não conhece -->
+<p *ngIf="bloco.Tipo !== 'texto' && bloco.Tipo !== 'tabela_secao' && bloco.Tipo !== 'lista_tema' && bloco.Tipo !== 'matriz_swot' && bloco.Tipo !== 'fluxo'"
+   class="text-xs text-gray-500 italic">Este bloco sai só no PDF.</p>
+
+<ng-template #semDados>
+  <p class="text-sm text-gray-600 italic">Os dados deste bloco não vieram do servidor.</p>
+</ng-template>
+
+<!-- Os dados se editam no passo deles (documento e planilha nunca divergem) -->
+<ng-template #linkDados>
+  <p *ngIf="passoDados as p" class="mt-1 text-right">
+    <a [routerLink]="p.rota" [queryParams]="{ passo: p.numero }" data-sem-dica [attr.title]="p.titulo"
+       class="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:underline">
+      <span class="material-icons text-sm" aria-hidden="true">{{ iconeLinkDados }}</span> {{ textoLinkDados }}
+    </a>
+  </p>
+</ng-template>

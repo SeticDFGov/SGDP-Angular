@@ -1,4 +1,5 @@
-<div class="pe-editor-rico">
+<!-- data-sem-dica: a dica de norma não mexe no texto que se edita (ela partiria os nós do editor) -->
+<div class="pe-editor-rico" data-sem-dica>
   <div class="border rounded-md bg-white" [ngClass]="invalido ? 'border-red-500' : 'border-gray-300'">
 
     <p *ngIf="situacao === 'carregando'" role="status" class="px-3 py-2 text-xs text-gray-600">Carregando o editor de texto...</p>
@@ -106,6 +107,24 @@
         <button type="button" (click)="fecharPainel()" [disabled]="enviandoImagem"
                 class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
       </div>
+    </div>
+
+    <!-- Marcador (documento do PDTIC): entra no ponto do cursor; Esc fecha só o painel -->
+    <div *ngIf="painel === 'marcador'" role="group" [attr.aria-labelledby]="idBase + '-marcador-titulo'" (keydown.escape)="fecharPainel($event)"
+         class="border-b border-gray-200 bg-white px-3 py-3 space-y-2">
+      <p [id]="idBase + '-marcador-titulo'" class="text-sm font-semibold text-gray-800">Inserir marcador</p>
+      <p class="text-xs text-gray-500 italic">O marcador entra no ponto onde estava o cursor. Na prévia e no PDF, ele vira o dado do órgão.</p>
+      <ul class="grid gap-1 md:grid-cols-2">
+        <li *ngFor="let m of marcadores; let i = index; trackBy: porChave">
+          <button type="button" [id]="idBase + '-marcador-' + i" (click)="inserirMarcador(m)"
+                  class="w-full text-left px-2 py-1.5 rounded border border-gray-200 bg-white hover:bg-gray-50">
+            <span class="block text-sm font-mono text-purple-800">{{ textoDoMarcador(m) }}</span>
+            <span class="block text-xs text-gray-600">{{ m.Descricao }}<ng-container *ngIf="m.Exemplo">. Exemplo: {{ m.Exemplo }}</ng-container></span>
+          </button>
+        </li>
+      </ul>
+      <button type="button" (click)="fecharPainel()"
+              class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">Cancelar</button>
     </div>
 
     <!-- O texto: o editor é montado aqui; o foco que chega ao hospedeiro vai para ele -->

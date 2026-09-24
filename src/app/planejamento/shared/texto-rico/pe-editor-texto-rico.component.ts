@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PeDocTextoRico } from '../../../../api/planejamento/interface';
+import { PeDocMarcador, PeDocTextoRico } from '../../../../api/planejamento/interface';
 import { PeRegistrosService } from '../../services/pe-registros.service';
 import { mensagemErroPe } from '../pe-erros';
 import { PeImagensService } from './pe-imagens.service';
@@ -46,6 +46,13 @@ const BOTOES: BotaoBarra[] = [
   { id: 'refazer', rotulo: 'Refazer', icone: 'redo', atalho: 'Ctrl+Y', teclas: 'Control+Y' }
 ];
 
+/** Com a lista de marcadores (documento do PDTIC): "Inserir marcador" antes do desfazer. */
+const BOTOES_COM_MARCADOR: BotaoBarra[] = [
+  ...BOTOES.filter(b => b.id !== 'desfazer' && b.id !== 'refazer'),
+  { id: 'marcador', rotulo: 'Inserir marcador', icone: 'data_object', separa: true },
+  ...BOTOES.filter(b => b.id === 'desfazer' || b.id === 'refazer')
+];
+
 /** Ações da tabela: aparecem com o cursor numa tabela. */
 const BOTOES_TABELA: BotaoBarra[] = [
   { id: 'linhaAcima', rotulo: 'Incluir linha acima', texto: 'Linha acima' },
@@ -58,7 +65,7 @@ const BOTOES_TABELA: BotaoBarra[] = [
   { id: 'apagarTabela', rotulo: 'Apagar a tabela', texto: 'Apagar a tabela' }
 ];
 
-type Painel = 'link' | 'imagem';
+type Painel = 'link' | 'imagem' | 'marcador';
 
 /**
  * Campo de texto rico (títulos, negrito, itálico, sublinhado, listas, link,
@@ -78,6 +85,12 @@ type Painel = 'link' | 'imagem';
  * módulo. Guarda o JSON do TipTap já no recorte da lista fechada (null vazio).
  * O `idBase` é do elemento que recebe o foco pelo resumo de erros (ele passa o
  * foco ao texto).
+ *
+ * Documento do PDTIC (E5): com `marcadores`, a barra ganha "Inserir marcador"
+ * (um painel com a lista, que põe "{orgao.nome}" no ponto do cursor) e os
+ * marcadores escritos ficam em destaque; `focarAoCarregar` põe o cursor no texto
+ * assim que o editor chega (o bloco da prévia abre o editor no clique). O
+ * `data-sem-dica` impede a dica de norma de mexer no texto que se edita.
  */
 @Component({
   selector: 'app-pe-editor-texto-rico',
@@ -110,12 +123,15 @@ export class PeEditorTextoRicoComponent implements OnChanges, AfterViewInit, Aft
   @Input() descritores: string | null = null;
   @Input() invalido = false;
   @Input() obrigatorio = false;
+  /** Marcadores que o texto pode usar (documento do PDTIC); sem eles, a barra não tem "Inserir marcador". */
+  @Input() marcadores: readonly PeDocMarcador[] | null = null;
+  /** O cursor vai para o texto assim que o editor chega. */
+  @Input() focarAoCarregar = false;
   @Output() readonly valorChange = new EventEmitter<PeDocTextoRico | null>();
 
   @ViewChild('hospedeiro', { static: true }) hospedeiro!: ElementRef<HTMLElement>;
   @ViewChild('barra') barra?: ElementRef<HTMLElement>;
 
-  readonly botoes = BOTOES;
   readonly botoesTabela = BOTOES_TABELA;
   readonly maxDescricao = MAX_DESCRICAO_IMAGEM;
   readonly aceitaImagem = EXTENSOES_IMAGEM.map(e => `.${e}`).join(',');
@@ -149,6 +165,11 @@ export class PeEditorTextoRicoComponent implements OnChanges, AfterViewInit, Aft
 
   get idAtalhos(): string {
     return `${this.idBase}-atalhos`;
+  }
+
+  /** Os botões da barra (com "Inserir marcador" quando há marcadores). */
+  get botoes(): BotaoBarra[] {
+    return this.marcadores?.length ? BOTOES_COM_MARCADOR : BOTOES;
   }
 
   ngOnChanges(mudancas: SimpleChanges): void {
@@ -205,10 +226,12 @@ export class PeEditorTextoRicoComponent implements OnChanges, AfterViewInit, Aft
             aoMudarEstado: estado => this.zona.run(() => {
               this.estado = estado;
             }),
-            aoPedirLink: () => this.zona.run(() => this.abrirLink())
+            aoPedirLink: () => this.zona.run(() => this.abrirLink()),
+            destacarMarcadores: !!this.marcadores?.length
           });
         });
         this.situacao = 'pronto';
+        if (this.focarAoCarregar) this.editor?.focar();
       },
       () => {
         this.situacao = 'falhou';
@@ -274,7 +297,7 @@ export class PeEditorTextoRicoComponent implements OnChanges, AfterViewInit, Aft
   }
 
   private botaoDoTab(): string {
-    const visiveis = this.estado.tabela ? [...BOTOES, ...BOTOES_TABELA] : BOTOES;
+    const visiveis = this.estado.tabela ? [...this.botoes, ...BOTOES_TABELA] : this.botoes;
     const ativos = visiveis.filter(b => !this.desligado(b));
     return ativos.some(b => b.id === this.botaoAtivo) ? this.botaoAtivo : (ativos[0]?.id ?? '');
   }
@@ -314,8 +337,35 @@ export class PeEditorTextoRicoComponent implements OnChanges, AfterViewInit, Aft
       this.abrirImagem();
       return;
     }
+    if (b.id === 'marcador') {
+      this.abrirMarcadores();
+      return;
+    }
     this.painel = null;
     this.editor.executar(b.id as ComandoTextoRico);
+  }
+
+  // ── Marcador ──────────────────────────────────────────────────────────────
+
+  abrirMarcadores(): void {
+    if (!this.editor || !this.marcadores?.length) return;
+    this.painel = 'marcador';
+    this.focoPendente = `${this.idBase}-marcador-0`;
+  }
+
+  /** "{orgao.nome}", como fica no texto. */
+  textoDoMarcador(m: PeDocMarcador): string {
+    return `{${m.Chave}}`;
+  }
+
+  porChave(_: number, m: PeDocMarcador): string {
+    return m.Chave;
+  }
+
+  /** O marcador entra no ponto onde estava o cursor, e o foco volta ao texto. */
+  inserirMarcador(m: PeDocMarcador): void {
+    this.painel = null;
+    this.editor?.inserirTexto(this.textoDoMarcador(m));
   }
 
   // ── Link ──────────────────────────────────────────────────────────────────

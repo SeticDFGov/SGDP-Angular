@@ -85,10 +85,16 @@
               <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ vigencia(p) }}</td>
               <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ abertoEm(p) }}</td>
               <td class="px-3 py-2.5 text-right">
-                <button type="button" (click)="abrirTrilha(p)" [attr.aria-label]="'Abrir a trilha do órgão ' + p.OrgaoSigla"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
-                  Abrir a trilha <span class="material-icons text-sm" aria-hidden="true">arrow_forward</span>
-                </button>
+                <div class="flex flex-wrap justify-end gap-1">
+                  <button type="button" (click)="verDocumento(p)" [attr.aria-label]="'Ver o documento do PDTIC do órgão ' + p.OrgaoSigla"
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
+                    <span class="material-icons text-sm" aria-hidden="true">description</span> Ver o documento
+                  </button>
+                  <button type="button" (click)="abrirTrilha(p)" [attr.aria-label]="'Abrir a trilha do órgão ' + p.OrgaoSigla"
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
+                    Abrir a trilha <span class="material-icons text-sm" aria-hidden="true">arrow_forward</span>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>

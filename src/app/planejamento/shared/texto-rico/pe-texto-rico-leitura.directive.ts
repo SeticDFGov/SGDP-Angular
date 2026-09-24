@@ -12,6 +12,10 @@ import { PeImagensService } from './pe-imagens.service';
  * Tabela larga fica numa região com rolagem, alcançável pelo teclado.
  *
  * Uso: `<div [appPeTextoRico]="registro.Dados['diagnostico']"></div>`.
+ *
+ * No documento do PDTIC (E5): `nivelTitulo` põe os títulos do texto abaixo do
+ * título do capítulo (hierarquia certa para o leitor de tela), e `destacar`
+ * marca os marcadores sem valor ("{nomes.comite}") com `dicaDestaque`.
  */
 @Directive({
   selector: '[appPeTextoRico]',
@@ -26,9 +30,18 @@ export class PeTextoRicoLeituraDirective implements OnChanges {
   @Input('appPeTextoRico') documento: unknown = null;
   /** Nome do campo, para o rótulo das tabelas ("Tabela 1 de Diagnóstico"). */
   @Input() rotuloTexto = '';
+  /** Nível HTML do "Título" do texto (o "Subtítulo" fica um abaixo, até h6). */
+  @Input() nivelTitulo = 3;
+  /** Chaves dos marcadores que ficam em destaque quando aparecem no texto ("nomes.comite"). */
+  @Input() destacar: readonly string[] | null = null;
+  /** O que o leitor de tela ouve depois de cada marcador em destaque. */
+  @Input() dicaDestaque = '';
+  /** O que aparece no lugar do texto vazio. */
+  @Input() vazio = '-';
 
   private desenho = 0;
   private tabelas = 0;
+  private regexDestaque: RegExp | null = null;
 
   ngOnChanges(): void {
     this.desenhar();
@@ -39,9 +52,10 @@ export class PeTextoRicoLeituraDirective implements OnChanges {
     while (raiz.firstChild) this.r.removeChild(raiz, raiz.firstChild);
     this.desenho++;
     this.tabelas = 0;
+    this.regexDestaque = this.montarRegexDestaque();
     const doc = normalizarDocumento(this.documento);
     if (!doc || docVazio(doc)) {
-      this.r.appendChild(raiz, this.r.createText('-'));
+      this.r.appendChild(raiz, this.r.createText(this.vazio));
       return;
     }
     const conteudo = this.criar('div', CLASSES_TEXTO_RICO.raiz);
@@ -71,7 +85,8 @@ export class PeTextoRicoLeituraDirective implements OnChanges {
       }
       case 'heading': {
         const quatro = no.attrs?.['level'] === 4;
-        const h = this.criar(quatro ? 'h4' : 'h3', quatro ? CLASSES_TEXTO_RICO.subtitulo : CLASSES_TEXTO_RICO.titulo);
+        const nivel = Math.min(6, Math.max(1, Math.trunc(this.nivelTitulo) || 3) + (quatro ? 1 : 0));
+        const h = this.criar(`h${nivel}`, quatro ? CLASSES_TEXTO_RICO.subtitulo : CLASSES_TEXTO_RICO.titulo);
         this.emLinha(h, no.content);
         return h;
       }
@@ -173,13 +188,47 @@ export class PeTextoRicoLeituraDirective implements OnChanges {
         this.r.setAttribute(alvo, 'href', href);
         this.r.setAttribute(alvo, 'target', '_blank');
         this.r.setAttribute(alvo, 'rel', 'noopener noreferrer');
-        this.r.appendChild(alvo, this.r.createText(no.text));
+        this.texto(alvo, no.text);
         const aviso = this.criar('span', 'sr-only');
         this.r.appendChild(aviso, this.r.createText(' (abre em outra aba)'));
         this.r.appendChild(alvo, aviso);
       } else {
-        this.r.appendChild(alvo, this.r.createText(no.text));
+        this.texto(alvo, no.text);
       }
     }
+  }
+
+  /** O texto, com os marcadores de `destacar` em destaque (sempre como texto). */
+  private texto(pai: HTMLElement, texto: string): void {
+    const regex = this.regexDestaque;
+    if (!regex) {
+      this.r.appendChild(pai, this.r.createText(texto));
+      return;
+    }
+    regex.lastIndex = 0;
+    let inicio = 0;
+    let achado = regex.exec(texto);
+    while (achado) {
+      if (achado.index > inicio) this.r.appendChild(pai, this.r.createText(texto.slice(inicio, achado.index)));
+      const marca = this.criar('mark', CLASSES_TEXTO_RICO.marcadorSemValor);
+      this.r.appendChild(marca, this.r.createText(achado[0]));
+      if (this.dicaDestaque) {
+        this.r.setAttribute(marca, 'title', this.dicaDestaque);
+        const aviso = this.criar('span', 'sr-only');
+        this.r.appendChild(aviso, this.r.createText(` (${this.dicaDestaque})`));
+        this.r.appendChild(marca, aviso);
+      }
+      this.r.appendChild(pai, marca);
+      inicio = achado.index + achado[0].length;
+      achado = regex.exec(texto);
+    }
+    if (inicio < texto.length) this.r.appendChild(pai, this.r.createText(texto.slice(inicio)));
+  }
+
+  private montarRegexDestaque(): RegExp | null {
+    const chaves = (this.destacar ?? []).map(c => c.trim()).filter(Boolean);
+    if (!chaves.length) return null;
+    const escapadas = chaves.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    return new RegExp(`\\{(${escapadas.join('|')})\\}`, 'g');
   }
 }

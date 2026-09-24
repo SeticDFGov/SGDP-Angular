@@ -1,0 +1,456 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <!-- Esperando o meu-papel: nenhuma consulta antes dele -->
+  <p *ngIf="pode === null" role="status" class="text-sm text-gray-600">Conferindo o seu papel no módulo...</p>
+
+  <div *ngIf="pode === false && !erroPapel" class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Modelo do documento do PDTIC</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem monta o modelo do documento
+      que os órgãos recebem. O documento do seu órgão fica no passo "Monte o documento e confira a prévia", na trilha do órgão.</p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <p class="mt-1">Sem ele, o modelo do documento não abre. Tente de novo em alguns instantes.</p>
+    <button type="button" (click)="tentarDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <ng-container *ngIf="pode">
+
+    <!-- Apresentação -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-1">Modelo do documento do PDTIC</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">
+        Cada órgão monta o documento do PDTIC a partir deste modelo: os capítulos, os textos padrão e os blocos de dados (tabelas,
+        listas de ações e a matriz SWOT), que vêm dos passos da trilha. O órgão edita a cópia dele na prévia: muda os textos, renomeia
+        os capítulos e esconde os opcionais.
+      </p>
+      <ul class="mt-2 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
+        <li>Toda mudança vale na hora e fica no histórico do modelo.</li>
+        <li>O texto que o órgão não editou acompanha o modelo. O que ele editou continua como está e ganha o aviso "o modelo mudou",
+          com a comparação e o botão para usar o texto novo.</li>
+        <li>O capítulo ligado a um passo some do documento do órgão em que o passo está desligado.</li>
+      </ul>
+      <p class="text-xs text-gray-500 italic mt-2">Os nove conteúdos mínimos do PDTIC (art. 12, § 2º) são capítulos travados, com o
+        cadeado: não se apagam, não ficam opcionais e o órgão não consegue escondê-los. O título e os blocos deles podem mudar.</p>
+      <div class="flex flex-wrap items-center gap-2 mt-4">
+        <button type="button" (click)="novoCapitulo(null)" [disabled]="!modelo"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
+          <span class="material-icons text-base" aria-hidden="true">add</span> Novo capítulo
+        </button>
+        <span *ngIf="modelo" class="text-xs text-gray-600">
+          {{ totalCapitulos === 1 ? '1 capítulo' : totalCapitulos + ' capítulos e subcapítulos' }} · {{ totalTravados }} travados
+        </span>
+        <a routerLink="/planejamento/modelo/estrutura" class="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-purple-700 hover:underline">
+          <span class="material-icons text-base" aria-hidden="true">account_tree</span> Etapas, passos, seções e campos
+        </a>
+      </div>
+    </div>
+
+    <!-- Marcadores -->
+    <details class="bg-white rounded-lg shadow">
+      <summary class="cursor-pointer px-6 py-4 text-sm font-semibold text-gray-900">
+        <span class="inline-flex items-center gap-1.5"><span class="material-icons text-base text-purple-700" aria-hidden="true">data_object</span> Marcadores que os textos podem usar</span>
+      </summary>
+      <div class="px-6 pb-5">
+        <p class="text-sm text-gray-700 leading-relaxed">
+          Escreva o marcador entre chaves, como {{ exemploMarcador }}, ou use o botão "Inserir marcador" do editor. Na prévia e no PDF,
+          ele vira o dado do órgão. O marcador sem valor aparece em destaque na prévia (com o passo onde se preenche) e sai em branco no PDF.
+        </p>
+        <p *ngIf="!marcadoresDoServidor && modelo" class="text-xs text-gray-500 italic mt-1">A lista do servidor não veio: estes são os marcadores
+          da especificação do módulo.</p>
+        <div class="mt-3 overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: marcadores dos textos">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Marcadores que os textos do documento podem usar, com o que cada um vira e um exemplo</caption>
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                <th scope="col" class="px-3 py-2.5">Marcador</th>
+                <th scope="col" class="px-3 py-2.5">O que vira</th>
+                <th scope="col" class="px-3 py-2.5">Exemplo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let m of marcadores; trackBy: porChave" class="border-t border-gray-100">
+                <td class="px-3 py-2 font-mono text-purple-800 whitespace-nowrap">{{ textoDoMarcador(m) }}</td>
+                <td class="px-3 py-2 text-gray-800">{{ m.Descricao }}</td>
+                <td class="px-3 py-2 text-gray-600">{{ m.Exemplo || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <!-- Carga -->
+    <p *ngIf="carregando && !modelo" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o modelo do documento...</p>
+    <div *ngIf="erroCarga" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      {{ erroCarga }}
+      <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+    <p *ngIf="semModeloDaTrilha && modelo" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      O modelo da trilha não veio do servidor: os nomes das seções, dos temas e dos passos aparecem como chaves, e a escolha da seção
+      da tabela fica sem a lista. Recarregue a tela para tentar de novo.
+    </p>
+
+    <div *ngIf="modelo" class="flex flex-col lg:flex-row items-start gap-5">
+
+      <!-- Árvore dos capítulos -->
+      <nav aria-labelledby="pe-md-arvore-titulo" class="bg-white rounded-lg shadow p-4 w-full lg:w-72 shrink-0">
+        <h3 id="pe-md-arvore-titulo" class="text-sm font-semibold text-gray-900 mb-2">Capítulos</h3>
+        <p *ngIf="arvore.length === 0" class="text-sm text-gray-600">O modelo ainda não tem capítulos. Use "Novo capítulo".</p>
+        <ol class="space-y-0.5 text-sm">
+          <li *ngFor="let ramo of arvore; trackBy: porRamo">
+            <button type="button" (click)="selecionar(ramo.capitulo)" [attr.aria-current]="selecionadoId === ramo.capitulo.Id ? 'true' : null"
+                    class="w-full flex items-start gap-1.5 px-2 py-1.5 rounded-md text-left"
+                    [ngClass]="selecionadoId === ramo.capitulo.Id ? 'bg-purple-600 text-white' : 'text-gray-800 hover:bg-gray-100'">
+              <span class="w-8 shrink-0 font-semibold">{{ numero(ramo.capitulo) }}{{ ' ' }}</span>
+              <span class="flex-1 min-w-0">{{ ramo.capitulo.Titulo }}</span>
+              <span *ngIf="ramo.capitulo.Travado" class="material-icons text-sm" aria-hidden="true">lock</span>
+              <span *ngIf="ramo.capitulo.Travado" class="sr-only"> (travado)</span>
+            </button>
+            <ol *ngIf="ramo.filhos.length > 0" class="ml-5 mt-0.5 space-y-0.5">
+              <li *ngFor="let f of ramo.filhos; trackBy: porId">
+                <button type="button" (click)="selecionar(f)" [attr.aria-current]="selecionadoId === f.Id ? 'true' : null"
+                        class="w-full flex items-start gap-1.5 px-2 py-1 rounded-md text-left text-xs"
+                        [ngClass]="selecionadoId === f.Id ? 'bg-purple-600 text-white' : 'text-gray-700 hover:bg-gray-100'">
+                  <span class="w-8 shrink-0 font-semibold">{{ numero(f) }}{{ ' ' }}</span>
+                  <span class="flex-1 min-w-0">{{ f.Titulo }}</span>
+                  <span *ngIf="f.Travado" class="material-icons text-sm" aria-hidden="true">lock</span>
+                  <span *ngIf="f.Travado" class="sr-only"> (travado)</span>
+                </button>
+              </li>
+            </ol>
+          </li>
+        </ol>
+      </nav>
+
+      <!-- O capítulo escolhido -->
+      <section *ngIf="selecionado as c" aria-labelledby="pe-md-capitulo-titulo" class="flex-1 min-w-0 w-full bg-white rounded-lg shadow p-6 space-y-4">
+        <div class="flex flex-col md:flex-row items-start gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">
+              {{ c.PaiId ? 'Subcapítulo' : 'Capítulo' }}<ng-container *ngIf="numero(c)"> {{ numero(c) }}</ng-container>
+              <ng-container *ngIf="paiDoSelecionado as pai"> · em "{{ pai.Titulo }}"</ng-container>
+            </p>
+            <h3 id="pe-md-capitulo-titulo" tabindex="-1" class="text-lg font-bold text-gray-900">{{ c.Titulo }}</h3>
+            <div class="flex flex-wrap gap-2 mt-2 text-xs">
+              <span *ngIf="c.Travado" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-purple-200 bg-purple-50 font-semibold text-purple-800">
+                <span class="material-icons text-sm" aria-hidden="true">lock</span> Travado
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full border font-semibold"
+                    [ngClass]="c.Obrigatorio || c.Travado ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
+                {{ c.Obrigatorio || c.Travado ? 'Obrigatório: o órgão não esconde' : 'Opcional: o órgão pode esconder' }}
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full border border-gray-200 bg-gray-50 font-semibold text-gray-600">
+                {{ c.Numerado ? 'Com número' : 'Sem número' }}
+              </span>
+              <span *ngIf="!c.Sistema" class="inline-flex items-center px-2 py-0.5 rounded-full border border-blue-200 bg-blue-50 font-semibold text-blue-800">Criado pelo administrador</span>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-1">
+            <button type="button" (click)="editarCapitulo(c)" [id]="'pe-md-cap-editar-' + c.Id"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+              <span class="material-icons text-sm" aria-hidden="true">edit</span> Editar o capítulo
+            </button>
+            <button type="button" [id]="'pe-md-cap-subir-' + c.Id" (click)="moverCapitulo(c, -1)" [disabled]="movendo || posicao(c) === 0"
+                    [attr.aria-label]="'Subir o capítulo ' + c.Titulo" title="Subir"
+                    class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+              <span class="material-icons text-base" aria-hidden="true">arrow_upward</span>
+            </button>
+            <button type="button" [id]="'pe-md-cap-descer-' + c.Id" (click)="moverCapitulo(c, 1)" [disabled]="movendo || posicao(c) === irmaos(c).length - 1"
+                    [attr.aria-label]="'Descer o capítulo ' + c.Titulo" title="Descer"
+                    class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+              <span class="material-icons text-base" aria-hidden="true">arrow_downward</span>
+            </button>
+            <button *ngIf="!c.PaiId" type="button" (click)="novoCapitulo(c)"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-blue-200 bg-white text-xs font-semibold text-blue-700 hover:bg-blue-50">
+              <span class="material-icons text-sm" aria-hidden="true">add</span> Subcapítulo
+            </button>
+            <button *ngIf="podeApagar(c)" type="button" (click)="apagarCapitulo(c)" [disabled]="apagando"
+                    [attr.aria-label]="'Apagar o capítulo ' + c.Titulo" title="Apagar"
+                    class="p-1 rounded text-red-700 hover:bg-red-50 disabled:opacity-40">
+              <span class="material-icons text-base" aria-hidden="true">delete</span>
+            </button>
+          </div>
+        </div>
+
+        <p *ngIf="c.Travado" class="flex items-start gap-1.5 text-sm text-purple-800 leading-relaxed">
+          <span class="material-icons text-base" aria-hidden="true">lock</span>
+          <span>Este capítulo é um dos nove conteúdos mínimos do PDTIC ({{ citacao(c) }}): não pode ser apagado nem ficar opcional, e o
+            órgão não consegue escondê-lo. O título e os blocos podem mudar.</span>
+        </p>
+        <p *ngIf="c.PassoChave" class="text-sm text-gray-700 leading-relaxed">
+          Alimentado pelo passo "{{ tituloPasso(c.PassoChave) }}". Se o passo estiver desligado para o órgão, o capítulo some do
+          documento dele.
+        </p>
+
+        <!-- Blocos -->
+        <div>
+          <h4 class="text-sm font-semibold text-gray-900">Blocos</h4>
+          <p *ngIf="c.Blocos.length === 0" class="mt-1 text-sm text-gray-600">Este capítulo ainda não tem blocos: no documento, sai só o título.</p>
+          <ol class="mt-2 space-y-4">
+            <li *ngFor="let b of blocos(c); let i = index; let ultimo = last; trackBy: porId" class="rounded-lg border border-gray-200 p-4">
+              <div class="flex flex-wrap items-start gap-2">
+                <p class="flex-1 text-sm font-semibold text-gray-900">
+                  {{ i + 1 }}. {{ rotuloTipo(b.Tipo) }}<span *ngIf="deitada(b)" class="font-normal text-gray-600"> · página deitada</span>
+                </p>
+                <ng-container *ngIf="edicaoBloco?.id !== b.Id">
+                  <button *ngIf="b.Tipo !== 'quebra_pagina'" type="button"
+                          [id]="'pe-md-bloco-editar-' + b.Id" (click)="editarBloco(c, b)" [disabled]="!!edicaoBloco"
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                    <span class="material-icons text-sm" aria-hidden="true">edit</span> {{ b.Tipo === 'texto' ? 'Editar o texto padrão' : 'Editar o bloco' }}
+                  </button>
+                  <button type="button" [id]="'pe-md-bloco-subir-' + b.Id" (click)="moverBloco(c, b, -1)" [disabled]="movendo || !!edicaoBloco || i === 0"
+                          [attr.aria-label]="'Subir o bloco ' + (i + 1) + ', ' + rotuloTipo(b.Tipo)" title="Subir"
+                          class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+                    <span class="material-icons text-base" aria-hidden="true">arrow_upward</span>
+                  </button>
+                  <button type="button" [id]="'pe-md-bloco-descer-' + b.Id" (click)="moverBloco(c, b, 1)" [disabled]="movendo || !!edicaoBloco || ultimo"
+                          [attr.aria-label]="'Descer o bloco ' + (i + 1) + ', ' + rotuloTipo(b.Tipo)" title="Descer"
+                          class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+                    <span class="material-icons text-base" aria-hidden="true">arrow_downward</span>
+                  </button>
+                  <button type="button" (click)="apagarBloco(b)" [disabled]="apagando || !!edicaoBloco"
+                          [attr.aria-label]="'Apagar o bloco ' + (i + 1) + ', ' + rotuloTipo(b.Tipo)" title="Apagar"
+                          class="p-1 rounded text-red-700 hover:bg-red-50 disabled:opacity-40">
+                    <span class="material-icons text-base" aria-hidden="true">delete</span>
+                  </button>
+                </ng-container>
+              </div>
+
+              <!-- Para ler -->
+              <ng-container *ngIf="edicaoBloco?.id !== b.Id">
+                <div *ngIf="b.Tipo === 'texto'" class="mt-2 rounded-md bg-gray-50 border border-gray-200 p-3"
+                     [appPeTextoRico]="textoPadrao(b)" [rotuloTexto]="'texto padrão do bloco ' + (i + 1)" [nivelTitulo]="5"
+                     vazio="O texto padrão está vazio."></div>
+                <p *ngIf="b.Tipo !== 'texto'" class="mt-1 text-sm text-gray-700">{{ resumo(b) }}</p>
+              </ng-container>
+
+              <!-- Editando -->
+              <ng-container *ngIf="edicaoBloco?.id === b.Id">
+                <ng-container *ngTemplateOutlet="formBloco"></ng-container>
+              </ng-container>
+            </li>
+          </ol>
+
+          <!-- Bloco novo -->
+          <div *ngIf="edicaoBloco?.novo && edicaoBloco?.capituloId === c.Id" class="mt-3 rounded-lg border border-gray-200 p-4">
+            <ng-container *ngTemplateOutlet="formBloco"></ng-container>
+          </div>
+
+          <div *ngIf="!edicaoBloco" class="mt-4 flex flex-wrap items-end gap-2">
+            <div>
+              <label for="pe-md-novo-tipo" class="block text-xs font-semibold text-gray-700 mb-1">Tipo do bloco novo</label>
+              <select id="pe-md-novo-tipo" [(ngModel)]="tipoNovo" name="pe-md-novo-tipo" aria-describedby="pe-md-novo-tipo-ajuda"
+                      class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option *ngFor="let t of tiposBloco" [ngValue]="t.valor">{{ t.rotulo }}</option>
+              </select>
+            </div>
+            <button type="button" (click)="novoBloco(c)"
+                    class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+              <span class="material-icons text-base" aria-hidden="true">add</span> Incluir bloco
+            </button>
+            <p id="pe-md-novo-tipo-ajuda" class="w-full text-xs text-gray-500 italic">{{ explicacao(tipoNovo) }}</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </ng-container>
+</div>
+
+<!-- ── Formulário do bloco (novo ou existente) ─────────────────────────── -->
+<ng-template #formBloco>
+  <form *ngIf="edicaoBloco as e" (ngSubmit)="salvarBloco()" (keydown.escape)="cancelarBloco()" id="pe-md-bloco-form"
+        class="mt-3 space-y-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+    <p class="text-sm font-semibold text-gray-900">{{ e.novo ? 'Bloco novo' : 'Editar o bloco' }}: {{ rotuloTipo(e.tipo) }}</p>
+    <p class="text-xs text-gray-500 italic">{{ explicacao(e.tipo) }} Esc cancela.</p>
+
+    <div *ngIf="errosBloco.length > 0" id="pe-md-bloco-erros" tabindex="-1" role="alert"
+         class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+      <p class="font-semibold">Antes de salvar, corrija:</p>
+      <ul class="list-disc ml-5 mt-1 space-y-0.5">
+        <li *ngFor="let erro of errosBloco">{{ erro }}</li>
+      </ul>
+    </div>
+
+    <!-- Texto padrão, no mesmo editor do órgão, com os marcadores -->
+    <div *ngIf="e.tipo === 'texto'">
+      <p id="pe-md-texto-rotulo" class="text-sm font-semibold text-gray-800">
+        Texto padrão<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+      </p>
+      <p id="pe-md-texto-ajuda" class="text-xs text-gray-500 italic mb-1">
+        Os órgãos recebem este texto. Use os marcadores, como {{ exemploMarcador }}, para os dados de cada órgão ("Inserir marcador",
+        na barra). Linguagem simples: frases curtas e voz ativa.
+      </p>
+      <app-pe-editor-texto-rico [valor]="e.texto" idBase="pe-md-texto" idRotulo="pe-md-texto-rotulo" rotulo="texto padrão"
+                                descritores="pe-md-texto-ajuda" [marcadores]="marcadores" [obrigatorio]="true" [focarAoCarregar]="true"
+                                [invalido]="errosBloco.length > 0" (valorChange)="aoMudarTextoPadrao($event)"></app-pe-editor-texto-rico>
+    </div>
+
+    <!-- Tabela de uma seção -->
+    <ng-container *ngIf="e.tipo === 'tabela_secao'">
+      <div>
+        <label for="pe-md-secao" class="block text-sm font-semibold text-gray-800 mb-1">
+          Seção<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+        </label>
+        <select id="pe-md-secao" [ngModel]="e.secao" (ngModelChange)="trocarSecao($event)" name="pe-md-secao" aria-describedby="pe-md-secao-ajuda"
+                class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Escolha a seção</option>
+          <option *ngIf="e.secao && !secaoDaEdicao()" [value]="e.secao">{{ e.secao }}</option>
+          <optgroup *ngFor="let g of gruposSecoes" [label]="g.rotulo">
+            <option *ngFor="let s of g.secoes" [value]="s.chave">{{ s.titulo }}{{ s.foraDoDocumento ? ' (marcada fora do documento)' : '' }}</option>
+          </optgroup>
+        </select>
+        <p id="pe-md-secao-ajuda" class="text-xs text-gray-500 italic mt-1">Os registros da seção saem na tabela, só para ler. O link embaixo
+          dela leva o órgão ao passo da seção.</p>
+        <p *ngIf="filtroDaEdicao" class="mt-2 flex items-start gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
+          <span class="material-icons text-sm text-gray-500" aria-hidden="true">filter_alt</span>
+          <span>Filtro das linhas, que veio do modelo da SGDI e continua como está: {{ filtroDaEdicao }}. Trocar a seção tira o filtro.</span>
+        </p>
+      </div>
+      <fieldset *ngIf="e.secao">
+        <legend class="block text-sm font-semibold text-gray-800 mb-1">Colunas</legend>
+        <div class="space-y-1">
+          <label class="flex items-center gap-2 text-sm text-gray-800">
+            <input type="radio" name="pe-md-colunas" [value]="true" [(ngModel)]="e.todasColunas" class="w-4 h-4" />
+            As colunas marcadas para o documento (no editor do modelo, cada campo diz se aparece no documento)
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-800">
+            <input type="radio" name="pe-md-colunas" [value]="false" [(ngModel)]="e.todasColunas" class="w-4 h-4" />
+            Escolher as colunas
+          </label>
+        </div>
+        <div *ngIf="!e.todasColunas" class="mt-2 grid gap-1 md:grid-cols-2 rounded-md border border-gray-200 bg-white p-3">
+          <p *ngIf="!secaoDaEdicao()" class="text-xs text-gray-600">Os campos desta seção não vieram do modelo da trilha.</p>
+          <label *ngFor="let campo of secaoDaEdicao()?.campos ?? []" class="flex items-center gap-2 text-sm text-gray-800">
+            <input type="checkbox" class="w-4 h-4" [checked]="colunaMarcada(campo.valor)" (change)="alternarColuna(campo.valor, $event)" />
+            {{ campo.rotulo }}
+          </label>
+        </div>
+      </fieldset>
+    </ng-container>
+
+    <!-- Ações de um tema -->
+    <div *ngIf="e.tipo === 'lista_tema'">
+      <label for="pe-md-tema" class="block text-sm font-semibold text-gray-800 mb-1">
+        Tema<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+      </label>
+      <select *ngIf="temas.length > 0" id="pe-md-tema" [(ngModel)]="e.tema" name="pe-md-tema" aria-describedby="pe-md-tema-ajuda"
+              class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Escolha o tema</option>
+        <option *ngIf="e.tema && !nomeTemaConhecido(e.tema)" [value]="e.tema">{{ e.tema }}</option>
+        <option *ngFor="let t of temas" [value]="t.valor">{{ t.rotulo }}</option>
+      </select>
+      <input *ngIf="temas.length === 0" id="pe-md-tema" type="text" [(ngModel)]="e.tema" name="pe-md-tema" maxlength="60" aria-describedby="pe-md-tema-ajuda"
+             class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <p id="pe-md-tema-ajuda" class="text-xs text-gray-500 italic mt-1">As ações do plano marcadas com este tema saem numa lista, com o
+        código e a situação. Os temas vêm do campo tema das ações.</p>
+    </div>
+
+    <!-- Fluxo -->
+    <div *ngIf="e.tipo === 'fluxo'">
+      <label for="pe-md-fluxo" class="block text-sm font-semibold text-gray-800 mb-1">
+        Chave do fluxo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+      </label>
+      <input id="pe-md-fluxo" type="text" [(ngModel)]="e.fluxo" name="pe-md-fluxo" [maxlength]="maxFluxo" aria-describedby="pe-md-fluxo-ajuda"
+             class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <p id="pe-md-fluxo-ajuda" class="text-xs text-gray-500 italic mt-1">Os fluxos do guia chegam numa próxima etapa do desenvolvimento,
+        com a lista para escolher. Até lá, escreva a chave do fluxo; o documento mostra só o nome.</p>
+    </div>
+
+    <!-- Página deitada -->
+    <div *ngIf="e.tipo !== 'quebra_pagina'">
+      <label class="inline-flex items-center gap-2 text-sm text-gray-800">
+        <input id="pe-md-deitada" type="checkbox" class="w-4 h-4" [(ngModel)]="e.paginaDeitada" name="pe-md-deitada" aria-describedby="pe-md-deitada-ajuda" />
+        Página deitada (paisagem)
+      </label>
+      <p id="pe-md-deitada-ajuda" class="text-xs text-gray-500 italic mt-1">Para tabelas largas, como o plano de metas e ações: o bloco sai
+        numa página em paisagem.</p>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <button id="pe-md-bloco-salvar" type="submit" [disabled]="salvandoBloco"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+        <span class="material-icons text-base" aria-hidden="true">{{ e.novo ? 'add' : 'save' }}</span>
+        {{ salvandoBloco ? 'Salvando...' : (e.novo ? 'Incluir o bloco' : 'Salvar o bloco') }}
+      </button>
+      <button type="button" (click)="cancelarBloco()" [disabled]="salvandoBloco"
+              class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+    </div>
+  </form>
+</ng-template>
+
+<!-- ── Janela do capítulo ──────────────────────────────────────────────── -->
+<div *ngIf="edicaoCapitulo as e" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div appDialogo aria-labelledby="pe-md-cap-janela-titulo" (fechar)="fecharCapitulo()" class="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+    <form (ngSubmit)="salvarCapitulo()" citaPlanejamento class="tela-pgia">
+      <div class="px-6 pt-4 pb-3 border-b border-gray-100">
+        <h2 id="pe-md-cap-janela-titulo" class="text-lg font-bold text-gray-900">{{ tituloJanelaCapitulo }}</h2>
+        <p *ngIf="e.travado" class="flex items-start gap-1.5 text-xs text-purple-800 mt-1">
+          <span class="material-icons text-sm" aria-hidden="true">lock</span>
+          <span>Conteúdo mínimo do PDTIC ({{ citacao({ IncisoDecreto: e.inciso }) }}): continua obrigatório e ligado ao passo dele.</span>
+        </p>
+      </div>
+
+      <div class="px-6 py-4 max-h-[70vh] overflow-y-auto space-y-4">
+        <div *ngIf="errosCapitulo.length > 0" id="pe-md-cap-erros" tabindex="-1" role="alert"
+             class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p class="font-semibold">Antes de salvar, corrija:</p>
+          <ul class="list-disc ml-5 mt-1 space-y-0.5">
+            <li *ngFor="let erro of errosCapitulo">{{ erro }}</li>
+          </ul>
+        </div>
+
+        <div>
+          <label for="pe-md-cap-titulo" class="block text-sm font-semibold text-gray-800 mb-1">
+            Título<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <input id="pe-md-cap-titulo" type="text" [(ngModel)]="e.titulo" name="pe-md-cap-titulo" [maxlength]="maxTitulo"
+                 aria-describedby="pe-md-cap-titulo-ajuda" [attr.aria-invalid]="errosCapitulo.length > 0 && !e.titulo.trim() ? true : null"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="errosCapitulo.length > 0 && !e.titulo.trim() ? 'border-red-500' : 'border-gray-300'" />
+          <p id="pe-md-cap-titulo-ajuda" class="text-xs text-gray-500 italic mt-1">Como aparece no documento e no sumário. O órgão pode
+            renomear na cópia dele.</p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="flex items-start gap-2 text-sm text-gray-800">
+            <input type="checkbox" class="w-4 h-4 mt-0.5" [(ngModel)]="e.numerado" name="pe-md-cap-numerado" />
+            <span>Com número (1, 2, 3... e 6.1, 6.2... nos subcapítulos). Sem número ficam, por exemplo, a apresentação e os anexos.</span>
+          </label>
+          <label class="flex items-start gap-2 text-sm text-gray-800">
+            <input type="checkbox" class="w-4 h-4 mt-0.5" [(ngModel)]="e.obrigatorio" name="pe-md-cap-obrigatorio" [disabled]="e.travado" />
+            <span>Obrigatório: o órgão não consegue esconder. Sem marcar, o capítulo é opcional e o órgão pode escondê-lo.</span>
+          </label>
+        </div>
+
+        <div>
+          <label for="pe-md-cap-passo" class="block text-sm font-semibold text-gray-800 mb-1">Passo que alimenta o capítulo</label>
+          <select id="pe-md-cap-passo" [(ngModel)]="e.passoChave" name="pe-md-cap-passo" [disabled]="e.travado" aria-describedby="pe-md-cap-passo-ajuda"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+            <option value="">Nenhum: o capítulo aparece para todos os órgãos</option>
+            <option *ngIf="e.passoChave && !tituloPassoConhecido(e.passoChave)" [value]="e.passoChave">{{ e.passoChave }}</option>
+            <optgroup *ngFor="let g of gruposPassos" [label]="g.rotulo">
+              <option *ngFor="let p of g.opcoes" [value]="p.valor">{{ p.rotulo }}</option>
+            </optgroup>
+          </select>
+          <p id="pe-md-cap-passo-ajuda" class="text-xs text-gray-500 italic mt-1">Se o passo estiver desligado para o órgão (pelo nível ou por
+            um ajuste), o capítulo some do documento dele.</p>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+        <button type="button" (click)="fecharCapitulo()" [disabled]="salvandoCapitulo"
+                class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+        <button type="submit" [disabled]="salvandoCapitulo"
+                class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+          <span class="material-icons text-lg" aria-hidden="true">{{ e.novo ? 'add' : 'save' }}</span>
+          {{ salvandoCapitulo ? 'Salvando...' : (e.novo ? 'Criar' : 'Salvar') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

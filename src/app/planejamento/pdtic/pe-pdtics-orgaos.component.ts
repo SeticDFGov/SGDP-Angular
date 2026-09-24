@@ -25,7 +25,8 @@ const SITUACOES: PeSituacaoPdtic[] = [
  * administrador do módulo, a Secretaria do CGTIC e o admin do SGDP também veem):
  * a lista dos PDTICs atuais de todos os órgãos (GET pdtic, paginado), com a
  * situação e o nível, e o botão que abre a trilha do órgão (só para ler) para
- * comentar os passos. Papel de órgão vê um aviso e a tela não consulta nada.
+ * comentar os passos; desde a E5, também "Ver o documento", que abre a trilha já
+ * no passo do documento. Papel de órgão vê um aviso e a tela não consulta nada.
  */
 @Component({
   selector: 'app-pe-pdtics-orgaos',
@@ -135,5 +136,26 @@ export class PePdticsOrgaosComponent implements OnInit {
   abrirTrilha(p: PePdtic): void {
     this.estadoService.verOrgao(p.OrgaoId);
     this.router.navigate([BASE_PE]);
+  }
+
+  /**
+   * Abre a trilha do órgão já no passo do documento (E5: a prévia, só para ler).
+   * A trilha do órgão chega depois: a moldura tira esta tela do ar enquanto
+   * carrega, então quem espera é a assinatura (não a tela), que se desfaz sozinha.
+   * Se a pessoa for para outra tela antes, fica onde está.
+   */
+  verDocumento(p: PePdtic): void {
+    const orgaoId = p.OrgaoId;
+    const router = this.router;
+    this.estadoService.verOrgao(orgaoId);
+    router.navigate([BASE_PE]);
+    let feito = false;
+    const assinatura = this.estadoService.estado$.subscribe(estado => {
+      if (feito || !estado || estado.orgaoVisto !== orgaoId || (estado.carga !== 'pronta' && estado.carga !== 'erro-trilha')) return;
+      feito = true;
+      const passo = estado.carga === 'pronta' ? estado.passos.find(x => x.doOrgao?.Tipo === 'documento') : null;
+      if (passo && router.url.split('?')[0] === BASE_PE) router.navigate([passo.rota], { queryParams: { passo: passo.numero } });
+      setTimeout(() => assinatura.unsubscribe());
+    });
   }
 }

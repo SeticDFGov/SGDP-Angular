@@ -22,6 +22,7 @@ import { PeFonteRegistros, PeRegistrosService } from '../services/pe-registros.s
 import { CargaPdticPe, PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { StatusPassoPe } from '../trilha/pe-trilha-status.service';
 import { BASE_PE, PassoNumeradoPe, TITULO_PASSO_GENERICO, passoDaUrl, rotuloGuia } from '../trilha/pe-trilhas';
+import { PeDocumentoPreviaComponent } from '../documento/pe-documento-previa.component';
 import { PeComentariosPassoComponent } from './pe-comentarios-passo.component';
 import { PeNaoSeAplicaComponent } from './pe-nao-se-aplica.component';
 import { PeSistemasIaPgiaComponent } from './pe-sistemas-ia-pgia.component';
@@ -43,6 +44,9 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
  *   das justificativas.
  * - Sem PDTIC aberto: a prévia do que o passo pede e, para a equipe do órgão,
  *   "Começar o PDTIC". Os demais tipos de passo seguem "em construção".
+ * - Passo do documento (E5): a prévia editável do documento do PDTIC, o PDF e
+ *   as versões (`pe-documento-previa`, num pacote próprio que só carrega neste
+ *   passo, pelo `@defer`).
  *
  * Quem não edita lê (consulta do órgão, papéis globais, PDTIC fora de elaboração):
  * quem decide é o `PodeEditar` do servidor, e a tela explica o porquê.
@@ -54,7 +58,7 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
   standalone: true,
   imports: [
     CommonModule, RouterModule, CitaPlanejamentoDirective, PeSecaoRegistrosComponent, PeNaoSeAplicaComponent,
-    PeComentariosPassoComponent, PeSistemasIaPgiaComponent, PeTemasAcoesComponent
+    PeComentariosPassoComponent, PeSistemasIaPgiaComponent, PeTemasAcoesComponent, PeDocumentoPreviaComponent
   ],
   templateUrl: './pe-passo-orgao.component.html'
 })
@@ -90,6 +94,8 @@ export class PePassoOrgaoComponent implements OnInit {
   private chavePasso = '';
   /** Seções com mudança não salva (pela chave). */
   private sujas = new Set<string>();
+  /** Texto do documento mudado e ainda não salvo (passo do documento). */
+  private documentoSujo = false;
   /** Uma mudança foi salva: a próxima situação que chegar é comparada com a de antes. */
   private esperandoSituacao = false;
 
@@ -104,9 +110,19 @@ export class PePassoOrgaoComponent implements OnInit {
 
   // ── Tipo do passo ─────────────────────────────────────────────────────────
 
-  /** O passo tem tela nesta entrega (dados e conferência dos temas). */
+  /** O passo tem tela (dados, conferência dos temas e, desde a E5, o documento). */
   get temTela(): boolean {
     return !!this.passo && TIPOS_PASSO_COM_TELA.has(this.passo.Tipo);
+  }
+
+  /** O passo tem seções de dados (os componentes genéricos de registros). */
+  get temSecoes(): boolean {
+    return this.passo?.Tipo === 'dados' || this.passo?.Tipo === 'conferencia_temas';
+  }
+
+  /** Passo do documento: a prévia editável, o PDF e as versões. */
+  get passoDocumento(): boolean {
+    return this.passo?.Tipo === 'documento';
   }
 
   get passoIa(): boolean {
@@ -168,16 +184,18 @@ export class PePassoOrgaoComponent implements OnInit {
   get avisoLeitura(): string {
     const estado = this.estadoService.atual;
     const pdtic = this.pdtic;
+    // No passo do documento, o que se baixa são as versões em PDF
+    const baixa = this.passoDocumento ? 'baixa as versões em PDF' : 'baixa as planilhas';
     if (estado?.orgaoVisto !== null) {
       return `Você está lendo o PDTIC do órgão ${this.siglaOrgao}. Quem preenche é a equipe do órgão.`;
     }
     if (estado?.meuPapel?.Papel === PapeisPlanejamento.OrgaoConsulta) {
-      return 'O seu papel é de consulta: você lê o PDTIC e baixa as planilhas. Quem preenche é a equipe do órgão.';
+      return `O seu papel é de consulta: você lê o PDTIC e ${baixa}. Quem preenche é a equipe do órgão.`;
     }
     if (pdtic && !pdticEmEdicao(pdtic.Situacao)) {
       return `O PDTIC está "${rotuloSituacaoPdtic(pdtic.Situacao).toLowerCase()}": só muda em elaboração ou quando o CGTIC devolve.`;
     }
-    return 'Você pode consultar e baixar as planilhas. Quem preenche é a equipe do órgão.';
+    return `Você pode consultar e ${baixa.replace('baixa ', 'baixar ')}. Quem preenche é a equipe do órgão.`;
   }
 
   /** Quem vê o órgão sem PDTIC e não pode abrir: o motivo. */
@@ -225,11 +243,19 @@ export class PePassoOrgaoComponent implements OnInit {
     this.estadoService.atualizarStatus(true);
   }
 
-  /** Guarda de rota: mudança não salva numa seção do passo. */
+  /** O texto do documento ficou com mudança pendente (ou terminou de salvar). */
+  aoAlterarDocumento(sujo: boolean): void {
+    this.documentoSujo = sujo;
+  }
+
+  /** Guarda de rota: mudança não salva numa seção do passo ou num texto do documento. */
   podeSair(): boolean {
-    if (this.sujas.size === 0) return true;
+    if (this.sujas.size === 0 && !this.documentoSujo) return true;
     const sair = confirm('Há mudanças que ainda não foram salvas neste passo. Sair assim mesmo? Elas vão se perder.');
-    if (sair) this.sujas.clear();
+    if (sair) {
+      this.sujas.clear();
+      this.documentoSujo = false;
+    }
     return sair;
   }
 
@@ -289,6 +315,7 @@ export class PePassoOrgaoComponent implements OnInit {
       // Outro passo: as mudanças pendentes do anterior já passaram pela guarda de rota
       this.chavePasso = this.passo.Chave;
       this.sujas.clear();
+      this.documentoSujo = false;
       this.esperandoSituacao = false;
       this.status = null;
     }

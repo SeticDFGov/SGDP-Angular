@@ -64,7 +64,11 @@ export const CLASSES_TEXTO_RICO = {
   cabecalho: 'border border-gray-300 bg-gray-50 px-2 py-1 text-left font-semibold align-top',
   celula: 'border border-gray-300 px-2 py-1 align-top',
   imagem: 'rounded border border-gray-200',
-  link: 'text-blue-700 underline'
+  link: 'text-blue-700 underline',
+  /** Marcador ("{orgao.nome}") no editor do documento (E5). */
+  marcador: 'bg-purple-50 text-purple-800 rounded',
+  /** Marcador sem valor na prévia do documento (E5): sai em branco no PDF. */
+  marcadorSemValor: 'bg-amber-100 text-amber-900 rounded px-1 font-semibold'
 } as const;
 
 /** Estilo em linha da imagem (evita classe inédita no CSS inicial). */
@@ -319,6 +323,8 @@ export interface EditorTextoRico {
   /** Link no texto selecionado; sem seleção, o próprio endereço entra como texto. */
   definirLink(href: string): void;
   inserirImagem(src: string, alt: string): void;
+  /** Texto simples no ponto do cursor (os marcadores do documento, "{orgao.nome}"). */
+  inserirTexto(texto: string): void;
   focar(): void;
   definirDocumento(doc: PeDocTextoRico | null): void;
   /** Atributos do elemento editável (ids da ajuda e do erro mudam com a tela). */
@@ -338,7 +344,15 @@ export interface OpcoesEditorTextoRico {
   aoMudarEstado(estado: EstadoFormatacao): void;
   /** Ctrl+K no texto: a tela abre o painel do link. */
   aoPedirLink(): void;
+  /** Destaca os marcadores escritos no texto ("{orgao.nome}"), como no documento do PDTIC. */
+  destacarMarcadores?: boolean;
 }
+
+/**
+ * Marcador escrito no texto: uma chave entre chaves, com partes separadas por
+ * ponto ("{orgao.nome}", "{nomes.equipe_acompanhamento}", "{hoje}").
+ */
+export const REGEX_MARCADOR_NO_TEXTO = /\{[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)*\}/g;
 
 /** O que o pacote do editor exporta. */
 export type CriarEditorTextoRico = (opcoes: OpcoesEditorTextoRico) => EditorTextoRico;

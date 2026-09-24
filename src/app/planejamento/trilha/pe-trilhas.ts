@@ -90,6 +90,7 @@ export const ROTAS_PRONTAS: ReadonlySet<string> = new Set([
   `${BASE_PE}/modelo/niveis`,
   `${BASE_PE}/modelo/estrutura`,
   `${BASE_PE}/modelo/criterios`,
+  `${BASE_PE}/modelo/documento`,
   `${BASE_PE}/orgaos/niveis`,
   `${BASE_PE}/referenciais/principios`,
   `${BASE_PE}/referenciais/petic`,
@@ -131,7 +132,6 @@ export const ATALHOS_REFERENCIAIS: { rota: string; titulo: string; texto: string
  * rota pela tela real.
  */
 export const TELAS_CENTRAIS_EM_CONSTRUCAO: Readonly<Record<string, string>> = {
-  'modelo/documento': 'Modelo do documento',
   'modelo/fluxos': 'Fluxos-modelo',
   'orgaos': 'Página do órgão',
   'painel': 'Painel e conformidade',
@@ -207,7 +207,7 @@ const TRILHA_ADMIN: TrilhaPe = {
         {
           titulo: 'Ajuste o modelo do documento',
           rota: tela('modelo/documento'),
-          oQueFazer: 'Edite os capítulos e os textos-padrão do documento do PDTIC. Cada órgão recebe uma cópia no começo do ciclo.',
+          oQueFazer: 'Edite os capítulos, os textos-padrão e os blocos de dados do documento do PDTIC. Cada órgão recebe uma cópia: o texto que ele não editou acompanha o modelo na hora.',
           baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
         },
         {

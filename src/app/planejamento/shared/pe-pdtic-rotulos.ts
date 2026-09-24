@@ -87,8 +87,8 @@ export function aceitaNaoSeAplica(passo: Pick<PePassoTrilha, 'Situacao' | 'Aceit
   return !!passo && passo.Situacao === 'opcional' && passo.AceitaNaoSeAplica && !passo.Travado;
 }
 
-/** Tipos de passo do órgão que têm tela nesta entrega (os demais: "em construção"). */
-export const TIPOS_PASSO_COM_TELA: ReadonlySet<string> = new Set(['dados', 'conferencia_temas']);
+/** Tipos de passo do órgão que têm tela (os demais: "em construção"); o documento entrou na E5. */
+export const TIPOS_PASSO_COM_TELA: ReadonlySet<string> = new Set(['dados', 'conferencia_temas', 'documento']);
 
 /** Selo da classificação de risco do PGIA (Decreto nº 48.901/2026), nas cores do PGIA. */
 export function classeRiscoPgia(classificacao: string | null | undefined): string {
