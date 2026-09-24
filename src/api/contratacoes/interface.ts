@@ -127,6 +127,21 @@ export const ORIGEM_PADRAO = 'Órgão comunicante';
 /** Origem dos processos que nascem de análise interna do próprio Tribunal. */
 export const ORIGEM_TCDF = 'TCDF';
 
+/**
+ * Área técnica para onde a SGDI encaminha o processo para análise técnica (espelha
+ * CtrDominios.AreaTecnica): Subsecretaria de Sistemas ou de Infraestrutura.
+ */
+export const AREAS_TECNICAS = [
+  { valor: 'SUBSIS', rotulo: 'SUBSIS (Subsecretaria de Sistemas)' },
+  { valor: 'SUBINFRA', rotulo: 'SUBINFRA (Subsecretaria de Infraestrutura)' }
+] as const;
+
+/**
+ * Status da contratação na supervisão contínua (coluna STATUS das listas), derivado no
+ * servidor pela regra de conclusão do módulo: contrato assinado = "Concluída".
+ */
+export const STATUS_SUPERVISAO = ['Em regime de supervisão', 'Concluída'] as const;
+
 /** Resultado da análise e providência adotada (inciso I do despacho). */
 export const RESULTADOS_ANALISE = [
   'Alinhada',
@@ -224,6 +239,8 @@ export interface CtrClassificacaoRisco {
 /** Corpo de POST e PUT do processo (CtrProcessoCreateDTO/CtrProcessoUpdateDTO). */
 export interface CtrProcessoForm {
   NumeroProcesso: string;
+  /** Nº SEI do Formulário: opcional, no formato do número do processo SEI. No PUT, nulo limpa. */
+  NumeroSeiFormulario?: string | null;
   OrgaoNome: string;
   OrgaoSigla: string;
   ComplementoArea?: string | null;
@@ -243,6 +260,17 @@ export interface CtrProcessoForm {
   RetornoOrgao?: string | null;
   /** Nem todo processo é devolvido ao órgão: com a data preenchida é recusado. */
   RetornoOrgaoNaoSeAplica: boolean;
+  /**
+   * Análise técnica (desde 2026-09-24), fora da cronologia do trâmite: a data do
+   * encaminhamento exige a área; o retorno exige o encaminhamento e não pode ser
+   * anterior a ele; nada no futuro. No PUT os quatro seguem o corpo (nulo limpa).
+   */
+  AnaliseTecnicaEncaminhadaEm?: string | null;
+  /** Um dos AREAS_TECNICAS (SUBSIS ou SUBINFRA); sem a data do encaminhamento é anulada. */
+  AnaliseTecnicaArea?: string | null;
+  AnaliseTecnicaRetornoEm?: string | null;
+  /** Resumo curto do que a área técnica respondeu (até 1000); sem a data do retorno é anulado. */
+  AnaliseTecnicaRetornoResumo?: string | null;
   /** Sigla de ETAPAS_PLANEJAMENTO; continua registrada depois da assinatura. */
   EtapaPlanejamento?: string | null;
   /**
@@ -259,7 +287,9 @@ export interface CtrProcessoForm {
   /**
    * Respostas aos critérios do art. 11, § 3º, da IN (chave = código do critério,
    * valor = resposta; ver `criticidade.ts`). No PUT, nula **preserva** as
-   * respostas gravadas e a criticidade calculada delas.
+   * respostas gravadas e a criticidade calculada delas. No II pode estar a resposta
+   * à pergunta anterior (Nenhum a Alto): ela volta como veio até alguém responder à
+   * pergunta nova.
    */
   CriteriosCriticidade?: Record<string, string> | null;
   /** Opcional no DTO: vazia = "Órgão comunicante". */
@@ -267,8 +297,18 @@ export interface CtrProcessoForm {
   /** Pedido de esclarecimento ao órgão: a data exige a descrição. */
   EsclarecimentoSolicitadoEm?: string | null;
   EsclarecimentoDescricao?: string | null;
+  /**
+   * Nº do documento SEI pelo qual a SGDI pediu os esclarecimentos ou as informações
+   * complementares (até 60, opcional). Faz parte do pedido: sem a data dele, é anulado.
+   */
+  EsclarecimentoDocumentoSei?: string | null;
   /** Resposta do órgão: exige o pedido e não pode ser anterior a ele. */
   EsclarecimentoRespondidoEm?: string | null;
+  /**
+   * Restituição ao órgão. Desde 2026-09-24 as telas não a pedem nem a mostram (a
+   * tramitação tem a data do retorno ao órgão): o formulário devolve o que veio do
+   * servidor, para não apagar o que está gravado.
+   */
   Restituido: boolean;
   RestituidoEm?: string | null;
   RestituidoMotivo?: string | null;
@@ -290,8 +330,17 @@ export interface CtrProcesso extends Omit<CtrProcessoForm, 'ClassificacaoRisco'>
   Id: number;
   /** Derivada no backend, nunca gravada. `Concluído` = contrato assinado. */
   Situacao: string;
-  /** Derivado: soma dos pontos das respostas aos critérios; nulo sem respostas. */
+  /** Derivado (um de STATUS_SUPERVISAO): "Concluída" com o contrato assinado. */
+  StatusSupervisao: string;
+  /** Derivado: soma dos pontos das respostas aos critérios (nunca negativa); nulo sem respostas. */
   PontosCriticidade?: number | null;
+  /**
+   * Derivado: a composição da soma, os pontos de cada critério de I a VII (o VII
+   * vem com 0: não soma, decide Alta sozinho). Nulo sem respostas.
+   */
+  PontosPorCriterio?: Record<string, number> | null;
+  /** Derivado: a resposta à pergunta anterior do II, enquanto ninguém responde à nova. */
+  RespostaPerguntaAnteriorII?: string | null;
   /**
    * Sinal paralelo ao trâmite (não muda a situação): há pedido de
    * esclarecimento sem resposta. Derivados no backend, nunca gravados.
@@ -343,6 +392,10 @@ export interface CtrProcessoFiltro {
   IncluirConcluidos?: boolean | null;
   EtapaPlanejamento?: string | null;
   Criticidade?: string | null;
+  /**
+   * Um de ORIGENS. Desde 2026-09-24 é a sub-aba que escolhe: "Processos de supervisão
+   * contínua" manda o órgão comunicante e "Comunicações do TCDF" manda TCDF.
+   */
   Origem?: string | null;
   /** true = só os que aguardam esclarecimento; false = só os sem pendência. */
   EsclarecimentoPendente?: boolean | null;

@@ -4,13 +4,16 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Params, Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { CtrProcessoService } from '../services/ctr-processo.service';
+import { secaoDaLista } from '../shared/ctr-filtro-lista';
 import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
 import { CtrTramiteComponent } from '../shared/ctr-tramite.component';
+import { CtrComposicaoCriticidadeComponent } from '../shared/ctr-composicao-criticidade.component';
 import {
   badgeCriticidade,
   badgeEstagio,
   badgeNivelRisco,
   badgeSituacao,
+  badgeStatusSupervisao,
   badgeStatusTcdf,
   corDiasSemMovimento,
   formatarReais,
@@ -18,7 +21,7 @@ import {
   rotuloEtapaPlanejamento,
   rotuloGdfnet
 } from '../shared/ctr-rotulos';
-import { CtrManifestacao, CtrProcesso, CtrProcessoForm } from '../../../api/contratacoes/interface';
+import { CtrManifestacao, CtrProcesso, CtrProcessoForm, ORIGEM_TCDF } from '../../../api/contratacoes/interface';
 
 /**
  * Página de um processo (`/analises/processos/editar/:id`): o estado atual num
@@ -29,7 +32,10 @@ import { CtrManifestacao, CtrProcesso, CtrProcessoForm } from '../../../api/cont
 @Component({
   selector: 'app-ctr-processo-editar',
   standalone: true,
-  imports: [CitaInDirective, CommonModule, RouterModule, CtrProcessoFormComponent, CtrTramiteComponent],
+  imports: [
+    CitaInDirective, CommonModule, RouterModule, CtrProcessoFormComponent, CtrTramiteComponent,
+    CtrComposicaoCriticidadeComponent
+  ],
   templateUrl: './ctr-processo-editar.component.html'
 })
 export class CtrProcessoEditarComponent implements OnInit {
@@ -45,6 +51,7 @@ export class CtrProcessoEditarComponent implements OnInit {
   erroCarregar: string | null = null;
 
   badgeSituacao = badgeSituacao;
+  badgeStatusSupervisao = badgeStatusSupervisao;
   badgeEstagio = badgeEstagio;
   badgeCriticidade = badgeCriticidade;
   badgeStatusTcdf = badgeStatusTcdf;
@@ -96,6 +103,7 @@ export class CtrProcessoEditarComponent implements OnInit {
     this.processo = processo;
     this.valorForm = {
       NumeroProcesso: processo.NumeroProcesso,
+      NumeroSeiFormulario: processo.NumeroSeiFormulario ?? null,
       OrgaoNome: processo.OrgaoNome,
       OrgaoSigla: processo.OrgaoSigla,
       ComplementoArea: processo.ComplementoArea ?? null,
@@ -111,6 +119,10 @@ export class CtrProcessoEditarComponent implements OnInit {
       RetornoGabSgdi: processo.RetornoGabSgdi ?? null,
       RetornoOrgao: processo.RetornoOrgao ?? null,
       RetornoOrgaoNaoSeAplica: processo.RetornoOrgaoNaoSeAplica,
+      AnaliseTecnicaEncaminhadaEm: processo.AnaliseTecnicaEncaminhadaEm ?? null,
+      AnaliseTecnicaArea: processo.AnaliseTecnicaArea ?? null,
+      AnaliseTecnicaRetornoEm: processo.AnaliseTecnicaRetornoEm ?? null,
+      AnaliseTecnicaRetornoResumo: processo.AnaliseTecnicaRetornoResumo ?? null,
       EtapaPlanejamento: processo.EtapaPlanejamento ?? null,
       DataAssinaturaContrato: processo.DataAssinaturaContrato ?? null,
       Criticidade: processo.Criticidade ?? null,
@@ -118,7 +130,9 @@ export class CtrProcessoEditarComponent implements OnInit {
       Origem: processo.Origem ?? null,
       EsclarecimentoSolicitadoEm: processo.EsclarecimentoSolicitadoEm ?? null,
       EsclarecimentoDescricao: processo.EsclarecimentoDescricao ?? null,
+      EsclarecimentoDocumentoSei: processo.EsclarecimentoDocumentoSei ?? null,
       EsclarecimentoRespondidoEm: processo.EsclarecimentoRespondidoEm ?? null,
+      // A tela não pede mais a restituição: o que está gravado volta como veio
       Restituido: processo.Restituido,
       RestituidoEm: processo.RestituidoEm ?? null,
       RestituidoMotivo: processo.RestituidoMotivo ?? null,
@@ -152,12 +166,26 @@ export class CtrProcessoEditarComponent implements OnInit {
     });
   }
 
-  /** A lista volta com os filtros que estavam aplicados quando o processo foi aberto. */
+  /**
+   * A lista do processo: as comunicações do TCDF têm a sua (pela origem). Volta com os
+   * filtros que estavam aplicados quando a lista foi deixada, se foi essa a lista.
+   */
+  get rotaDaLista(): string {
+    return `/analises/processos/${secaoDaLista(this.processo?.Origem)}`;
+  }
+
+  get rotuloDaLista(): string {
+    return this.processo?.Origem === ORIGEM_TCDF
+      ? 'Voltar para as comunicações do TCDF'
+      : 'Voltar para os processos de supervisão contínua';
+  }
+
   get filtrosDaLista(): Params {
-    return this.processoService.filtrosDaLista;
+    const lista = this.processoService.ultimaLista;
+    return lista && lista.secao === secaoDaLista(this.processo?.Origem) ? lista.params : {};
   }
 
   irParaLista(): void {
-    this.router.navigate(['/analises/processos/lista'], { queryParams: this.filtrosDaLista });
+    this.router.navigate([this.rotaDaLista], { queryParams: this.filtrosDaLista });
   }
 }

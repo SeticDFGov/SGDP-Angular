@@ -1,10 +1,10 @@
 <div citaIn class="tela-pgia max-w-5xl mx-auto">
 
   <div class="mb-4">
-    <a routerLink="/analises/processos/lista" [queryParams]="filtrosDaLista"
+    <a [routerLink]="rotaDaLista" [queryParams]="filtrosDaLista"
        class="inline-flex items-center gap-1 text-sm text-blue-700 underline">
       <span class="material-icons text-base leading-none" aria-hidden="true">arrow_back</span>
-      Voltar para a lista de processos
+      {{ rotuloDaLista }}
     </a>
   </div>
 
@@ -23,6 +23,8 @@
         <div class="flex-1 min-w-0">
           <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Processo SEI</p>
           <h2 class="text-lg font-semibold text-blue-900">{{ processo.NumeroProcesso }}</h2>
+          <p *ngIf="processo.NumeroSeiFormulario" class="text-xs text-gray-600">Nº SEI do Formulário:
+            <strong class="text-gray-800">{{ processo.NumeroSeiFormulario }}</strong></p>
           <p class="text-sm text-gray-600">{{ processo.OrgaoNome }} ({{ processo.OrgaoSigla }})<span
             *ngIf="processo.ComplementoArea"> · {{ processo.ComplementoArea }}</span></p>
           <p class="text-sm text-gray-800 mt-1">{{ processo.Objeto }}</p>
@@ -40,6 +42,9 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2 mt-3">
+        <!-- STATUS da supervisão contínua (regra de conclusão do módulo: contrato assinado) -->
+        <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+              [ngClass]="badgeStatusSupervisao(processo.StatusSupervisao)">{{ processo.StatusSupervisao }}</span>
         <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
               [ngClass]="badgeSituacao(processo.Situacao)">{{ processo.Situacao }}</span>
         <span class="text-xs" [ngClass]="corDiasSemMovimento(processo.DiasSemMovimento)">
@@ -86,9 +91,10 @@
         o reabre.
       </div>
 
+      <!-- Restituição registrada antes de 2026-09-24: a tela não a pede mais, fica como informação antiga -->
       <div *ngIf="processo.Restituido"
            class="mt-4 border-l-4 border-orange-400 bg-orange-50 p-3 rounded-r-md text-sm text-orange-800">
-        <strong>Restituído ao órgão</strong><span *ngIf="processo.RestituidoEm"> em
+        <strong>Registro antigo: restituído ao órgão</strong><span *ngIf="processo.RestituidoEm"> em
         {{ processo.RestituidoEm | date:'dd/MM/yyyy':'UTC' }}</span><span
         *ngIf="processo.RestituidoMotivo">: {{ processo.RestituidoMotivo }}</span>
       </div>
@@ -96,9 +102,25 @@
       <div class="mt-3 space-y-0.5">
         <p *ngIf="processo.EsclarecimentoSolicitadoEm" class="text-xs text-gray-600">
           Esclarecimento pedido em {{ processo.EsclarecimentoSolicitadoEm | date:'dd/MM/yyyy':'UTC' }}<span
+          *ngIf="processo.EsclarecimentoDocumentoSei"> (documento SEI {{ processo.EsclarecimentoDocumentoSei }})</span><span
           *ngIf="processo.EsclarecimentoRespondidoEm">, respondido em
           {{ processo.EsclarecimentoRespondidoEm | date:'dd/MM/yyyy':'UTC' }}</span>.
         </p>
+        <p *ngIf="processo.AnaliseTecnicaEncaminhadaEm" class="text-xs text-gray-600">
+          Encaminhado para análise técnica na {{ processo.AnaliseTecnicaArea }} em
+          {{ processo.AnaliseTecnicaEncaminhadaEm | date:'dd/MM/yyyy':'UTC' }}<ng-container
+          *ngIf="processo.AnaliseTecnicaRetornoEm">, com retorno em
+          {{ processo.AnaliseTecnicaRetornoEm | date:'dd/MM/yyyy':'UTC' }}</ng-container><ng-container
+          *ngIf="!processo.AnaliseTecnicaRetornoEm">, ainda sem retorno</ng-container>.
+          <span *ngIf="processo.AnaliseTecnicaRetornoResumo" class="block text-gray-700">O que a área respondeu:
+            {{ processo.AnaliseTecnicaRetornoResumo }}</span>
+        </p>
+      </div>
+
+      <!-- Composição da criticidade: os pontos de cada critério, como o servidor calculou -->
+      <div *ngIf="processo.CriteriosCriticidade" class="mt-4 pt-4 border-t border-gray-100">
+        <app-ctr-composicao-criticidade [respostas]="processo.CriteriosCriticidade"
+                                        [pontosDoServidor]="processo.PontosPorCriterio ?? null"></app-ctr-composicao-criticidade>
       </div>
 
       <p class="text-xs text-gray-500 italic mt-3">
@@ -121,7 +143,7 @@
         [siglas]="siglas"
         [salvando]="salvando"
         rotuloSalvar="Salvar alterações"
-        rotaCancelar="/analises/processos/lista"
+        [rotaCancelar]="rotaDaLista"
         (salvar)="salvar($event)"
         (cancelar)="irParaLista()"
       ></app-ctr-processo-form>
