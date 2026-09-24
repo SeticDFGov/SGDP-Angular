@@ -18,6 +18,8 @@ export interface UsuarioAcesso {
   UnidadeNome: string | null;
   PapelPgia: string | null;
   PapelContratacoes: string | null;
+  /** Papel na Governança Estratégica (`pe_*`); opcional: API anterior ao módulo não manda. */
+  PapelPlanejamento?: string | null;
   /** Concedidos na tela de gestão (editáveis). */
   Concedidos: AcessoModuloInfo[];
   /** Retrato das roles do Keycloak no último login (só leitura). */
@@ -31,6 +33,12 @@ export interface AcessoUsuarioForm {
   Pgia: boolean;
   PapelPgia: string | null;
   Contratacoes: boolean;
+  /**
+   * Governança Estratégica. Ausente ou nulo NÃO muda nada no servidor (a tela só
+   * manda quando a pessoa mexeu no bloco); true exige papel; false tira acesso e papel.
+   */
+  Planejamento?: boolean | null;
+  PapelPlanejamento?: string | null;
 }
 
 export interface AcessosConsulta {
@@ -92,6 +100,11 @@ export interface PedidoAcesso {
   DecididoPor: string | null;
   /** Papel no PGIA dado na aprovação. */
   PapelPgia: string | null;
+  /**
+   * Papel que a pessoa tem HOJE na Governança Estratégica (só nos pedidos desse
+   * módulo; não é guardado no pedido). Opcional: API anterior ao módulo não manda.
+   */
+  PapelPlanejamento?: string | null;
   MotivoRecusa: string | null;
 }
 

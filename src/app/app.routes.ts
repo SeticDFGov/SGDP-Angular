@@ -70,6 +70,14 @@ export const routes: Routes = [
         }
       },
 
+      // Governança Estratégica (PGTIC/DF, Decreto nº 48.900/2026): trilha numerada por papel
+      {
+        path: 'planejamento',
+        title: 'Governança Estratégica',
+        canActivate: [moduloGuard(Modulos.Planejamento)],
+        loadChildren: () => import('./planejamento/planejamento.routes').then(m => m.planejamento_routes)
+      },
+
       // Governança de IA (PGIA): trilha numerada por papel
       {
         path: 'pgia',

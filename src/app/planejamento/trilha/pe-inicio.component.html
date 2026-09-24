@@ -1,0 +1,138 @@
+<div citaPlanejamento class="tela-pgia max-w-5xl mx-auto space-y-5">
+  <ng-container *ngIf="estado as e">
+    <ng-container *ngIf="e.trilha as trilha">
+
+      <!-- O que o módulo faz -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-gray-900 mb-1">O que é a Governança Estratégica</h2>
+        <p class="text-sm text-gray-700 leading-relaxed">
+          Este módulo organiza a governança de tecnologia da informação e comunicação (TIC) do Distrito Federal, como pede o
+          Decreto nº 48.900/2026. São três níveis, do mais geral ao mais específico:
+        </p>
+        <ul class="mt-2 text-sm text-gray-700 space-y-1.5 leading-relaxed">
+          <li class="flex gap-2">
+            <span class="material-icons text-base text-purple-600 mt-0.5" aria-hidden="true">looks_one</span>
+            <span><strong>Princípios da política</strong>, que valem para todos os órgãos (art. 4º).</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="material-icons text-base text-purple-600 mt-0.5" aria-hidden="true">looks_two</span>
+            <span><strong>PETIC-DF</strong>, o Plano Estratégico de TIC do DF: diretrizes, objetivos e prioridades comuns,
+              aprovados pelo comitê de governança de TIC, o CGTIC (art. 11).</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="material-icons text-base text-purple-600 mt-0.5" aria-hidden="true">looks_3</span>
+            <span><strong>PDTIC</strong>, o Plano Diretor de TIC de cada órgão: alinhado ao PETIC-DF, com os nove conteúdos
+              mínimos (art. 12, § 2º), aprovado pelo CGTIC (art. 5º) e comunicado à SGDI (art. 7º, V, do Decreto nº 48.899/2026).</span>
+          </li>
+        </ul>
+
+        <h3 class="text-sm font-semibold text-gray-900 mt-5 mb-1">O que cabe a você</h3>
+        <p class="text-sm text-gray-700 leading-relaxed">{{ trilha.descricao }}</p>
+        <ol class="mt-3 text-sm text-gray-600 list-decimal ml-5 space-y-1 leading-relaxed">
+          <li>As etapas estão numeradas na ordem em que o trabalho acontece. Comece pela etapa 1.</li>
+          <li>Cada passo mostra o que fazer, a base legal e, quando há, a atividade do Guia de PDTIC do SISP (o guia do governo
+            federal que o módulo segue). Passe o mouse sobre um artigo, ou chegue nele pelo teclado, para ler o texto da norma.</li>
+          <li>No fim de cada tela, o botão "Próximo passo" leva adiante, sem precisar procurar em menus.</li>
+          <li>Os passos marcados como "em construção" ganham tela nas próximas etapas do desenvolvimento do módulo. Por enquanto,
+            eles mostram o que será feito ali.</li>
+        </ol>
+      </div>
+
+      <!-- Papel e órgão -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-gray-900 mb-3">Seu acesso</h2>
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Seu papel</dt>
+            <dd class="text-gray-900 font-medium mt-0.5">{{ rotuloPapel }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Órgão</dt>
+            <dd class="text-gray-900 font-medium mt-0.5">{{ rotuloOrgao }}</dd>
+          </div>
+        </dl>
+        <p *ngIf="e.meuPapel?.Papel === 'pe_orgao_consulta' && !e.adminGeral" class="text-xs text-gray-500 italic mt-3">
+          O papel de consulta só lê o PDTIC do seu órgão e baixa o documento e as planilhas.
+        </p>
+        <div *ngIf="orgaoFaltando" class="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <span class="material-icons text-base text-amber-600 mt-0.5" aria-hidden="true">warning</span>
+          <span>A sua unidade não está ligada a um órgão, e o seu papel é de órgão. Enquanto isso, você não vê o PDTIC de órgão
+            nenhum. Fale com o administrador do módulo para conferir a sua unidade.</span>
+        </div>
+      </div>
+
+      <!-- Próximo passo recomendado -->
+      <div *ngIf="recomendado as r" class="bg-purple-600 text-white rounded-lg shadow p-5 flex flex-col md:flex-row md:items-center gap-4">
+        <div class="flex-1">
+          <p class="text-xs uppercase tracking-wide font-semibold">Seu próximo passo</p>
+          <p class="text-lg font-bold mt-0.5">{{ r.numero }} · {{ r.titulo }}</p>
+          <p class="text-sm mt-1 leading-relaxed">{{ r.oQueFazer }}</p>
+          <p *ngIf="status(r) as s" class="inline-flex items-center gap-1 mt-2 text-xs font-semibold bg-white text-purple-800 rounded-full px-2 py-0.5">
+            {{ s.texto }}
+          </p>
+        </div>
+        <button type="button" (click)="irPara(r)"
+                class="inline-flex items-center justify-center gap-2 bg-white text-purple-700 font-semibold px-5 py-2.5 rounded-lg hover:bg-gray-100 whitespace-nowrap">
+          Ir para o passo {{ r.numero }}
+          <span class="material-icons text-lg" aria-hidden="true">arrow_forward</span>
+        </button>
+      </div>
+
+      <div *ngIf="!recomendado && !carregandoStatus" class="bg-green-50 border border-green-200 rounded-lg p-5 flex items-start gap-3">
+        <span class="material-icons text-green-600" aria-hidden="true">task_alt</span>
+        <p class="text-sm text-green-900 leading-relaxed">
+          <strong>Nada esperando você agora.</strong> Use as etapas abaixo para as rotinas do dia a dia.
+        </p>
+      </div>
+
+      <p *ngIf="carregandoStatus" class="text-sm text-gray-600">Conferindo a situação dos passos...</p>
+
+      <!-- Etapas e passos numerados -->
+      <div *ngFor="let etapa of trilha.etapas; let i = index" class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-5 py-4 flex items-start gap-4 border-b border-gray-100">
+          <span class="w-10 h-10 rounded-full bg-purple-600 text-white text-base font-bold flex items-center justify-center shrink-0">{{ i + 1 }}</span>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+              <span class="material-icons text-purple-600 text-xl" aria-hidden="true">{{ etapa.icone }}</span>
+              {{ etapa.titulo }}
+            </h3>
+            <p class="text-sm text-gray-600 mt-0.5">{{ etapa.resumo }}</p>
+          </div>
+        </div>
+        <ul>
+          <li *ngFor="let p of passosDaEtapa(i)"
+              class="px-5 py-3 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+            <span class="text-sm font-bold text-purple-700 w-10 shrink-0">{{ p.numero }}</span>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-gray-900">{{ p.titulo }}</p>
+              <p class="text-xs text-gray-500 leading-relaxed">{{ p.oQueFazer }}</p>
+              <p *ngIf="p.baseLegal || p.guia" class="text-xs text-gray-500 mt-0.5">
+                <ng-container *ngIf="p.baseLegal">Base legal: {{ p.baseLegal }}</ng-container>
+                <ng-container *ngIf="p.baseLegal && p.guia"> · </ng-container>
+                <ng-container *ngIf="p.guia">{{ guia(p) }}</ng-container>
+              </p>
+            </div>
+            <span *ngIf="status(p) as s; else semStatus"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center"
+                  [ngClass]="classeEstado(s.estado)">{{ s.texto }}</span>
+            <ng-template #semStatus>
+              <span *ngIf="p.emConstrucao"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center bg-gray-50 text-gray-600 border-gray-200">
+                <span class="material-icons text-sm" aria-hidden="true">construction</span> Em construção
+              </span>
+              <span *ngIf="!p.emConstrucao && p.status"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center bg-gray-50 text-gray-600 border-gray-200">
+                Conferindo...
+              </span>
+            </ng-template>
+            <button type="button" (click)="irPara(p)"
+                    class="inline-flex items-center gap-1 text-sm font-semibold text-purple-700 hover:underline whitespace-nowrap self-start md:self-center"
+                    [attr.aria-label]="'Abrir o passo ' + p.numero + ': ' + p.titulo">
+              Abrir <span class="material-icons text-base" aria-hidden="true">arrow_forward</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </ng-container>
+  </ng-container>
+</div>

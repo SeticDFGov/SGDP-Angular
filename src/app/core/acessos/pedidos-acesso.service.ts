@@ -13,7 +13,8 @@ import {
 /**
  * Pedidos de acesso aos módulos (api/pedidos-acesso). Qualquer pessoa logada pede
  * e acompanha os próprios pedidos, mesmo sem módulo algum; a Administração decide
- * todos e a SGDI decide os do PGIA. O token vai pelo interceptor.
+ * todos, a SGDI decide os do PGIA e o administrador da Governança Estratégica, os
+ * do módulo dele. O token vai pelo interceptor.
  */
 @Injectable({ providedIn: 'root' })
 export class PedidosAcessoService {
@@ -62,9 +63,15 @@ export class PedidosAcessoService {
     });
   }
 
-  /** Libera o módulo na hora. No PGIA, `papelPgia` nulo = agente público. */
-  aprovar(id: number, papelPgia: string | null): Observable<PedidoAcesso> {
-    return this.http.post<PedidoAcesso>(`${this.apiUrl}/${id}/aprovar`, { PapelPgia: papelPgia });
+  /**
+   * Libera o módulo na hora. No PGIA, `papelPgia` nulo = agente público. Na
+   * Governança Estratégica o papel é obrigatório (`papelPlanejamento`); ele só vai
+   * no corpo quando informado, e os pedidos dos outros módulos seguem iguais.
+   */
+  aprovar(id: number, papelPgia: string | null = null, papelPlanejamento: string | null = null): Observable<PedidoAcesso> {
+    const corpo: { PapelPgia: string | null; PapelPlanejamento?: string } = { PapelPgia: papelPgia };
+    if (papelPlanejamento) corpo.PapelPlanejamento = papelPlanejamento;
+    return this.http.post<PedidoAcesso>(`${this.apiUrl}/${id}/aprovar`, corpo);
   }
 
   recusar(id: number, motivo: string): Observable<PedidoAcesso> {

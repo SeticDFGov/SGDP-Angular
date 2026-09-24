@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PedidosAcessoService } from './pedidos-acesso.service';
 import { OPCOES_PAPEL_PGIA, rotuloCurtoPapelPgia } from './papeis-pgia';
+import {
+  OPCOES_PAPEL_PLANEJAMENTO, papelPlanejamentoDeOrgao, rotuloCurtoPapelPlanejamento
+} from './papeis-planejamento';
 import { NotificationService } from '../services/notification.service';
 import { MODULOS, Modulos, ModuloSgdp, moduloPorId } from '../modulos/modulos';
 import { PapeisPgia } from '../../auth/services/auth';
@@ -18,6 +21,8 @@ interface Decisao {
   tipo: 'aprovar' | 'recusar';
   /** Só no PGIA; null = agente público. */
   papelPgia: string | null;
+  /** Só na Governança Estratégica, e obrigatório nela. */
+  papelPlanejamento: string | null;
   motivo: string;
   tentouEnviar: boolean;
 }
@@ -33,10 +38,12 @@ const FILTROS_SITUACAO: { valor: string; rotulo: string }[] = [
 export const TAMANHO_MOTIVO = 500;
 
 /**
- * Fila dos pedidos de acesso: quem decide aprova (no PGIA, já escolhendo o papel)
- * ou recusa com motivo, sem sair da linha. A mesma fila serve à Administração
- * (todos os módulos) e à SGDI, na tela de pessoas do PGIA (`moduloFixo = 'pgia'`).
- * O backend limita cada um aos módulos que decide.
+ * Fila dos pedidos de acesso: quem decide aprova (no PGIA e na Governança
+ * Estratégica, já escolhendo o papel) ou recusa com motivo, sem sair da linha. A
+ * mesma fila serve à Administração (todos os módulos), à SGDI, na tela de pessoas
+ * do PGIA (`moduloFixo = 'pgia'`), e ao administrador da Governança Estratégica,
+ * na tela Pessoas e acessos do módulo (`moduloFixo = 'planejamento'`). O backend
+ * limita cada um aos módulos que decide.
  */
 @Component({
   selector: 'app-pedidos-acesso-fila',
@@ -56,6 +63,7 @@ export class PedidosAcessoFilaComponent implements OnInit {
 
   readonly filtrosSituacao = FILTROS_SITUACAO;
   readonly opcoesPapelPgia = OPCOES_PAPEL_PGIA;
+  readonly opcoesPapelPlanejamento = OPCOES_PAPEL_PLANEJAMENTO;
   readonly modulosLiberaveis: ModuloSgdp[] = MODULOS.filter(m => m.id !== Modulos.Administracao);
   readonly tamanhoMotivo = TAMANHO_MOTIVO;
   readonly M = Modulos;
@@ -135,6 +143,10 @@ export class PedidosAcessoFilaComponent implements OnInit {
     return rotuloCurtoPapelPgia(papel);
   }
 
+  rotuloPapelPlanejamento(papel: string | null | undefined): string {
+    return rotuloCurtoPapelPlanejamento(papel);
+  }
+
   // ── Decisão ───────────────────────────────────────────────────────────────
 
   abrirDecisao(pedido: PedidoAcesso, tipo: 'aprovar' | 'recusar'): void {
@@ -142,12 +154,23 @@ export class PedidosAcessoFilaComponent implements OnInit {
       this.decisao = null;
       return;
     }
-    this.decisao = { pedido, tipo, papelPgia: null, motivo: '', tentouEnviar: false };
+    this.decisao = { pedido, tipo, papelPgia: null, papelPlanejamento: null, motivo: '', tentouEnviar: false };
   }
 
   /** Papel de órgão sem unidade: a unidade é que liga a pessoa ao órgão. */
   get papelOrgaoSemUnidade(): boolean {
     return !!this.decisao && this.decisao.papelPgia === PapeisPgia.Orgao && !this.decisao.pedido.UnidadeNome;
+  }
+
+  /** Governança Estratégica: papel de órgão (equipe ou consulta) para quem não tem unidade. */
+  get papelPlanejamentoOrgaoSemUnidade(): boolean {
+    return !!this.decisao && papelPlanejamentoDeOrgao(this.decisao.papelPlanejamento) && !this.decisao.pedido.UnidadeNome;
+  }
+
+  /** Aprovar um pedido da Governança Estratégica exige o papel. */
+  get papelPlanejamentoFaltando(): boolean {
+    return !!this.decisao && this.decisao.tipo === 'aprovar' && this.decisao.tentouEnviar
+      && this.decisao.pedido.Modulo === Modulos.Planejamento && !this.decisao.papelPlanejamento;
   }
 
   get motivoFaltando(): boolean {
@@ -159,10 +182,15 @@ export class PedidosAcessoFilaComponent implements OnInit {
     const decisao = this.decisao;
     decisao.tentouEnviar = true;
     if (decisao.tipo === 'recusar' && !decisao.motivo.trim()) return;
+    if (this.papelPlanejamentoFaltando) return;
 
     this.salvando = true;
+    const modulo = decisao.pedido.Modulo;
     const chamada = decisao.tipo === 'aprovar'
-      ? this.pedidos.aprovar(decisao.pedido.Id, decisao.pedido.Modulo === Modulos.Pgia ? decisao.papelPgia : null)
+      ? this.pedidos.aprovar(
+          decisao.pedido.Id,
+          modulo === Modulos.Pgia ? decisao.papelPgia : null,
+          modulo === Modulos.Planejamento ? decisao.papelPlanejamento : null)
       : this.pedidos.recusar(decisao.pedido.Id, decisao.motivo.trim());
 
     chamada.subscribe({

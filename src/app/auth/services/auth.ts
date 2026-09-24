@@ -282,6 +282,8 @@ export class AuthService {
     PapelPgia?: string | null; VincularAoOrgaoDeTeste?: boolean;
     PapelContratacoes?: string | null;
     ConcederModulos?: string[] | null;
+    // Papel na Governança Estratégica (pe_*): o back-end dá o acesso ao módulo junto
+    PapelPlanejamento?: string | null;
   }): Observable<AuthResponse> {
     return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/authlocal/token`, dados).pipe(
       switchMap(tokenResponse => {

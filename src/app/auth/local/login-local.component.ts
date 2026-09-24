@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth';
 import { NotificationService } from '../../core/services/notification.service';
+import { OPCOES_PAPEL_PLANEJAMENTO, PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
 
 interface PersonaLocal {
   Email: string;
@@ -15,6 +16,17 @@ interface PersonaLocal {
   VincularAoOrgaoDeTeste?: boolean;
   // Acessos concedidos no sistema (como a tela de Gestão de acessos faria)
   ConcederModulos?: string[];
+  // Papel na Governança Estratégica: o back-end grava o papel e o acesso juntos
+  PapelPlanejamento?: string;
+}
+
+/**
+ * Persona da Governança Estratégica: manda só o papel (o back-end dá o acesso junto,
+ * põe os papéis de órgão na unidade SES e os globais na Unidade Central de Teste).
+ * Nada de VincularAoOrgaoDeTeste, que daria a role do PGIA e o órgão de teste.
+ */
+function personaPlanejamento(Email: string, Nome: string, PapelPlanejamento: string, Descricao: string): PersonaLocal {
+  return { Email, Nome, Perfil: 'basico', PapelPlanejamento, Descricao };
 }
 
 /**
@@ -96,14 +108,35 @@ export class LoginLocalComponent {
     }
   ];
 
+  // Uma persona por papel da Governança Estratégica (Decreto nº 48.900/2026). Os
+  // papéis de órgão ficam na Secretaria de Estado de Saúde (SES): o back-end do
+  // modo local liga a persona à unidade SES (e cria o órgão SES se faltar).
+  personasPlanejamento: PersonaLocal[] = [
+    personaPlanejamento('pe-admin@local.teste', 'Patrícia do Planejamento', PapeisPlanejamento.Admin,
+      'Administradora do módulo: prepara o modelo, cadastra princípios e PETIC-DF, responde aos pedidos de acesso e define os papéis'),
+    personaPlanejamento('pe-sgdi@local.teste', 'Gustavo da Governança', PapeisPlanejamento.Sgdi,
+      'Equipe da SGDI: acompanha e analisa os PDTICs de todos os órgãos, registra notificações e inadimplências'),
+    personaPlanejamento('pe-cgtic@local.teste', 'Célia do Comitê', PapeisPlanejamento.Cgtic,
+      'Secretaria do CGTIC: recebe os PDTICs e o PETIC-DF enviados e registra as deliberações do comitê'),
+    personaPlanejamento('pe-orgao@local.teste', 'Sérgio da Saúde', PapeisPlanejamento.Orgao,
+      'Equipe do órgão (SES): elabora e acompanha o PDTIC da Secretaria de Saúde, com a trilha de sete etapas'),
+    personaPlanejamento('pe-consulta@local.teste', 'Solange da Saúde', PapeisPlanejamento.OrgaoConsulta,
+      'Consulta do órgão (SES): só lê o PDTIC da Secretaria de Saúde')
+  ];
+
   perfis = ['admin', 'gestor', 'basico'];
   papeisPgia = ['pgia_orgao', 'pgia_sgdi', 'pgia_cgtic', 'pgia_auditoria'];
   papeisContratacoes = ['ctr_analise'];
+  opcoesPapelPlanejamento = OPCOES_PAPEL_PLANEJAMENTO;
 
   form: {
     Email: string; Nome: string; Perfil: string; PapelPgia: string; PapelContratacoes: string;
     ConcederDemandas: boolean; ConcederPgia: boolean;
-  } = { Email: '', Nome: '', Perfil: 'gestor', PapelPgia: '', PapelContratacoes: '', ConcederDemandas: false, ConcederPgia: false };
+    ConcederPlanejamento: boolean; PapelPlanejamento: string;
+  } = {
+    Email: '', Nome: '', Perfil: 'gestor', PapelPgia: '', PapelContratacoes: '', ConcederDemandas: false, ConcederPgia: false,
+    ConcederPlanejamento: false, PapelPlanejamento: PapeisPlanejamento.Orgao
+  };
   entrando = false;
 
   constructor(
@@ -121,7 +154,8 @@ export class LoginLocalComponent {
       PapelPgia: persona.PapelPgia ?? null,
       PapelContratacoes: persona.PapelContratacoes ?? null,
       VincularAoOrgaoDeTeste: persona.VincularAoOrgaoDeTeste ?? false,
-      ConcederModulos: persona.ConcederModulos ?? null
+      ConcederModulos: persona.ConcederModulos ?? null,
+      PapelPlanejamento: persona.PapelPlanejamento ?? null
     }).subscribe({
       next: () => {
         this.entrando = false;
@@ -140,6 +174,8 @@ export class LoginLocalComponent {
     this.entrando = true;
     const papel = this.form.PapelPgia || null;
     const papelCtr = this.form.PapelContratacoes || null;
+    // A Governança Estratégica não entra em ConcederModulos: o papel já dá o acesso
+    // (e "planejamento" sem papel o back-end recusa)
     const concessoes = [
       ...(this.form.ConcederDemandas ? ['demandas'] : []),
       ...(this.form.ConcederPgia ? ['pgia'] : [])
@@ -152,7 +188,9 @@ export class LoginLocalComponent {
       PapelContratacoes: papelCtr,
       // Papel de órgão só faz sentido dentro de um órgão de teste
       VincularAoOrgaoDeTeste: papel === 'pgia_orgao',
-      ConcederModulos: concessoes.length > 0 ? concessoes : null
+      ConcederModulos: concessoes.length > 0 ? concessoes : null,
+      // Governança Estratégica: só o papel (o acesso vem junto)
+      PapelPlanejamento: this.form.ConcederPlanejamento ? this.form.PapelPlanejamento : null
     }).subscribe({
       next: () => {
         this.entrando = false;

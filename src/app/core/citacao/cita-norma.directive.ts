@@ -7,8 +7,16 @@ import { isPlatformBrowser } from '@angular/common';
  * Núcleo compartilhado (2026-09-22) do que antes vivia só em
  * `pgia/shared/cita-decreto.directive.ts`: a diretiva concreta de cada norma
  * (`citaDecreto` para o Decreto nº 48.901/2026, `citaIn` para a IN SGDI nº
- * 1/2026) só diz qual norma é (`NormaCitavel`). O texto de cada norma continua
- * no chunk lazy do seu módulo: este arquivo não importa nenhum deles.
+ * 1/2026, `citaPlanejamento` para o Decreto nº 48.900/2026) só diz qual norma é
+ * (`NormaCitavel`). O texto de cada norma continua no chunk lazy do seu módulo:
+ * este arquivo não importa nenhum deles.
+ *
+ * Várias normas na mesma tela (2026-09-24): a norma padrão vale para a citação
+ * que não diz a norma, como sempre. As normas secundárias da diretiva
+ * (`secundarias`) valem quando o nome dela vem logo depois da citação ("art. 7º,
+ * V, do Decreto nº 48.899/2026"). Citação de norma que a tela não conhece
+ * continua como texto (`outrasNormas` da norma padrão). Sem secundárias, nada
+ * muda em relação ao comportamento anterior.
  *
  * A diretiva entra UMA vez no elemento-raiz da página. Depois do render ela
  * varre os textos visíveis, acha as citações ("art. 23, III", "arts. 15 a 17",
@@ -49,6 +57,12 @@ export interface NormaCitavel {
    * Lei...", "art. 6º, IV, do Decreto...") não vira chip.
    */
   outrasNormas: RegExp;
+  /**
+   * Nome da norma, testado no texto logo depois da citação ("do Decreto nº
+   * 48.899/2026"). Só é usado quando a norma entra como secundária numa tela,
+   * ou para a norma padrão citada pelo próprio nome. Sem a flag `g`.
+   */
+  nome?: RegExp;
 }
 
 // ── Modelo do que o painel mostra ───────────────────────────────────────────
@@ -90,6 +104,39 @@ export const REGEX_CITACAO = new RegExp(
   'g'
 );
 
+/**
+ * `REGEX_CITACAO` mais três formas, para a diretiva que liga `formasAmplas`:
+ * `art. 8º, §§ 1º e 2º` (vários parágrafos do mesmo artigo) ·
+ * `art. 12, § 2º, V, VI e IX` (o último inciso da lista, depois do "e") ·
+ * `art. 12, § 1º, e § 2º, IV` (o último parágrafo, depois do "e").
+ * Não substitui a regex de sempre: nas telas que já existem, "art. 13, IV e V"
+ * continua com o chip só em "art. 13, IV".
+ */
+export const REGEX_CITACAO_AMPLA = new RegExp(
+  '\\b[Aa]rts?\\.\\s*' +
+  '\\d+(?:\\s*[º°])?' +
+  '(?:' +
+    '\\s*,\\s*§§\\s*\\d+(?:\\s*[º°])?(?:(?:\\s*,\\s*|\\s+e\\s+)\\d+(?:\\s*[º°])?)+' +  // "§§ 1º e 2º"
+    // a alínea não pode ser o "e" que abre outro parágrafo ou inciso (", e § 2º")
+    '|\\s*,\\s*(?:§\\s*(?:\\d+(?:\\s*[º°])?|[úu]nico)|[Pp]ar[áa]grafo\\s+[úu]nico|[IVXLCDM]+\\b)(?:\\s*,\\s*[a-z]\\b(?!\\s+(?:§|[IVXLCDM]+\\b)))?' +
+    '|\\s*,?\\s+e\\s+(?:§\\s*(?:\\d+(?:\\s*[º°])?|[úu]nico)|[IVXLCDM]+\\b)' +     // "V, VI e IX", ", e § 2º"
+    '|\\s*,\\s*\\d+(?:\\s*[º°])?' +
+    '|\\s+[ea]\\s+\\d+(?:\\s*[º°])?' +
+  ')*',
+  'g'
+);
+
+/**
+ * "§§ 1º e 2º" vira "§ 1º, § 2º", a forma que a análise já entende. Só a
+ * `REGEX_CITACAO_AMPLA` deixa "§§" chegar até aqui.
+ */
+function expandirParagrafos(corpo: string): string {
+  return corpo.replace(
+    /§§\s*(\d+(?:\s*[º°])?(?:(?:\s*,\s*|\s+e\s+)\d+(?:\s*[º°])?)*)/g,
+    (_, lista: string) => lista.split(/\s*,\s*|\s+e\s+/).map(numero => `§ ${numero.trim()}`).join(', ')
+  );
+}
+
 const TOKENS_CITACAO = new RegExp(
   '§\\s*(\\d+)(?:\\s*[º°])?' +                 // 1: parágrafo numerado
   '|(§\\s*[úu]nico|[Pp]ar[áa]grafo\\s+[úu]nico)' + // 2: parágrafo único (abreviado ou por extenso)
@@ -111,7 +158,7 @@ function normalizar(texto: string): string {
 
 /** Quebra a citação nos artigos e nas partes que ela nomeia. */
 export function analisarCitacao(citacao: string): ReferenciaArtigo[] {
-  const corpo = citacao.replace(/^\s*[Aa]rts?\.\s*/, '');
+  const corpo = expandirParagrafos(citacao.replace(/^\s*[Aa]rts?\.\s*/, ''));
   const referencias: ReferenciaArtigo[] = [];
   let faixa = false;
 
@@ -319,6 +366,12 @@ class PainelCitacao {
 
 const MARCA_CHIP = 'data-cita-norma';
 /**
+ * Trecho que não ganha chip (ex.: o texto de um link: chip focável dentro de link
+ * é controle aninhado, e o clique no chip não navegaria). As telas que já existiam
+ * não usam o atributo.
+ */
+const SEM_DICA = 'data-sem-dica';
+/**
  * Filtro barato antes da regex completa. Precisa aceitar o plural: "arts." não
  * contém "art."; procurar só por "art." deixaria de fora toda citação de mais
  * de um artigo. Sem a flag `g`: `test` não pode guardar posição entre chamadas.
@@ -345,8 +398,17 @@ interface DerivacaoTexto {
 
 @Directive()
 export abstract class CitaNormaDirective implements AfterViewInit, OnDestroy {
-  /** A norma transcrita que as citações desta página referem. */
+  /** A norma transcrita que as citações desta página referem (a padrão). */
   protected abstract readonly norma: NormaCitavel;
+
+  /**
+   * Outras normas que a página reconhece pelo nome logo depois da citação
+   * (`NormaCitavel.nome`). Vazio: só a padrão, como sempre foi.
+   */
+  protected readonly secundarias: readonly NormaCitavel[] = [];
+
+  /** Liga as formas de `REGEX_CITACAO_AMPLA` ("§§ 1º e 2º", "V, VI e IX"). */
+  protected readonly formasAmplas: boolean = false;
 
   private observador: MutationObserver | null = null;
   private agendado: number | null = null;
@@ -439,7 +501,7 @@ export abstract class CitaNormaDirective implements AfterViewInit, OnDestroy {
         if (!no.nodeValue || !PREFILTRO_CITACAO.test(no.nodeValue)) return NodeFilter.FILTER_REJECT;
         for (let pai = no.parentElement; pai && pai !== raiz.parentElement; pai = pai.parentElement) {
           if (TAGS_IGNORADAS.has(pai.tagName)) return NodeFilter.FILTER_REJECT;
-          if (pai.hasAttribute(MARCA_CHIP)) return NodeFilter.FILTER_REJECT;
+          if (pai.hasAttribute(MARCA_CHIP) || pai.hasAttribute(SEM_DICA)) return NodeFilter.FILTER_REJECT;
         }
         return NodeFilter.FILTER_ACCEPT;
       }
@@ -453,22 +515,39 @@ export abstract class CitaNormaDirective implements AfterViewInit, OnDestroy {
     return encontrados;
   }
 
+  /**
+   * Norma de uma citação, pelo texto que vem logo depois dela: a secundária (ou a
+   * padrão) cujo nome aparece ali; senão a padrão, a não ser que ali esteja o
+   * nome de outra norma ("art. X da Lei ..."), e aí a citação fica texto (null).
+   */
+  private normaDaCitacao(depois: string): NormaCitavel | null {
+    for (const norma of this.secundarias) {
+      if (norma.nome?.test(depois)) return norma;
+    }
+    if (this.norma.nome?.test(depois)) return this.norma;
+    return this.norma.outrasNormas.test(depois) ? null : this.norma;
+  }
+
   private marcarCitacoes(no: Text): void {
     const texto = no.nodeValue ?? '';
-    REGEX_CITACAO.lastIndex = 0;
+    const regex = this.formasAmplas ? REGEX_CITACAO_AMPLA : REGEX_CITACAO;
+    regex.lastIndex = 0;
 
-    const achados: { inicio: number; fim: number; citacao: string; dispositivos: DispositivoExibido[] }[] = [];
+    const achados: {
+      inicio: number; fim: number; citacao: string; norma: NormaCitavel; dispositivos: DispositivoExibido[];
+    }[] = [];
     let encontrado: RegExpExecArray | null;
-    while ((encontrado = REGEX_CITACAO.exec(texto)) !== null) {
+    while ((encontrado = regex.exec(texto)) !== null) {
       // O número do artigo pode vir seguido de espaço ("art. 23 do Decreto"):
       // o chip cobre só a citação, sem sobra.
       const citacao = encontrado[0].replace(/\s+$/, '');
       const inicio = encontrado.index;
       const fim = inicio + citacao.length;
-      if (this.norma.outrasNormas.test(texto.slice(fim))) continue;   // "art. X da Lei ..."
-      const dispositivos = resolverCitacaoNorma(this.norma, citacao);
+      const norma = this.normaDaCitacao(texto.slice(fim));
+      if (!norma) continue;                                  // "art. X da Lei ..."
+      const dispositivos = resolverCitacaoNorma(norma, citacao);
       if (dispositivos.length === 0) continue;               // artigo desconhecido: fica texto
-      achados.push({ inicio, fim, citacao, dispositivos });
+      achados.push({ inicio, fim, citacao, norma, dispositivos });
     }
 
     if (achados.length === 0) return;
@@ -480,7 +559,7 @@ export abstract class CitaNormaDirective implements AfterViewInit, OnDestroy {
       const achado = achados[i];
       const meio = no.splitText(achado.inicio);
       const cauda = meio.splitText(achado.fim - achado.inicio);
-      const chip = this.criarChip(achado.citacao, achado.dispositivos);
+      const chip = this.criarChip(achado.citacao, achado.dispositivos, achado.norma);
       meio.parentNode?.replaceChild(chip, meio);
       derivados.push(chip, cauda);
     }
@@ -490,16 +569,16 @@ export abstract class CitaNormaDirective implements AfterViewInit, OnDestroy {
     this.derivacoes.push({ cabeca: no, textoCabeca: no.nodeValue ?? '', derivados });
   }
 
-  private criarChip(citacao: string, dispositivos: DispositivoExibido[]): HTMLElement {
+  private criarChip(citacao: string, dispositivos: DispositivoExibido[], norma: NormaCitavel): HTMLElement {
     const chip = document.createElement('span');
     chip.className = CLASSES_CHIP;
     chip.setAttribute(MARCA_CHIP, '');
     chip.setAttribute('tabindex', '0');
     chip.setAttribute('aria-label',
-      `${dispositivos.map(d => d.rotulo).join(', ')} do ${this.norma.titulo}. Abra para ler o texto.`);
+      `${dispositivos.map(d => d.rotulo).join(', ')} do ${norma.titulo}. Abra para ler o texto.`);
     chip.textContent = citacao;
 
-    const abrir = () => PainelCitacao.obter().mostrar(chip, dispositivos, this.norma.rodape);
+    const abrir = () => PainelCitacao.obter().mostrar(chip, dispositivos, norma.rodape);
     chip.addEventListener('mouseenter', abrir);
     chip.addEventListener('focus', abrir);
     chip.addEventListener('click', evento => {

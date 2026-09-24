@@ -7,10 +7,15 @@ import { NotificationService } from '../core/services/notification.service';
 import { PedidosAcessoService } from '../core/acessos/pedidos-acesso.service';
 import { UserProfile } from '../../api/auth/interface';
 import { MeuPedidoAcesso, SituacoesPedidoAcesso } from '../../api/acessos/interface';
+import { PeMeuPapel } from '../../api/planejamento/interface';
 import {
   MODULOS, Modulos, ModuloSgdp, mensagemAdministracao, podePedirAcesso, temModulo
 } from '../core/modulos/modulos';
 import { DialogoDirective } from '../core/acessibilidade/dialogo.directive';
+import {
+  PapeisPlanejamento, papelPlanejamentoDeOrgao, rotuloCurtoPapelPlanejamento
+} from '../core/acessos/papeis-planejamento';
+import { PePessoasService } from '../planejamento/services/pe-pessoas.service';
 
 /** Rótulo do papel do usuário dentro do PGIA (o card mostra "como" a pessoa entra). */
 const ROTULO_PAPEL_PGIA: Record<string, string> = {
@@ -24,7 +29,20 @@ const ROTULO_PAPEL_PGIA: Record<string, string> = {
 const EXEMPLO_JUSTIFICATIVA: Record<string, string> = {
   [Modulos.Demandas]: 'Ex.: sou da equipe de TIC da minha unidade e vou acompanhar as demandas dela.',
   [Modulos.Pgia]: 'Ex.: trabalho no órgão X e vou registrar o uso de IA da minha equipe.',
-  [Modulos.Contratacoes]: 'Ex.: entrei na equipe da SGDI que analisa as contratações de TIC.'
+  [Modulos.Contratacoes]: 'Ex.: entrei na equipe da SGDI que analisa as contratações de TIC.',
+  [Modulos.Planejamento]: 'Ex.: sou da equipe de TIC do órgão X e vou ajudar a elaborar o PDTIC.'
+};
+
+/** Quem decide os pedidos do módulo, além dos administradores do sistema (janela do pedido). */
+const TAMBEM_DECIDE: Record<string, string> = {
+  [Modulos.Pgia]: 'e para a SGDI',
+  [Modulos.Planejamento]: 'e para o administrador do módulo'
+};
+
+/** Onde quem decide encontra a fila de pedidos do módulo (fora da Administração). */
+const FILA_DO_MODULO: Record<string, string> = {
+  [Modulos.Pgia]: '/pgia/sgdi/pessoas',
+  [Modulos.Planejamento]: '/planejamento/pessoas'
 };
 
 /** Tamanho máximo da justificativa (o backend guarda até 500). */
@@ -54,6 +72,7 @@ export class InicioComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly notificacoes = inject(NotificationService);
   private readonly pedidosAcesso = inject(PedidosAcessoService);
+  private readonly pessoasPlanejamento = inject(PePessoasService);
   private readonly router = inject(Router);
   private readonly datePipe = inject(DatePipe);
   private readonly platformId = inject(PLATFORM_ID);
@@ -68,8 +87,22 @@ export class InicioComponent implements OnInit {
   /** Último pedido de cada módulo, de quem está logado. */
   pedidos: Record<string, MeuPedidoAcesso> = {};
 
-  /** Pedidos esperando a decisão de quem está logado (admin e SGDI). */
+  /** Pedidos de todos os módulos esperando o admin (card da Administração). */
   readonly pendentesParaDecidir = this.pedidosAcesso.pendentes;
+
+  /**
+   * Pedidos esperando quem decide um módulo sem ser admin, por módulo: a SGDI no
+   * PGIA e o administrador do módulo na Governança Estratégica (quem tem os dois
+   * papéis vê cada contagem no seu card).
+   */
+  pendentesPorModulo: Record<string, number> = {};
+
+  /**
+   * Papel na Governança Estratégica (GET api/planejamento/meu-papel, só para quem
+   * tem o módulo: o /me não traz esse papel). null enquanto não chegou.
+   */
+  papelPlanejamento: PeMeuPapel | null = null;
+  erroPapelPlanejamento = false;
 
   dialogo: DialogoPedido | null = null;
   enviandoPedido = false;
@@ -87,7 +120,8 @@ export class InicioComponent implements OnInit {
     this.authService.refreshUser().subscribe(user => {
       if (user) this.aplicarUsuario(user);
       this.carregando = false;
-      if (this.decide) this.pedidosAcesso.atualizarPendentes();
+      this.atualizarPendentes();
+      this.carregarPapelPlanejamento();
     });
     this.carregarPedidos();
   }
@@ -102,11 +136,6 @@ export class InicioComponent implements OnInit {
 
   get totalLiberados(): number {
     return this.modulos.filter(m => this.liberado(m)).length;
-  }
-
-  /** Admin decide os pedidos de todos os módulos; a SGDI, os do PGIA. */
-  get decide(): boolean {
-    return this.user?.Perfil === Perfis.Admin || this.user?.PapelPgia === PapeisPgia.Sgdi;
   }
 
   liberado(modulo: ModuloSgdp): boolean {
@@ -128,18 +157,25 @@ export class InicioComponent implements OnInit {
 
   /**
    * Pedidos esperando quem está logado, no card onde ele decide: o admin, no da
-   * Administração; a SGDI, no do PGIA.
+   * Administração (todos os módulos); a SGDI, no do PGIA; o administrador do
+   * módulo, no da Governança Estratégica.
    */
   pedidosParaDecidirNo(modulo: ModuloSgdp): number {
-    const total = this.pendentesParaDecidir() ?? 0;
-    if (total === 0 || !this.liberado(modulo)) return 0;
-    if (this.user?.Perfil === Perfis.Admin) return modulo.id === Modulos.Administracao ? total : 0;
-    return modulo.id === Modulos.Pgia && this.user?.PapelPgia === PapeisPgia.Sgdi ? total : 0;
+    if (!this.liberado(modulo)) return 0;
+    if (this.user?.Perfil === Perfis.Admin) {
+      return modulo.id === Modulos.Administracao ? (this.pendentesParaDecidir() ?? 0) : 0;
+    }
+    return this.pendentesPorModulo[modulo.id] ?? 0;
   }
 
   /** Onde quem decide encontra a fila. */
   rotaDaFila(modulo: ModuloSgdp): string {
-    return modulo.id === Modulos.Pgia ? '/pgia/sgdi/pessoas' : '/admin/pedidos';
+    return FILA_DO_MODULO[modulo.id] ?? '/admin/pedidos';
+  }
+
+  /** Quem mais recebe o pedido, além dos administradores do sistema. */
+  tambemDecide(modulo: ModuloSgdp): string {
+    return TAMBEM_DECIDE[modulo.id] ?? '';
   }
 
   /** Como o usuário entra no módulo (papel ou nível), para o card liberado. */
@@ -153,11 +189,24 @@ export class InicioComponent implements OnInit {
         return ROTULO_PAPEL_PGIA[this.user?.PapelPgia ?? ''] ?? 'Agente público: registra uso de IA e avisa incidentes';
       case Modulos.Contratacoes:
         return admin ? 'Administrador' : 'Supervisão contínua (SGDI)';
+      case Modulos.Planejamento:
+        return admin ? 'Administrador: visão de todos os papéis' : this.comoEntraPlanejamento();
       case Modulos.Administracao:
         return 'Administrador do sistema';
       default:
         return '';
     }
+  }
+
+  /** Papel na Governança Estratégica (vem do módulo, não do /me), com o órgão nos papéis de órgão. */
+  private comoEntraPlanejamento(): string {
+    if (this.erroPapelPlanejamento) return 'Não foi possível conferir o seu papel agora';
+    const papel = this.papelPlanejamento;
+    if (!papel) return 'Conferindo o seu papel...';
+    if (papel.EhAdminGeral) return 'Administrador: visão de todos os papéis';
+    if (!papel.Papel) return 'Sem papel: fale com o administrador do módulo';
+    const rotulo = rotuloCurtoPapelPlanejamento(papel.Papel);
+    return papelPlanejamentoDeOrgao(papel.Papel) && papel.OrgaoSigla ? `${rotulo} · ${papel.OrgaoSigla}` : rotulo;
   }
 
   exemploJustificativa(modulo: ModuloSgdp): string {
@@ -230,6 +279,44 @@ export class InicioComponent implements OnInit {
    */
   private modulosVisiveis(): ModuloSgdp[] {
     return MODULOS.filter(m => m.id !== Modulos.Administracao || temModulo(this.user, m.id));
+  }
+
+  /**
+   * Contadores de quem decide pedidos: o admin vê o total de todos os módulos (o
+   * mesmo contador da aba da Administração); a SGDI e o administrador do módulo,
+   * só os do módulo que decidem (o deste, depois de saber o papel).
+   */
+  private atualizarPendentes(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (this.user?.Perfil === Perfis.Admin) {
+      this.pedidosAcesso.atualizarPendentes();
+      return;
+    }
+    if (this.user?.PapelPgia === PapeisPgia.Sgdi) this.contarPendentesDo(Modulos.Pgia);
+  }
+
+  private contarPendentesDo(modulo: string): void {
+    this.pedidosAcesso.contarPendentes(modulo).subscribe({
+      next: resposta => this.pendentesPorModulo = { ...this.pendentesPorModulo, [modulo]: resposta.Total },
+      // É só um aviso: sem a contagem, o card não mostra o número
+      error: () => { }
+    });
+  }
+
+  /** O papel no módulo novo vem do próprio módulo, e só quem tem o módulo pergunta. */
+  private carregarPapelPlanejamento(): void {
+    if (!isPlatformBrowser(this.platformId) || !temModulo(this.user, Modulos.Planejamento)) return;
+    this.pessoasPlanejamento.meuPapel().subscribe({
+      next: papel => {
+        this.papelPlanejamento = papel;
+        this.erroPapelPlanejamento = false;
+        if (papel.Papel === PapeisPlanejamento.Admin && this.user?.Perfil !== Perfis.Admin) {
+          this.contarPendentesDo(Modulos.Planejamento);
+        }
+      },
+      // Ex.: o módulo acabou de ser publicado e ainda não está pronto no servidor
+      error: () => this.erroPapelPlanejamento = true
+    });
   }
 
   private carregarPedidos(): void {
