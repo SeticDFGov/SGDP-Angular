@@ -4,9 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
-import { PeOrgaoNivel } from '../../../api/planejamento/interface';
+import { PeOrgaoNivel, PePdtic } from '../../../api/planejamento/interface';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
-import { rotuloSituacaoPdtic } from '../shared/pe-pdtic-rotulos';
+import {
+  classeEstadoPasso, corIconeEstadoPasso, iconeEstadoPasso, rotuloSituacaoPdtic, textoDoStatus
+} from '../shared/pe-pdtic-rotulos';
 import { EstadoTrilhaPe, PeTrilhaEstadoService, valorVisaoOrgao } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
 import {
@@ -36,6 +38,11 @@ interface OpcaoVisao {
  * botão "Ver" (mudar a lista não troca a trilha sozinha, o que numa lista com os
  * órgãos faria uma consulta a cada seta do teclado). A trilha de um órgão fica
  * só para ler, com a faixa que diz de quem é e o botão para voltar.
+ *
+ * E7: a situação de cada passo inclui aguardando, atrasado e feito fora do
+ * sistema, sempre com o motivo em texto (no nome do link do passo e ao lado do
+ * selo do passo aberto), e, com uma revisão em andamento, a escolha entre a
+ * versão em revisão e a vigente (dois botões com `aria-pressed`).
  */
 @Component({
   selector: 'app-pe-shell',
@@ -147,6 +154,31 @@ export class PeShellComponent implements OnInit {
     return e.cargaPdtic === 'sem-pdtic' ? 'PDTIC ainda não começado' : null;
   }
 
+  /** E7: a versão em revisão e a vigente, para a escolha no alto da trilha (null sem revisão em andamento). */
+  get versoes(): { emRevisao: PePdtic; vigente: PePdtic } | null {
+    return this.estadoService.versoesParaEscolher;
+  }
+
+  versaoAberta(p: PePdtic): boolean {
+    return this.estado?.pdtic?.Id === p.Id;
+  }
+
+  /**
+   * Troca a versão à vista. Fora da visão geral, vai para ela antes (como o "Ver a
+   * trilha de"): outra versão, outros dados, e a guarda de saída do passo pergunta
+   * antes de perder uma mudança não salva.
+   */
+  escolherVersao(p: PePdtic): void {
+    if (this.versaoAberta(p)) return;
+    if (this.naVisaoGeral) {
+      this.estadoService.escolherVersao(p.Id);
+      return;
+    }
+    this.router.navigate([BASE_PE]).then(saiu => {
+      if (saiu) this.estadoService.escolherVersao(p.Id);
+    });
+  }
+
   guia(passo: PassoNumeradoPe): string {
     return rotuloGuia(passo.guia);
   }
@@ -214,46 +246,47 @@ export class PeShellComponent implements OnInit {
     return this.estadoService.statusDoPasso(passo);
   }
 
+  /** O selo com o motivo, numa frase (nome do link do passo para o leitor de tela). */
+  textoStatus(s: StatusPassoPe): string {
+    return textoDoStatus(s);
+  }
+
   /**
-   * Pior situação entre os passos da etapa (vale para a bolinha da barra). Passo
-   * marcado como "não se aplica" conta como resolvido.
+   * Pior situação entre os passos da etapa (vale para a bolinha da barra):
+   * atrasado, atenção, pendente e, depois, aguardando. Passo feito fora do
+   * sistema conta como feito; "não se aplica", como resolvido.
    */
   private estadoEtapa(indice: number): EstadoPassoPe | null {
     const estados = this.passosDaEtapa(indice).map(p => this.status(p)?.estado).filter((e): e is EstadoPassoPe => !!e);
-    for (const e of ['atrasado', 'atencao', 'pendente'] as EstadoPassoPe[]) {
+    for (const e of ['atrasado', 'atencao', 'pendente', 'aguardando'] as EstadoPassoPe[]) {
       if (estados.includes(e)) return e;
     }
-    if (estados.includes('feito')) return 'feito';
+    if (estados.includes('feito') || estados.includes('externo')) return 'feito';
     return estados.length > 0 ? 'nao_se_aplica' : null;
   }
 
   classeEstado(estado: EstadoPassoPe | undefined): string {
-    switch (estado) {
-      case 'feito': return 'bg-green-50 text-green-800 border-green-200';
-      case 'atrasado': return 'bg-red-50 text-red-800 border-red-200';
-      case 'atencao': return 'bg-amber-50 text-amber-900 border-amber-200';
-      case 'pendente': return 'bg-blue-50 text-blue-800 border-blue-200';
-      default: return 'bg-gray-50 text-gray-600 border-gray-200';
-    }
+    return classeEstadoPasso(estado);
   }
 
   iconeEstado(estado: EstadoPassoPe | undefined): string {
-    switch (estado) {
-      case 'feito': return 'check_circle';
-      case 'atrasado': return 'error';
-      case 'atencao': return 'notifications_active';
-      case 'nao_se_aplica': return 'do_not_disturb_on';
-      default: return 'schedule';
-    }
+    return iconeEstadoPasso(estado);
   }
 
   corIconeEstado(estado: EstadoPassoPe): string {
-    switch (estado) {
-      case 'feito': return 'text-green-600';
-      case 'atrasado': return 'text-red-600';
-      case 'atencao': return 'text-amber-600';
-      case 'nao_se_aplica': return 'text-gray-500';
-      default: return 'text-blue-600';
+    return corIconeEstadoPasso(estado);
+  }
+
+  /** A situação da etapa em palavras (a bolinha é só cor: o nome do botão e a dica dizem o mesmo em texto). */
+  textoEtapa(indice: number): string {
+    switch (this.estadoEtapa(indice)) {
+      case 'atrasado': return 'tem passo atrasado';
+      case 'atencao': return 'tem passo pedindo atenção';
+      case 'pendente': return 'tem passo pendente';
+      case 'aguardando': return 'aguardando uma etapa anterior';
+      case 'feito': return this.estado?.perfil === 'orgao' ? 'passos resolvidos' : 'nada esperando';
+      case 'nao_se_aplica': return 'não se aplica';
+      default: return '';
     }
   }
 
@@ -263,6 +296,7 @@ export class PeShellComponent implements OnInit {
       case 'atrasado': return 'bg-red-500';
       case 'atencao': return 'bg-amber-500';
       case 'pendente': return 'bg-blue-500';
+      case 'aguardando': return 'bg-gray-400';
       default: return 'bg-gray-300';
     }
   }

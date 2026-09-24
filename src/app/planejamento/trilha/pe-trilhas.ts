@@ -70,8 +70,8 @@ export interface PassoNumeradoPe extends PassoTrilhaPe {
   indice: number;
   /**
    * A tela do passo ainda não existe: tela central na "em construção"; passo do
-   * órgão de um tipo que ganha tela nas próximas entregas (aprovação, envio,
-   * deliberação, publicação e monitoramento).
+   * órgão de um tipo que ganha tela nas próximas entregas (o monitoramento, na
+   * rodada B da E7).
    */
   emConstrucao: boolean;
 }
@@ -301,7 +301,7 @@ const TRILHA_SGDI: TrilhaPe = {
         {
           titulo: 'Acompanhe as deliberações do CGTIC',
           rota: tela('cgtic/historico'),
-          oQueFazer: 'Veja o que foi enviado ao comitê de governança de TIC (CGTIC) e o que ele decidiu: o PETIC-DF agora e, numa próxima etapa, os PDTICs dos órgãos.',
+          oQueFazer: 'Veja o que foi enviado ao comitê de governança de TIC (CGTIC) e o que ele decidiu: os PDTICs dos órgãos e o PETIC-DF.',
           baseLegal: 'art. 5º'
         }
       ]
@@ -360,7 +360,7 @@ const TRILHA_CGTIC: TrilhaPe = {
         {
           titulo: 'Confira o que chegou para o comitê',
           rota: tela('cgtic/recebidos'),
-          oQueFazer: 'Veja o PETIC-DF e, numa próxima etapa, os PDTICs dos órgãos enviados para o comitê, e leia o que foi enviado.',
+          oQueFazer: 'Veja os PDTICs dos órgãos e o PETIC-DF enviados para o comitê e leia o que foi enviado: o PDF de cada PDTIC e o PETIC-DF.',
           baseLegal: 'art. 5º',
           status: 'deliberacoes'
         }

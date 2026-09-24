@@ -88,6 +88,20 @@
             {{ trilha.nome }}<span *ngIf="siglaOrgao" class="text-gray-500 font-medium"> · {{ siglaOrgao }}</span>
           </h1>
           <p *ngIf="rotuloNivel" class="text-xs text-gray-600">{{ rotuloNivel }}<ng-container *ngIf="rotuloPdtic as r"> · {{ r }}</ng-container></p>
+          <!-- Revisão em andamento: a versão nova e a vigente (que segue em acompanhamento) -->
+          <div *ngIf="versoes as v" role="group" aria-labelledby="pe-versao-rotulo" class="flex flex-wrap items-center gap-1 mt-1 text-xs text-gray-600">
+            <span id="pe-versao-rotulo">Versão do PDTIC à vista:</span>
+            <button type="button" (click)="escolherVersao(v.emRevisao)" [attr.aria-pressed]="versaoAberta(v.emRevisao)"
+                    class="px-2 py-0.5 rounded-full border text-xs font-semibold"
+                    [ngClass]="versaoAberta(v.emRevisao) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
+              {{ v.emRevisao.Versao }} · em revisão
+            </button>
+            <button type="button" (click)="escolherVersao(v.vigente)" [attr.aria-pressed]="versaoAberta(v.vigente)"
+                    class="px-2 py-0.5 rounded-full border text-xs font-semibold"
+                    [ngClass]="versaoAberta(v.vigente) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
+              {{ v.vigente.Versao }} · vigente, em acompanhamento
+            </button>
+          </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <form *ngIf="podeTrocarVisao" (ngSubmit)="verTrilha()" class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
@@ -125,13 +139,13 @@
                   class="w-full h-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
                   [ngClass]="etapaAberta === i ? 'bg-purple-50 ring-1 ring-purple-300' : 'hover:bg-gray-50'"
                   [attr.aria-current]="etapaAberta === i ? 'step' : null"
-                  [title]="'Etapa ' + (i + 1) + ': ' + etapa.titulo">
+                  [title]="'Etapa ' + (i + 1) + ': ' + etapa.titulo + (textoEtapa(i) ? ' (' + textoEtapa(i) + ')' : '')">
             <span class="relative shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                   [ngClass]="etapaAberta === i ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700'">
               {{ i + 1 }}
               <span class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white" [ngClass]="corBolinha(i)" aria-hidden="true"></span>
             </span>
-            <span class="text-xs font-semibold leading-tight" [ngClass]="etapaAberta === i ? 'text-purple-800' : 'text-gray-700'">{{ etapa.rotulo }}</span>
+            <span class="text-xs font-semibold leading-tight" [ngClass]="etapaAberta === i ? 'text-purple-800' : 'text-gray-700'">{{ etapa.rotulo }}<span *ngIf="textoEtapa(i) as t" class="sr-only"> ({{ t }})</span></span>
           </button>
         </li>
       </ol>
@@ -151,7 +165,7 @@
              [attr.aria-current]="passoAtual?.numero === p.numero ? 'step' : null">
             <span class="px-1.5 py-0.5 rounded-full text-xs font-bold"
                   [ngClass]="passoAtual?.numero === p.numero ? 'bg-white/10' : 'bg-gray-100 text-gray-700'">{{ p.numero }}</span>
-            {{ p.titulo }}<span *ngIf="p.emConstrucao" class="sr-only"> (tela em construção)</span><span *ngIf="status(p) as s" class="sr-only"> ({{ s.texto }})</span>
+            {{ p.titulo }}<span *ngIf="p.emConstrucao" class="sr-only"> (tela em construção)</span><span *ngIf="status(p) as s" class="sr-only"> ({{ textoStatus(s) }})</span>
             <span *ngIf="status(p) as s" class="material-icons text-base" aria-hidden="true"
                   [ngClass]="passoAtual?.numero === p.numero ? 'text-white' : corIconeEstado(s.estado)">{{ iconeEstado(s.estado) }}</span>
           </a>
@@ -169,6 +183,8 @@
                 [ngClass]="classeEstado(s.estado)">
             <span class="material-icons text-sm" aria-hidden="true">{{ iconeEstado(s.estado) }}</span>{{ s.texto }}
           </span>
+          <!-- O porquê de aguardando, atrasado e fora do sistema: em texto, não só na cor -->
+          <span *ngIf="status(passoAtual)?.motivo as m" class="text-xs text-gray-700">{{ m }}</span>
         </div>
       </div>
     </section>

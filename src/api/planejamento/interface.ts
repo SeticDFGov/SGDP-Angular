@@ -2,7 +2,7 @@
  * Governança Estratégica (módulo `planejamento`, Decreto nº 48.900/2026): espelho
  * PascalCase dos DTOs de `app/api/Planejamento` do SGDP-Service (api/planejamento).
  * Erros de regra voltam como `{ Code, Message }` (400, 403, 404 ou 409), na faixa
- * 1000 a 1099.
+ * 1000 a 1159 (a E7 passou a usar 1100 a 1139).
  */
 
 /** GET api/planejamento/meu-papel (só quem tem o módulo chama). */
@@ -603,10 +603,17 @@ export type PeSituacaoPetic = 'rascunho' | 'em_deliberacao' | 'aprovado' | 'subs
 
 export type PeSituacaoDeliberacao = 'aguardando' | 'aprovado' | 'devolvido';
 
-/** petic agora; pdtic a partir da E7. */
+/** petic (E3) ou pdtic (E7: o PDTIC enviado por um órgão). */
 export type PeObjetoDeliberacao = 'petic' | 'pdtic';
 
-/** Uma deliberação do CGTIC sobre uma versão do PETIC-DF (ou, na E7, de um PDTIC). */
+/** O PDF enviado ao CGTIC junto com o PDTIC (E7): a versão do documento daquele PDTIC. */
+export interface PeDocumentoDeliberacao {
+  PdticId: number;
+  /** Número da versão do documento (GET pdtic/{PdticId}/documento/versoes/{Numero}/arquivo). */
+  Numero: number;
+}
+
+/** Uma deliberação do CGTIC sobre uma versão do PETIC-DF ou de um PDTIC (E7). */
 export interface PeDeliberacao {
   Id: number;
   ObjetoTipo: PeObjetoDeliberacao;
@@ -626,6 +633,8 @@ export interface PeDeliberacao {
   AtoData: string | null;
   Sei: string | null;
   Observacao: string | null;
+  /** E7: o PDF enviado (só nas deliberações de PDTIC; nulo no PETIC-DF e em resposta antiga). */
+  Documento?: PeDocumentoDeliberacao | null;
 }
 
 /** Uma versão do PETIC-DF (GET api/planejamento/petic, da mais nova para a mais antiga). */
@@ -696,14 +705,27 @@ export interface PaginaPeDeliberacoes {
 // papéis globais leem. Erros desta entrega na faixa 1050 a 1069 (a tela mostra a
 // `Message` do servidor).
 
-/** Ciclo do PDTIC (a E4 usa em elaboração; as demais chegam com a E7). */
+/**
+ * Ciclo do PDTIC (decisão 18): em elaboração ou devolvido (a equipe edita) →
+ * enviado ao CGTIC (em aprovação) → aprovado → publicado → em acompanhamento →
+ * encerrado. Substituído: a versão anterior, quando a revisão é aprovada pelo CGTIC.
+ */
 export type PeSituacaoPdtic =
   | 'em_elaboracao' | 'em_aprovacao' | 'devolvido' | 'aprovado' | 'publicado'
   | 'em_acompanhamento' | 'encerrado' | 'substituido';
 
+/** A versão de que a revisão partiu (E7). */
+export interface PeRevisaoPdtic {
+  AnteriorId: number;
+  /** "1.0". */
+  AnteriorVersao: string;
+}
+
 /**
- * O PDTIC de um órgão: GET pdtic/atual?orgaoId= (204 sem PDTIC atual),
- * GET pdtic/{id}, resposta do POST pdtic e item da lista dos papéis globais.
+ * O PDTIC de um órgão: GET pdtic/atual?orgaoId= (204 sem PDTIC atual; desde a E7,
+ * a versão em elaboração, se houver, senão a vigente), GET pdtic/{id}, GET
+ * pdtic/versoes, resposta do POST pdtic e das ações da E7 (enviar, publicar,
+ * encerrar, revisão, registro externo) e item da lista dos papéis globais.
  */
 export interface PePdtic {
   Id: number;
@@ -725,6 +747,19 @@ export interface PePdtic {
   PodeEditar: boolean;
   CriadoEm: string;
   CriadoPor: string | null;
+  // E7 (opcionais para aceitar a resposta antiga): as datas do caminho da aprovação
+  /** Envio ao CGTIC (vale como a comunicação à SGDI, art. 7º, V, do Decreto nº 48.899/2026). */
+  EnviadoEm?: string | null;
+  /** Aprovação do CGTIC. */
+  AprovadoEm?: string | null;
+  PublicadoEm?: string | null;
+  EncerradoEm?: string | null;
+  /** Motivo do encerramento pelo administrador (vigência terminada); nulo quando a equipe encerrou pelo passo 7.4. */
+  EncerramentoMotivo?: string | null;
+  /** A deliberação mais recente do CGTIC sobre esta versão, com o PDF enviado (`Documento`). */
+  Deliberacao?: PeDeliberacao | null;
+  /** Esta versão é a revisão de outra (a anterior segue valendo até o CGTIC aprovar esta). */
+  Revisao?: PeRevisaoPdtic | null;
 }
 
 /** POST api/planejamento/pdtic: o órgão abre o próprio (`OrgaoId` nulo); o admin do SGDP informa o órgão. 409 se já há um atual. */
@@ -754,10 +789,16 @@ export interface PaginaPePdtics {
 /**
  * Situação de um passo do PDTIC: feito (as seções obrigatórias com os
  * obrigatórios preenchidos; tabela obrigatória com ao menos um registro) ·
- * pendente · atencao (comentário aberto no passo) · nao_se_aplica · continuo
- * (passo de um tipo que ganha tela nas próximas entregas: sem situação por enquanto).
+ * pendente · atencao (comentário aberto no passo, ou o PDTIC devolvido) ·
+ * nao_se_aplica · continuo (passo de um tipo que ganha tela nas próximas
+ * entregas: sem situação por enquanto) · E7: aguardando (depende de outra coisa
+ * antes: a deliberação, a aprovação, a publicação) · atrasado (prazo vencido) ·
+ * externo (feito fora do sistema, no PDTIC registrado já aprovado). Os três novos
+ * vêm com o `Motivo`.
  */
-export type PeSituacaoPasso = 'feito' | 'pendente' | 'atencao' | 'nao_se_aplica' | 'continuo';
+export type PeSituacaoPasso =
+  | 'feito' | 'pendente' | 'atencao' | 'nao_se_aplica' | 'continuo'
+  | 'aguardando' | 'atrasado' | 'externo';
 
 /** "Não se aplica" marcado num passo (só em passo opcional no nível do órgão que aceita). */
 export interface PeNaoSeAplica {
@@ -777,13 +818,85 @@ export interface PeSituacaoPassoPdtic {
   ComentariosAbertos: number;
   /** Avisos do guia em linguagem simples (não impedem de seguir). */
   Avisos: string[];
+  /** E7: o porquê de aguardando, atrasado e externo ("Disponível depois da publicação do PDTIC"). */
+  Motivo?: string | null;
+  /**
+   * E7: quem está logado grava neste passo agora (a equipe do órgão, conforme a
+   * situação do PDTIC e a etapa do passo). Sem ele (resposta antiga), vale o
+   * `PodeEditar` do PDTIC.
+   */
+  PodeEditar?: boolean;
 }
 
 /** GET api/planejamento/pdtic/{id}/situacao: a moldura usa para as bolinhas e o próximo passo. */
 export interface PeAndamentoPdtic {
-  /** Número do passo recomendado ("2.3"); nulo quando nada espera. */
+  /** Número do passo recomendado ("2.3"): o atrasado, depois o que pede atenção, depois o primeiro pendente; nulo quando nada espera. */
   ProximoPasso: string | null;
   Passos: PeSituacaoPassoPdtic[];
+}
+
+// ── E7 · Caminho da aprovação do PDTIC (rodada A) ───────────────────────────
+//
+// Envio ao CGTIC (que vale como a comunicação à SGDI), deliberação pela
+// Secretaria do CGTIC (a fila da E3, que passa a receber o PDTIC), publicação,
+// encerramento, revisão (versão nova) e o PDTIC aprovado fora do sistema. Erros
+// desta rodada na faixa 1100 a 1119 (a tela mostra a `Message` do servidor).
+
+/** Um passo que ainda impede o envio ao CGTIC. */
+export interface PePendenciaEnvio {
+  PassoId: number;
+  /** "2.3", pela posição na trilha do órgão. */
+  PassoNumero: string;
+  PassoTitulo: string;
+  /** O que falta, em linguagem simples. */
+  Motivo: string;
+}
+
+/** GET api/planejamento/pdtic/{id}/envio: a prévia do que falta para enviar. */
+export interface PePreviaEnvio {
+  PodeEnviar: boolean;
+  Pendencias: PePendenciaEnvio[];
+}
+
+/** 400 do POST pdtic/{id}/enviar: a mesma lista da prévia. */
+export interface PeErroEnvio {
+  Code?: number;
+  Message?: string;
+  Pendencias?: PePendenciaEnvio[] | null;
+}
+
+/** POST api/planejamento/pdtic/{id}/encerrar: `Motivo` obrigatório só para o administrador (vigência terminada). */
+export interface PeEncerrarForm {
+  Motivo: string | null;
+}
+
+/** POST api/planejamento/pdtic/{id}/revisao: `Justificativa` obrigatória quando o passo da avaliação do comitê (6.3) não está ligado. */
+export interface PeRevisaoForm {
+  Justificativa: string | null;
+}
+
+/** Quem aprovou o PDTIC registrado fora do sistema. */
+export type PeInstanciaAprovacaoExterna = 'cgtic' | 'outra';
+
+/**
+ * POST api/planejamento/pdtic/registrar-externo: o PDTIC já aprovado e publicado
+ * fora do sistema (decisão 20). `OrgaoId` nulo é o órgão de quem registra (equipe
+ * do órgão); o admin do SGDP informa o órgão. O PDF sobe antes por POST arquivos.
+ * Datas puras ("aaaa-mm-dd").
+ */
+export interface PeRegistroExternoForm {
+  OrgaoId: number | null;
+  Versao: string;
+  VigenciaInicio: string;
+  VigenciaFim: string;
+  ArquivoId: number;
+  AprovacaoInstancia: PeInstanciaAprovacaoExterna;
+  AprovacaoData: string;
+  AprovacaoAtoTipo: string | null;
+  AprovacaoAtoNumero: string | null;
+  AprovacaoSei: string | null;
+  PublicacaoData: string;
+  PublicacaoEndereco: string;
 }
 
 /** PUT api/planejamento/pdtic/{id}/passos/{passoId}/nao-se-aplica (DELETE do mesmo desfaz). */

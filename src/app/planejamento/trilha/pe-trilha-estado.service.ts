@@ -9,6 +9,7 @@ import { PeOrgaosService } from '../services/pe-orgaos.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { pdticAntesDaPublicacao, pdticVigente } from '../shared/pe-pdtic-rotulos';
 import {
   PassoNumeradoPe, PerfilCentralPe, PerfilTrilhaPe, TrilhaPe,
   passosNumerados, perfilDoPapel, trilhaDoOrgao, trilhaDoPerfil
@@ -54,16 +55,28 @@ export interface EstadoTrilhaPe {
   orgaoVisto: number | null;
   /** Mensagem do servidor quando a trilha do órgão não veio. */
   erroTrilha: string | null;
-  /** PDTIC atual do órgão à vista (E4); null sem PDTIC aberto, enquanto carrega ou fora da trilha de um órgão. */
+  /**
+   * PDTIC do órgão à vista (E4): o atual (desde a E7, a versão em elaboração, se
+   * houver, senão a vigente) ou a versão escolhida no seletor, quando há uma
+   * vigente e outra em revisão. null sem PDTIC aberto, enquanto carrega ou fora da
+   * trilha de um órgão.
+   */
   pdtic: PePdtic | null;
   cargaPdtic: CargaPdticPe | null;
   erroPdtic: string | null;
+  /**
+   * E7: as versões do PDTIC do órgão (da mais nova para a mais antiga), buscadas
+   * só quando o PDTIC atual tem versão anterior (revisão); null nos demais casos.
+   */
+  versoes: PePdtic[] | null;
 }
 
 /** Intervalo mínimo entre duas atualizações automáticas do status (troca de passo). */
 const INTERVALO_STATUS_MS = 5000;
 
-const SEM_PDTIC: Pick<EstadoTrilhaPe, 'pdtic' | 'cargaPdtic' | 'erroPdtic'> = { pdtic: null, cargaPdtic: null, erroPdtic: null };
+const SEM_PDTIC: Pick<EstadoTrilhaPe, 'pdtic' | 'cargaPdtic' | 'erroPdtic' | 'versoes'> = {
+  pdtic: null, cargaPdtic: null, erroPdtic: null, versoes: null
+};
 
 const SEM_TRILHA: Omit<EstadoTrilhaPe, 'carga' | 'consultaPapel'> = {
   adminGeral: false, meuPapel: null, perfil: null, perfilProprio: null, trilha: null, passos: [], situacao: null,
@@ -90,6 +103,10 @@ export function valorVisaoOrgao(orgaoId: number): string {
  * - Na trilha de um órgão, depois da trilha vem o PDTIC atual dele (GET
  *   pdtic/atual; 204 = o órgão ainda não começou) e, com ele, a situação real de
  *   cada passo (GET pdtic/{id}/situacao), que faz as bolinhas e o próximo passo.
+ * - E7: com revisão em andamento (o PDTIC atual tem versão anterior), as versões
+ *   do órgão (GET pdtic/versoes) e o seletor entre a versão em revisão e a
+ *   vigente; as ações do caminho da aprovação devolvem o PDTIC, que entra no
+ *   estado por `aplicarPdtic`.
  */
 @Injectable({ providedIn: 'root' })
 export class PeTrilhaEstadoService {
@@ -117,6 +134,10 @@ export class PeTrilhaEstadoService {
   private cargaTrilha?: Subscription;
   private cargaOrgaos?: Subscription;
   private cargaPdtic?: Subscription;
+  private cargaVersoes?: Subscription;
+  /** A versão escolhida no seletor (o órgão à vista e o PDTIC), mantida quando o PDTIC vem de novo. */
+  private versaoEscolhida: { orgaoId: number | null; pdticId: number } | null = null;
+  private cacheVersoes: { lista: PePdtic[] | null; valor: { emRevisao: PePdtic; vigente: PePdtic } | null } = { lista: null, valor: null };
 
   get atual(): EstadoTrilhaPe | null {
     return this.estado.value;
@@ -193,6 +214,44 @@ export class PeTrilhaEstadoService {
     return this.ehEquipeDoOrgao && this.estado.value?.cargaPdtic === 'sem-pdtic';
   }
 
+  /** Perfil admin do SGDP (pelo /me ou pelo `meu-papel`). */
+  get ehAdminGeral(): boolean {
+    const e = this.estado.value;
+    return !!e && (e.adminGeral || !!e.meuPapel?.EhAdminGeral);
+  }
+
+  /** Administrador do módulo ou admin do SGDP: encerra o PDTIC de um órgão quando a vigência terminou (E7). */
+  get ehAdministrador(): boolean {
+    return this.ehAdminGeral || this.estado.value?.meuPapel?.Papel === PapeisPlanejamento.Admin;
+  }
+
+  /**
+   * "Registrar um PDTIC aprovado fora do sistema" (E7, decisão 20): a equipe do
+   * órgão, no próprio órgão sem PDTIC, e o admin do SGDP, na trilha de qualquer
+   * órgão sem PDTIC.
+   */
+  get podeRegistrarExterno(): boolean {
+    const e = this.estado.value;
+    if (!e || e.perfil !== 'orgao' || e.cargaPdtic !== 'sem-pdtic') return false;
+    return this.ehEquipeDoOrgao || (this.ehAdminGeral && e.orgaoVisto !== null);
+  }
+
+  /**
+   * As duas versões que a trilha deixa escolher (E7): a em revisão (ainda antes
+   * da publicação) e a vigente, que segue em acompanhamento até o CGTIC aprovar a
+   * nova. null quando o órgão não tem as duas.
+   */
+  get versoesParaEscolher(): { emRevisao: PePdtic; vigente: PePdtic } | null {
+    const lista = this.estado.value?.versoes ?? null;
+    // O mesmo objeto para a mesma lista: os templates usam com *ngIf (objeto novo a cada verificação daria NG0100)
+    if (lista === this.cacheVersoes.lista) return this.cacheVersoes.valor;
+    const emRevisao = lista?.find(v => pdticAntesDaPublicacao(v.Situacao));
+    const vigente = lista?.find(v => pdticVigente(v.Situacao));
+    const valor = emRevisao && vigente && emRevisao.Id !== vigente.Id ? { emRevisao, vigente } : null;
+    this.cacheVersoes = { lista, valor };
+    return valor;
+  }
+
   /**
    * Comenta um passo do PDTIC: administrador do módulo, equipe da SGDI e admin do
    * SGDP (quadro de papéis do plano; a Secretaria do CGTIC não comenta), sempre
@@ -224,6 +283,7 @@ export class PeTrilhaEstadoService {
     this.cargaPapel?.unsubscribe();
     this.cargaTrilha?.unsubscribe();
     this.cargaPdtic?.unsubscribe();
+    this.cargaVersoes?.unsubscribe();
     this.authService.getUser().subscribe(user => {
       this.email = user?.Email ?? null;
       const adminGeral = user?.Perfil === Perfis.Admin;
@@ -334,6 +394,66 @@ export class PeTrilhaEstadoService {
   }
 
   /**
+   * O PDTIC como o servidor devolveu depois de uma ação da E7 (enviar, publicar,
+   * encerrar, registrar o externo, abrir a revisão): entra no estado sem passar
+   * por "carregando" (as telas não piscam), e a situação dos passos vem de novo.
+   * PDTIC de outro Id (a versão nova da revisão, ou o primeiro do órgão) passa a
+   * ser o da trilha, e as versões vêm de novo.
+   */
+  aplicarPdtic(novo: PePdtic): void {
+    const agora = this.estado.value;
+    if (!agora || agora.perfil !== 'orgao' || agora.carga !== 'pronta') return;
+    if (agora.pdtic?.Id !== novo.Id) {
+      this.versaoEscolhida = null;
+      this.cargaVersoes?.unsubscribe();
+      this.estado.next({ ...agora, pdtic: novo, versoes: null, cargaPdtic: 'ok', erroPdtic: null, situacao: null });
+      this.atualizarStatus(true);
+      this.carregarVersoes(agora.orgaoVisto, novo);
+      return;
+    }
+    const versoes = agora.versoes ? agora.versoes.map(v => (v.Id === novo.Id ? novo : v)) : null;
+    this.estado.next({ ...agora, pdtic: novo, versoes, cargaPdtic: 'ok', erroPdtic: null });
+    this.atualizarStatus(true);
+  }
+
+  /** Seletor de versão (E7): a trilha passa a mostrar a versão escolhida (a em revisão ou a vigente). */
+  escolherVersao(pdticId: number): void {
+    const agora = this.estado.value;
+    const versao = agora?.versoes?.find(v => v.Id === pdticId);
+    if (!agora || !versao || agora.pdtic?.Id === pdticId) return;
+    this.versaoEscolhida = { orgaoId: agora.orgaoVisto, pdticId };
+    this.estado.next({ ...agora, pdtic: versao, situacao: null });
+    this.atualizarStatus(true);
+  }
+
+  /**
+   * As versões do órgão, quando o PDTIC tem versão anterior (revisão). Se a pessoa
+   * tinha escolhido a outra versão no seletor, ela volta a ser a da trilha.
+   */
+  private carregarVersoes(orgaoId: number | null, pdtic: PePdtic): void {
+    this.cargaVersoes?.unsubscribe();
+    if (!pdtic.Revisao && !pdtic.AnteriorId) return;
+    this.cargaVersoes = this.pdticService.versoes(orgaoId).subscribe({
+      next: versoes => {
+        const agora = this.estado.value;
+        if (!agora || agora.perfil !== 'orgao' || agora.orgaoVisto !== orgaoId || !agora.pdtic) return;
+        const escolhida = this.versaoEscolhida;
+        const volta = escolhida && escolhida.orgaoId === orgaoId && escolhida.pdticId !== agora.pdtic.Id
+          ? versoes.find(v => v.Id === escolhida.pdticId && (pdticVigente(v.Situacao) || pdticAntesDaPublicacao(v.Situacao)))
+          : null;
+        if (volta) {
+          this.estado.next({ ...agora, versoes, pdtic: volta, situacao: null });
+          this.atualizarStatus(true);
+        } else {
+          this.estado.next({ ...agora, versoes });
+        }
+      },
+      // Sem a lista, a trilha segue com o PDTIC atual (sem o seletor de versão)
+      error: () => undefined
+    });
+  }
+
+  /**
    * "Começar o PDTIC" (equipe do órgão): abre a versão 1.0, em elaboração, e
    * passa a trilha a mostrar a situação dos passos. 409 (alguém abriu antes): a
    * tela avisa e o PDTIC atual vem de novo.
@@ -342,7 +462,7 @@ export class PeTrilhaEstadoService {
     return this.pdticService.abrir(null).pipe(map(pdtic => {
       const agora = this.estado.value;
       if (agora && agora.perfil === 'orgao' && agora.orgaoVisto === null) {
-        this.estado.next({ ...agora, pdtic, cargaPdtic: 'ok', erroPdtic: null, situacao: null });
+        this.estado.next({ ...agora, pdtic, versoes: null, cargaPdtic: 'ok', erroPdtic: null, situacao: null });
         this.atualizarStatus(true);
       }
       return pdtic;
@@ -351,6 +471,7 @@ export class PeTrilhaEstadoService {
 
   private carregarPdtic(orgaoId: number | null): void {
     this.cargaPdtic?.unsubscribe();
+    this.cargaVersoes?.unsubscribe();
     const antes = this.estado.value;
     if (!antes) return;
     this.estado.next({ ...antes, ...SEM_PDTIC, cargaPdtic: 'carregando', situacao: null });
@@ -358,8 +479,12 @@ export class PeTrilhaEstadoService {
       next: pdtic => {
         const agora = this.estado.value;
         if (!agora || agora.perfil !== 'orgao' || agora.orgaoVisto !== orgaoId) return;
-        this.estado.next({ ...agora, pdtic, cargaPdtic: pdtic ? 'ok' : 'sem-pdtic', erroPdtic: null });
-        if (pdtic) this.atualizarStatus(true);
+        this.estado.next({ ...agora, pdtic, versoes: null, cargaPdtic: pdtic ? 'ok' : 'sem-pdtic', erroPdtic: null });
+        if (pdtic) {
+          this.atualizarStatus(true);
+          // Revisão em andamento: as versões (o seletor entre a vigente e a nova)
+          this.carregarVersoes(orgaoId, pdtic);
+        }
       },
       error: erro => {
         const agora = this.estado.value;
@@ -419,6 +544,7 @@ export class PeTrilhaEstadoService {
   private montarCentral(perfil: PerfilCentralPe, base: EstadoTrilhaPe): void {
     this.cargaTrilha?.unsubscribe();
     this.cargaPdtic?.unsubscribe();
+    this.cargaVersoes?.unsubscribe();
     const trilha = trilhaDoPerfil(perfil);
     this.estado.next({
       ...base, carga: 'pronta', perfil, trilha, passos: passosNumerados(trilha), situacao: null,
@@ -435,6 +561,7 @@ export class PeTrilhaEstadoService {
   private carregarTrilhaOrgao(orgaoId: number | null, base: EstadoTrilhaPe): void {
     this.cargaTrilha?.unsubscribe();
     this.cargaPdtic?.unsubscribe();
+    this.cargaVersoes?.unsubscribe();
     this.estado.next({
       ...base, carga: 'carregando', perfil: 'orgao', trilha: null, passos: [], situacao: null,
       trilhaOrgao: null, orgaoVisto: orgaoId, erroTrilha: null, ...SEM_PDTIC

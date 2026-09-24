@@ -1,0 +1,91 @@
+<section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="idBase + '-titulo'">
+  <h2 [id]="idBase + '-titulo'" class="text-base font-semibold text-gray-900">{{ encerrar ? 'Encerrar o PDTIC' : 'Revisão do PDTIC' }}</h2>
+  <p *ngIf="modo === 'encerrar-equipe'" class="text-sm text-gray-700 leading-relaxed mt-1">
+    A autoridade máxima aprovou o relatório de resultados. Com isso, o órgão encerra o ciclo do PDTIC {{ pdtic.Versao }}: ele fica só
+    para consulta, com tudo o que foi registrado.
+  </p>
+  <p *ngIf="modo === 'encerrar-admin'" class="text-sm text-gray-700 leading-relaxed mt-1">
+    A vigência do PDTIC {{ pdtic.Versao }} terminou em {{ fimVigencia }}. Como administrador, você pode encerrá-lo, com o motivo: ele
+    fica só para consulta.
+  </p>
+  <p *ngIf="modo === 'revisao-avaliacao'" class="text-sm text-gray-700 leading-relaxed mt-1">
+    O comitê decidiu revisar o PDTIC. A revisão abre a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e a trilha dela
+    recomeça no diagnóstico (etapa 2).
+  </p>
+  <p *ngIf="modo === 'revisao-justificativa'" class="text-sm text-gray-700 leading-relaxed mt-1">
+    Quando o PDTIC precisar mudar, abra a revisão: o sistema cria a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e a
+    trilha dela recomeça no diagnóstico (etapa 2). O nível do órgão não tem o passo da avaliação do comitê; por isso, diga o porquê.
+  </p>
+  <button type="button" (click)="abrir()"
+          class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-white text-sm font-semibold"
+          [ngClass]="encerrar ? 'bg-red-600 hover:bg-red-700' : 'bg-purple-600 hover:bg-purple-700'">
+    <span class="material-icons text-base" aria-hidden="true">{{ encerrar ? 'lock' : 'restart_alt' }}</span>
+    {{ encerrar ? 'Encerrar o PDTIC' : 'Abrir a revisão do PDTIC' }}
+  </button>
+</section>
+
+<!-- Confirmação (janela com foco preso e Esc) -->
+<div *ngIf="janela" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div appDialogo [attr.aria-labelledby]="idBase + '-janela-titulo'" (fechar)="fechar()" class="bg-white rounded-xl shadow-xl w-full max-w-lg">
+    <form (ngSubmit)="confirmar()">
+      <div class="px-6 pt-4 pb-3 border-b border-gray-100">
+        <h2 [id]="idBase + '-janela-titulo'" class="text-lg font-bold text-gray-900">
+          {{ encerrar ? 'Encerrar o PDTIC ' + pdtic.Versao + '?' : 'Abrir a revisão do PDTIC ' + pdtic.Versao + '?' }}
+        </h2>
+      </div>
+
+      <div class="px-6 py-4 max-h-[70vh] overflow-y-auto text-sm text-gray-700 leading-relaxed">
+        <ng-container *ngIf="encerrar; else textoRevisao">
+          <p>O PDTIC encerrado não muda mais: nenhum passo se edita e o ciclo termina. Os dados, o documento e as planilhas continuam
+            disponíveis para consulta.</p>
+        </ng-container>
+        <ng-template #textoRevisao>
+          <p>O sistema cria a versão {{ versaoNova }}, em elaboração, a partir da {{ pdtic.Versao }}.</p>
+          <p class="font-semibold text-gray-900 mt-3">Vai para a versão nova</p>
+          <ul class="list-disc ml-5 mt-1 space-y-1">
+            <li>os registros de todos os passos (necessidades, metas, ações, riscos e os demais), com os códigos e as ligações entre eles;</li>
+            <li>os fluxos como o órgão adaptou;</li>
+            <li>os textos e os capítulos do documento;</li>
+            <li>os passos marcados como "não se aplica", com a justificativa.</li>
+          </ul>
+          <p class="font-semibold text-gray-900 mt-3">Não vai</p>
+          <ul class="list-disc ml-5 mt-1 space-y-1">
+            <li>as aprovações, o envio e a publicação: a versão nova passa por eles de novo;</li>
+            <li>os ciclos de monitoramento e de avaliação, com os registros de cada um;</li>
+            <li>os comentários da SGDI, as deliberações do CGTIC e os PDFs já gerados.</li>
+          </ul>
+          <p class="mt-3">A versão {{ pdtic.Versao }} continua valendo e em acompanhamento até o CGTIC aprovar a {{ versaoNova }}. Depois disso,
+            ela fica como substituída.</p>
+        </ng-template>
+
+        <div *ngIf="pedeTexto" class="mt-4">
+          <label [for]="idBase + '-texto'" class="block text-sm font-semibold text-gray-800">
+            {{ rotuloTexto }}<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <textarea [id]="idBase + '-texto'" name="pe-acao-texto" rows="4" [(ngModel)]="texto" [maxlength]="maxTexto"
+                    aria-required="true" [attr.aria-invalid]="erroTexto ? true : null"
+                    [attr.aria-describedby]="erroTexto ? idBase + '-texto-erro' : null"
+                    class="mt-1 w-full px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [ngClass]="erroTexto ? 'border-red-500' : 'border-gray-300'"></textarea>
+          <p *ngIf="erroTexto as e" [id]="idBase + '-texto-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+
+        <p *ngIf="erroServidor" [id]="idBase + '-erro-servidor'" tabindex="-1" role="alert"
+           class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erroServidor }}</p>
+      </div>
+
+      <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+        <button type="button" (click)="fechar()" [disabled]="gravando"
+                class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          Cancelar
+        </button>
+        <button type="submit" [disabled]="gravando"
+                class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-60"
+                [ngClass]="encerrar ? 'bg-red-600 hover:bg-red-700' : 'bg-purple-600 hover:bg-purple-700'">
+          <span class="material-icons text-lg" aria-hidden="true">{{ encerrar ? 'lock' : 'restart_alt' }}</span>
+          {{ gravando ? (encerrar ? 'Encerrando...' : 'Abrindo...') : (encerrar ? 'Encerrar o PDTIC' : 'Abrir a revisão') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -35,8 +35,9 @@
           <li>No fim de cada tela, o botão "Próximo passo" leva adiante, sem precisar procurar em menus.</li>
           <li>Os passos marcados como "em construção" ganham tela nas próximas etapas do desenvolvimento do módulo. Por enquanto,
             eles mostram o que será feito ali.</li>
-          <li *ngIf="e.perfil === 'orgao'">Cada passo mostra a situação: feito, pendente, com comentário aberto da SGDI ou "não
-            se aplica". Um passo fica feito quando as seções obrigatórias dele estão preenchidas.</li>
+          <li *ngIf="e.perfil === 'orgao'">Cada passo mostra a situação: feito, pendente, com comentário aberto da SGDI, "não se
+            aplica", aguardando outra coisa antes (a deliberação do CGTIC ou a publicação, por exemplo) ou feito fora do sistema,
+            sempre com o motivo escrito. Um passo fica feito quando as seções obrigatórias dele estão preenchidas.</li>
         </ol>
       </div>
 
@@ -70,7 +71,7 @@
 
       <!-- PDTIC do órgão (trilha de um órgão) -->
       <div *ngIf="trilhaDeOrgao" class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-base font-semibold text-gray-900 mb-1">PDTIC · {{ siglaOrgao }}</h2>
+        <h2 id="pe-inicio-pdtic-titulo" tabindex="-1" class="text-base font-semibold text-gray-900 mb-1">PDTIC · {{ siglaOrgao }}</h2>
 
         <p *ngIf="e.cargaPdtic === 'carregando'" role="status" class="text-sm text-gray-600">Conferindo o PDTIC do órgão...</p>
 
@@ -79,25 +80,118 @@
           <button type="button" (click)="tentarPdticDeNovo()" class="font-semibold underline">Tentar de novo</button>
         </div>
 
-        <!-- Sem PDTIC: a equipe do órgão começa; os demais só leem -->
+        <!-- Sem PDTIC: a equipe do órgão começa ou registra o aprovado fora do sistema; os demais só leem -->
         <ng-container *ngIf="e.cargaPdtic === 'sem-pdtic'">
           <p class="text-sm text-gray-700 leading-relaxed">O PDTIC do órgão {{ siglaOrgao }} ainda não foi começado neste sistema.</p>
-          <ng-container *ngIf="podeAbrirPdtic; else semAbrir">
-            <p class="text-sm text-gray-700 leading-relaxed mt-1">
-              Ao começar, o sistema abre a versão 1.0 do PDTIC, em elaboração. A partir daí, cada passo da trilha guarda o que
-              a equipe preencher, e a situação dos passos aparece aqui.
-            </p>
-            <button type="button" (click)="abrirPdtic()" [disabled]="abrindo"
-                    class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
-              <span class="material-icons text-base" aria-hidden="true">play_arrow</span> {{ abrindo ? 'Começando...' : 'Começar o PDTIC' }}
-            </button>
-          </ng-container>
-          <ng-template #semAbrir><p class="text-xs text-gray-500 italic mt-1">{{ quemAbre }}</p></ng-template>
+          <p *ngIf="!podeAbrirPdtic" class="text-xs text-gray-500 italic mt-1">{{ quemAbre }}</p>
+          <div *ngIf="podeAbrirPdtic || podeRegistrarExterno" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+            <div *ngIf="podeAbrirPdtic" class="rounded-lg border border-gray-200 px-4 py-3">
+              <h3 class="text-sm font-semibold text-gray-900">Elaborar o PDTIC no sistema</h3>
+              <p class="text-sm text-gray-700 leading-relaxed mt-1">
+                O sistema abre a versão 1.0 do PDTIC, em elaboração. A partir daí, cada passo da trilha guarda o que a equipe
+                preencher, e a situação dos passos aparece aqui.
+              </p>
+              <button type="button" (click)="abrirPdtic()" [disabled]="abrindo"
+                      class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+                <span class="material-icons text-base" aria-hidden="true">play_arrow</span> {{ abrindo ? 'Começando...' : 'Começar o PDTIC' }}
+              </button>
+            </div>
+            <div *ngIf="podeRegistrarExterno" class="rounded-lg border border-gray-200 px-4 py-3">
+              <h3 class="text-sm font-semibold text-gray-900">O PDTIC já foi aprovado fora do sistema?</h3>
+              <p class="text-sm text-gray-700 leading-relaxed mt-1">
+                Registre o PDTIC aprovado e publicado, com o PDF, para acompanhar a execução por aqui. A elaboração não precisa ser
+                refeita.
+              </p>
+              <button type="button" id="pe-inicio-externo" (click)="abrirFormExterno()"
+                      class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                <span class="material-icons text-base" aria-hidden="true">inventory</span> Registrar um PDTIC aprovado fora do sistema
+              </button>
+            </div>
+          </div>
         </ng-container>
 
-        <!-- Com PDTIC: versão, situação, vigência e andamento -->
+        <!-- Com PDTIC: a situação em destaque, versão, vigência, andamento e as datas do caminho da aprovação -->
         <ng-container *ngIf="e.pdtic as p">
-          <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-2">
+
+          <!-- Revisão em andamento: a versão à vista é a nova -->
+          <div *ngIf="revisaoEmAndamento(p) as r" class="mt-3 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-gray-800">
+            <span class="material-icons text-purple-700" aria-hidden="true">restart_alt</span>
+            <div class="leading-relaxed">
+              <p class="font-semibold text-purple-800">Revisão do PDTIC: versão {{ p.Versao }}, aberta a partir da {{ r.AnteriorVersao }}.</p>
+              <p class="mt-1">A versão {{ r.AnteriorVersao }} continua valendo e em acompanhamento até o CGTIC aprovar a {{ p.Versao }}; depois
+                disso, ela fica como substituída. A versão nova tem os dados de hoje e passa de novo pela aprovação do SGTIC, pelo
+                envio ao CGTIC e pela publicação.<ng-container *ngIf="links.etapa2 as l"> A trilha dela recomeça no diagnóstico, no
+                  <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold text-purple-800 underline">passo {{ l.numero }}</a>.</ng-container></p>
+              <button *ngIf="versoes as v" type="button" (click)="verVersao(v.vigente)"
+                      class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+                <span class="material-icons text-base" aria-hidden="true">swap_horiz</span> Ver a versão {{ v.vigente.Versao }} (vigente, em acompanhamento)
+              </button>
+            </div>
+          </div>
+
+          <!-- A versão vigente à vista, com uma revisão aberta -->
+          <div *ngIf="vigenteAVista as v" class="mt-3 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-gray-800">
+            <span class="material-icons text-purple-700" aria-hidden="true">swap_horiz</span>
+            <div class="leading-relaxed">
+              <p>Você está vendo a versão {{ v.vigente.Versao }}, a vigente, que segue em acompanhamento. A revisão (versão
+                {{ v.emRevisao.Versao }}) está {{ situacaoEmTexto(v.emRevisao.Situacao) }}.</p>
+              <button type="button" (click)="verVersao(v.emRevisao)"
+                      class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+                <span class="material-icons text-base" aria-hidden="true">swap_horiz</span> Ver a versão {{ v.emRevisao.Versao }} (em revisão)
+              </button>
+            </div>
+          </div>
+
+          <!-- Enviado: aguardando o CGTIC -->
+          <div *ngIf="p.Situacao === 'em_aprovacao'" class="mt-3 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span class="material-icons text-amber-600" aria-hidden="true">hourglass_top</span>
+            <p class="leading-relaxed"><strong>Enviado ao CGTIC em {{ quando(p.EnviadoEm) }}: aguardando a deliberação do comitê.</strong>
+              Enquanto isso, os passos da elaboração não mudam. O envio já valeu como a comunicação à SGDI.</p>
+          </div>
+
+          <!-- Devolvido: o que ajustar e o caminho para enviar de novo -->
+          <div *ngIf="p.Situacao === 'devolvido'" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+            <p class="flex items-center gap-2 font-semibold">
+              <span class="material-icons text-red-600" aria-hidden="true">undo</span>
+              O CGTIC devolveu o PDTIC para ajustes<ng-container *ngIf="p.Deliberacao?.DecididoEm as d"> em {{ quando(d) }}</ng-container><ng-container *ngIf="ato(p) as a"> ({{ a }})</ng-container>.
+            </p>
+            <div *ngIf="p.Deliberacao?.Observacao as o" class="mt-2 rounded-md border border-red-200 bg-white px-3 py-2 text-gray-900">
+              <p class="font-semibold">O que o comitê pediu para ajustar</p>
+              <p class="mt-1 whitespace-pre-line break-words leading-relaxed">{{ o }}</p>
+            </div>
+            <p class="mt-2 leading-relaxed">O PDTIC voltou a ficar em edição. Ajuste os passos e envie de novo<ng-container *ngIf="links.envio as l"> no
+              <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold underline">passo {{ l.numero }}</a></ng-container>.</p>
+          </div>
+
+          <!-- Aprovado: falta a publicação -->
+          <div *ngIf="p.Situacao === 'aprovado'" class="mt-3 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+            <span class="material-icons text-green-600" aria-hidden="true">verified</span>
+            <p class="leading-relaxed"><strong>Aprovado pelo CGTIC<ng-container *ngIf="p.AprovadoEm"> em {{ quando(p.AprovadoEm) }}</ng-container><ng-container *ngIf="ato(p) as a"> ({{ a }})</ng-container>.</strong>
+              Falta registrar a publicação<ng-container *ngIf="links.publicacao as l"> no
+                <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold underline">passo {{ l.numero }}</a></ng-container>:
+              com ela, o PDTIC passa a valer e começa o acompanhamento.</p>
+          </div>
+
+          <!-- Registrado já aprovado, fora do sistema -->
+          <div *ngIf="p.RegistradoExternamente && (p.Situacao === 'publicado' || p.Situacao === 'em_acompanhamento')"
+               class="mt-3 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-gray-800">
+            <span class="material-icons text-purple-700" aria-hidden="true">inventory</span>
+            <p class="leading-relaxed"><strong class="text-purple-800">PDTIC aprovado fora do sistema e registrado já publicado.</strong> Os passos da
+              elaboração ficam como feitos fora do sistema. Preencha as metas, os indicadores, as ações e os riscos nos passos
+              deles: é o que o acompanhamento usa.</p>
+          </div>
+
+          <!-- Encerrado ou substituído -->
+          <div *ngIf="p.Situacao === 'encerrado'" class="mt-3 flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800">
+            <span class="material-icons text-gray-500" aria-hidden="true">lock</span>
+            <div class="leading-relaxed min-w-0">
+              <p><strong>PDTIC encerrado<ng-container *ngIf="p.EncerradoEm"> em {{ quando(p.EncerradoEm) }}</ng-container>.</strong> Ele fica só para consulta.</p>
+              <p *ngIf="p.EncerramentoMotivo as m" class="mt-1 whitespace-pre-line break-words">Motivo: {{ m }}</p>
+            </div>
+          </div>
+          <p *ngIf="p.Situacao === 'substituido'" class="mt-3 text-sm text-gray-700">Esta versão foi substituída por uma mais nova: fica só para consulta.</p>
+
+          <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
             <div>
               <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Versão e situação</dt>
               <dd class="mt-0.5 flex flex-wrap items-center gap-2">
@@ -114,12 +208,36 @@
               <dd class="text-gray-900 font-medium mt-0.5">
                 {{ a.feitos }} de {{ a.total }} passos resolvidos
                 <progress class="block w-full mt-1" [value]="a.feitos" [max]="a.total" aria-labelledby="pe-inicio-andamento"></progress>
+                <span *ngIf="a.aguardando > 0" class="block text-xs font-normal text-gray-600 mt-1">
+                  {{ a.aguardando === 1 ? '1 passo aguarda' : a.aguardando + ' passos aguardam' }} uma etapa anterior (a deliberação, a publicação).
+                </span>
               </dd>
             </div>
           </dl>
+
+          <!-- Datas do caminho da aprovação (E7) -->
+          <dl *ngIf="p.EnviadoEm || p.AprovadoEm || p.PublicadoEm || p.EncerradoEm" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
+            <div *ngIf="p.EnviadoEm">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Enviado ao CGTIC</dt>
+              <dd class="text-gray-900 font-medium mt-0.5">{{ quando(p.EnviadoEm) }}</dd>
+            </div>
+            <div *ngIf="p.AprovadoEm">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Aprovado pelo CGTIC</dt>
+              <dd class="text-gray-900 font-medium mt-0.5">{{ quando(p.AprovadoEm) }}</dd>
+            </div>
+            <div *ngIf="p.PublicadoEm">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Publicado</dt>
+              <dd class="text-gray-900 font-medium mt-0.5">{{ quando(p.PublicadoEm) }}</dd>
+            </div>
+            <div *ngIf="p.EncerradoEm">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Encerrado</dt>
+              <dd class="text-gray-900 font-medium mt-0.5">{{ quando(p.EncerradoEm) }}</dd>
+            </div>
+          </dl>
+
           <p class="text-xs text-gray-500 italic mt-3">
-            Passo resolvido é o feito ou o marcado como "não se aplica". Os passos das etapas de acompanhamento chegam nas próximas
-            etapas do desenvolvimento e ainda não contam.
+            Passo resolvido é o feito, o marcado como "não se aplica" ou o feito fora do sistema. Os passos do monitoramento chegam
+            numa próxima etapa do desenvolvimento e ainda não contam.
           </p>
           <p *ngIf="e.situacao?.erroAndamento" role="alert" class="text-sm text-red-700 mt-2">
             Não foi possível conferir a situação dos passos agora. Os passos continuam abertos; tente de novo em alguns instantes.
@@ -129,10 +247,50 @@
                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
               <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando ? 'Gerando...' : 'Planilha completa do PDTIC (XLSX)' }}
             </button>
+            <button *ngIf="pdf as f" type="button" (click)="baixarPdf()" [disabled]="baixandoPdf"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              <span class="material-icons text-base" aria-hidden="true">picture_as_pdf</span>
+              {{ baixandoPdf ? 'Baixando...' : (p.RegistradoExternamente ? 'PDF do PDTIC registrado' : 'PDF enviado ao CGTIC (versão ' + f.numero + ' do documento)') }}
+            </button>
           </div>
           <p class="text-xs text-gray-500 italic mt-2">A planilha completa tem uma aba por seção, com as colunas do nível do órgão, e a aba Leia-me.</p>
+
+          <!-- Revisão pelo passo da avaliação do comitê (quando ele está na trilha) -->
+          <p *ngIf="revisaoPelaAvaliacao as l" class="text-sm text-gray-700 leading-relaxed mt-4">
+            Para mudar o PDTIC vigente, o comitê avalia no meio do caminho: com a decisão "revisar", registrada no
+            <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold text-purple-700 underline">passo {{ l.numero }}</a>,
+            a equipe abre a revisão, numa versão nova.
+          </p>
         </ng-container>
       </div>
+
+      <!-- E7: o formulário do PDTIC aprovado fora do sistema (num pacote próprio) -->
+      <ng-container *ngIf="formExterno && podeRegistrarExterno">
+        @defer (on idle) {
+          <app-pe-registro-externo [orgaoId]="orgaoDoRegistro" [siglaOrgao]="siglaOrgao"
+                                   (registrou)="aoRegistrarExterno($event)" (cancelar)="fecharFormExterno()"></app-pe-registro-externo>
+        } @placeholder {
+          <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o formulário...</p>
+        }
+      </ng-container>
+
+      <!-- E7: encerrar com a vigência terminada (administrador) e abrir a revisão sem a avaliação do comitê (Básico) -->
+      <ng-container *ngIf="e.pdtic as p">
+        <ng-container *ngIf="mostraEncerrarAdmin">
+          @defer (on idle) {
+            <app-pe-acao-pdtic [pdtic]="p" modo="encerrar-admin" (concluiu)="aoConcluirAcao($event)"></app-pe-acao-pdtic>
+          } @placeholder {
+            <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando...</p>
+          }
+        </ng-container>
+        <ng-container *ngIf="mostraRevisaoComJustificativa">
+          @defer (on idle) {
+            <app-pe-acao-pdtic [pdtic]="p" modo="revisao-justificativa" (concluiu)="aoConcluirAcao($event)"></app-pe-acao-pdtic>
+          } @placeholder {
+            <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando...</p>
+          }
+        </ng-container>
+      </ng-container>
 
       <!-- Próximo passo recomendado -->
       <div *ngIf="recomendado as r" class="bg-purple-600 text-white rounded-lg shadow p-5 flex flex-col md:flex-row md:items-center gap-4">
@@ -208,6 +366,8 @@
               <p *ngIf="p.doOrgao as d" class="text-xs text-gray-500 mt-0.5">
                 {{ d.Situacao === 'obrigatorio' ? 'Obrigatório' : 'Opcional' }} neste nível<ng-container *ngIf="d.Travado"> · conteúdo mínimo do PDTIC</ng-container><ng-container *ngIf="d.AjustadoParaOrgao"> · ajustado para este órgão</ng-container>
               </p>
+              <!-- O porquê de aguardando, atrasado e feito fora do sistema: em texto, não só na cor do selo -->
+              <p *ngIf="motivoDoPasso(p) as m" class="text-xs text-gray-700 mt-0.5">{{ m }}</p>
             </div>
             <span *ngIf="status(p) as s; else semStatus"
                   class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center"

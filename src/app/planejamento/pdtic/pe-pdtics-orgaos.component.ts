@@ -15,7 +15,7 @@ import { BASE_PE } from '../trilha/pe-trilhas';
 
 const TAMANHO_PAGINA = 20;
 
-/** Situações para o filtro (as que a E4 usa primeiro; as demais chegam com a aprovação, na E7). */
+/** Situações para o filtro (o ciclo do PDTIC, na ordem do caminho da aprovação). */
 const SITUACOES: PeSituacaoPdtic[] = [
   'em_elaboracao', 'devolvido', 'em_aprovacao', 'aprovado', 'publicado', 'em_acompanhamento', 'encerrado'
 ];

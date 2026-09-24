@@ -1,19 +1,33 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AfterViewChecked, Component, DestroyRef, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
+import { PePdtic } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
-import { classeSituacaoPdtic, resumoAndamento, rotuloSituacaoPdtic } from '../shared/pe-pdtic-rotulos';
-import { textoVigencia } from '../shared/pe-referenciais-rotulos';
+import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic } from '../shared/pe-pdf-pdtic';
+import {
+  SECAO_AVALIACAO_COMITE, classeEstadoPasso, classeSituacaoPdtic, minusculaInicial, pdticAntesDaPublicacao, pdticVigente, quandoPdtic,
+  resumoAndamento, rotuloSituacaoPdtic, textoDoStatus, vigenciaTerminou
+} from '../shared/pe-pdtic-rotulos';
+import { textoAto, textoVigencia } from '../shared/pe-referenciais-rotulos';
+import { hojeIso } from '../shared/registros/pe-valores';
+import { PePdticService } from '../services/pe-pdtic.service';
 import { PeRegistrosService } from '../services/pe-registros.service';
+import { PeAcaoPdticComponent } from '../pdtic/pe-acao-pdtic.component';
+import { PeRegistroExternoComponent } from '../pdtic/pe-registro-externo.component';
 import { EstadoTrilhaPe, PeTrilhaEstadoService } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
 import { ATALHOS_REFERENCIAIS, PassoNumeradoPe, rotuloGuia } from './pe-trilhas';
 import { papelPlanejamentoDeOrgao, rotuloCurtoPapelPlanejamento } from '../../core/acessos/papeis-planejamento';
+
+/** Link para um passo da trilha à vista. */
+interface LinkPasso {
+  rota: string;
+  numero: string;
+}
 
 /**
  * Visão geral da Governança Estratégica (primeira tela do módulo): o que o módulo
@@ -28,31 +42,63 @@ import { papelPlanejamentoDeOrgao, rotuloCurtoPapelPlanejamento } from '../../co
  * órgão vê "Começar o PDTIC" (os demais, só o aviso); aberto, a versão, a
  * situação, a vigência, o andamento dos passos e a planilha completa. O próximo
  * passo e a situação de cada passo vêm do servidor (GET pdtic/{id}/situacao).
+ *
+ * E7: sem PDTIC, também "Registrar um PDTIC aprovado fora do sistema" (a equipe
+ * do órgão e o admin do SGDP; o formulário carrega num pacote próprio, pelo
+ * `@defer`); com PDTIC, a faixa da situação (enviado, devolvido com o que
+ * ajustar, aprovado, encerrado, revisão em andamento, registrado fora do
+ * sistema), as datas do caminho da aprovação, o PDF enviado, a escolha entre a
+ * versão em revisão e a vigente, "Encerrar o PDTIC" para o administrador quando a
+ * vigência terminou e "Abrir a revisão" para o órgão sem a avaliação do comitê.
  */
 @Component({
   selector: 'app-pe-inicio',
   standalone: true,
-  imports: [CommonModule, RouterModule, CitaPlanejamentoDirective],
+  imports: [CommonModule, RouterModule, CitaPlanejamentoDirective, PeAcaoPdticComponent, PeRegistroExternoComponent],
   templateUrl: './pe-inicio.component.html'
 })
-export class PeInicioComponent implements OnInit {
+export class PeInicioComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly registrosService = inject(PeRegistrosService);
+  private readonly pdticService = inject(PePdticService);
   private readonly notificacoes = inject(NotificationService);
-  private readonly acessibilidade = inject(AcessibilidadeService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   estado: EstadoTrilhaPe | null = null;
   abrindo = false;
   baixando = false;
+  baixandoPdf = false;
+  /** E7: o formulário do PDTIC aprovado fora do sistema está aberto. */
+  formExterno = false;
+  private readonly hoje = hojeIso();
+  private focoPendente: string | null = null;
+  // Objetos estáveis para os *ngIf do template (objeto novo a cada verificação daria NG0100)
+  private pdfDe: PePdtic | null = null;
+  private pdfCache: PdfDoPdtic | null = null;
+  private passosVistos: unknown = null;
+  private linksCache: { envio: LinkPasso | null; publicacao: LinkPasso | null; avaliacao: LinkPasso | null; etapa2: LinkPasso | null } =
+    { envio: null, publicacao: null, avaliacao: null, etapa2: null };
 
   ngOnInit(): void {
     this.estadoService.estado$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(estado => this.estado = estado);
+      .subscribe(estado => {
+        this.estado = estado;
+        // O órgão ganhou PDTIC (ou a trilha mudou): o formulário do registro externo sai
+        if (estado?.cargaPdtic !== 'sem-pdtic') this.formExterno = false;
+      });
     // A visão geral sempre mostra a situação atualizada
     this.estadoService.atualizarStatus(true);
+  }
+
+  ngAfterViewChecked(): void {
+    if (!this.focoPendente || !this.noNavegador) return;
+    const alvo = document.getElementById(this.focoPendente);
+    if (!alvo) return;
+    this.focoPendente = null;
+    alvo.focus();
   }
 
   passosDaEtapa(indice: number): PassoNumeradoPe[] {
@@ -154,7 +200,11 @@ export class PeInicioComponent implements OnInit {
   /** Quem vê o órgão sem PDTIC e não pode abrir: o motivo. */
   get quemAbre(): string {
     const e = this.estado;
-    if (e?.orgaoVisto !== null) return 'Quem começa o PDTIC é a equipe do órgão, na trilha dela. Aqui você só lê.';
+    if (e?.orgaoVisto !== null) {
+      return this.podeRegistrarExterno
+        ? 'Quem começa o PDTIC no sistema é a equipe do órgão, na trilha dela. Como admin do SGDP, você pode registrar aqui um PDTIC já aprovado fora do sistema.'
+        : 'Quem começa o PDTIC é a equipe do órgão, na trilha dela. Aqui você só lê.';
+    }
     return 'Quem começa o PDTIC é a equipe do órgão. O seu papel de consulta só lê.';
   }
 
@@ -173,12 +223,18 @@ export class PeInicioComponent implements OnInit {
     return texto === '-' ? 'Ainda não informada (passo 1.1)' : texto;
   }
 
-  get andamento(): { feitos: number; total: number } | null {
-    const andamento = this.estado?.situacao?.andamento;
-    if (!andamento) return null;
-    const resumo = resumoAndamento(andamento);
-    return resumo.total > 0 ? resumo : null;
+  /** Andamento dos passos (o mesmo objeto enquanto a situação não muda: vai num *ngIf). */
+  get andamento(): { feitos: number; total: number; aguardando: number } | null {
+    const andamento = this.estado?.situacao?.andamento ?? null;
+    if (andamento !== this.andamentoDe) {
+      this.andamentoDe = andamento;
+      const resumo = andamento ? resumoAndamento(andamento) : null;
+      this.andamentoCache = resumo && resumo.total > 0 ? resumo : null;
+    }
+    return this.andamentoCache;
   }
+  private andamentoDe: unknown = null;
+  private andamentoCache: { feitos: number; total: number; aguardando: number } | null = null;
 
   abrirPdtic(): void {
     if (this.abrindo || !this.podeAbrirPdtic) return;
@@ -186,8 +242,8 @@ export class PeInicioComponent implements OnInit {
     this.estadoService.abrirPdtic().subscribe({
       next: pdtic => {
         this.abrindo = false;
+        // O toast fica numa região lida pelo leitor de tela: um aviso só
         this.notificacoes.success(`PDTIC ${pdtic.Versao} aberto. Siga os passos da trilha, a partir do primeiro.`);
-        this.acessibilidade.anunciar(`PDTIC ${pdtic.Versao} aberto.`);
       },
       error: erro => {
         this.abrindo = false;
@@ -223,13 +279,152 @@ export class PeInicioComponent implements OnInit {
   }
 
   classeEstado(estado: EstadoPassoPe | undefined): string {
-    switch (estado) {
-      case 'feito': return 'bg-green-50 text-green-800 border-green-200';
-      case 'atrasado': return 'bg-red-50 text-red-800 border-red-200';
-      case 'atencao': return 'bg-amber-50 text-amber-900 border-amber-200';
-      case 'pendente': return 'bg-blue-50 text-blue-800 border-blue-200';
-      default: return 'bg-gray-50 text-gray-600 border-gray-200';
+    return classeEstadoPasso(estado);
+  }
+
+  /** O selo e o motivo do passo numa frase (aguardando, atrasado, feito fora do sistema): o porquê em texto. */
+  motivoDoPasso(passo: PassoNumeradoPe): string {
+    const s = this.status(passo);
+    return s?.motivo ? textoDoStatus(s) : '';
+  }
+
+  // ── E7 · Caminho da aprovação ─────────────────────────────────────────────
+
+  quando(valor: string | null | undefined): string {
+    return quandoPdtic(valor);
+  }
+
+  /** "em elaboração", "devolvido pelo CGTIC" (no meio da frase). */
+  situacaoEmTexto(situacao: string): string {
+    return minusculaInicial(rotuloSituacaoPdtic(situacao));
+  }
+
+  /** A revisão ainda antes do CGTIC aprovar (em elaboração, com o comitê ou devolvida): a faixa explica as duas versões. */
+  revisaoEmAndamento(p: PePdtic): PePdtic['Revisao'] {
+    return p.Revisao && ['em_elaboracao', 'em_aprovacao', 'devolvido'].includes(p.Situacao) ? p.Revisao : null;
+  }
+
+  /** "Resolução nº 12, de 20/09/2026" da deliberação mais recente, ou vazio. */
+  ato(p: PePdtic): string {
+    return p.Deliberacao ? textoAto(p.Deliberacao) : '';
+  }
+
+  /** O PDF enviado (ou o do PDTIC registrado já aprovado). */
+  get pdf(): PdfDoPdtic | null {
+    const p = this.estado?.pdtic ?? null;
+    if (p !== this.pdfDe) {
+      this.pdfDe = p;
+      this.pdfCache = pdfDoPdtic(p);
     }
+    return this.pdfCache;
+  }
+
+  baixarPdf(): void {
+    const pdf = this.pdf;
+    if (!pdf || this.baixandoPdf) return;
+    this.baixandoPdf = true;
+    baixarPdfDoPdtic(this.pdticService, pdf).then(mensagem => {
+      this.baixandoPdf = false;
+      if (mensagem) this.notificacoes.error(mensagem);
+    });
+  }
+
+  /** Os passos que as faixas citam: o envio, a publicação, a avaliação do comitê e o primeiro da etapa 2. */
+  get links(): { envio: LinkPasso | null; publicacao: LinkPasso | null; avaliacao: LinkPasso | null; etapa2: LinkPasso | null } {
+    const passos = this.estado?.passos ?? [];
+    if (passos !== this.passosVistos) {
+      this.passosVistos = passos;
+      const link = (achado: PassoNumeradoPe | undefined): LinkPasso | null => (achado ? { rota: achado.rota, numero: achado.numero } : null);
+      this.linksCache = {
+        envio: link(passos.find(p => p.doOrgao?.Tipo === 'envio')),
+        publicacao: link(passos.find(p => p.doOrgao?.Tipo === 'publicacao')),
+        avaliacao: link(passos.find(p => p.doOrgao?.Secoes.some(s => s.Chave === SECAO_AVALIACAO_COMITE))),
+        etapa2: link(passos.find(p => p.etapa === 1))
+      };
+    }
+    return this.linksCache;
+  }
+
+  /** A versão em revisão e a vigente (o seletor fica no alto da trilha). */
+  get versoes(): { emRevisao: PePdtic; vigente: PePdtic } | null {
+    return this.estadoService.versoesParaEscolher;
+  }
+
+  /** As duas versões, quando a vigente é a que está à vista (a faixa oferece voltar à revisão). */
+  get vigenteAVista(): { emRevisao: PePdtic; vigente: PePdtic } | null {
+    const v = this.versoes;
+    return v && v.vigente.Id === this.estado?.pdtic?.Id ? v : null;
+  }
+
+  verVersao(p: PePdtic): void {
+    this.estadoService.escolherVersao(p.Id);
+    this.focoPendente = 'pe-inicio-pdtic-titulo';
+  }
+
+  /** Há outra versão do órgão ainda antes da publicação (uma revisão já aberta). */
+  private get temRevisaoAberta(): boolean {
+    const p = this.estado?.pdtic;
+    return !!p && (this.estado?.versoes ?? []).some(v => v.Id !== p.Id && pdticAntesDaPublicacao(v.Situacao));
+  }
+
+  /**
+   * "Encerrar o PDTIC" do administrador (do módulo ou do SGDP): na trilha de um
+   * órgão, com o PDTIC vigente e a vigência terminada; o motivo é obrigatório.
+   */
+  get mostraEncerrarAdmin(): boolean {
+    const e = this.estado;
+    const p = e?.pdtic;
+    return !!e && !!p && e.orgaoVisto !== null && this.estadoService.ehAdministrador && pdticVigente(p.Situacao)
+      && vigenciaTerminou(p, this.hoje);
+  }
+
+  /** "Abrir a revisão" com a justificativa: a equipe do órgão sem o passo da avaliação do comitê (Básico). */
+  get mostraRevisaoComJustificativa(): boolean {
+    const p = this.estado?.pdtic;
+    return !!p && this.estadoService.ehEquipeDoOrgao && pdticVigente(p.Situacao) && !this.temRevisaoAberta && !this.links.avaliacao;
+  }
+
+  /** A revisão se abre pelo passo da avaliação do comitê (6.3), quando ele está na trilha. */
+  get revisaoPelaAvaliacao(): LinkPasso | null {
+    const p = this.estado?.pdtic;
+    if (!p || !this.estadoService.ehEquipeDoOrgao || !pdticVigente(p.Situacao) || this.temRevisaoAberta) return null;
+    return this.links.avaliacao;
+  }
+
+  /** O PDTIC foi encerrado pelo administrador ou a revisão foi aberta: entra no estado, e o foco volta ao bloco do PDTIC. */
+  aoConcluirAcao(pdtic: PePdtic): void {
+    this.estadoService.aplicarPdtic(pdtic);
+    this.focoPendente = 'pe-inicio-pdtic-titulo';
+  }
+
+  // ── E7 · PDTIC aprovado fora do sistema ───────────────────────────────────
+
+  get podeRegistrarExterno(): boolean {
+    return this.estadoService.podeRegistrarExterno;
+  }
+
+  /** O órgão do registro: null (o da equipe) ou o órgão à vista (admin do SGDP). */
+  get orgaoDoRegistro(): number | null {
+    return this.estado?.orgaoVisto ?? null;
+  }
+
+  /** Abre o formulário (que leva o foco ao título dele); já aberto, o foco vai para lá. */
+  abrirFormExterno(): void {
+    if (!this.podeRegistrarExterno) return;
+    if (this.formExterno) this.focoPendente = 'pe-ext-titulo';
+    this.formExterno = true;
+  }
+
+  fecharFormExterno(): void {
+    this.formExterno = false;
+    this.focoPendente = 'pe-inicio-externo';
+  }
+
+  /** O PDTIC registrado entra no estado (já publicado), e o foco vai para o bloco do PDTIC. */
+  aoRegistrarExterno(pdtic: PePdtic): void {
+    this.formExterno = false;
+    this.estadoService.aplicarPdtic(pdtic);
+    this.focoPendente = 'pe-inicio-pdtic-titulo';
   }
 
   irPara(passo: PassoNumeradoPe): void {

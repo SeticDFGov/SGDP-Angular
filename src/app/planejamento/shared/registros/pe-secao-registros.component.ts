@@ -53,6 +53,13 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
   @Output() readonly mudou = new EventEmitter<void>();
   /** Há mudança não salva na seção. */
   @Output() readonly alterado = new EventEmitter<boolean>();
+  /**
+   * Os registros da seção depois de cada carga (terminada: o título da seção já
+   * está na tela) e de cada mudança salva. A tela do passo lê a decisão das
+   * aprovações (E7) e espera esta saída para levar o foco ao título depois de uma
+   * recarga (o título é recriado quando a seção vem de novo).
+   */
+  @Output() readonly registros = new EventEmitter<PeRegistro[]>();
 
   dados: PeRegistrosDaSecao | null = null;
   carregando = false;
@@ -93,6 +100,7 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
         this.carregando = false;
         this.dados = dados;
         this.quantidade = dados.Registros?.length ?? 0;
+        this.registros.emit(dados.Registros ?? []);
       },
       error: erro => {
         this.carregando = false;
@@ -110,6 +118,7 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
   aoMudar(registros: PeRegistro[] | PeRegistro): void {
     if (Array.isArray(registros)) this.quantidade = registros.length;
     this.mudou.emit();
+    this.registros.emit(Array.isArray(registros) ? registros : [registros]);
   }
 
   /** A ação da tabela vazia aparece (quem edita, numa tabela sem registros). */

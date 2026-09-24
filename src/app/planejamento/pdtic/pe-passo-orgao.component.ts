@@ -5,17 +5,18 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
 import {
-  PeCampoTrilha, PeNaoSeAplica, PePassoTrilha, PePdtic, PeSecaoTrilha, PeSituacaoPassoPdtic
+  PeCampoTrilha, PeNaoSeAplica, PePassoTrilha, PePdtic, PeRegistro, PeSecaoTrilha, PeSituacaoPassoPdtic
 } from '../../../api/planejamento/interface';
-import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { NomesDoModelo, citacaoTravado, descricaoCampo, rotuloTipoPasso } from '../shared/pe-modelo-rotulos';
 import {
-  SECAO_CRONOGRAMA, TIPOS_PASSO_COM_TELA, aceitaNaoSeAplica, ehPassoSistemasIa, itemDaSecaoPdtic, passoTemFluxos, pdticEmEdicao,
-  rotuloSituacaoPdtic, statusDoPassoPdtic
+  GrupoPassoPdtic, SECAO_APROVACAO_AUTORIDADE, SECAO_AVALIACAO_COMITE, SECAO_CRONOGRAMA, SECAO_PUBLICACAO,
+  TIPOS_PASSO_COM_SECOES, TIPOS_PASSO_COM_TELA, aceitaNaoSeAplica, classeEstadoPasso, ehPassoSistemasIa, grupoDoPasso,
+  iconeEstadoPasso, itemDaSecaoPdtic, motivoLeituraDoPasso, passoTemFluxos, pdticAntesDaPublicacao, pdticVigente, statusDoPassoPdtic,
+  textoDoStatus
 } from '../shared/pe-pdtic-rotulos';
 import { PeSecaoRegistrosComponent } from '../shared/registros/pe-secao-registros.component';
 import { PeFonteRegistros, PeRegistrosService } from '../services/pe-registros.service';
@@ -25,8 +26,12 @@ import { CargaPdticPe, PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.
 import { StatusPassoPe } from '../trilha/pe-trilha-status.service';
 import { BASE_PE, PassoNumeradoPe, TITULO_PASSO_GENERICO, passoDaUrl, rotuloGuia } from '../trilha/pe-trilhas';
 import { PeDocumentoPreviaComponent } from '../documento/pe-documento-previa.component';
+import { PeAcaoPdticComponent } from './pe-acao-pdtic.component';
 import { PeComentariosPassoComponent } from './pe-comentarios-passo.component';
 import { PeNaoSeAplicaComponent } from './pe-nao-se-aplica.component';
+import { PePassoDeliberacaoComponent } from './pe-passo-deliberacao.component';
+import { PePassoEnvioComponent } from './pe-passo-envio.component';
+import { PePassoPublicacaoComponent } from './pe-passo-publicacao.component';
 import { PeSistemasIaPgiaComponent } from './pe-sistemas-ia-pgia.component';
 import { PeSugerirCronogramaComponent } from './pe-sugerir-cronograma.component';
 import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
@@ -55,10 +60,20 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
  *   Na seção do cronograma do plano de trabalho, enquanto ela está vazia, o
  *   "Sugerir o cronograma pelos fluxos".
  *
+ * - Caminho da aprovação (E7): no passo de aprovação, a seção da decisão com o que
+ *   registrar e, na avaliação do comitê (6.3) com a decisão "revisar", "Abrir a
+ *   revisão do PDTIC"; na aprovação da autoridade máxima (7.4) com "aprovado",
+ *   "Encerrar o PDTIC". No passo do envio, a aprovação do SGTIC e o envio ao CGTIC
+ *   (`pe-passo-envio`); no da deliberação, a decisão do comitê
+ *   (`pe-passo-deliberacao`); no da publicação, a seção e "Registrar a
+ *   publicação" (`pe-passo-publicacao`). Os passos aguardando e os feitos fora do
+ *   sistema dizem o porquê no alto.
+ *
  * Quem não edita lê (consulta do órgão, papéis globais, PDTIC fora de elaboração):
- * quem decide é o `PodeEditar` do servidor, e a tela explica o porquê.
- * A mesma instância serve a todos os passos (a rota tem parâmetro). Passo que não
- * está na trilha à vista volta para a visão geral.
+ * quem decide é o `PodeEditar` do servidor (desde a E7, o do passo), e a tela
+ * explica o porquê pela situação do PDTIC e pela etapa do passo. Nenhum botão de
+ * gravar aparece sem ele. A mesma instância serve a todos os passos (a rota tem
+ * parâmetro). Passo que não está na trilha à vista volta para a visão geral.
  */
 @Component({
   selector: 'app-pe-passo-orgao',
@@ -66,7 +81,8 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
   imports: [
     CommonModule, RouterModule, CitaPlanejamentoDirective, PeSecaoRegistrosComponent, PeNaoSeAplicaComponent,
     PeComentariosPassoComponent, PeSistemasIaPgiaComponent, PeTemasAcoesComponent, PeDocumentoPreviaComponent,
-    PeFluxoEditorComponent, PeSugerirCronogramaComponent
+    PeFluxoEditorComponent, PeSugerirCronogramaComponent, PePassoEnvioComponent, PePassoDeliberacaoComponent,
+    PePassoPublicacaoComponent, PeAcaoPdticComponent
   ],
   templateUrl: './pe-passo-orgao.component.html'
 })
@@ -78,7 +94,6 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   private readonly registrosService = inject(PeRegistrosService);
   private readonly fluxosService = inject(PeFluxosService);
   private readonly notificacoes = inject(NotificationService);
-  private readonly acessibilidade = inject(AcessibilidadeService);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly base = BASE_PE;
@@ -105,6 +120,12 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   passoFluxos: { numero: string; rota: string } | null = null;
   /** Recarga de cada seção (pela chave): a sugestão do cronograma cria registros por fora. */
   private readonly recargas = new Map<string, number>();
+  /** E7: a decisão gravada em cada seção de aprovação do passo (pela chave da seção). */
+  decisoes: Record<string, string | null> = {};
+  /** E7: muda quando a aprovação do SGTIC é salva (o envio confere de novo o que falta). */
+  recargaEnvio = 0;
+  /** Onde o passo fica no caminho do PDTIC (elaboração, deliberação, publicação ou acompanhamento). */
+  private grupo: GrupoPassoPdtic = 'elaboracao';
 
   private chaveFonte = '';
   private chavePasso = '';
@@ -115,16 +136,30 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   /** Fluxo mudado e ainda não salvo (passo da metodologia). */
   private fluxosSujos = false;
   private focoPendente: string | null = null;
+  /**
+   * A seção que recebe o foco no título quando terminar de carregar de novo (a
+   * sugestão do cronograma): o título é recriado na recarga, e o foco dado antes
+   * ficaria num elemento que sai da tela.
+   */
+  private focarSecaoAoCarregar: string | null = null;
   /** Uma mudança foi salva: a próxima situação que chegar é comparada com a de antes. */
   private esperandoSituacao = false;
+  private destruida = false;
 
   ngOnInit(): void {
+    this.destroyRef.onDestroy(() => this.destruida = true);
     this.estadoService.estado$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.ler());
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.ler());
+      .subscribe(() => {
+        this.ler();
+        // A estratégia de títulos roda depois do NavigationEnd e, numa navegação que só muda a query
+        // (?fluxo=...), aplica de novo o título que a rota resolveu na entrada, quando a trilha ainda
+        // não tinha chegado ("Passo do PDTIC"): o título do passo volta depois dela
+        if (this.noNavegador) setTimeout(() => this.corrigirTitulo());
+      });
   }
 
   ngAfterViewChecked(): void {
@@ -137,14 +172,89 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
 
   // ── Tipo do passo ─────────────────────────────────────────────────────────
 
-  /** O passo tem tela (dados, conferência dos temas e, desde a E5, o documento). */
+  /** O passo tem tela (dados, conferência dos temas, documento, fluxo e, desde a E7, o caminho da aprovação). */
   get temTela(): boolean {
     return !!this.passo && TIPOS_PASSO_COM_TELA.has(this.passo.Tipo);
   }
 
-  /** O passo tem seções de dados (os componentes genéricos de registros). */
+  /** O passo tem seções de dados (os componentes genéricos de registros): dados, temas, aprovação, envio e publicação. */
   get temSecoes(): boolean {
-    return this.passo?.Tipo === 'dados' || this.passo?.Tipo === 'conferencia_temas';
+    return !!this.passo && TIPOS_PASSO_COM_SECOES.has(this.passo.Tipo);
+  }
+
+  /** E7: registro de uma aprovação (1.10, 2.12, 4.6, 6.3, 7.3 e 7.4 no Avançado). */
+  get passoAprovacao(): boolean {
+    return this.passo?.Tipo === 'aprovacao';
+  }
+
+  /** E7: aprovação do SGTIC e envio ao CGTIC (3.11). */
+  get passoEnvio(): boolean {
+    return this.passo?.Tipo === 'envio';
+  }
+
+  /** E7: deliberação do CGTIC (3.12), só leitura. */
+  get passoDeliberacao(): boolean {
+    return this.passo?.Tipo === 'deliberacao';
+  }
+
+  /** E7: publicação (3.13). */
+  get passoPublicacao(): boolean {
+    return this.passo?.Tipo === 'publicacao';
+  }
+
+  /** A seção da publicação no passo (o 400 do "Registrar a publicação" cita os campos dela). */
+  get secaoPublicacao(): PeSecaoTrilha | null {
+    return this.passo?.Secoes.find(s => s.Chave === SECAO_PUBLICACAO) ?? null;
+  }
+
+  /**
+   * E7: quem está logado grava neste passo agora: o `PodeEditar` do passo (pela
+   * situação do PDTIC e pela etapa do passo). Sem a situação ainda, nada de
+   * gravar; a resposta antiga (sem o campo) vale pelo `PodeEditar` do PDTIC.
+   */
+  get podeEditarPasso(): boolean {
+    const a = this.andamento;
+    if (!a) return false;
+    return typeof a.PodeEditar === 'boolean' ? a.PodeEditar : !!this.pdtic?.PodeEditar;
+  }
+
+  /** Há mudança não salva numa seção do passo (o envio e a publicação esperam). */
+  get mudancaPendente(): boolean {
+    return this.sujas.size > 0;
+  }
+
+  /** O porquê de aguardando, atrasado e feito fora do sistema, no alto do passo. */
+  get motivoStatus(): string {
+    return this.status?.motivo ? textoDoStatus(this.status) : '';
+  }
+
+  classeStatus(estado: string): string {
+    return classeEstadoPasso(estado);
+  }
+
+  iconeStatus(estado: string): string {
+    return iconeEstadoPasso(estado);
+  }
+
+  // ── Revisão (6.3) e encerramento (7.4) ────────────────────────────────────
+
+  /**
+   * "Abrir a revisão do PDTIC": na avaliação do comitê com a decisão "revisar", para
+   * a equipe do órgão, na versão vigente, sem outra versão já em revisão.
+   */
+  get mostraRevisao(): boolean {
+    const p = this.pdtic;
+    if (!p || !this.estadoService.ehEquipeDoOrgao || !pdticVigente(p.Situacao)) return false;
+    if (this.decisoes[SECAO_AVALIACAO_COMITE] !== 'revisar') return false;
+    const versoes = this.estadoService.atual?.versoes ?? [];
+    return !versoes.some(v => v.Id !== p.Id && pdticAntesDaPublicacao(v.Situacao));
+  }
+
+  /** "Encerrar o PDTIC": na aprovação da autoridade máxima (7.4) com a decisão "aprovado", para a equipe do órgão. */
+  get mostraEncerrar(): boolean {
+    const p = this.pdtic;
+    return !!p && this.estadoService.ehEquipeDoOrgao && pdticVigente(p.Situacao)
+      && this.decisoes[SECAO_APROVACAO_AUTORIDADE] === 'aprovado';
   }
 
   /** Passo do documento: a prévia editável, o PDF e as versões. */
@@ -196,6 +306,35 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     return this.estadoService.podeAbrirPdtic;
   }
 
+  /** E7: o órgão sem PDTIC pode registrar um aprovado fora do sistema (na visão geral). */
+  get podeRegistrarExterno(): boolean {
+    return this.estadoService.podeRegistrarExterno;
+  }
+
+  /** Como o passo fica feito, para quem preenche. */
+  get textoPreencher(): string {
+    if (this.passoEnvio) {
+      return 'Registre a aprovação do SGTIC abaixo e salve. Depois, envie ao CGTIC no bloco "Envio ao CGTIC", logo depois dela: o '
+        + 'passo fica feito com o envio. Os campos com asterisco são obrigatórios.';
+    }
+    if (this.passoPublicacao) {
+      return 'Preencha a publicação abaixo e salve. Depois, use "Registrar a publicação", no bloco logo depois dela: o passo fica '
+        + 'feito com o registro. Os campos com asterisco são obrigatórios.';
+    }
+    return 'Preencha as seções abaixo e salve cada uma. O passo fica feito quando as seções obrigatórias estão preenchidas; os campos '
+      + 'com asterisco são obrigatórios.';
+  }
+
+  /** O que registrar num passo de aprovação (a avaliação do comitê decide entre seguir e revisar). */
+  get textoAprovacao(): string {
+    if (this.passo?.Secoes.some(s => s.Chave === SECAO_AVALIACAO_COMITE)) {
+      return 'Registre a decisão do comitê como foi tomada: seguir com o PDTIC como está ou revisar, com a data, o ato e o processo SEI, '
+        + 'e anexe o documento, se houver. A decisão "revisar" deixa a equipe abrir a revisão do PDTIC, numa versão nova.';
+    }
+    return 'Registre a decisão como foi tomada: aprovado ou devolvido para ajustes, a data, quem decidiu, o ato e o processo SEI, e '
+      + 'anexe o documento, se houver. Se a decisão for "devolvido", ajuste o que foi pedido e registre a nova decisão quando vier a aprovação.';
+  }
+
   get podeComentar(): boolean {
     return this.estadoService.podeComentarPdtic;
   }
@@ -208,11 +347,12 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     return this.estadoService.emailUsuario;
   }
 
-  get podeEditar(): boolean {
-    return !!this.pdtic?.PodeEditar;
-  }
-
-  /** Por que a pessoa só lê este PDTIC (aparece em cada seção e no alto da tela). */
+  /**
+   * Por que a pessoa só lê este passo (aparece em cada seção e no alto da tela):
+   * quem vê de fora do órgão, o papel de consulta ou, para a equipe, a situação do
+   * PDTIC e a etapa do passo (E7: a elaboração muda em elaboração ou devolvido; a
+   * publicação, depois da aprovação; o acompanhamento, depois da publicação).
+   */
   get avisoLeitura(): string {
     const estado = this.estadoService.atual;
     const pdtic = this.pdtic;
@@ -224,10 +364,21 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     if (estado?.meuPapel?.Papel === PapeisPlanejamento.OrgaoConsulta) {
       return `O seu papel é de consulta: você lê o PDTIC e ${baixa}. Quem preenche é a equipe do órgão.`;
     }
-    if (pdtic && !pdticEmEdicao(pdtic.Situacao)) {
-      return `O PDTIC está "${rotuloSituacaoPdtic(pdtic.Situacao).toLowerCase()}": só muda em elaboração ou quando o CGTIC devolve.`;
+    if (this.status?.estado === 'externo') {
+      return 'Este passo foi feito fora do sistema: ele está no PDF do PDTIC registrado já aprovado.';
+    }
+    const motivo = pdtic ? motivoLeituraDoPasso(this.grupo, pdtic.Situacao) : null;
+    if (motivo) return motivo;
+    if (this.status?.estado === 'aguardando' && this.status.motivo) {
+      const texto = textoDoStatus(this.status);
+      return /[.!?]$/.test(texto) ? texto : `${texto}.`;
     }
     return `Você pode consultar e ${baixa.replace('baixa ', 'baixar ')}. Quem preenche é a equipe do órgão.`;
+  }
+
+  /** O quadro "por que só leio" no alto: passos que gravam algo (seções, documento, fluxos) e que a pessoa não edita agora. */
+  get mostraAvisoLeitura(): boolean {
+    return this.temTela && !this.passoDeliberacao && !this.podeEditarPasso && !!this.andamento;
   }
 
   /** Quem vê o órgão sem PDTIC e não pode abrir: o motivo. */
@@ -263,10 +414,42 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     else this.sujas.delete(secao.Chave);
   }
 
-  /** Uma seção mudou: a situação do passo (e a da trilha) vem de novo. */
+  /** Uma seção mudou: a situação do passo (e a da trilha) vem de novo; no envio, o que falta também. */
   aoMudarSecao(secao: PeSecaoTrilha): void {
     if (this.passoTemas && secao.Chave === 'temas_sem_acao') this.recargaTemas++;
+    if (this.passoEnvio) this.recargaEnvio++;
     this.aoMudarSituacao();
+  }
+
+  /**
+   * Os registros de uma seção chegaram (carga terminada ou mudança salva): guarda
+   * a decisão das aprovações (E7) e, depois de uma recarga pedida pela tela, leva o
+   * foco ao título da seção, que acabou de ser recriado.
+   */
+  aoCarregarRegistros(secao: PeSecaoTrilha, registros: PeRegistro[]): void {
+    const decisao = registros[0]?.Dados?.['decisao'];
+    this.decisoes = { ...this.decisoes, [secao.Chave]: typeof decisao === 'string' ? decisao : null };
+    if (this.focarSecaoAoCarregar === secao.Chave) {
+      this.focarSecaoAoCarregar = null;
+      this.focoPendente = `pe-secao-${secao.Chave}-titulo`;
+    }
+  }
+
+  /** O envio ou a publicação devolveu o PDTIC: ele entra no estado da trilha (a situação vem de novo). */
+  aoMudarPdtic(novo: PePdtic): void {
+    this.estadoService.aplicarPdtic(novo);
+  }
+
+  /** O PDTIC foi encerrado (7.4): entra no estado, e o foco vai para o título do passo (o bloco da ação some). */
+  aoEncerrar(novo: PePdtic): void {
+    this.estadoService.aplicarPdtic(novo);
+    this.focoPendente = 'pe-passo-titulo';
+  }
+
+  /** A revisão abriu a versão nova: ela passa a ser a da trilha, e a visão geral explica o que muda. */
+  aoAbrirRevisao(novo: PePdtic): void {
+    this.estadoService.aplicarPdtic(novo);
+    this.router.navigate([BASE_PE]);
   }
 
   /** "Não se aplica", comentário ou registro: busca a situação de novo. */
@@ -313,15 +496,19 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     this.recargas.set(secao.Chave, this.recargaDe(secao) + 1);
   }
 
-  /** O servidor criou as linhas: a seção vem de novo, a situação do passo também, e o foco vai para o título da seção. */
+  /**
+   * O servidor criou as linhas: a seção vem de novo, a situação do passo também,
+   * e o foco vai para o título da seção quando ela terminar de carregar (o título é
+   * recriado na recarga: o foco dado antes cairia no corpo da página). O aviso é
+   * só o do toast, que já fica numa região lida pelo leitor de tela.
+   */
   aoSugerirCronograma(secao: PeSecaoTrilha, quantas: number): void {
     const texto = quantas === 1
       ? 'O cronograma ganhou 1 atividade sugerida pelos fluxos. Complete o início e o término.'
       : `O cronograma ganhou ${quantas} atividades sugeridas pelos fluxos. Complete o início e o término de cada uma.`;
     this.notificacoes.success(texto);
-    this.acessibilidade.anunciar(texto);
+    this.focarSecaoAoCarregar = secao.Chave;
     this.recarregarSecao(secao);
-    this.focoPendente = `pe-secao-${secao.Chave}-titulo`;
     this.aoMudarSecao(secao);
   }
 
@@ -333,8 +520,8 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     this.estadoService.abrirPdtic().subscribe({
       next: pdtic => {
         this.abrindo = false;
+        // O toast fica numa região lida pelo leitor de tela: um aviso só
         this.notificacoes.success(`PDTIC ${pdtic.Versao} aberto. Já dá para preencher este passo.`);
-        this.acessibilidade.anunciar(`PDTIC ${pdtic.Versao} aberto.`);
       },
       error: erro => {
         this.abrindo = false;
@@ -384,8 +571,12 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
       this.documentoSujo = false;
       this.fluxosSujos = false;
       this.esperandoSituacao = false;
+      this.focarSecaoAoCarregar = null;
       this.status = null;
+      this.decisoes = {};
     }
+    const etapa = this.numerado ? estado.trilhaOrgao?.Etapas[this.numerado.etapa] : null;
+    this.grupo = grupoDoPasso(this.passo.Tipo, etapa?.Chave, this.numerado?.etapa ?? 0);
 
     this.pdtic = estado.pdtic;
     this.cargaPdtic = estado.cargaPdtic;
@@ -397,9 +588,21 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     this.passoFluxos = comFluxos ? { numero: comFluxos.numero, rota: comFluxos.rota } : null;
 
     // Entrada direta pelo endereço: a aba nasceu com o título genérico
+    this.corrigirTitulo();
+  }
+
+  /**
+   * O título da aba com o título do passo, quando ela ficou com o genérico ("Passo
+   * do PDTIC"): na entrada direta pelo endereço (a trilha chega depois) e depois de
+   * cada navegação que só muda a query (a estratégia de títulos reaplica o título
+   * resolvido na entrada). Não mexe nas guardas nem nos resolvedores da rota.
+   */
+  private corrigirTitulo(): void {
+    const passo = this.passo;
+    if (!passo || this.destruida) return;
     const atual = this.titulo.getTitle();
     if (atual.startsWith(TITULO_PASSO_GENERICO)) {
-      this.titulo.setTitle(this.passo.Titulo + atual.slice(TITULO_PASSO_GENERICO.length));
+      this.titulo.setTitle(passo.Titulo + atual.slice(TITULO_PASSO_GENERICO.length));
     }
   }
 
@@ -431,9 +634,8 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     if (this.esperandoSituacao && andamento) {
       this.esperandoSituacao = false;
       if (this.status?.estado === 'feito' && antes?.estado !== 'feito') {
-        const texto = `Passo ${passo.Numero} feito: as seções obrigatórias estão preenchidas.`;
-        this.notificacoes.success(texto);
-        this.acessibilidade.anunciar(texto);
+        // O toast fica numa região lida pelo leitor de tela: um aviso só
+        this.notificacoes.success(`Passo ${passo.Numero} feito: as seções obrigatórias estão preenchidas.`);
       }
     }
   }

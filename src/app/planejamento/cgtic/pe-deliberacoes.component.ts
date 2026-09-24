@@ -4,19 +4,22 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
-import { PeDecisaoForm, PeDeliberacao, PeSituacaoDeliberacao } from '../../../api/planejamento/interface';
-import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
+import { PeDecisaoForm, PeDeliberacao, PeObjetoDeliberacao, PeSituacaoDeliberacao } from '../../../api/planejamento/interface';
+import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
+import { baixarPdfDoPdtic } from '../shared/pe-pdf-pdtic';
 import {
   classeSituacaoDeliberacao, quandoEQuem, rotuloSituacaoDeliberacao, textoAto
 } from '../shared/pe-referenciais-rotulos';
 import { dataValida, hojeIso } from '../shared/registros/pe-valores';
 import { PeDeliberacoesService } from '../services/pe-petic.service';
+import { PePdticService } from '../services/pe-pdtic.service';
 import { PeRegistrosService } from '../services/pe-registros.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
+import { BASE_PE } from '../trilha/pe-trilhas';
 
 /** fila: o que chegou (passo 1.1 da Secretaria do CGTIC) · decisao: registrar (2.1) · historico: consultar (3.1). */
 export type ModoDeliberacoes = 'fila' | 'decisao' | 'historico';
@@ -43,7 +46,7 @@ const LIMITES = { atoNumero: 50, sei: 50, observacao: 2000 } as const;
 /** Página do histórico. */
 const TAMANHO_PAGINA = 20;
 
-/** A fila inteira numa página (volume pequeno: o PETIC e, na E7, os PDTICs). */
+/** A fila inteira numa página (volume pequeno: o PETIC-DF e os PDTICs dos órgãos enviados). */
 const TAMANHO_FILA = 100;
 
 const FILTROS: { valor: PeSituacaoDeliberacao | ''; rotulo: string }[] = [
@@ -53,16 +56,25 @@ const FILTROS: { valor: PeSituacaoDeliberacao | ''; rotulo: string }[] = [
   { valor: 'devolvido', rotulo: 'Devolvidas' }
 ];
 
+/** Filtro pelo que foi enviado (E7): os PDTICs dos órgãos e o PETIC-DF chegam na mesma fila. */
+const TIPOS: { valor: PeObjetoDeliberacao | ''; rotulo: string }[] = [
+  { valor: '', rotulo: 'Tudo' },
+  { valor: 'pdtic', rotulo: 'PDTICs dos órgãos' },
+  { valor: 'petic', rotulo: 'PETIC-DF' }
+];
+
 /**
  * Deliberações do CGTIC (Secretaria Executiva do comitê, art. 9º), uma tela por
  * passo da trilha da Secretaria (a rota diz o modo):
  *
- * - fila: o que foi enviado e espera a decisão (o PETIC-DF agora; os PDTICs dos
- *   órgãos na E7), da mais antiga para a mais nova, com o link para ler o que foi
- *   enviado e a planilha completa.
+ * - fila: o que foi enviado e espera a decisão (o PETIC-DF e, desde a E7, os
+ *   PDTICs dos órgãos), da mais antiga para a mais nova, com o filtro pelo tipo, o
+ *   link para ler o PETIC-DF e a planilha completa, ou, no PDTIC, o PDF enviado e a
+ *   trilha do órgão.
  * - decisao: registrar a decisão tomada em reunião: aprovado, com o ato e a data,
- *   ou devolvido, com o que precisa ser ajustado (`?deliberacao=` abre uma).
- * - historico: todas, com filtro por situação e "Carregar mais".
+ *   ou devolvido, com o que precisa ser ajustado (`?deliberacao=` abre uma). A
+ *   confirmação é numa janela da `DialogoDirective` (não `confirm`).
+ * - historico: todas, com filtro por situação e pelo tipo e "Carregar mais".
  *
  * Os papéis globais (administrador do módulo, SGDI e CGTIC) e o admin do SGDP
  * veem; decidir é da Secretaria do CGTIC e do admin do SGDP. Papel de órgão vê um
@@ -71,15 +83,15 @@ const FILTROS: { valor: PeSituacaoDeliberacao | ''; rotulo: string }[] = [
 @Component({
   selector: 'app-pe-deliberacoes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective],
+  imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective, DialogoDirective],
   templateUrl: './pe-deliberacoes.component.html'
 })
 export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly deliberacoesService = inject(PeDeliberacoesService);
   private readonly registrosService = inject(PeRegistrosService);
+  private readonly pdticService = inject(PePdticService);
   private readonly notificacoes = inject(NotificationService);
-  private readonly acessibilidade = inject(AcessibilidadeService);
   private readonly router = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -88,6 +100,7 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
   readonly tiposAto = TIPOS_ATO;
   readonly limites = LIMITES;
   readonly filtros = FILTROS;
+  readonly tipos = TIPOS;
   readonly hoje = hojeIso();
 
   modo: ModoDeliberacoes = 'fila';
@@ -104,9 +117,17 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
   private escolhidaId: number | null = null;
   form: FormDecisao = this.formVazio();
   decidindo = false;
+  /** A janela que confirma a decisão (no lugar do `confirm`). */
+  janelaDecisao = false;
+  /** Filtro da fila pelo tipo (feito aqui: a fila vem inteira). */
+  tipoFila: PeObjetoDeliberacao | '' = '';
+  /** A fila filtrada pelo tipo (refeita só quando a fila ou o filtro mudam). */
+  filaVisivel: PeDeliberacao[] = [];
 
   // Histórico
   filtro: PeSituacaoDeliberacao | '' = '';
+  /** Filtro do histórico pelo tipo (vai ao servidor, como a situação). */
+  tipoHistorico: PeObjetoDeliberacao | '' = '';
   itens: PeDeliberacao[] = [];
   pagina = 0;
   total = 0;
@@ -116,6 +137,8 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
   private cargaHistorico?: Subscription;
 
   baixando: number | null = null;
+  /** A deliberação cujo PDF enviado está baixando (E7). */
+  baixandoPdf: number | null = null;
   private focoPendente: string | null = null;
 
   ngOnInit(): void {
@@ -178,13 +201,18 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
     return textoAto(d) || '-';
   }
 
-  /** "PETIC-DF 1.0" (ou "PDTIC SES 1.0", na E7). */
+  /** "PETIC-DF 1.0" ou "PDTIC SES 1.0". */
   objeto(d: PeDeliberacao): string {
     return d.Titulo || (d.ObjetoTipo === 'petic' ? `PETIC-DF ${d.VersaoObjeto}` : `PDTIC ${d.OrgaoSigla ?? ''} ${d.VersaoObjeto}`.trim());
   }
 
   ehPetic(d: PeDeliberacao): boolean {
     return d.ObjetoTipo === 'petic';
+  }
+
+  /** PDTIC com o PDF enviado (E7). */
+  temPdf(d: PeDeliberacao): boolean {
+    return d.ObjetoTipo === 'pdtic' && !!d.Documento && d.Documento.Numero > 0;
   }
 
   porId(_: number, d: PeDeliberacao): number {
@@ -200,10 +228,56 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
       next: pagina => {
         this.carregandoFila = false;
         this.aguardando = pagina.Items.filter(d => d.Situacao === 'aguardando');
+        this.filtrarFila();
       },
       error: erro => {
         this.carregandoFila = false;
         this.erroFila = mensagemErroPe(erro, 'Não foi possível carregar o que chegou para o comitê.');
+      }
+    });
+  }
+
+  /** Quantos esperam a decisão, por tipo (os botões do filtro dizem). */
+  contagemTipo(tipo: PeObjetoDeliberacao | ''): number {
+    return tipo ? this.aguardando.filter(d => d.ObjetoTipo === tipo).length : this.aguardando.length;
+  }
+
+  filtrarTipoFila(tipo: PeObjetoDeliberacao | ''): void {
+    this.tipoFila = tipo;
+    this.filtrarFila();
+  }
+
+  private filtrarFila(): void {
+    const tipo = this.tipoFila;
+    this.filaVisivel = tipo ? this.aguardando.filter(d => d.ObjetoTipo === tipo) : [...this.aguardando];
+  }
+
+  /** O PDF enviado com o PDTIC (a versão do documento guardada no envio). */
+  baixarPdf(d: PeDeliberacao): void {
+    const doc = d.Documento;
+    if (!doc || this.baixandoPdf !== null) return;
+    this.baixandoPdf = d.Id;
+    const pdf = { pdticId: doc.PdticId || d.ObjetoId, numero: doc.Numero, sigla: d.OrgaoSigla ?? '', versao: d.VersaoObjeto };
+    baixarPdfDoPdtic(this.pdticService, pdf).then(mensagem => {
+      this.baixandoPdf = null;
+      if (mensagem) this.notificacoes.error(mensagem);
+    });
+  }
+
+  /**
+   * Abre a trilha do órgão do PDTIC enviado (só para ler), na visão geral. O PDTIC
+   * vem antes, para saber o órgão (a deliberação traz só a sigla).
+   */
+  abrirTrilha(d: PeDeliberacao): void {
+    if (d.ObjetoTipo !== 'pdtic') return;
+    this.pdticService.obter(d.ObjetoId).subscribe({
+      next: pdtic => {
+        this.estadoService.verOrgao(pdtic.OrgaoId);
+        this.router.navigate([BASE_PE]);
+      },
+      error: erro => {
+        const mensagem = mensagemErroPe(erro, 'Não foi possível abrir a trilha do órgão. Tente de novo.');
+        if (mensagem) this.notificacoes.error(mensagem);
       }
     });
   }
@@ -272,6 +346,7 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
     return ids.length ? ids.join(' ') : null;
   }
 
+  /** Confere o formulário e abre a janela que confirma a decisão (a decisão registrada não muda depois). */
   decidir(): void {
     const d = this.escolhida;
     if (!d || !this.podeDecidir || this.decidindo) return;
@@ -280,6 +355,21 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
       this.focoPendente = 'pe-dec-erros';
       return;
     }
+    this.janelaDecisao = true;
+  }
+
+  fecharJanelaDecisao(): void {
+    if (!this.decidindo) this.janelaDecisao = false;
+  }
+
+  /** "Aprovou" ou "devolveu", para o título da janela. */
+  get verboDecisao(): string {
+    return this.form.decisao === 'aprovado' ? 'aprovou' : 'devolveu para ajustes';
+  }
+
+  confirmarDecisao(): void {
+    const d = this.escolhida;
+    if (!d || !this.podeDecidir || this.decidindo || this.errosForm.length) return;
     const f = this.form;
     const texto = (v: string) => v.trim() || null;
     const decisao = f.decisao as Decisao;
@@ -292,23 +382,27 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
       Observacao: texto(f.observacao)
     };
     const resumo = decisao === 'aprovado' ? 'aprovado' : 'devolvido para ajustes';
-    if (!confirm(`Registrar que o CGTIC ${decisao === 'aprovado' ? 'aprovou' : 'devolveu'} ${this.objeto(d)}? A decisão registrada não muda depois.`)) return;
     this.decidindo = true;
     this.deliberacoesService.decidir(d.Id, corpo).subscribe({
       next: () => {
         this.decidindo = false;
+        this.janelaDecisao = false;
         const efeito = decisao === 'aprovado'
-          ? (this.ehPetic(d) ? ' A versão passou a ser a vigente.' : '')
-          : (this.ehPetic(d) ? ' A versão voltou a rascunho para o administrador do módulo ajustar.' : '');
+          ? (this.ehPetic(d) ? ' A versão passou a ser a vigente.' : ' O órgão já pode registrar a publicação.')
+          : (this.ehPetic(d)
+            ? ' A versão voltou a rascunho para o administrador do módulo ajustar.'
+            : ' O PDTIC voltou ao órgão para ajustar e enviar de novo.');
+        // O toast fica numa região lida pelo leitor de tela: um aviso só
         this.notificacoes.success(`Decisão registrada: ${this.objeto(d)} ${resumo}.${efeito}`);
-        this.acessibilidade.anunciar(`Decisão registrada: ${this.objeto(d)} ${resumo}.`);
         this.aguardando = this.aguardando.filter(x => x.Id !== d.Id);
+        this.filtrarFila();
         this.estadoService.atualizarStatus(true);
         this.voltarParaFila();
         this.focoPendente = 'pe-dec-fila';
       },
       error: erro => {
         this.decidindo = false;
+        this.janelaDecisao = false;
         const mensagem = mensagemErroPe(erro, 'Não foi possível registrar a decisão. Confira os dados e tente de novo.');
         if (!mensagem) return;
         this.notificacoes.error(mensagem);
@@ -326,6 +420,12 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
     this.carregarHistorico(1);
   }
 
+  filtrarTipoHistorico(valor: PeObjetoDeliberacao | ''): void {
+    if (valor === this.tipoHistorico && this.pagina > 0) return;
+    this.tipoHistorico = valor;
+    this.carregarHistorico(1);
+  }
+
   carregarMais(): void {
     if (!this.carregandoHistorico) this.carregarHistorico(this.pagina + 1);
   }
@@ -336,7 +436,7 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
     this.erroHistorico = null;
     if (pagina === 1) this.itens = [];
     this.cargaHistorico = this.deliberacoesService.listar({
-      Situacao: this.filtro || null, Page: pagina, PageSize: TAMANHO_PAGINA
+      Situacao: this.filtro || null, ObjetoTipo: this.tipoHistorico || null, Page: pagina, PageSize: TAMANHO_PAGINA
     }).subscribe({
       next: resposta => {
         this.carregandoHistorico = false;

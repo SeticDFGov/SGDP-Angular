@@ -6,15 +6,12 @@
       <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">
         Passo {{ p.Numero }}<ng-container *ngIf="siglaOrgao"> · PDTIC · {{ siglaOrgao }}</ng-container>
       </p>
-      <h2 class="text-xl font-bold text-gray-900 mt-0.5">{{ p.Titulo }}</h2>
+      <h2 id="pe-passo-titulo" tabindex="-1" class="text-xl font-bold text-gray-900 mt-0.5">{{ p.Titulo }}</h2>
 
       <div class="flex flex-wrap gap-2 mt-3">
         <span *ngIf="status as s" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
-              [ngClass]="s.estado === 'feito' ? 'bg-green-50 text-green-800 border-green-200'
-                : s.estado === 'atencao' ? 'bg-amber-50 text-amber-900 border-amber-200'
-                : s.estado === 'pendente' ? 'bg-blue-50 text-blue-800 border-blue-200'
-                : 'bg-gray-50 text-gray-600 border-gray-200'">
-          <span class="material-icons text-sm" aria-hidden="true">{{ s.estado === 'feito' ? 'check_circle' : s.estado === 'atencao' ? 'notifications_active' : s.estado === 'nao_se_aplica' ? 'do_not_disturb_on' : 'schedule' }}</span>
+              [ngClass]="classeStatus(s.estado)">
+          <span class="material-icons text-sm" aria-hidden="true">{{ iconeStatus(s.estado) }}</span>
           <span><span class="sr-only">Situação do passo: </span>{{ s.texto }}</span>
         </span>
         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
@@ -29,14 +26,24 @@
         </span>
       </div>
 
+      <!-- O porquê de aguardando, atrasado e feito fora do sistema: em texto, não só na cor -->
+      <p *ngIf="motivoStatus" class="mt-2 text-sm text-gray-700 leading-relaxed">{{ motivoStatus }}</p>
+
       <p *ngIf="p.Travado" class="mt-4 text-sm text-gray-600 leading-relaxed">
         Este passo é um dos nove conteúdos mínimos do PDTIC ({{ citacaoTravado }}): aparece em todos os níveis e não pode ser
         marcado como "não se aplica".
       </p>
-      <p *ngIf="temSecoes && pdtic && podeEditar" class="mt-3 text-sm text-gray-600 leading-relaxed">
-        Preencha as seções abaixo e salve cada uma. O passo fica feito quando as seções obrigatórias estão preenchidas; os campos
-        com asterisco são obrigatórios.
-      </p>
+      <p *ngIf="temSecoes && pdtic && podeEditarPasso" class="mt-3 text-sm text-gray-600 leading-relaxed">{{ textoPreencher }}</p>
+
+      <!-- Passo de aprovação (E7): o que registrar e a base legal (ou a atividade do guia) -->
+      <div *ngIf="passoAprovacao" class="mt-3 text-sm text-gray-700 leading-relaxed">
+        <p *ngIf="podeEditarPasso">{{ textoAprovacao }}</p>
+        <p *ngIf="p.BaseLegal || guia" class="mt-1 text-xs text-gray-600">
+          <ng-container *ngIf="p.BaseLegal">Base legal: {{ p.BaseLegal }}</ng-container>
+          <ng-container *ngIf="p.BaseLegal && guia"> · </ng-container>
+          <ng-container *ngIf="guia">{{ guia }}</ng-container>
+        </p>
+      </div>
 
       <!-- Outros tipos de passo: em construção -->
       <ng-container *ngIf="!temTela">
@@ -75,6 +82,8 @@
                     class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
               <span class="material-icons text-base" aria-hidden="true">play_arrow</span> {{ abrindo ? 'Começando...' : 'Começar o PDTIC' }}
             </button>
+            <p *ngIf="podeRegistrarExterno" class="mt-3">Se o órgão já tem um PDTIC aprovado fora do sistema, registre-o na
+              <a [routerLink]="base" class="font-semibold text-purple-700 underline">visão geral</a>.</p>
           </div>
         </div>
       </div>
@@ -123,8 +132,8 @@
     <!-- Com o PDTIC aberto -->
     <ng-container *ngIf="pdtic as pd">
 
-      <!-- Só leitura: por quê -->
-      <div *ngIf="temTela && !pd.PodeEditar" class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white shadow px-4 py-3 text-sm text-gray-700">
+      <!-- Só leitura: por quê (pela situação do PDTIC e pela etapa do passo) -->
+      <div *ngIf="mostraAvisoLeitura" class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white shadow px-4 py-3 text-sm text-gray-700">
         <span class="material-icons text-gray-500" aria-hidden="true">visibility</span>
         <p class="leading-relaxed">{{ avisoLeitura }}</p>
       </div>
@@ -142,7 +151,7 @@
 
       <!-- Não se aplica (passo opcional no nível do órgão que aceita) -->
       <app-pe-nao-se-aplica *ngIf="aceitaNsa" [pdticId]="pd.Id" [passoId]="p.Id" [numero]="p.Numero" [marcado]="naoSeAplica"
-                            [podeEditar]="podeEditar" (mudou)="aoMudarSituacao()"></app-pe-nao-se-aplica>
+                            [podeEditar]="podeEditarPasso" (mudou)="aoMudarSituacao()"></app-pe-nao-se-aplica>
 
       <ng-container *ngIf="temSecoes && fonte as f">
         <!-- Sistemas de IA: o inventário do PGIA, só para ler -->
@@ -161,14 +170,33 @@
           <app-pe-secao-registros [fonte]="f" [secaoChave]="s.Chave" [situacao]="s.Situacao"
                                   [nomePlanilha]="nomePlanilha(s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura"
                                   [acaoVazia]="ehCronograma(s) ? sugerirCronograma : null" [recarga]="recargaDe(s)"
-                                  (mudou)="aoMudarSecao(s)" (alterado)="aoAlterar(s, $event)"></app-pe-secao-registros>
+                                  (mudou)="aoMudarSecao(s)" (alterado)="aoAlterar(s, $event)"
+                                  (registros)="aoCarregarRegistros(s, $event)"></app-pe-secao-registros>
           <!-- Cronograma do plano de trabalho vazio: a sugestão pelos fluxos (E6) -->
           <ng-template #sugerirCronograma>
             <app-pe-sugerir-cronograma [pdticId]="pd.Id" [passoFluxos]="passoFluxos" (sugeriu)="aoSugerirCronograma(s, $event)"
                                        (recarregar)="recarregarSecao(s)"></app-pe-sugerir-cronograma>
           </ng-template>
         </ng-container>
+
+        <!-- E7: envio ao CGTIC, depois da aprovação do SGTIC (a seção acima) -->
+        <app-pe-passo-envio *ngIf="passoEnvio" [pdtic]="pd" [podeEditar]="podeEditarPasso" [mudancaPendente]="mudancaPendente"
+                            [recarga]="recargaEnvio" (enviou)="aoMudarPdtic($event)"></app-pe-passo-envio>
+
+        <!-- E7: registro da publicação, depois da seção da publicação -->
+        <app-pe-passo-publicacao *ngIf="passoPublicacao" [pdtic]="pd" [podeEditar]="podeEditarPasso"
+                                 [mudancaPendente]="mudancaPendente" [secao]="secaoPublicacao"
+                                 (publicou)="aoMudarPdtic($event)"></app-pe-passo-publicacao>
+
+        <!-- E7: o comitê decidiu revisar (6.3) ou a autoridade máxima aprovou os resultados (7.4) -->
+        <app-pe-acao-pdtic *ngIf="passoAprovacao && mostraRevisao" [pdtic]="pd" modo="revisao-avaliacao"
+                           (concluiu)="aoAbrirRevisao($event)"></app-pe-acao-pdtic>
+        <app-pe-acao-pdtic *ngIf="passoAprovacao && mostraEncerrar" [pdtic]="pd" modo="encerrar-equipe"
+                           (concluiu)="aoEncerrar($event)"></app-pe-acao-pdtic>
       </ng-container>
+
+      <!-- E7: deliberação do CGTIC (só leitura) -->
+      <app-pe-passo-deliberacao *ngIf="passoDeliberacao" [pdtic]="pd"></app-pe-passo-deliberacao>
 
       <!-- Fluxos do órgão (E6): o editor guiado, num pacote que só carrega nos passos com fluxo -->
       <ng-container *ngIf="temFluxos && fonteFluxos as ff">

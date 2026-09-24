@@ -13,13 +13,17 @@ import { ChaveStatusPe, PerfilTrilhaPe } from './pe-trilhas';
 /**
  * feito: nada esperando · atencao: fila com itens esperando, algo devolvido ou
  * comentário aberto · pendente: há o que fazer · atrasado: prazo vencido ·
- * nao_se_aplica: passo do PDTIC que o órgão marcou como não se aplica.
+ * nao_se_aplica: passo do PDTIC que o órgão marcou como não se aplica · E7:
+ * aguardando (depende de outra coisa antes) e externo (feito fora do sistema).
  */
-export type EstadoPassoPe = 'feito' | 'atencao' | 'pendente' | 'atrasado' | 'nao_se_aplica';
+export type EstadoPassoPe = 'feito' | 'atencao' | 'pendente' | 'atrasado' | 'nao_se_aplica' | 'aguardando' | 'externo';
 
 export interface StatusPassoPe {
   estado: EstadoPassoPe;
+  /** Texto curto do selo ("Pendente · 2 avisos", "Aguardando"). */
   texto: string;
+  /** O porquê, em texto, ao lado do selo (E7: aguardando, atrasado, externo). */
+  motivo?: string | null;
 }
 
 export interface SituacaoTrilhaPe {
