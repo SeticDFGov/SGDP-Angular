@@ -4,8 +4,8 @@ import { Observable, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { SERVICE_API_URL } from '../../../api/consts';
 import {
-  PeFluxoDefinicao, PeFluxoDesenhoForm, PeFluxoDoOrgao, PeFluxoForm, PeFluxoModelo, PeFluxoResumo, PePdtic, PeRegistro,
-  PeRegistrosDaSecao
+  PeFluxoDefinicao, PeFluxoDesenhoForm, PeFluxoDoOrgao, PeFluxoForm, PeFluxoGeometria, PeFluxoGeometriaForm, PeFluxoModelo,
+  PeFluxoResumo, PePdtic, PeRegistro, PeRegistrosDaSecao
 } from '../../../api/planejamento/interface';
 import {
   DicionarioFluxo, SECAO_DICIONARIO_NOMES, dicionarioDoRegistro, dicionarioPadrao, normalizarDefinicao
@@ -51,6 +51,14 @@ export interface PeFonteFluxos {
   restaurar(chave: string): Observable<PeFluxoAberto> | null;
   /** O desenho (SVG) de uma definição ainda não salva; valida antes (400 com os `Erros`). */
   desenhar(definicao: PeFluxoDefinicao): Observable<string>;
+  /**
+   * A geometria do desenho automático de uma definição ainda não salva (E9, o
+   * editor visual), com o nome do fluxo (a faixa do fluxo à esquerda, como no
+   * PDF): não recusa definição incompleta, os problemas vêm em `Erros`.
+   */
+  geometria(definicao: PeFluxoDefinicao, nome: string | null): Observable<PeFluxoGeometria>;
+  /** A geometria do que está salvo. */
+  geometriaSalva(chave: string): Observable<PeFluxoGeometria>;
   /** O desenho do que está salvo. */
   desenhoSalvo(chave: string): Observable<string>;
   /** O desenho do modelo do guia, para comparar. */
@@ -156,6 +164,28 @@ export class PeFluxosService {
   }
 
   /**
+   * A geometria do desenho automático de uma definição ainda não salva (E9, o
+   * editor visual, a cada mudança): com `PdticId`, os nomes das raias saem do
+   * dicionário do órgão; com o `Nome` e duas raias ou mais, vem a faixa do fluxo.
+   * Não recusa definição incompleta (os problemas vêm em `Erros`); o 400 é só
+   * para definição ilegível.
+   */
+  geometria(definicao: PeFluxoDefinicao, pdticId: number | null, nome: string | null = null): Observable<PeFluxoGeometria> {
+    const corpo: PeFluxoGeometriaForm = { Definicao: definicao, PdticId: pdticId, Nome: nome };
+    return this.http.post<PeFluxoGeometria>(`${this.apiUrl}/fluxos/geometria`, corpo);
+  }
+
+  /** A geometria do fluxo salvo do órgão (com os nomes do dicionário dele). */
+  geometriaDoPdtic(pdticId: number, chave: string): Observable<PeFluxoGeometria> {
+    return this.http.get<PeFluxoGeometria>(`${this.basePdtic(pdticId, chave)}/geometria`);
+  }
+
+  /** A geometria do fluxo-modelo salvo (com os nomes padrão). */
+  geometriaDoModelo(chave: string): Observable<PeFluxoGeometria> {
+    return this.http.get<PeFluxoGeometria>(`${this.baseModelo(chave)}/geometria`);
+  }
+
+  /**
    * O dicionário de nomes do órgão (a seção `nomes` do PDTIC), para mostrar os
    * nomes das raias como o desenho mostra. Sem ele, os nomes padrão do guia.
    */
@@ -197,6 +227,8 @@ export class PeFluxosService {
       salvar: (chave, form) => this.salvar(id, chave, form).pipe(map(doOrgaoParaAberto)),
       restaurar: chave => this.restaurar(id, chave).pipe(map(doOrgaoParaAberto)),
       desenhar: definicao => this.desenhar(definicao, id),
+      geometria: (definicao, nome) => this.geometria(definicao, id, nome),
+      geometriaSalva: chave => this.geometriaDoPdtic(id, chave),
       desenhoSalvo: chave => this.svg(id, chave),
       desenhoDoModelo: chave => this.svgModelo(chave),
       modeloDoGuia: chave => this.modelos().pipe(map(lista => lista.find(m => m.Chave === chave) ?? null)),
@@ -230,6 +262,8 @@ export class PeFluxosService {
       ),
       restaurar: () => null,
       desenhar: definicao => this.desenhar(definicao, null),
+      geometria: (definicao, nome) => this.geometria(definicao, null, nome),
+      geometriaSalva: chave => this.geometriaDoModelo(chave),
       desenhoSalvo: chave => this.svgModelo(chave),
       desenhoDoModelo: chave => this.svgModelo(chave),
       modeloDoGuia: chave => this.modelos().pipe(map(lista => lista.find(m => m.Chave === chave) ?? null)),

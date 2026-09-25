@@ -1419,6 +1419,147 @@ export interface PeErroFluxo {
   Erros?: string[] | null;
 }
 
+// ── E9 · Geometria do desenho automático (editor visual) ────────────────────
+//
+// O servidor devolve as medidas do mesmo layout que desenha o SVG da E6 (px do
+// sistema do SVG, origem no canto de cima à esquerda). O editor visual desenha
+// com elas um SVG interativo, igual ao da prévia e do PDF. A geometria não
+// recusa definição incompleta: os problemas vêm em `Erros` (os textos da
+// validação da E6), sem 400; o 400 fica para a definição ilegível.
+
+/**
+ * POST api/planejamento/fluxos/geometria: a geometria de uma definição ainda não
+ * salva. Com o `Nome` do fluxo e duas raias ou mais, o desenho tem a faixa do
+ * fluxo à esquerda (`FaixaTitulo`), como no PDF.
+ */
+export interface PeFluxoGeometriaForm {
+  Definicao: PeFluxoDefinicao;
+  PdticId: number | null;
+  Nome?: string | null;
+}
+
+export interface PeFluxoGeometriaPonto {
+  X: number;
+  Y: number;
+}
+
+/** Um retângulo (canto de cima à esquerda, largura e altura). A mais que o contrato. */
+export interface PeFluxoGeometriaArea {
+  X: number;
+  Y: number;
+  Largura: number;
+  Altura: number;
+}
+
+/** Uma raia: a faixa horizontal, com o cabeçalho (o nome na vertical) à esquerda. */
+export interface PeFluxoGeometriaRaia {
+  Id: string;
+  /** O nome como aparece no desenho (marcador do dicionário trocado pelo nome). */
+  Nome: string;
+  /** O nome como está na definição ("{nomes.comite}"). */
+  NomeOriginal: string;
+  Y: number;
+  Altura: number;
+  LarguraCabecalho: number;
+  /** A mais que o contrato (opcional): onde a raia começa e a largura dela. */
+  X?: number;
+  Largura?: number;
+  /** A mais que o contrato (opcional): o nome quebrado nas linhas do cabeçalho. */
+  Linhas?: string[];
+}
+
+/** Um elemento: a caixa que a forma ocupa. */
+export interface PeFluxoGeometriaElemento {
+  Id: string;
+  Tipo: PeTipoElementoFluxo;
+  RaiaId: string;
+  /** A coluna, da esquerda para a direita, a partir de 0. */
+  Camada: number;
+  X: number;
+  Y: number;
+  Largura: number;
+  Altura: number;
+  Numero: string | null;
+  /** O nome como aparece no desenho (marcadores trocados). */
+  Nome: string;
+  /** O nome quebrado em linhas como no SVG (sem o número). */
+  Linhas: string[];
+  /** Sem nenhuma ligação: desenhado no fim da raia dele. */
+  Solto: boolean;
+  /** A mais que o contrato (opcional): "dentro", "acima", "direita" ou "abaixo". */
+  PosicaoNome?: string | null;
+}
+
+/** Uma ligação desenhada: a linha ortogonal, com a seta no último ponto. */
+export interface PeFluxoGeometriaLigacao {
+  Id: string;
+  De: string;
+  Para: string;
+  Rotulo: string | null;
+  /** Volta para um passo anterior. */
+  Retorno: boolean;
+  Pontos: PeFluxoGeometriaPonto[];
+  /** O começo do rótulo (à esquerda) e a linha de base, como no SVG; nulos sem rótulo. */
+  RotuloX: number | null;
+  RotuloY: number | null;
+  /** A mais que o contrato (opcional): o fundo branco atrás do rótulo. */
+  RotuloArea?: PeFluxoGeometriaArea | null;
+}
+
+/** Um documento que a tarefa gera: o ícone embaixo dela. */
+export interface PeFluxoGeometriaArtefato {
+  ElementoId: string;
+  Indice: number;
+  Nome: string;
+  X: number;
+  Y: number;
+  Largura: number;
+  Altura: number;
+  /** A mais que o contrato (opcional): o nome em linhas e a linha pontilhada até a tarefa. */
+  Linhas?: string[];
+  Conector?: PeFluxoGeometriaPonto[];
+}
+
+/**
+ * A mais que o contrato (opcional): cada linha de texto que o SVG escreve, com a
+ * posição exata (X é o começo da linha e Y a linha de base; na vertical, X é a
+ * linha de base e Y o pé do texto). `Dono`: o id do elemento, "raia:ID",
+ * "pool", "artefato:ID:n" ou "ligacao:ID".
+ */
+export interface PeFluxoGeometriaTexto {
+  Texto: string;
+  X: number;
+  Y: number;
+  Tamanho: number;
+  Negrito: boolean;
+  Vertical: boolean;
+  Cor: string;
+  Largura?: number;
+  Dono: string;
+}
+
+/**
+ * Resposta de POST api/planejamento/fluxos/geometria e dos GET
+ * `pdtic/{id}/fluxos/{chave}/geometria` e `modelo/fluxos/{chave}/geometria`.
+ */
+export interface PeFluxoGeometria {
+  Largura: number;
+  Altura: number;
+  Raias: PeFluxoGeometriaRaia[];
+  Elementos: PeFluxoGeometriaElemento[];
+  Ligacoes: PeFluxoGeometriaLigacao[];
+  Artefatos: PeFluxoGeometriaArtefato[];
+  /** Os problemas da definição, em linguagem simples (vazio quando está tudo certo). */
+  Erros: string[];
+  /** Id do elemento: número calculado ("1.3"). */
+  Numeros: Record<string, string>;
+  /** A mais que o contrato (opcionais). */
+  Titulo?: string;
+  FaixaTitulo?: (PeFluxoGeometriaArea & { Linhas?: string[] }) | null;
+  Cor?: { Fundo: string; Borda: string } | null;
+  Textos?: PeFluxoGeometriaTexto[];
+}
+
 // ── E7 · Acompanhamento do PDTIC (rodada B) ─────────────────────────────────
 //
 // Depois da publicação, o PDTIC é acompanhado em ciclos: os de monitoramento

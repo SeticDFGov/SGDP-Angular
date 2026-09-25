@@ -9,8 +9,8 @@ import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 /**
  * Fluxos-modelo (passo 1.5 do administrador do módulo; só ele e o admin do
  * SGDP, pelo `meu-papel`): os fluxos do Guia de PDTIC que os órgãos copiam e
- * adaptam, no mesmo editor guiado do órgão (raias, passos, decisões, paralelos,
- * documentos e a prévia do desenho). Os demais papéis veem um aviso e a tela
+ * adaptam, no mesmo editor do órgão (o visual, de arrastar e soltar, e o em
+ * lista: raias, passos, decisões, paralelos, documentos e o desenho). Os demais papéis veem um aviso e a tela
  * não consulta nada. Sair com mudança não salva pergunta antes (guarda de rota).
  */
 @Component({

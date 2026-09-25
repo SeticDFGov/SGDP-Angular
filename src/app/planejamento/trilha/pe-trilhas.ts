@@ -260,7 +260,7 @@ const TRILHA_ADMIN: TrilhaPe = {
           titulo: 'Ajuste os fluxos-modelo',
           rota: tela('modelo/fluxos'),
           oQueFazer: 'Revise os fluxos do Guia de PDTIC que os órgãos copiam e adaptam: elaboração, diagnóstico, planejamento e acompanhamento. '
-            + 'Mude as raias, os passos, as decisões e os documentos em listas: o desenho sai sozinho.',
+            + 'Arraste os blocos no desenho (ou use o modo em lista) para mudar as raias, os passos, as decisões e os documentos: o desenho se arruma sozinho.',
           baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
         }
       ]

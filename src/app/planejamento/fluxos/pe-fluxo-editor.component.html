@@ -82,6 +82,24 @@
       </div>
     </div>
 
+    <!-- Modo de edição (E9): o visual é o padrão; a escolha fica no navegador e vale para os próximos fluxos -->
+    <div *ngIf="podeEditar" class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+      <span id="pe-fx-modo-titulo" class="text-sm font-semibold text-gray-800">Modo de edição</span>
+      <div role="group" aria-labelledby="pe-fx-modo-titulo" class="inline-flex flex-wrap gap-1">
+        <button type="button" id="pe-fx-modo-visual" (click)="escolherModo('visual')" [attr.aria-pressed]="modo === 'visual'"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border text-sm font-semibold"
+                [ngClass]="modo === 'visual' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'">
+          <span class="material-icons text-base" aria-hidden="true">touch_app</span> Visual (arrastar e soltar)
+        </button>
+        <button type="button" id="pe-fx-modo-lista" (click)="escolherModo('lista')" [attr.aria-pressed]="modo === 'lista'"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border text-sm font-semibold"
+                [ngClass]="modo === 'lista' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'">
+          <span class="material-icons text-base" aria-hidden="true">format_list_bulleted</span> Em lista
+        </button>
+      </div>
+      <p class="md:hidden w-full text-xs text-gray-500 italic">Na tela pequena, o modo em lista pode ser mais fácil.</p>
+    </div>
+
     <!-- O modelo mudou depois que o órgão adaptou -->
     <div *ngIf="doOrgao && a.ModeloMudou" class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
       <p class="font-semibold inline-flex items-center gap-1">
@@ -117,29 +135,27 @@
       </ul>
     </div>
 
+    <!-- ── Modo visual (E9): o desenho interativo e o painel do item selecionado ── -->
+    <ng-container *ngIf="emModoVisual && def as d; else modoLista">
+      <ng-container *ngTemplateOutlet="dadosDoFluxo; context: { $implicit: d }"></ng-container>
+      <div class="pe-fx-visual">
+        <div class="pe-fx-visual-desenho">
+          <app-pe-fluxo-visual [def]="d" [versao]="versao" [chave]="chaveAtual" [nomeFluxo]="a.Nome" [selecao]="selecao"
+                               (selecionar)="aoSelecionarNoDesenho($event)"></app-pe-fluxo-visual>
+        </div>
+        <aside class="pe-fx-painel rounded-lg border border-gray-200 bg-white p-4 space-y-4" aria-labelledby="pe-fx-painel-titulo">
+          <ng-container *ngTemplateOutlet="painel"></ng-container>
+        </aside>
+      </div>
+      <app-pe-fluxo-descricao [descricaoPronta]="descricao" idBase="pe-fx-descricao" [nomeFluxo]="a.Nome"></app-pe-fluxo-descricao>
+    </ng-container>
+
+    <ng-template #modoLista>
     <div class="flex flex-col lg:flex-row items-start gap-5">
 
       <!-- ── Edição: raias e passos ─────────────────────────────────────── -->
       <div *ngIf="podeEditar && def as d" class="flex-1 min-w-0 w-full space-y-4">
-        <div class="flex flex-col md:flex-row gap-3">
-          <div class="flex-1 min-w-0">
-            <label for="pe-fx-nome" class="block text-sm font-semibold text-gray-800 mb-1">
-              Nome do fluxo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
-            </label>
-            <input id="pe-fx-nome" type="text" [ngModel]="nome" (ngModelChange)="mudarNomeFluxo($event)" [maxlength]="maxNomeFluxo"
-                   [attr.aria-invalid]="erroNome ? true : null" [attr.aria-describedby]="erroNome ? 'pe-fx-nome-erro' : null"
-                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   [ngClass]="erroNome ? 'border-red-500' : 'border-gray-300'" />
-            <p *ngIf="erroNome" id="pe-fx-nome-erro" class="text-xs text-red-700 mt-1">{{ erroNome }}</p>
-          </div>
-          <div class="w-full md:w-72">
-            <label for="pe-fx-prefixo" class="block text-sm font-semibold text-gray-800 mb-1">Prefixo da numeração</label>
-            <input id="pe-fx-prefixo" type="text" [ngModel]="d.PrefixoNumeracao ?? ''" (ngModelChange)="mudarPrefixo($event)" [maxlength]="maxPrefixo"
-                   aria-describedby="pe-fx-prefixo-ajuda"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <p id="pe-fx-prefixo-ajuda" class="text-xs text-gray-500 italic mt-1">Com "1", as tarefas saem 1.1, 1.2, 1.3. Vazio: 1, 2, 3.</p>
-          </div>
-        </div>
+        <ng-container *ngTemplateOutlet="dadosDoFluxo; context: { $implicit: d }"></ng-container>
 
         <div class="flex flex-wrap items-start gap-2">
           <div class="flex-1 min-w-0">
@@ -194,38 +210,7 @@
             </div>
 
             <!-- Renomear a raia: um nome do dicionário ou outro nome -->
-            <form *ngIf="renomeando === r.Id" (ngSubmit)="confirmarRenomear(r)" (keydown.escape)="cancelarRenomear(r)"
-                  class="mt-3 space-y-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
-              <div>
-                <label [for]="idRaia(r, 'marcador')" class="block text-sm font-semibold text-gray-800 mb-1">Nome da raia</label>
-                <select [id]="idRaia(r, 'marcador')" [(ngModel)]="formRaia.marcador" [name]="idRaia(r, 'marcador')"
-                        [attr.aria-describedby]="idRaia(r, 'marcador-ajuda')"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Outro nome, escrito no campo abaixo</option>
-                  <option *ngFor="let o of dicionario.opcoes" [value]="o.marcador">Do dicionário: {{ o.descricao }} ({{ valorMarcador(o.marcador) }})</option>
-                </select>
-                <p [id]="idRaia(r, 'marcador-ajuda')" class="text-xs text-gray-500 italic mt-1">{{ ajudaDicionario }}</p>
-              </div>
-              <div *ngIf="!formRaia.marcador">
-                <label [for]="idRaia(r, 'texto')" class="block text-sm font-semibold text-gray-800 mb-1">
-                  Outro nome<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
-                </label>
-                <input [id]="idRaia(r, 'texto')" type="text" [(ngModel)]="formRaia.texto" [name]="idRaia(r, 'texto')" [maxlength]="maxNomeRaia"
-                       [attr.aria-invalid]="erroRaia ? true : null" [attr.aria-describedby]="erroRaia ? idRaia(r, 'erro') : null"
-                       class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       [ngClass]="erroRaia ? 'border-red-500' : 'border-gray-300'" />
-              </div>
-              <p *ngIf="erroRaia" [id]="idRaia(r, 'erro')" role="alert" class="text-xs text-red-700">{{ erroRaia }}</p>
-              <div class="flex flex-wrap items-center gap-2">
-                <button type="submit"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
-                  <span class="material-icons text-base" aria-hidden="true">check</span> Pronto
-                </button>
-                <button type="button" (click)="cancelarRenomear(r)"
-                        class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">Cancelar</button>
-                <span class="text-xs text-gray-500 italic">Esc cancela.</span>
-              </div>
-            </form>
+            <ng-container *ngTemplateOutlet="formularioRaia; context: { $implicit: r }"></ng-container>
 
             <!-- Os passos da raia, na ordem do fluxo -->
             <p *ngIf="quantosNaRaia(r) === 0" class="mt-3 text-sm text-gray-600">Esta raia ainda não tem passos.</p>
@@ -274,6 +259,7 @@
         <app-pe-fluxo-descricao [descricaoPronta]="descricao" idBase="pe-fx-descricao" [nomeFluxo]="a.Nome"></app-pe-fluxo-descricao>
       </div>
     </div>
+    </ng-template>
 
     <!-- Comparação com o modelo do guia -->
     <section *ngIf="comparando" id="pe-fx-comparacao" aria-labelledby="pe-fx-comparacao-titulo"
@@ -302,7 +288,10 @@
        class="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white px-5 py-3 shadow-lg">
     <span class="material-icons" [ngClass]="sujo ? 'text-amber-600' : 'text-green-600'" aria-hidden="true">{{ sujo ? 'edit_note' : 'cloud_done' }}</span>
     <p class="flex-1 text-sm text-gray-800">
-      {{ sujo ? 'Há mudanças neste fluxo que ainda não foram salvas.' : 'O fluxo está salvo.' }}
+      <!-- No celular, a frase curta (o pé da tela fica menor e o desenho aparece mais) -->
+      <ng-container *ngIf="sujo"><span class="hidden md:inline">Há mudanças neste fluxo que ainda não foram salvas.</span><span
+        class="md:hidden">Mudanças não salvas.</span></ng-container>
+      <ng-container *ngIf="!sujo">O fluxo está salvo.</ng-container>
       <ng-container *ngIf="sujo && temProblemas"> Corrija os problemas para salvar.</ng-container>
     </p>
     <button type="button" (click)="desfazer()" [disabled]="!podeDesfazer" [attr.aria-label]="textoDesfazer" [title]="textoDesfazer"
@@ -311,11 +300,14 @@
     </button>
     <button type="button" (click)="descartar()" [disabled]="!sujo || salvando"
             class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-      <span class="material-icons text-base" aria-hidden="true">restart_alt</span> Descartar as mudanças
+      <span class="material-icons text-base" aria-hidden="true">restart_alt</span>
+      <!-- No celular, o rótulo curto (o pé da tela fica menor) -->
+      <span>Descartar<span class="hidden md:inline"> as mudanças</span></span>
     </button>
     <button type="button" (click)="salvar()" [disabled]="!sujo || salvando"
             class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
-      <span class="material-icons text-base" aria-hidden="true">save</span> {{ salvando ? 'Salvando...' : 'Salvar o fluxo' }}
+      <span class="material-icons text-base" aria-hidden="true">save</span>
+      <span>{{ salvando ? 'Salvando...' : 'Salvar' }}<span *ngIf="!salvando" class="hidden md:inline"> o fluxo</span></span>
     </button>
   </div>
 </div>
@@ -347,6 +339,12 @@
   </div>
 
   <div *ngIf="estaAberto(e)" [id]="idEl(e, 'corpo')" class="border-t border-gray-100 px-3 py-3 space-y-4">
+    <ng-container *ngTemplateOutlet="passoCampos; context: { $implicit: e }"></ng-container>
+  </div>
+</ng-template>
+
+<!-- ── Os campos de um passo: no modo em lista, dentro do passo aberto; no visual, no painel do bloco ── -->
+<ng-template #passoCampos let-e>
     <div class="grid gap-3 md:grid-cols-2">
       <div>
         <label [for]="idEl(e, 'tipo')" class="block text-xs font-semibold text-gray-700 mb-1">Tipo</label>
@@ -357,7 +355,7 @@
         <p [id]="idEl(e, 'tipo-ajuda')" class="text-xs text-gray-500 italic mt-1">{{ explicacaoTipo(e.Tipo) }}</p>
       </div>
       <div>
-        <label [for]="idEl(e, 'raia')" class="block text-xs font-semibold text-gray-700 mb-1">Raia (quem faz)</label>
+        <label [for]="idEl(e, 'raia')" class="block text-xs font-semibold text-gray-700 mb-1">{{ emModoVisual ? 'Mover para a raia' : 'Raia (quem faz)' }}</label>
         <select [id]="idEl(e, 'raia')" [ngModel]="e.RaiaId" (ngModelChange)="mudarRaia(e, $event)"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option *ngIf="!existeRaia(e.RaiaId)" [value]="e.RaiaId">Escolha a raia</option>
@@ -514,5 +512,245 @@
       <p class="text-xs text-gray-500 italic mt-1">No desenho, cada documento aparece como uma folha ligada {{ e.Tipo === 'subprocesso' ? 'ao subprocesso' : 'à tarefa' }}
         por uma linha pontilhada.</p>
     </div>
+</ng-template>
+
+<!-- ── Nome do fluxo e prefixo da numeração (os dois modos) ─────────────── -->
+<ng-template #dadosDoFluxo let-d>
+  <div class="flex flex-col md:flex-row gap-3">
+    <div class="flex-1 min-w-0">
+      <label for="pe-fx-nome" class="block text-sm font-semibold text-gray-800 mb-1">
+        Nome do fluxo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+      </label>
+      <input id="pe-fx-nome" type="text" [ngModel]="nome" (ngModelChange)="mudarNomeFluxo($event)" [maxlength]="maxNomeFluxo"
+             [attr.aria-invalid]="erroNome ? true : null" [attr.aria-describedby]="erroNome ? 'pe-fx-nome-erro' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [ngClass]="erroNome ? 'border-red-500' : 'border-gray-300'" />
+      <p *ngIf="erroNome" id="pe-fx-nome-erro" class="text-xs text-red-700 mt-1">{{ erroNome }}</p>
+    </div>
+    <div class="w-full md:w-72">
+      <label for="pe-fx-prefixo" class="block text-sm font-semibold text-gray-800 mb-1">Prefixo da numeração</label>
+      <input id="pe-fx-prefixo" type="text" [ngModel]="d.PrefixoNumeracao ?? ''" (ngModelChange)="mudarPrefixo($event)" [maxlength]="maxPrefixo"
+             aria-describedby="pe-fx-prefixo-ajuda"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <p id="pe-fx-prefixo-ajuda" class="text-xs text-gray-500 italic mt-1">Com "1", as tarefas saem 1.1, 1.2, 1.3. Vazio: 1, 2, 3.</p>
+    </div>
   </div>
+</ng-template>
+
+<!-- ── Renomear a raia: um nome do dicionário ou outro nome (na lista e no painel) ── -->
+<ng-template #formularioRaia let-r>
+  <form *ngIf="renomeando === r.Id" (ngSubmit)="confirmarRenomear(r)" (keydown.escape)="cancelarRenomear(r)"
+        class="mt-3 space-y-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+    <div>
+      <label [for]="idRaia(r, 'marcador')" class="block text-sm font-semibold text-gray-800 mb-1">Nome da raia</label>
+      <select [id]="idRaia(r, 'marcador')" [(ngModel)]="formRaia.marcador" [name]="idRaia(r, 'marcador')"
+              [attr.aria-describedby]="idRaia(r, 'marcador-ajuda')"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Outro nome, escrito no campo abaixo</option>
+        <option *ngFor="let o of dicionario.opcoes" [value]="o.marcador">Do dicionário: {{ o.descricao }} ({{ valorMarcador(o.marcador) }})</option>
+      </select>
+      <p [id]="idRaia(r, 'marcador-ajuda')" class="text-xs text-gray-500 italic mt-1">{{ ajudaDicionario }}</p>
+    </div>
+    <div *ngIf="!formRaia.marcador">
+      <label [for]="idRaia(r, 'texto')" class="block text-sm font-semibold text-gray-800 mb-1">
+        Outro nome<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+      </label>
+      <input [id]="idRaia(r, 'texto')" type="text" [(ngModel)]="formRaia.texto" [name]="idRaia(r, 'texto')" [maxlength]="maxNomeRaia"
+             [attr.aria-invalid]="erroRaia ? true : null" [attr.aria-describedby]="erroRaia ? idRaia(r, 'erro') : null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [ngClass]="erroRaia ? 'border-red-500' : 'border-gray-300'" />
+    </div>
+    <p *ngIf="erroRaia" [id]="idRaia(r, 'erro')" role="alert" class="text-xs text-red-700">{{ erroRaia }}</p>
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="submit"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+        <span class="material-icons text-base" aria-hidden="true">check</span> Pronto
+      </button>
+      <button type="button" (click)="cancelarRenomear(r)"
+              class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">Cancelar</button>
+      <span class="text-xs text-gray-500 italic">Esc cancela.</span>
+    </div>
+  </form>
+</ng-template>
+
+<!-- ── Painel do item selecionado (modo visual): as alternativas de um clique do arrastar ── -->
+<ng-template #painel>
+  <!-- Nada selecionado: como usar -->
+  <ng-container *ngIf="!selecao">
+    <h4 id="pe-fx-painel-titulo" tabindex="-1" class="text-sm font-semibold text-gray-900">Painel do item selecionado</h4>
+    <p class="text-sm text-gray-700 leading-relaxed">Clique num bloco, numa seta ou no nome de uma raia para ver as opções dele aqui.</p>
+    <ul class="list-disc ml-5 text-xs text-gray-600 space-y-1">
+      <li>Arraste um bloco da paleta para uma raia. Solto sobre uma seta, ele entra entre os dois passos.</li>
+      <li>Arraste um bloco do desenho para outra raia, ou para cima de uma seta.</li>
+      <li>Para ligar dois passos, arraste da bolinha à direita do bloco até o outro.</li>
+      <li>Duplo clique no bloco muda o nome. Delete remove.</li>
+      <li>Pelo teclado: Tab chega aos blocos, as setas do teclado andam pelo fluxo e Enter abre este painel.</li>
+    </ul>
+  </ng-container>
+
+  <!-- Um bloco -->
+  <ng-container *ngIf="elementoSelecionado as e">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">{{ rotuloTipo(e.Tipo) }}</p>
+      <h4 id="pe-fx-painel-titulo" tabindex="-1" class="text-base font-bold text-gray-900">{{ rotulo(e) }}</h4>
+      <p class="text-xs text-gray-600 mt-1">{{ resumo(e) }}</p>
+    </div>
+    <ng-container *ngTemplateOutlet="passoCampos; context: { $implicit: e }"></ng-container>
+
+    <!-- Ligar a... (a alça de ligar); a decisão liga pelas saídas, acima -->
+    <fieldset *ngIf="e.Tipo !== 'decisao' && e.Tipo !== 'fim'">
+      <legend class="block text-xs font-semibold text-gray-700 mb-1">Depois deste passo</legend>
+      <p *ngIf="seguintesDe(e).length === 0" class="text-xs text-gray-600 mb-1">Ainda não segue para nenhum passo.</p>
+      <ul *ngIf="seguintesDe(e).length > 0" class="space-y-1">
+        <li *ngFor="let l of seguintesDe(e); trackBy: porId" class="flex flex-wrap items-center gap-2">
+          <span class="flex-1 min-w-0 text-sm text-gray-800">{{ rotuloPorId(l.Para) }}</span>
+          <button type="button" (click)="tirarSaida(l, e)"
+                  [attr.aria-label]="'Tirar: ' + rotulo(e) + ' deixa de levar a ' + rotuloPorId(l.Para)"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-sm" aria-hidden="true">link_off</span> Tirar
+          </button>
+        </li>
+      </ul>
+      <div class="flex flex-wrap items-end gap-2 mt-2">
+        <div class="flex-1 min-w-0">
+          <label [for]="idEl(e, 'ligar-a')" class="block text-xs text-gray-700 mb-1">Ligar a</label>
+          <select [id]="idEl(e, 'ligar-a')" [ngModel]="novoDestino.get(e.Id) ?? ''" (ngModelChange)="novoDestino.set(e.Id, $event)"
+                  [attr.aria-describedby]="erroLocal('ligar:' + e.Id) ? idEl(e, 'ligar-erro') : null"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Escolha o passo que vem depois</option>
+            <option *ngFor="let o of destinosParaLigar(e); trackBy: porId" [value]="o.Id">{{ rotulo(o) }}</option>
+          </select>
+        </div>
+        <button type="button" (click)="ligarPeloPainel(e)"
+                class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+          <span class="material-icons text-base" aria-hidden="true">add_link</span> Ligar
+        </button>
+      </div>
+      <p *ngIf="erroLocal('ligar:' + e.Id) as erro" [id]="idEl(e, 'ligar-erro')" role="alert" class="text-xs text-red-700 mt-1">{{ erro }}</p>
+    </fieldset>
+
+    <!-- Inserir depois de... (arrastar o bloco para cima de uma seta) -->
+    <div *ngIf="podeIrParaSeta(e)">
+      <div class="flex flex-wrap items-end gap-2">
+        <div class="flex-1 min-w-0">
+          <label [for]="idEl(e, 'inserir-depois')" class="block text-xs font-semibold text-gray-700 mb-1">Inserir depois de</label>
+          <select [id]="idEl(e, 'inserir-depois')" [ngModel]="setaEscolhida.get(e.Id) ?? ''" (ngModelChange)="setaEscolhida.set(e.Id, $event)"
+                  [attr.aria-describedby]="erroLocal('mover:' + e.Id) ? idEl(e, 'inserir-erro') : idEl(e, 'inserir-ajuda')"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Escolha o lugar</option>
+            <option *ngFor="let l of setasParaMover(e); trackBy: porId" [value]="l.Id">{{ rotuloDaSeta(l) }}</option>
+          </select>
+        </div>
+        <button type="button" (click)="moverPeloPainel(e)"
+                class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+          <span class="material-icons text-base" aria-hidden="true">move_down</span> Mover para lá
+        </button>
+      </div>
+      <p *ngIf="erroLocal('mover:' + e.Id) as erro" [id]="idEl(e, 'inserir-erro')" role="alert" class="text-xs text-red-700 mt-1">{{ erro }}</p>
+      <p [id]="idEl(e, 'inserir-ajuda')" class="text-xs text-gray-500 italic mt-1">O passo sai de onde está (o de antes passa a ligar direto no
+        de depois) e entra entre os dois passos escolhidos.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-100">
+      <button type="button" (click)="voltarAoDesenho(e.Id)"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+        <span class="material-icons text-sm" aria-hidden="true">account_tree</span> Voltar ao desenho
+      </button>
+      <button type="button" (click)="removerPasso(e)" [attr.aria-label]="'Remover ' + rotulo(e)"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-red-700 hover:bg-red-50">
+        <span class="material-icons text-sm" aria-hidden="true">delete</span> Remover
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- Uma seta -->
+  <ng-container *ngIf="ligacaoSelecionada as l">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Seta (ligação)</p>
+      <h4 id="pe-fx-painel-titulo" tabindex="-1" class="text-base font-bold text-gray-900">De {{ rotuloPorId(l.De) }} para {{ rotuloPorId(l.Para) }}</h4>
+    </div>
+    <div *ngIf="saiDeDecisao(l)">
+      <label [for]="idLig(l, 'rotulo')" class="block text-xs font-semibold text-gray-700 mb-1">Rótulo da saída</label>
+      <div class="flex flex-wrap items-center gap-2">
+        <input [id]="idLig(l, 'rotulo')" type="text" [ngModel]="l.Rotulo ?? ''" (ngModelChange)="mudarRotuloDaSeta(l, $event)" [maxlength]="maxRotulo"
+               [attr.aria-describedby]="idLig(l, 'rotulo-ajuda')"
+               class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <button type="button" (click)="usarRotuloNaSeta(l, 'Sim')"
+                class="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:bg-gray-50">Sim</button>
+        <button type="button" (click)="usarRotuloNaSeta(l, 'Não')"
+                class="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:bg-gray-50">Não</button>
+      </div>
+      <p [id]="idLig(l, 'rotulo-ajuda')" class="text-xs text-gray-500 italic mt-1">Cada saída da decisão precisa de um rótulo, como "Sim" ou
+        "Não".<ng-container *ngIf="!l.Rotulo && sugestaoDeRotulo(l)"> Sugestão: "{{ sugestaoDeRotulo(l) }}".</ng-container></p>
+    </div>
+    <div class="flex flex-wrap items-end gap-2">
+      <div class="flex-1 min-w-0">
+        <label [for]="idLig(l, 'inserir-tipo')" class="block text-xs font-semibold text-gray-700 mb-1">Inserir um bloco nesta seta</label>
+        <select [id]="idLig(l, 'inserir-tipo')" [ngModel]="tipoNaSeta.get(l.Id) ?? 'tarefa'" (ngModelChange)="tipoNaSeta.set(l.Id, $event)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option *ngFor="let t of tiposDaSeta" [value]="t.valor">{{ t.rotulo }}</option>
+        </select>
+      </div>
+      <button type="button" (click)="inserirNaSetaPeloPainel(l)"
+              class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+        <span class="material-icons text-base" aria-hidden="true">add</span> Inserir
+      </button>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-100">
+      <button type="button" (click)="voltarAoDesenho(l.De)"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+        <span class="material-icons text-sm" aria-hidden="true">account_tree</span> Voltar ao desenho
+      </button>
+      <button type="button" (click)="removerSetaPeloPainel(l)"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-red-700 hover:bg-red-50">
+        <span class="material-icons text-sm" aria-hidden="true">link_off</span> Remover ligação
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- Uma raia -->
+  <ng-container *ngIf="raiaSelecionada as r">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Raia {{ posicaoRaia(r) }} de {{ raias.length }}</p>
+      <h4 id="pe-fx-painel-titulo" tabindex="-1" class="text-base font-bold text-gray-900">{{ nomeRaia(r) }}</h4>
+      <p *ngIf="marcadorDaRaia(r) as m" class="text-xs text-gray-600 mt-1">
+        Nome do dicionário: {{ descricaoMarcador(m) }}<ng-container *ngIf="raiaSemNomeNoDicionario(r)">
+        (o órgão ainda não escreveu este nome: vale o nome padrão do guia)</ng-container>.
+      </p>
+      <p class="text-xs text-gray-600 mt-1">{{ quantosNaRaia(r) === 1 ? '1 passo' : quantosNaRaia(r) + ' passos' }}</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-1">
+      <button type="button" [id]="idRaia(r, 'renomear')" (click)="renomear(r)" [disabled]="renomeando === r.Id"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        <span class="material-icons text-sm" aria-hidden="true">drive_file_rename_outline</span> Renomear
+      </button>
+      <button type="button" [id]="idRaia(r, 'subir')" (click)="subirOuDescer(r, -1)" [disabled]="posicaoRaia(r) === 1"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        <span class="material-icons text-sm" aria-hidden="true">arrow_upward</span> Subir
+      </button>
+      <button type="button" [id]="idRaia(r, 'descer')" (click)="subirOuDescer(r, 1)" [disabled]="posicaoRaia(r) === raias.length"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        <span class="material-icons text-sm" aria-hidden="true">arrow_downward</span> Descer
+      </button>
+      <button type="button" [id]="idRaia(r, 'remover')" (click)="tirarRaia(r)"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-red-700 hover:bg-red-50">
+        <span class="material-icons text-sm" aria-hidden="true">delete</span> Remover
+      </button>
+    </div>
+    <ng-container *ngTemplateOutlet="formularioRaia; context: { $implicit: r }"></ng-container>
+    <div class="flex flex-wrap items-end gap-2">
+      <div class="flex-1 min-w-0">
+        <label [for]="idRaia(r, 'incluir-tipo')" class="block text-xs font-semibold text-gray-700 mb-1">Incluir um bloco nesta raia</label>
+        <select [id]="idRaia(r, 'incluir-tipo')" [ngModel]="tipoNaRaia.get(r.Id) ?? 'tarefa'" (ngModelChange)="tipoNaRaia.set(r.Id, $event)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option *ngFor="let t of tipos" [value]="t.valor">{{ t.rotulo }}</option>
+        </select>
+      </div>
+      <button type="button" (click)="incluirNaRaiaPeloPainel(r)"
+              class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+        <span class="material-icons text-base" aria-hidden="true">add</span> Incluir
+      </button>
+    </div>
+    <p class="text-xs text-gray-500 italic">O bloco entra no fim da raia, ainda sem ligação.</p>
+  </ng-container>
 </ng-template>

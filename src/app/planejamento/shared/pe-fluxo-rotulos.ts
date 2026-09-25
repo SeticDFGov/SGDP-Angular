@@ -5,6 +5,9 @@
  * (o texto alternativo do desenho), as mudanças na definição que o editor faz,
  * a leitura dos erros da API e o tamanho do desenho.
  *
+ * As mudanças valem para os dois modos de edição (E9): o editor em lista e o
+ * visual, de arrastar e soltar, mexem na mesma definição com estas funções.
+ *
  * O desenho e a numeração que valem são os do servidor: a numeração daqui só
  * aparece enquanto há mudança não salva, com a mesma regra (tarefas e
  * subprocessos pela ordem do fluxo, com o prefixo).
@@ -671,24 +674,26 @@ export function aceitaPassoDepois(def: PeFluxoDefinicao, elementoId: string): bo
 }
 
 /**
- * Tarefa nova logo depois do passo, na mesma raia: o que vinha depois dele passa
- * a vir depois da tarefa nova (o fluxo continua ligado).
+ * Passo novo logo depois de outro, na mesma raia (uma tarefa, se o tipo não vier):
+ * o que vinha depois dele passa a vir depois do passo novo (o fluxo continua
+ * ligado). Só tipos que ficam no meio de um caminho (`tipoEntraNaSeta`).
  */
-export function incluirPassoDepois(def: PeFluxoDefinicao, elementoId: string): PeFluxoElemento | null {
+export function incluirPassoDepois(def: PeFluxoDefinicao, elementoId: string, tipo: PeTipoElementoFluxo = 'tarefa'): PeFluxoElemento | null {
   const ref = def.Elementos.find(e => e.Id === elementoId);
-  if (!ref || !aceitaPassoDepois(def, elementoId)) return null;
-  const novo = incluirElemento(def, ref.RaiaId, 'tarefa', ref.Id);
+  if (!ref || !aceitaPassoDepois(def, elementoId) || !tipoEntraNaSeta(tipo)) return null;
+  const novo = incluirElemento(def, ref.RaiaId, tipo, ref.Id);
   for (const l of def.Ligacoes) if (l.De === ref.Id) l.De = novo.Id;
   def.Ligacoes.push({ Id: novoId('l', def.Ligacoes.map(l => l.Id)), De: ref.Id, Para: novo.Id, Rotulo: null });
   return novo;
 }
 
 /**
- * Tira o passo e as ligações dele. Com uma entrada e uma saída, o passo de antes
- * passa a ligar direto no de depois (o fluxo continua ligado). Devolve os dois
+ * Tira as ligações do passo, que continua no fluxo (solto). Com uma entrada e uma
+ * saída, o passo de antes passa a ligar direto no de depois (o fluxo continua
+ * ligado; a ligação mantém o rótulo, se vier de uma decisão). Devolve os dois
  * religados, ou null.
  */
-export function removerElemento(def: PeFluxoDefinicao, elementoId: string): { de: string; para: string } | null {
+export function desligarElemento(def: PeFluxoDefinicao, elementoId: string): { de: string; para: string } | null {
   const entradas = def.Ligacoes.filter(l => l.Para === elementoId && l.De !== elementoId);
   const saidas = def.Ligacoes.filter(l => l.De === elementoId && l.Para !== elementoId);
   let religou: { de: string; para: string } | null = null;
@@ -702,8 +707,146 @@ export function removerElemento(def: PeFluxoDefinicao, elementoId: string): { de
     }
   }
   def.Ligacoes = def.Ligacoes.filter(l => l.De !== elementoId && l.Para !== elementoId);
+  return religou;
+}
+
+/**
+ * Tira o passo e as ligações dele. Com uma entrada e uma saída, o passo de antes
+ * passa a ligar direto no de depois (o fluxo continua ligado). Devolve os dois
+ * religados, ou null.
+ */
+export function removerElemento(def: PeFluxoDefinicao, elementoId: string): { de: string; para: string } | null {
+  const religou = desligarElemento(def, elementoId);
   def.Elementos = def.Elementos.filter(e => e.Id !== elementoId);
   return religou;
+}
+
+// ── Mudanças do editor visual (E9), também usadas pelo editor em lista ───────
+
+/** Tipos que ficam no meio de um caminho (recebem e seguem): entram sobre uma seta. */
+export function tipoEntraNaSeta(tipo: string | null | undefined): boolean {
+  return tipo === 'tarefa' || tipo === 'subprocesso' || tipo === 'decisao' || tipo === 'paralelo';
+}
+
+/** Leva o elemento para logo depois de outro na lista (a posição desempata a ordem no desenho). */
+function colocarDepoisNaLista(def: PeFluxoDefinicao, elementoId: string, depoisDe: string): void {
+  const i = def.Elementos.findIndex(e => e.Id === elementoId);
+  if (i < 0 || elementoId === depoisDe) return;
+  const [elemento] = def.Elementos.splice(i, 1);
+  const j = def.Elementos.findIndex(e => e.Id === depoisDe);
+  def.Elementos.splice(j < 0 ? def.Elementos.length : j + 1, 0, elemento);
+}
+
+/**
+ * Passo novo sobre a seta (entre os dois passos dela), na raia pedida (sem ela, na
+ * raia do passo de antes): a seta vira duas, e o rótulo da saída de decisão fica
+ * no primeiro trecho. Devolve o passo novo, ou null.
+ */
+export function inserirNaLigacao(
+  def: PeFluxoDefinicao, ligacaoId: string, tipo: PeTipoElementoFluxo, raiaId: string | null = null
+): PeFluxoElemento | null {
+  const l = def.Ligacoes.find(x => x.Id === ligacaoId);
+  const antes = l ? def.Elementos.find(e => e.Id === l.De) : undefined;
+  if (!l || !antes || !def.Elementos.some(e => e.Id === l.Para) || !tipoEntraNaSeta(tipo)) return null;
+  const raia = raiaId && def.Raias.some(r => r.Id === raiaId) ? raiaId : antes.RaiaId;
+  const novo = incluirElemento(def, raia, tipo, antes.Id);
+  const para = l.Para;
+  l.Para = novo.Id;
+  def.Ligacoes.push({ Id: novoId('l', def.Ligacoes.map(x => x.Id)), De: novo.Id, Para: para, Rotulo: null });
+  return novo;
+}
+
+/**
+ * Tira o passo de onde está (religando o de antes ao de depois, como ao remover)
+ * e o põe sobre a seta, entre os dois passos dela, na raia pedida (sem ela, fica
+ * a raia dele). Não vale na seta que já entra ou sai do passo. Devolve os passos
+ * religados na saída (ou null) e os dois da seta; null quando não deu.
+ */
+export function moverParaLigacao(
+  def: PeFluxoDefinicao, elementoId: string, ligacaoId: string, raiaId: string | null = null
+): { religou: { de: string; para: string } | null; de: string; para: string } | null {
+  const e = def.Elementos.find(x => x.Id === elementoId);
+  const l = def.Ligacoes.find(x => x.Id === ligacaoId);
+  if (!e || !l || !tipoEntraNaSeta(e.Tipo) || l.De === elementoId || l.Para === elementoId) return null;
+  if (!def.Elementos.some(x => x.Id === l.De) || !def.Elementos.some(x => x.Id === l.Para)) return null;
+  const religou = desligarElemento(def, elementoId);
+  // A seta continua a mesma (não era do passo), então ainda está na lista
+  const seta = def.Ligacoes.find(x => x.Id === ligacaoId)!;
+  if (raiaId && def.Raias.some(r => r.Id === raiaId)) e.RaiaId = raiaId;
+  colocarDepoisNaLista(def, elementoId, seta.De);
+  const para = seta.Para;
+  seta.Para = elementoId;
+  def.Ligacoes.push({ Id: novoId('l', def.Ligacoes.map(x => x.Id)), De: elementoId, Para: para, Rotulo: null });
+  return { religou, de: seta.De, para };
+}
+
+/** Troca a raia do passo e mantém as ligações. Devolve se mudou. */
+export function moverParaRaia(def: PeFluxoDefinicao, elementoId: string, raiaId: string): boolean {
+  const e = def.Elementos.find(x => x.Id === elementoId);
+  if (!e || e.RaiaId === raiaId || !def.Raias.some(r => r.Id === raiaId)) return false;
+  e.RaiaId = raiaId;
+  return true;
+}
+
+export function renomearElemento(def: PeFluxoDefinicao, elementoId: string, nome: string): void {
+  const e = def.Elementos.find(x => x.Id === elementoId);
+  if (e) e.Nome = nome;
+}
+
+export function renomearRaia(def: PeFluxoDefinicao, raiaId: string, nome: string): void {
+  const r = def.Raias.find(x => x.Id === raiaId);
+  if (r) r.Nome = nome;
+}
+
+/** Rótulo de uma saída (vazio vira nulo). */
+export function mudarRotuloLigacao(def: PeFluxoDefinicao, ligacaoId: string, rotulo: string | null): void {
+  const l = def.Ligacoes.find(x => x.Id === ligacaoId);
+  if (l) l.Rotulo = rotulo || null;
+}
+
+/**
+ * Por que não dá para ligar `de` a `para` (em linguagem simples), ou null quando
+ * dá. As mesmas regras do editor em lista: o fim não segue, o início não recebe,
+ * sem ligar a si mesmo e sem repetir.
+ */
+export function motivoParaNaoLigar(def: PeFluxoDefinicao, de: string, para: string): string | null {
+  const origem = def.Elementos.find(e => e.Id === de);
+  const destino = def.Elementos.find(e => e.Id === para);
+  if (!origem || !destino) return 'Esse passo não existe mais.';
+  if (de === para) return 'Um passo não liga nele mesmo.';
+  if (origem.Tipo === 'fim') return 'O fim não leva a outro passo.';
+  if (destino.Tipo === 'inicio') return 'O início não vem depois de nenhum passo.';
+  if (def.Ligacoes.some(l => l.De === de && l.Para === para)) return 'Essa ligação já existe.';
+  return null;
+}
+
+/** Rótulo sugerido para a próxima saída da decisão: "Sim", depois "Não" (vazio quando os dois já existem). */
+export function rotuloSugeridoSaida(def: PeFluxoDefinicao, decisaoId: string): string {
+  const usados = new Set(def.Ligacoes
+    .filter(l => l.De === decisaoId && l.Rotulo)
+    .map(l => l.Rotulo!.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')));
+  if (!usados.has('sim')) return 'Sim';
+  if (!usados.has('nao')) return 'Não';
+  return '';
+}
+
+/** Documento novo na tarefa ou no subprocesso: "ok", "vazio" (sem nome) ou "repetido". */
+export function incluirDocumento(def: PeFluxoDefinicao, elementoId: string, nome: string): 'ok' | 'vazio' | 'repetido' {
+  const e = def.Elementos.find(x => x.Id === elementoId);
+  const limpo = nome.trim();
+  if (!e || !limpo) return 'vazio';
+  if (e.Artefatos.some(a => a.trim().toLowerCase() === limpo.toLowerCase())) return 'repetido';
+  e.Artefatos = [...e.Artefatos, limpo];
+  return 'ok';
+}
+
+/** Tira o documento da posição `indice`. Devolve o nome dele, ou null. */
+export function tirarDocumento(def: PeFluxoDefinicao, elementoId: string, indice: number): string | null {
+  const e = def.Elementos.find(x => x.Id === elementoId);
+  if (!e || indice < 0 || indice >= e.Artefatos.length) return null;
+  const nome = e.Artefatos[indice];
+  e.Artefatos = e.Artefatos.filter((_, j) => j !== indice);
+  return nome;
 }
 
 /**

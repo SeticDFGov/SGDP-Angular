@@ -10,6 +10,7 @@ import { Subscription } from 'rxjs';
 import {
   PeFluxoDefinicao, PeFluxoElemento, PeFluxoLigacao, PeFluxoRaia, PeTipoElementoFluxo
 } from '../../../api/planejamento/interface';
+import { AuthService } from '../../auth/services/auth';
 import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { PeFluxoAberto, PeFluxoItem, PeFonteFluxos } from '../services/pe-fluxos.service';
@@ -17,22 +18,32 @@ import { mensagemErroPe } from '../shared/pe-erros';
 import {
   DescricaoFluxo, DicionarioFluxo, MAX_ARTEFATO, MAX_NOME_ELEMENTO, MAX_NOME_FLUXO, MAX_NOME_RAIA, MAX_PREFIXO,
   MAX_ROTULO_SAIDA, TIPOS_ELEMENTO_FLUXO, aceitaPassoDepois, clonarDefinicao, definicaoParaEnvio, descricaoDoFluxo,
-  descricaoDoMarcador, dicionarioPadrao, explicacaoTipoElemento, iconeTipoElemento, incluirElemento, incluirLigacao,
-  incluirPassoDepois, incluirRaia, lerErroFluxo, marcadorDoNome, marcadorSemValor, moverRaia, mudarTipoElemento,
-  normalizarDefinicao, numerosDoFluxo, numerosDoServidor, ordemDoFluxo, raiasEmOrdem, removerElemento, removerLigacao,
-  removerRaia, resolverNomes, retratoFluxo, rotuloNomeElemento, rotuloTipoElemento, rotulosDosElementos, tipoNumerado,
-  tipoPedeNome, valorDoMarcador, vizinhosDoFluxo
+  descricaoDoMarcador, dicionarioPadrao, explicacaoTipoElemento, iconeTipoElemento, incluirDocumento, incluirElemento,
+  incluirLigacao, incluirPassoDepois, incluirRaia, inserirNaLigacao, lerErroFluxo, marcadorDoNome, marcadorSemValor,
+  motivoParaNaoLigar, moverParaLigacao, moverParaRaia, moverRaia, mudarRotuloLigacao, mudarTipoElemento, normalizarDefinicao,
+  numerosDoFluxo, numerosDoServidor, ordemDoFluxo, raiasEmOrdem, removerElemento, removerLigacao, removerRaia, renomearElemento,
+  renomearRaia, resolverNomes, retratoFluxo, rotuloNomeElemento, rotuloSugeridoSaida, rotuloTipoElemento, rotulosDosElementos,
+  tipoEntraNaSeta, tipoNumerado, tipoPedeNome, tirarDocumento, valorDoMarcador, vizinhosDoFluxo
 } from '../shared/pe-fluxo-rotulos';
 import { juntar } from '../shared/pe-modelo-rotulos';
 import { quandoEQuem } from '../shared/pe-referenciais-rotulos';
 import { PeFluxoDescricaoComponent } from './pe-fluxo-descricao.component';
 import { PeFluxoDesenhoComponent } from './pe-fluxo-desenho.component';
+import { PeFluxoTrabalho, PeSelecaoFluxo, PeSelecionarFluxo, idNaTela } from './pe-fluxo-trabalho';
+import { PeFluxoVisualComponent } from './pe-fluxo-visual.component';
 
 /** Espera depois da última mudança antes de pedir o desenho (sem inundar a API). */
 const ESPERA_DESENHO_MS = 800;
 /** Mudanças seguidas no mesmo campo, com pausas menores que isto, viram um passo só do "Desfazer". */
 const JANELA_AGRUPAR_MS = 4000;
 const LIMITE_HISTORICO = 60;
+
+/**
+ * O modo de edição de cada pessoa, guardado no navegador (vale para os próximos
+ * fluxos): o visual, de arrastar e soltar, é o padrão (decisão do usuário, E9).
+ */
+const CHAVE_MODO = 'sgdp.planejamento.fluxos.modo';
+export type PeModoEdicaoFluxo = 'visual' | 'lista';
 
 /**
  * ocioso: nada pedido · esperando: mudou, o pedido sai em instantes · desenhando ·
@@ -55,8 +66,16 @@ interface NovaSaida {
 }
 
 /**
- * Editor guiado de fluxos (E6), sem arrastar: tudo em listas e campos, por
- * teclado e leitor de tela.
+ * Editor de fluxos, com dois modos de edição que a pessoa escolhe no seletor
+ * "Modo de edição" (a escolha fica no navegador): o visual, de arrastar e soltar
+ * (E9, o padrão, em `PeFluxoVisualComponent`, com o painel do item selecionado
+ * aqui), e o em lista (E6). Os dois usam o mesmo estado de trabalho, guardado
+ * aqui e oferecido ao desenho pelo `PeFluxoTrabalho`: a mesma definição, o mesmo
+ * "Desfazer", o mesmo "Salvar o fluxo" e a mesma lista de problemas. Trocar de
+ * modo não perde nada, nem mudança ainda não salva.
+ *
+ * O modo em lista (E6), sem arrastar: tudo em listas e campos, por teclado e
+ * leitor de tela.
  *
  * - Escolha do fluxo (os do guia, com a situação de cada um); o fluxo à vista fica
  *   no endereço (`?fluxo=`).
@@ -82,15 +101,19 @@ interface NovaSaida {
 @Component({
   selector: 'app-pe-fluxo-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, PeFluxoDesenhoComponent, PeFluxoDescricaoComponent],
+  imports: [CommonModule, FormsModule, PeFluxoDesenhoComponent, PeFluxoDescricaoComponent, PeFluxoVisualComponent],
   templateUrl: './pe-fluxo-editor.component.html',
-  host: { class: 'block' }
+  styleUrl: './pe-fluxo-editor.component.css',
+  host: { class: 'block' },
+  // O desenho interativo pede as mudanças por aqui (sem forwardRef, que é código novo no pacote inicial)
+  providers: [{ provide: PeFluxoTrabalho, useExisting: PeFluxoEditorComponent }]
 })
-export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewChecked, OnDestroy {
+export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewChecked, OnDestroy, PeFluxoTrabalho {
   private readonly router = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
+  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
@@ -103,6 +126,8 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   @Output() readonly salvou = new EventEmitter<void>();
 
   readonly tipos = TIPOS_ELEMENTO_FLUXO;
+  /** Os tipos que entram no meio de um caminho (sobre uma seta). */
+  readonly tiposDaSeta = TIPOS_ELEMENTO_FLUXO.filter(t => tipoEntraNaSeta(t.valor));
   readonly maxNomeFluxo = MAX_NOME_FLUXO;
   readonly maxNomeRaia = MAX_NOME_RAIA;
   readonly maxNomeElemento = MAX_NOME_ELEMENTO;
@@ -145,8 +170,27 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   private destinosJaUsados = new Map<string, Set<string>>();
   private origensPossiveis: PeFluxoElemento[] = [];
   private destinosPossiveis: PeFluxoElemento[] = [];
+  /** Todas as saídas de cada elemento (o painel do modo visual mostra as de quem não é decisão). */
+  private seguintes = new Map<string, PeFluxoLigacao[]>();
+  /** Os elementos na ordem do fluxo (o foco anda por ela no modo visual). */
+  private ordemIds: string[] = [];
+  /** Os números que a geometria trouxe, com o retrato da definição a que eles valem. */
+  private numerosGeometria: { retrato: string; numeros: Map<string, string> } | null = null;
+  /** Sobe a cada mudança: o desenho do modo visual refaz a vista (a definição muda no lugar). */
+  versao = 0;
 
   dicionario: DicionarioFluxo = dicionarioPadrao();
+
+  // ── Modo de edição e item selecionado (modo visual) ───────────────────────
+  /** O id de quem está usando (a escolha do modo é de cada pessoa). */
+  private readonly idPessoa = this.lerIdPessoa();
+  /** Lido já na criação: o fluxo pode abrir no primeiro `ngOnChanges`, antes do `ngOnInit`. */
+  modo: PeModoEdicaoFluxo = this.lerModo();
+  selecao: PeSelecaoFluxo | null = null;
+  readonly novoDestino = new Map<string, string>();
+  readonly setaEscolhida = new Map<string, string>();
+  readonly tipoNaRaia = new Map<string, PeTipoElementoFluxo>();
+  readonly tipoNaSeta = new Map<string, PeTipoElementoFluxo>();
 
   // ── Estado da tela ────────────────────────────────────────────────────────
   private readonly abertos = new Set<string>();
@@ -243,6 +287,11 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
   get podeEditar(): boolean {
     return !!this.aberto?.PodeEditar;
+  }
+
+  /** O modo visual vale para quem edita (quem só lê vê o desenho salvo e a descrição, como na E6). */
+  get emModoVisual(): boolean {
+    return this.modo === 'visual' && this.podeEditar;
   }
 
   get podeDesfazer(): boolean {
@@ -580,6 +629,8 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.mensagemValidacao = null;
     this.retratoValidado = '';
     this.totalAnunciado = -1;
+    this.novoDestino.clear();
+    this.setaEscolhida.clear();
     if (novo) {
       this.abertos.clear();
       this.svg = null;
@@ -589,9 +640,12 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
       this.defModelo = null;
       this.numerosModelo = null;
       this.chaveModelo = null;
+      this.selecao = null;
+      this.numerosGeometria = null;
     }
     this.recalcular();
-    this.agendarDesenho(true);
+    // No modo visual, quem desenha é a geometria (pedida pelo desenho interativo)
+    if (!this.emModoVisual) this.agendarDesenho(true);
   }
 
   // ── Derivados ─────────────────────────────────────────────────────────────
@@ -604,8 +658,15 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
     const { ordem, ligacoes } = ordemDoFluxo(def);
     const doServidor = numerosDoServidor(def);
-    // Sem mudança pendente valem os números do servidor (os do desenho); com mudança, a mesma regra aqui
-    this.numeros = !this.sujo && doServidor.size > 0 ? doServidor : numerosDoFluxo(def, ordem);
+    const geometria = this.numerosGeometria;
+    if (geometria && geometria.numeros.size > 0 && geometria.retrato === JSON.stringify(definicaoParaEnvio(def))) {
+      // A geometria da definição de agora já chegou (modo visual): valem os números dela, os do desenho
+      this.numeros = geometria.numeros;
+    } else {
+      // Sem mudança pendente valem os números do servidor (os do desenho); com mudança, a mesma regra aqui
+      this.numeros = !this.sujo && doServidor.size > 0 ? doServidor : numerosDoFluxo(def, ordem);
+    }
+    this.ordemIds = ordem.map(e => e.Id);
     const vizinhos = vizinhosDoFluxo(ligacoes);
     this.rotulos = rotulosDosElementos(def, this.numeros, this.dicionario, vizinhos, ordem);
     this.elementos = new Map(def.Elementos.map(e => [e.Id, e]));
@@ -626,7 +687,9 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.saidas = new Map();
     this.origensJaUsadas = new Map();
     this.destinosJaUsados = new Map();
+    this.seguintes = new Map();
     for (const l of def.Ligacoes) {
+      this.seguintes.set(l.De, [...(this.seguintes.get(l.De) ?? []), l]);
       const de = this.elementos.get(l.De);
       if (de?.Tipo === 'decisao') {
         this.saidas.set(l.De, [...(this.saidas.get(l.De) ?? []), l]);
@@ -652,6 +715,14 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     }
 
     this.descricao = descricaoDoFluxo(def, this.dicionario, this.numeros);
+
+    // O item selecionado que sumiu (removido, desfeito) deixa de estar selecionado
+    const s = this.selecao;
+    if (s && !(s.tipo === 'elemento' ? this.elementos.has(s.id)
+      : s.tipo === 'ligacao' ? def.Ligacoes.some(l => l.Id === s.id) : this.raias.some(r => r.Id === s.id))) {
+      this.selecao = null;
+    }
+    this.versao++;
   }
 
   private definirSujo(sujo: boolean): void {
@@ -663,8 +734,11 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
   // ── Mudanças (cada uma guarda o retrato de antes, para o "Desfazer") ──────
 
-  /** Aplica uma mudança na cópia de trabalho e devolve o que ela devolveu (null quando não pôde mudar). */
-  private mudar<T>(descricao: string, mudanca: (def: PeFluxoDefinicao) => T, agrupar: string | null = null): T | null {
+  /**
+   * Aplica uma mudança na cópia de trabalho e devolve o que ela devolveu (null quando não pôde mudar).
+   * Os dois modos de edição mudam a definição só por aqui (o desenho interativo, pelo `PeFluxoTrabalho`).
+   */
+  mudar<T>(descricao: string, mudanca: (def: PeFluxoDefinicao) => T, agrupar: string | null = null): T | null {
     if (!this.def || !this.podeEditar) return null;
     this.registrar(descricao, agrupar);
     const resultado = mudanca(this.def);
@@ -685,7 +759,8 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
   private depoisDeMudar(): void {
     this.recalcular();
-    this.agendarDesenho();
+    // No modo visual, o desenho interativo pede a geometria (a prévia em SVG é do modo em lista)
+    if (!this.emModoVisual) this.agendarDesenho();
   }
 
   desfazer(): void {
@@ -727,8 +802,12 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   novaRaia(): void {
     const nova = this.mudar('incluir uma raia', def => incluirRaia(def, 'Nova raia'));
     if (!nova) return;
+    // No modo visual, o nome da raia nova abre no painel
+    if (this.emModoVisual) this.selecao = { tipo: 'raia', id: nova.Id };
     this.renomear(nova, true);
-    this.acessibilidade.anunciar('Raia nova incluída no fim da lista. Escolha um nome do dicionário ou escreva o nome dela.');
+    this.acessibilidade.anunciar(this.emModoVisual
+      ? 'Raia nova incluída embaixo das outras. Escolha, no painel, um nome do dicionário ou escreva o nome dela.'
+      : 'Raia nova incluída no fim da lista. Escolha um nome do dicionário ou escreva o nome dela.');
   }
 
   /** Abre o formulário do nome da raia (na raia nova, com o campo do nome em branco). */
@@ -755,7 +834,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
       return;
     }
     const antes = this.nomeRaia(r);
-    if (nome !== r.Nome) this.mudar(`renomear a raia ${antes}`, () => r.Nome = nome);
+    if (nome !== r.Nome) this.mudar(`renomear a raia ${antes}`, def => renomearRaia(def, r.Id, nome));
     this.renomeando = null;
     this.erroRaia = null;
     this.focoPendente = this.idRaia(r, 'renomear');
@@ -786,6 +865,12 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     if (this.renomeando === r.Id) this.renomeando = null;
     this.acessibilidade.anunciar(`Raia ${nome} removida.`);
     const vizinha = this.raias[Math.min(indice, this.raias.length - 1)];
+    if (this.emModoVisual) {
+      // No desenho, o foco vai para o nome da raia vizinha (e o painel mostra a raia)
+      this.selecao = vizinha ? { tipo: 'raia', id: vizinha.Id } : null;
+      this.focoPendente = vizinha ? this.idRaia(vizinha, 'cabecalho') : 'pe-fx-incluir-raia';
+      return;
+    }
     this.focoPendente = vizinha ? this.idRaia(vizinha, 'titulo') : 'pe-fx-incluir-raia';
   }
 
@@ -816,22 +901,41 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
   private abrirPassoNovo(novo: PeFluxoElemento, aviso: string): void {
     this.abertos.add(novo.Id);
+    // No modo visual, o passo novo fica selecionado e o nome dele abre no painel
+    if (this.emModoVisual) this.selecao = { tipo: 'elemento', id: novo.Id };
     this.focoPendente = this.idEl(novo, 'nome');
     this.acessibilidade.anunciar(aviso);
   }
 
-  removerPasso(e: PeFluxoElemento): void {
-    if (!this.def || !this.podeEditar) return;
+  private textoRemover(nome: string): string {
+    return `Remover "${nome}"? As ligações dele saem junto. Dá para desfazer com o botão "Desfazer".`;
+  }
+
+  /** Tira o passo (religando o de antes ao de depois, quando dá) e avisa o leitor de tela. */
+  private tirarPasso(e: PeFluxoElemento): void {
     const nome = this.rotulo(e);
-    if (!confirm(`Remover "${nome}"? As ligações dele saem junto. Dá para desfazer com o botão "Desfazer".`)) return;
-    const raia = this.raias.find(r => r.Id === e.RaiaId) ?? null;
-    const lista = this.porRaia.get(e.RaiaId) ?? [];
-    const indice = lista.findIndex(x => x.Id === e.Id);
     const religou = this.mudar(`remover ${nome}`, def => removerElemento(def, e.Id));
     this.abertos.delete(e.Id);
     this.acessibilidade.anunciar(religou
       ? `${nome} saiu. ${this.rotuloPorId(religou.de)} agora liga direto em ${this.rotuloPorId(religou.para)}.`
       : `${nome} saiu. Confira as ligações dos passos em volta.`);
+  }
+
+  removerPasso(e: PeFluxoElemento): void {
+    if (!this.def || !this.podeEditar) return;
+    if (!confirm(this.textoRemover(this.rotulo(e)))) return;
+    const raia = this.raias.find(r => r.Id === e.RaiaId) ?? null;
+    const lista = this.porRaia.get(e.RaiaId) ?? [];
+    const indice = lista.findIndex(x => x.Id === e.Id);
+    const naOrdem = this.ordemIds.indexOf(e.Id);
+    this.tirarPasso(e);
+    if (this.emModoVisual) {
+      // Pelo painel: o foco vai para o bloco seguinte no desenho, que fica selecionado
+      const vizinho = this.ordemIds[Math.min(Math.max(naOrdem, 0), this.ordemIds.length - 1)];
+      this.selecao = vizinho ? { tipo: 'elemento', id: vizinho } : null;
+      this.focoPendente = vizinho ? idNaTela('e', vizinho, 'bloco') : 'pe-fx-incluir-raia';
+      return;
+    }
     const restantes = raia ? this.passosDaRaia(raia) : [];
     const vizinho = restantes[Math.min(Math.max(indice, 0), restantes.length - 1)];
     this.focoPendente = vizinho ? this.idEl(vizinho, 'editar') : raia ? this.idRaia(raia, 'incluir-passo') : 'pe-fx-incluir-raia';
@@ -843,12 +947,12 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   }
 
   mudarNome(e: PeFluxoElemento, valor: string): void {
-    this.mudar(`mudar o nome de ${this.rotulo(e)}`, () => e.Nome = valor, `nome:${e.Id}`);
+    this.mudar(`mudar o nome de ${this.rotulo(e)}`, def => renomearElemento(def, e.Id, valor), `nome:${e.Id}`);
   }
 
   mudarRaia(e: PeFluxoElemento, raiaId: string): void {
     if (raiaId === e.RaiaId) return;
-    this.mudar(`mudar a raia de ${this.rotulo(e)}`, () => e.RaiaId = raiaId, `raia:${e.Id}`);
+    this.mudar(`mudar a raia de ${this.rotulo(e)}`, def => moverParaRaia(def, e.Id, raiaId), `raia:${e.Id}`);
     this.focoPendente = this.idEl(e, 'raia');
   }
 
@@ -888,7 +992,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   }
 
   mudarRotulo(l: PeFluxoLigacao, valor: string, e: PeFluxoElemento): void {
-    this.mudar(`mudar o rótulo de uma saída de ${this.rotulo(e)}`, () => l.Rotulo = valor || null, `rotulo:${l.Id}`);
+    this.mudar(`mudar o rótulo de uma saída de ${this.rotulo(e)}`, def => mudarRotuloLigacao(def, l.Id, valor || null), `rotulo:${l.Id}`);
   }
 
   mudarDestino(l: PeFluxoLigacao, destino: string, e: PeFluxoElemento): void {
@@ -933,7 +1037,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
       this.errosLocais.set(chaveErro, 'Este documento já está na lista.');
       return;
     }
-    this.mudar(`incluir um documento em ${this.rotulo(e)}`, () => e.Artefatos = [...e.Artefatos, nome]);
+    this.mudar(`incluir um documento em ${this.rotulo(e)}`, def => incluirDocumento(def, e.Id, nome));
     this.errosLocais.delete(chaveErro);
     this.novoArtefato.delete(e.Id);
     this.acessibilidade.anunciar(`Documento incluído: ${nome}.`);
@@ -942,9 +1046,249 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
   tirarArtefato(e: PeFluxoElemento, i: number): void {
     const nome = e.Artefatos[i];
-    this.mudar(`tirar um documento de ${this.rotulo(e)}`, () => e.Artefatos = e.Artefatos.filter((_, j) => j !== i));
+    this.mudar(`tirar um documento de ${this.rotulo(e)}`, def => tirarDocumento(def, e.Id, i));
     this.acessibilidade.anunciar(`Documento tirado: ${nome}.`);
     this.focoPendente = this.idEl(e, 'artefato-novo');
+  }
+
+  // ── Modo de edição (E9) ───────────────────────────────────────────────────
+
+  /** O modo de edição é de cada pessoa: a chave leva o id dela (no computador dividido, cada um tem o seu). */
+  private lerIdPessoa(): string | null {
+    let id: string | null = null;
+    // O usuário vem do navegador, na hora (Observable síncrono)
+    this.auth.getUser().subscribe(usuario => id = usuario?.Id ?? null);
+    return id;
+  }
+
+  private chaveDoModo(): string {
+    return this.idPessoa ? `${CHAVE_MODO}:${this.idPessoa}` : CHAVE_MODO;
+  }
+
+  private lerModo(): PeModoEdicaoFluxo {
+    if (!this.noNavegador) return 'visual';
+    try {
+      return localStorage.getItem(this.chaveDoModo()) === 'lista' ? 'lista' : 'visual';
+    } catch {
+      return 'visual';
+    }
+  }
+
+  /**
+   * Troca o modo de edição (a escolha fica no navegador, para os próximos fluxos).
+   * Nada se perde: os dois modos usam a mesma cópia de trabalho.
+   */
+  escolherModo(modo: PeModoEdicaoFluxo): void {
+    if (modo === this.modo) return;
+    this.modo = modo;
+    if (this.noNavegador) {
+      try {
+        localStorage.setItem(this.chaveDoModo(), modo);
+      } catch {
+        // Sem armazenamento no navegador: a escolha vale só agora
+      }
+    }
+    this.renomeando = null;
+    this.erroRaia = null;
+    // O modo em lista mostra a prévia em SVG: pede o desenho do que está na tela, se ainda não tem
+    if (!this.emModoVisual) this.agendarDesenho(true);
+    this.acessibilidade.anunciar(modo === 'visual'
+      ? 'Modo de edição visual: arraste os blocos no desenho. As mudanças que ainda não foram salvas continuam aqui.'
+      : 'Modo de edição em lista: raias e passos em listas. As mudanças que ainda não foram salvas continuam aqui.');
+  }
+
+  // ── Item selecionado no desenho (modo visual) ─────────────────────────────
+
+  aoSelecionarNoDesenho(pedido: PeSelecionarFluxo): void {
+    this.selecao = pedido.selecao;
+    // Outra raia ou outro item: o formulário do nome da raia fecha
+    if (this.renomeando && !(pedido.selecao?.tipo === 'raia' && pedido.selecao.id === this.renomeando)) {
+      this.renomeando = null;
+      this.erroRaia = null;
+    }
+    if (pedido.abrirPainel) this.focoPendente = 'pe-fx-painel-titulo';
+  }
+
+  get elementoSelecionado(): PeFluxoElemento | null {
+    return this.selecao?.tipo === 'elemento' ? this.elementos.get(this.selecao.id) ?? null : null;
+  }
+
+  get ligacaoSelecionada(): PeFluxoLigacao | null {
+    const s = this.selecao;
+    return s?.tipo === 'ligacao' ? this.def?.Ligacoes.find(l => l.Id === s.id) ?? null : null;
+  }
+
+  get raiaSelecionada(): PeFluxoRaia | null {
+    const s = this.selecao;
+    return s?.tipo === 'raia' ? this.raias.find(r => r.Id === s.id) ?? null : null;
+  }
+
+  posicaoRaia(r: PeFluxoRaia): number {
+    return this.raias.findIndex(x => x.Id === r.Id) + 1;
+  }
+
+  /** As saídas de um elemento (no painel do bloco que não é decisão: "Depois deste passo"). */
+  seguintesDe(e: PeFluxoElemento): PeFluxoLigacao[] {
+    return this.seguintes.get(e.Id) ?? [];
+  }
+
+  /** Para onde o bloco pode ligar (as mesmas regras do arrastar pela alça), na ordem do fluxo. */
+  destinosParaLigar(e: PeFluxoElemento): PeFluxoElemento[] {
+    const def = this.def;
+    if (!def) return [];
+    return this.ordemIds
+      .map(id => this.elementos.get(id))
+      .filter((x): x is PeFluxoElemento => !!x && motivoParaNaoLigar(def, e.Id, x.Id) === null);
+  }
+
+  /** O bloco entra sobre uma seta (tarefa, subprocesso, decisão e paralelo). */
+  podeIrParaSeta(e: PeFluxoElemento): boolean {
+    return tipoEntraNaSeta(e.Tipo) && this.setasParaMover(e).length > 0;
+  }
+
+  /** As setas onde o bloco pode entrar: as que não saem nem chegam nele. */
+  setasParaMover(e: PeFluxoElemento): PeFluxoLigacao[] {
+    return (this.def?.Ligacoes ?? []).filter(l => l.De !== e.Id && l.Para !== e.Id && this.elementos.has(l.De) && this.elementos.has(l.Para));
+  }
+
+  /** "2.3 Descrever... (antes de 2.4 Levantar...)"; na saída da decisão, com o rótulo. */
+  rotuloDaSeta(l: PeFluxoLigacao): string {
+    const saida = l.Rotulo ? `, saída "${l.Rotulo}"` : '';
+    return `${this.rotuloPorId(l.De)}${saida} (antes de ${this.rotuloPorId(l.Para)})`;
+  }
+
+  elementoDe(l: PeFluxoLigacao): PeFluxoElemento | null {
+    return this.elementos.get(l.De) ?? null;
+  }
+
+  saiDeDecisao(l: PeFluxoLigacao): boolean {
+    return this.elementos.get(l.De)?.Tipo === 'decisao';
+  }
+
+  mudarRotuloDaSeta(l: PeFluxoLigacao, valor: string): void {
+    const de = this.elementos.get(l.De);
+    if (de) this.mudarRotulo(l, valor, de);
+  }
+
+  /** "Sim" e "Não" com um clique (no painel da seta). */
+  usarRotuloNaSeta(l: PeFluxoLigacao, valor: string): void {
+    this.mudarRotuloDaSeta(l, valor);
+    this.acessibilidade.anunciar(`Saída "${valor}" de ${this.rotuloPorId(l.De)} para ${this.rotuloPorId(l.Para)}.`);
+  }
+
+  sugestaoDeRotulo(l: PeFluxoLigacao): string {
+    return this.def ? rotuloSugeridoSaida(this.def, l.De) : '';
+  }
+
+  /** "Ligar a..." do painel (o caminho de um clique da alça de ligar). */
+  ligarPeloPainel(e: PeFluxoElemento): void {
+    const destino = this.novoDestino.get(e.Id) ?? '';
+    const chaveErro = `ligar:${e.Id}`;
+    if (!destino) {
+      this.errosLocais.set(chaveErro, 'Escolha o passo que vem depois.');
+      this.focoPendente = this.idEl(e, 'ligar-a');
+      return;
+    }
+    if (!this.mudar(`ligar ${this.rotulo(e)} a ${this.rotuloPorId(destino)}`, def => incluirLigacao(def, e.Id, destino))) return;
+    this.errosLocais.delete(chaveErro);
+    this.novoDestino.delete(e.Id);
+    this.acessibilidade.anunciar(`${this.rotulo(e)} agora liga em ${this.rotuloPorId(destino)}.`);
+    this.focoPendente = this.idEl(e, 'ligar-a');
+  }
+
+  tirarSaida(l: PeFluxoLigacao, e: PeFluxoElemento): void {
+    this.tirarLigacao(l, e, 'ligar-a');
+  }
+
+  /** "Inserir depois de..." do painel (o caminho de um clique do arrastar sobre uma seta). */
+  moverPeloPainel(e: PeFluxoElemento): void {
+    const setaId = this.setaEscolhida.get(e.Id) ?? '';
+    const chaveErro = `mover:${e.Id}`;
+    const seta = this.def?.Ligacoes.find(l => l.Id === setaId);
+    if (!seta) {
+      this.errosLocais.set(chaveErro, 'Escolha o lugar.');
+      this.focoPendente = this.idEl(e, 'inserir-depois');
+      return;
+    }
+    const nome = this.rotulo(e);
+    const entre = `${this.rotuloPorId(seta.De)} e ${this.rotuloPorId(seta.Para)}`;
+    const feito = this.mudar(`mover ${nome} para entre ${entre}`, def => moverParaLigacao(def, e.Id, setaId));
+    if (!feito) return;
+    this.errosLocais.delete(chaveErro);
+    this.setaEscolhida.delete(e.Id);
+    const religou = feito.religou ? ` ${this.rotuloPorId(feito.religou.de)} agora liga direto em ${this.rotuloPorId(feito.religou.para)}.` : '';
+    this.acessibilidade.anunciar(`${this.rotulo(e)} agora fica entre ${this.rotuloPorId(feito.de)} e ${this.rotuloPorId(feito.para)}.${religou}`);
+    this.focoPendente = this.idEl(e, 'inserir-depois');
+  }
+
+  /** "Inserir um bloco nesta seta" (o caminho de um clique do arrastar da paleta sobre a seta). */
+  inserirNaSetaPeloPainel(l: PeFluxoLigacao): void {
+    const tipo = this.tipoNaSeta.get(l.Id) ?? 'tarefa';
+    const entre = `${this.rotuloPorId(l.De)} e ${this.rotuloPorId(l.Para)}`;
+    const novo = this.mudar(`incluir ${rotuloTipoElemento(tipo).toLowerCase()} entre ${entre}`, def => inserirNaLigacao(def, l.Id, tipo));
+    if (!novo) return;
+    // Os números já são os de depois da mudança (o passo de depois pode ter mudado de número)
+    const numero = this.numeros.get(novo.Id);
+    const antes = (this.def?.Ligacoes ?? []).filter(x => x.Para === novo.Id).map(x => this.rotuloPorId(x.De));
+    const depois = (this.def?.Ligacoes ?? []).filter(x => x.De === novo.Id).map(x => this.rotuloPorId(x.Para));
+    this.abrirPassoNovo(novo, `${rotuloTipoElemento(tipo)}${numero ? ` ${numero}` : ''} entre ${juntar(antes)} e ${juntar(depois)}. Escreva o nome no painel.`);
+  }
+
+  /** "Incluir um bloco nesta raia" (o caminho de um clique do arrastar da paleta para a raia). */
+  incluirNaRaiaPeloPainel(r: PeFluxoRaia): void {
+    const tipo = this.tipoNaRaia.get(r.Id) ?? 'tarefa';
+    const nome = this.nomeRaia(r);
+    const novo = this.mudar(`incluir ${rotuloTipoElemento(tipo).toLowerCase()} na raia ${nome}`, def => incluirElemento(def, r.Id, tipo));
+    if (!novo) return;
+    this.abrirPassoNovo(novo, `${rotuloTipoElemento(tipo)} no fim da raia ${nome}, ainda sem ligação. Escreva o nome e, em "Vem depois de" ou "Inserir depois de", diga onde ela fica.`);
+  }
+
+  voltarAoDesenho(id: string): void {
+    this.focoPendente = idNaTela('e', id, 'bloco');
+  }
+
+  // ── O estado de trabalho para o desenho interativo (PeFluxoTrabalho) ──────
+
+  nomeRaiaPorId(id: string): string {
+    const r = this.raias.find(x => x.Id === id);
+    return r ? this.nomeRaia(r) : 'uma raia que não existe mais';
+  }
+
+  /** Delete no desenho: pergunta antes só quando o passo tem ligações (sem ligação, o "Desfazer" basta). */
+  removerPassoDoDesenho(id: string): boolean {
+    const e = this.elementos.get(id);
+    if (!e || !this.def || !this.podeEditar) return false;
+    const temLigacoes = this.def.Ligacoes.some(l => l.De === id || l.Para === id);
+    if (temLigacoes && !confirm(this.textoRemover(this.rotulo(e)))) return false;
+    this.tirarPasso(e);
+    return true;
+  }
+
+  removerLigacaoDoDesenho(id: string): void {
+    const l = this.def?.Ligacoes.find(x => x.Id === id);
+    if (!l) return;
+    const de = this.rotuloPorId(l.De);
+    const para = this.rotuloPorId(l.Para);
+    this.mudar(`tirar a ligação de ${de} para ${para}`, def => removerLigacao(def, id));
+    this.acessibilidade.anunciar(`Ligação tirada: ${de} não leva mais a ${para}.`);
+  }
+
+  /** Pelo painel da seta: depois de tirar, o foco volta ao bloco de onde a seta saía. */
+  removerSetaPeloPainel(l: PeFluxoLigacao): void {
+    const de = l.De;
+    this.removerLigacaoDoDesenho(l.Id);
+    this.selecao = this.elementos.has(de) ? { tipo: 'elemento', id: de } : null;
+    this.focoPendente = idNaTela('e', de, 'bloco');
+  }
+
+  incluirRaiaNoDesenho(): void {
+    this.novaRaia();
+  }
+
+  receberGeometria(retrato: string, erros: string[], numeros: Record<string, string>): void {
+    this.numerosGeometria = { retrato, numeros: new Map(Object.entries(numeros)) };
+    this.definirProblemas(retrato, erros, null);
+    this.recalcular();
   }
 
   // ── Desenho (prévia pela API, com espera entre as digitações) ─────────────
