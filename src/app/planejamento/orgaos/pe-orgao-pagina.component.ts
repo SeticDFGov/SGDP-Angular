@@ -23,7 +23,7 @@ import {
   GrupoConformidade, MarcaAtendimento, grupoConformidade, idDoParametro, itensDaLinha, marcaAtendimento, nomeDocumentoReserva,
   rotuloDecisao, rotuloSituacaoDocumento, rotuloTipoDocumento, textoPercentualConformidade
 } from '../shared/pe-paineis-rotulos';
-import { classeSituacaoPdtic, quandoPdtic, rotuloSituacaoPdtic } from '../shared/pe-pdtic-rotulos';
+import { classeSituacaoPdtic, quandoMarcoPdtic, quandoPdtic, rotuloSituacaoPdtic } from '../shared/pe-pdtic-rotulos';
 import {
   classeSituacaoDeliberacao, deliberacaoRegistradaFora, rotuloSituacaoDeliberacao, textoAto, textoVigencia
 } from '../shared/pe-referenciais-rotulos';
@@ -259,6 +259,16 @@ export class PeOrgaoPaginaComponent implements OnInit {
 
   quando(valor: string | null | undefined): string {
     return quandoPdtic(valor);
+  }
+
+  /** Aprovação e publicação: no PDTIC registrado fora do sistema, só o dia (F2, C-O2). */
+  quandoMarco(p: PePdtic, valor: string | null | undefined): string {
+    return quandoMarcoPdtic(p, valor);
+  }
+
+  /** "Aprovado pelo CGTIC" só com a deliberação aprovada: o registrado fora do sistema por outra instância diz só "Aprovado" (como a visão geral, F1, C09). */
+  rotuloAprovado(p: PePdtic): string {
+    return p.RegistradoExternamente && p.Deliberacao?.Situacao !== 'aprovado' ? 'Aprovado' : 'Aprovado pelo CGTIC';
   }
 
   /** O nome de quem fez (sem ele, o e-mail): F1, C19. */

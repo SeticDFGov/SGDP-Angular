@@ -41,9 +41,9 @@
       <ng-container *ngTemplateOutlet="acaoVazia"></ng-container>
     </ng-container>
 
-    <app-pe-formulario-secao *ngIf="d.Secao.Tipo === 'formulario'" [dados]="d" [fonte]="fonte" [prefixoId]="prefixoId"
+    <app-pe-formulario-secao *ngIf="d.Secao.Tipo === 'formulario'" [dados]="d" [fonte]="fonte" [prefixoId]="prefixoId" [avisarSalvo]="avisarSalvo"
                              (salvou)="aoMudar($event)" (alterado)="alterado.emit($event)" (recarregar)="carregar()"></app-pe-formulario-secao>
-    <app-pe-tabela-registros *ngIf="d.Secao.Tipo === 'tabela'" [dados]="d" [fonte]="fonte" [prefixoId]="prefixoId"
+    <app-pe-tabela-registros *ngIf="d.Secao.Tipo === 'tabela'" [dados]="d" [fonte]="fonte" [prefixoId]="prefixoId" [avisarSalvo]="avisarSalvo"
                              [rotuloItem]="rotuloItem" (mudou)="aoMudar($event)" (alterado)="alterado.emit($event)"></app-pe-tabela-registros>
   </ng-container>
 </section>

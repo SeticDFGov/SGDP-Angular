@@ -22,6 +22,25 @@ export function rotuloSituacaoPdtic(situacao: string | null | undefined): string
   }
 }
 
+/**
+ * A situação de uma versão no meio da frase, com o verbo e no feminino ("a
+ * revisão (versão 1.2) foi devolvida pelo CGTIC"): o rótulo da situação é
+ * masculino ("Devolvido", "Aprovado"), e montar "está" com ele não concorda (F2, C-N1).
+ */
+export function situacaoDaVersaoNaFrase(situacao: string | null | undefined): string {
+  switch (situacao) {
+    case 'em_elaboracao': return 'está em elaboração';
+    case 'em_aprovacao': return 'está com o CGTIC, aguardando a deliberação';
+    case 'devolvido': return 'foi devolvida pelo CGTIC para ajustes';
+    case 'aprovado': return 'foi aprovada pelo CGTIC e aguarda a publicação';
+    case 'publicado': return 'foi publicada';
+    case 'em_acompanhamento': return 'está em acompanhamento';
+    case 'encerrado': return 'foi encerrada';
+    case 'substituido': return 'foi substituída';
+    default: return `está na situação "${situacao || '-'}"`;
+  }
+}
+
 export function classeSituacaoPdtic(situacao: string | null | undefined): string {
   switch (situacao) {
     case 'em_elaboracao': return 'bg-blue-100 text-blue-800';
@@ -232,6 +251,15 @@ export function motivoLeituraDoPasso(grupo: GrupoPassoPdtic, situacao: string | 
 export function quandoPdtic(valor: string | null | undefined): string {
   if (!valor) return '-';
   return /^\d{4}-\d{2}-\d{2}$/.test(valor) ? textoData(valor) : textoDataHora(valor);
+}
+
+/**
+ * A data da aprovação ou da publicação do PDTIC. No registrado fora do sistema,
+ * só o dia: o registro tem só a data, e o servidor a guarda ao meio-dia (o "às
+ * 12:00" que aparecia não existia; F2, C-O2).
+ */
+export function quandoMarcoPdtic(pdtic: Pick<PePdtic, 'RegistradoExternamente'> | null | undefined, valor: string | null | undefined): string {
+  return pdtic?.RegistradoExternamente ? textoData(valor) : quandoPdtic(valor);
 }
 
 /** A versão que a revisão cria: "1.0" vira "1.1" (o servidor decide; é só para o texto da confirmação). */

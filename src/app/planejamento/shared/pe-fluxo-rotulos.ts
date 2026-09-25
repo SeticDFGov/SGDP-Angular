@@ -24,6 +24,8 @@ export interface TipoElementoFluxo extends OpcaoRotulo<PeTipoElementoFluxo> {
   icone: string;
   /** O que o tipo faz, para quem escolhe. */
   explicacao: string;
+  /** O número do tipo numerado, dito só no fluxo com prefixo (sem prefixo, nada tem número; F2, D-O1). */
+  explicacaoNumero?: string;
   /** Rótulo do campo do nome ("Pergunta da decisão"). */
   rotuloNome: string;
 }
@@ -31,11 +33,13 @@ export interface TipoElementoFluxo extends OpcaoRotulo<PeTipoElementoFluxo> {
 export const TIPOS_ELEMENTO_FLUXO: readonly TipoElementoFluxo[] = [
   {
     valor: 'tarefa', rotulo: 'Tarefa', icone: 'check_box_outline_blank', rotuloNome: 'Nome da tarefa',
-    explicacao: 'Uma atividade que a raia faz. Recebe um número automático, como 1.3.'
+    explicacao: 'Uma atividade que a raia faz.',
+    explicacaoNumero: 'Recebe um número automático, como 1.3.'
   },
   {
     valor: 'subprocesso', rotulo: 'Subprocesso', icone: 'add_box', rotuloNome: 'Nome do subprocesso',
-    explicacao: 'Um conjunto de atividades que tem o próprio fluxo, como a preparação dentro da elaboração. Também recebe número.'
+    explicacao: 'Um conjunto de atividades que tem o próprio fluxo, como a preparação dentro da elaboração.',
+    explicacaoNumero: 'Também recebe um número automático.'
   },
   {
     valor: 'decisao', rotulo: 'Decisão', icone: 'help_outline', rotuloNome: 'Pergunta da decisão',
@@ -71,8 +75,11 @@ export function iconeTipoElemento(tipo: string | null | undefined): string {
   return tipoElemento(tipo)?.icone ?? 'label';
 }
 
-export function explicacaoTipoElemento(tipo: string | null | undefined): string {
-  return tipoElemento(tipo)?.explicacao ?? '';
+/** O que o tipo faz; o número automático só entra no fluxo com prefixo (F2, D-O1). */
+export function explicacaoTipoElemento(tipo: string | null | undefined, comNumero = true): string {
+  const t = tipoElemento(tipo);
+  if (!t) return '';
+  return comNumero && t.explicacaoNumero ? `${t.explicacao} ${t.explicacaoNumero}` : t.explicacao;
 }
 
 export function rotuloNomeElemento(tipo: string | null | undefined): string {
@@ -95,7 +102,8 @@ export function tipoPedeNome(tipo: string | null | undefined): boolean {
 export const MAX_NOME_FLUXO = 200;
 export const MAX_NOME_RAIA = 120;
 export const MAX_NOME_ELEMENTO = 200;
-export const MAX_ARTEFATO = 200;
+/** O nome de um documento do passo: o mesmo máximo do servidor (F2). */
+export const MAX_ARTEFATO = 120;
 export const MAX_ROTULO_SAIDA = 60;
 export const MAX_PREFIXO = 10;
 
@@ -456,41 +464,97 @@ function papelDoParalelo(id: string, v: VizinhosFluxo): 'divide' | 'junta' | 'ju
   return null;
 }
 
+// ── Posição na raia (F2, como as mensagens do servidor) ──────────────────────
+
+/** Onde o elemento sem nome fica: a posição entre os do mesmo tipo na raia em que o desenho o põe, e a raia. */
+export interface PosicaoNaRaia {
+  posicao: number;
+  total: number;
+  /** "raia Equipe" ou, sem nome, "2ª raia" (de cima para baixo). */
+  raia: string;
+}
+
 /**
- * Rótulo curto de cada elemento, para as listas de escolha e os resumos:
- * "1.3 Descrever a metodologia", "Decisão: Minuta aprovada?", "Paralelo 1
- * (divide)", "Início", "Fim 2", "Ligação: Revisão do PDTIC".
+ * A posição de cada elemento entre os do mesmo tipo na raia em que o desenho o põe
+ * (a dele ou, sem raia que exista, a primeira), na ordem do fluxo, que é a da
+ * leitura do desenho, da esquerda para a direita: a mesma conta das mensagens do
+ * servidor ("o 2º fim da raia "Equipe""). Assim, o que o leitor de tela diz de um
+ * item sem nome bate com a lista dos problemas (F2).
+ */
+export function posicoesNaRaia(def: PeFluxoDefinicao, ordem: readonly PeFluxoElemento[], dic: DicionarioFluxo): Map<string, PosicaoNaRaia> {
+  const raias = raiasEmOrdem(def);
+  const textoRaia = new Map(raias.map((r, i) => {
+    const nome = resolverNomes(r.Nome, dic).trim();
+    return [r.Id, nome ? `raia ${nome}` : `${i + 1}ª raia`];
+  }));
+  const grupos = new Map<string, PeFluxoElemento[]>();
+  for (const e of ordem) {
+    const raia = raias.some(r => r.Id === e.RaiaId) ? e.RaiaId : raias[0]?.Id ?? '';
+    const chave = `${e.Tipo}|${raia}`;
+    grupos.set(chave, [...(grupos.get(chave) ?? []), e]);
+  }
+  const posicoes = new Map<string, PosicaoNaRaia>();
+  for (const [chave, lista] of grupos) {
+    const raia = textoRaia.get(chave.slice(chave.indexOf('|') + 1)) ?? 'raia';
+    lista.forEach((e, i) => posicoes.set(e.Id, { posicao: i + 1, total: lista.length, raia }));
+  }
+  return posicoes;
+}
+
+/** Os tipos que concordam no feminino ("a 2ª tarefa", "a decisão"). */
+function feminino(tipo: string): boolean {
+  return tipo === 'tarefa' || tipo === 'decisao' || tipo === 'ligacao';
+}
+
+/** ", o 2º da raia Equipe" (vários do tipo na raia) ou " da raia Equipe" (um só na raia). */
+function sufixoDaRaia(tipo: string, p: PosicaoNaRaia | undefined): string {
+  if (!p) return '';
+  if (p.total <= 1) return ` da ${p.raia}`;
+  return feminino(tipo) ? `, a ${p.posicao}ª da ${p.raia}` : `, o ${p.posicao}º da ${p.raia}`;
+}
+
+/**
+ * Rótulo curto de cada elemento, para as listas de escolha, os resumos e o nome
+ * de cada bloco para o leitor de tela: "1.3 Descrever a metodologia", "Decisão:
+ * Minuta aprovada?", "Paralelo (divide)", "Início", "Ligação: Revisão do PDTIC".
+ * O item sem nome de um tipo que se repete no fluxo é achado pela raia e, quando
+ * ela tem mais de um do tipo, pela posição nela, como nas mensagens do servidor:
+ * "Fim, o 2º da raia Equipe", "Fim da raia Comitê", "Tarefa sem nome, a 2ª da
+ * raia Equipe" (F2; antes, "Fim 2", contando o fluxo inteiro).
  */
 export function rotulosDosElementos(
   def: PeFluxoDefinicao, numeros: ReadonlyMap<string, string>, dic: DicionarioFluxo, v: VizinhosFluxo, ordem: readonly PeFluxoElemento[]
 ): Map<string, string> {
   const rotulos = new Map<string, string>();
-  const contagem = new Map<string, number>();
+  const posicoes = posicoesNaRaia(def, ordem, dic);
+  // Quantos há de cada tipo no fluxo, e quantos sem nome (o item sem nome único não precisa da raia)
   const total = new Map<string, number>();
-  for (const e of def.Elementos) total.set(e.Tipo, (total.get(e.Tipo) ?? 0) + 1);
-  let semNome = 0;
+  const semNome = new Map<string, number>();
+  for (const e of def.Elementos) {
+    total.set(e.Tipo, (total.get(e.Tipo) ?? 0) + 1);
+    if (!resolverNomes(e.Nome, dic).trim()) semNome.set(e.Tipo, (semNome.get(e.Tipo) ?? 0) + 1);
+  }
   for (const e of ordem) {
-    const n = (contagem.get(e.Tipo) ?? 0) + 1;
-    contagem.set(e.Tipo, n);
-    const varios = (total.get(e.Tipo) ?? 0) > 1;
     const nome = resolverNomes(e.Nome, dic).trim();
+    const onde = (quantos: Map<string, number>) => (quantos.get(e.Tipo) ?? 0) > 1 ? sufixoDaRaia(e.Tipo, posicoes.get(e.Id)) : '';
     let rotulo: string;
     switch (e.Tipo) {
-      case 'inicio': rotulo = nome ? `Início: ${nome}` : varios ? `Início ${n}` : 'Início'; break;
-      case 'fim': rotulo = nome ? `Fim: ${nome}` : varios ? `Fim ${n}` : 'Fim'; break;
+      case 'inicio': rotulo = nome ? `Início: ${nome}` : `Início${onde(total)}`; break;
+      case 'fim': rotulo = nome ? `Fim: ${nome}` : `Fim${onde(total)}`; break;
       case 'decisao':
-        rotulo = nome ? `Decisão: ${nome}` : ehEncontroDeCaminhos(e, v) ? 'Encontro dos caminhos' : 'Decisão: sem pergunta';
+        rotulo = nome ? `Decisão: ${nome}`
+          : ehEncontroDeCaminhos(e, v) ? `Encontro dos caminhos${onde(semNome)}` : `Decisão sem pergunta${onde(semNome)}`;
         break;
       case 'paralelo': {
         const papel = papelDoParalelo(e.Id, v);
-        rotulo = `${nome ? `Paralelo: ${nome}` : varios ? `Paralelo ${n}` : 'Paralelo'}${papel ? ` (${papel})` : ''}`;
+        rotulo = `${nome ? `Paralelo: ${nome}` : `Paralelo${onde(total)}`}${papel ? ` (${papel})` : ''}`;
         break;
       }
-      case 'ligacao': rotulo = `Ligação: ${nome || 'sem nome'}`; break;
+      case 'ligacao': rotulo = nome ? `Ligação: ${nome}` : `Ligação sem nome${onde(semNome)}`; break;
       default: {
         const numero = numeros.get(e.Id);
-        if (!nome) semNome++;
-        const base = nome || `${rotuloTipoElemento(e.Tipo)} sem nome ${semNome}`;
+        // Com número, ele distingue; sem número, a raia e a posição (como o servidor)
+        const base = nome || `${rotuloTipoElemento(e.Tipo)} sem nome${numero ? '' : onde(semNome)}`;
         rotulo = numero ? `${numero} ${base}` : base;
       }
     }
@@ -511,12 +575,22 @@ function comDe(referencia: string): string {
   return m ? `d${m[1]} ${m[2]}` : `de ${referencia}`;
 }
 
-/** Referência a um elemento dentro de uma frase ("a decisão "Minuta aprovada?"", "o fim"). */
-function referencia(e: PeFluxoElemento, rotulos: ReadonlyMap<string, string>, dic: DicionarioFluxo, v: VizinhosFluxo): string {
+/**
+ * Referência a um elemento dentro de uma frase ("a decisão "Minuta aprovada?"", "o
+ * fim"). O início, o fim e o paralelo sem nome de um fluxo que tem mais de um vão
+ * pela raia e pela posição nela, como nas mensagens do servidor ("o 2º fim da raia
+ * Equipe"; F2).
+ */
+function referencia(
+  e: PeFluxoElemento, rotulos: ReadonlyMap<string, string>, dic: DicionarioFluxo, v: VizinhosFluxo,
+  repetidos?: ReadonlySet<string>, posicoes?: ReadonlyMap<string, PosicaoNaRaia>
+): string {
   const nome = resolverNomes(e.Nome, dic).trim();
+  const p = repetidos?.has(e.Tipo) ? posicoes?.get(e.Id) : undefined;
+  const pelaRaia = (tipo: string): string | null => p ? (p.total > 1 ? `o ${p.posicao}º ${tipo} da ${p.raia}` : `o ${tipo} da ${p.raia}`) : null;
   switch (e.Tipo) {
-    case 'inicio': return nome ? `o início "${nome}"` : 'o início';
-    case 'fim': return nome ? `o fim "${nome}"` : 'o fim do fluxo';
+    case 'inicio': return nome ? `o início "${nome}"` : pelaRaia('início') ?? 'o início';
+    case 'fim': return nome ? `o fim "${nome}"` : pelaRaia('fim') ?? 'o fim do fluxo';
     case 'decisao':
       if (!nome && ehEncontroDeCaminhos(e, v)) return 'o ponto em que os caminhos se encontram';
       return nome ? `a decisão "${nome}"` : 'a decisão sem pergunta';
@@ -524,7 +598,7 @@ function referencia(e: PeFluxoElemento, rotulos: ReadonlyMap<string, string>, di
       const papel = papelDoParalelo(e.Id, v);
       if (papel === 'junta') return 'o ponto em que os caminhos se juntam';
       if (papel === 'divide') return 'o ponto em que o caminho se divide';
-      return nome ? `o paralelo "${nome}"` : 'o paralelo';
+      return nome ? `o paralelo "${nome}"` : pelaRaia('paralelo') ?? 'o paralelo';
     }
     case 'ligacao': return nome ? `a ligação com outro fluxo "${nome}"` : 'a ligação com outro fluxo';
     default: return rotulos.get(e.Id) ?? nome;
@@ -553,13 +627,18 @@ export function descricaoDoFluxo(def: PeFluxoDefinicao, dic: DicionarioFluxo, nu
   const rotulos = rotulosDosElementos(def, nums, dic, v, ordem);
   const porId = new Map(def.Elementos.map(e => [e.Id, e]));
   const raias = raiasEmOrdem(def);
+  // O início, o fim e o paralelo sem nome, quando se repetem no fluxo, vão pela raia e pela posição nela (F2)
+  const posicoes = posicoesNaRaia(def, ordem, dic);
+  const porTipo = new Map<string, number>();
+  for (const e of def.Elementos) porTipo.set(e.Tipo, (porTipo.get(e.Tipo) ?? 0) + 1);
+  const repetidos = new Set([...porTipo].filter(([, n]) => n > 1).map(([t]) => t));
   const nomeRaia = (id: string) => {
     const raia = raias.find(r => r.Id === id);
     return raia ? resolverNomes(raia.Nome, dic).trim() || 'raia sem nome' : 'raia não encontrada';
   };
   const destino = (l: PeFluxoLigacao) => {
     const alvo = porId.get(l.Para);
-    const ref = alvo ? referencia(alvo, rotulos, dic, v) : 'um passo que não existe mais';
+    const ref = alvo ? referencia(alvo, rotulos, dic, v, repetidos, posicoes) : 'um passo que não existe mais';
     return retornos.has(l.Id) ? `volta para ${ref}` : ref;
   };
   const depois = (e: PeFluxoElemento) => {
@@ -572,7 +651,7 @@ export function descricaoDoFluxo(def: PeFluxoDefinicao, dic: DicionarioFluxo, nu
   const origensDe = (e: PeFluxoElemento) => juntar((v.entradas.get(e.Id) ?? [])
     .map(l => porId.get(l.De))
     .filter((x): x is PeFluxoElemento => !!x)
-    .map(x => comDe(referencia(x, rotulos, dic, v))));
+    .map(x => comDe(referencia(x, rotulos, dic, v, repetidos, posicoes))));
 
   const itens = ordem.map(e => {
     const nome = resolverNomes(e.Nome, dic).trim();

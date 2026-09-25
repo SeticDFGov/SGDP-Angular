@@ -53,6 +53,12 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
   @Input() acaoVazia: TemplateRef<unknown> | null = null;
   /** Mudou: a seção é buscada de novo (a tela criou registros por fora, como na sugestão do cronograma). */
   @Input() recarga = 0;
+  /**
+   * Quem dá o aviso de "salvo" ou "incluído" (F2, C-O3): sem ele, o próprio
+   * componente (um toast). A tela do passo o recebe para juntar o aviso ao "Passo
+   * N.M feito", quando a gravação completa o passo (um aviso só).
+   */
+  @Input() avisarSalvo: ((texto: string) => void) | null = null;
   /** A lista mudou (inclusão, alteração, exclusão, ordem) ou o formulário foi salvo. */
   @Output() readonly mudou = new EventEmitter<void>();
   /** Há mudança não salva na seção. */

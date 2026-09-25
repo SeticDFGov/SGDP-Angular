@@ -60,9 +60,15 @@ export class PePaineisService {
   }
 
   /** A planilha da conformidade: uma linha por órgão e uma coluna por item ("Sim", "Não" ou "Não se aplica"). */
-  planilhaConformidade(formato: PeFormatoPlanilha): Observable<HttpResponse<Blob>> {
+  planilhaConformidade(formato: PeFormatoPlanilha, consulta: PeConformidadeConsulta = {}): Observable<HttpResponse<Blob>> {
+    // Os filtros aplicados na tela (grupo, nível e busca) valem também na planilha (F2)
+    let params = new HttpParams().set('formato', formato);
+    if (consulta.Grupo) params = params.set('Grupo', consulta.Grupo);
+    if (consulta.NivelId) params = params.set('NivelId', consulta.NivelId);
+    const filtro = consulta.Filtro?.trim();
+    if (filtro) params = params.set('Filtro', filtro);
     return this.http.get(`${this.apiUrl}/conformidade/planilha`, {
-      params: new HttpParams().set('formato', formato),
+      params,
       responseType: 'blob',
       observe: 'response'
     });

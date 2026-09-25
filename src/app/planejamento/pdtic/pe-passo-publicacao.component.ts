@@ -6,7 +6,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic, rotuloPdfDoPdtic } from '../shared/pe-pdf-pdtic';
-import { minusculaInicial, quandoPdtic } from '../shared/pe-pdtic-rotulos';
+import { minusculaInicial, quandoMarcoPdtic } from '../shared/pe-pdtic-rotulos';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
 /** Um problema que o servidor achou na seção da publicação (400 com `Campos`). */
@@ -87,8 +87,9 @@ export class PePassoPublicacaoComponent implements AfterViewChecked {
     return this.pdfCache;
   }
 
-  quando(valor: string | null | undefined): string {
-    return quandoPdtic(valor);
+  /** A data da publicação: no PDTIC registrado fora do sistema, só o dia (F2, C-O2). */
+  get quandoPublicado(): string {
+    return quandoMarcoPdtic(this.pdtic, this.pdtic.PublicadoEm);
   }
 
   /** O nome do PDF pelo caminho do PDTIC (F1, I02: "PDF publicado" depois da publicação). */

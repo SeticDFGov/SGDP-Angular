@@ -316,7 +316,8 @@ export class PeConformidadeComponent implements OnInit {
   baixar(formato: PeFormatoPlanilha): void {
     if (this.baixando) return;
     this.baixando = formato;
-    this.paineisService.planilhaConformidade(formato).subscribe({
+    const f = this.filtro;
+    this.paineisService.planilhaConformidade(formato, { Grupo: f.grupo, NivelId: f.nivel, Filtro: f.busca }).subscribe({
       next: resposta => {
         this.baixando = null;
         salvarResposta(resposta, `PDTIC_conformidade_${hojeIso()}.${formato}`);

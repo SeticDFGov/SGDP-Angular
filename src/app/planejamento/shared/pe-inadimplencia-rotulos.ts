@@ -83,7 +83,8 @@ export const LIMITES_INADIMPLENCIA = {
   prazoDescumprido: 300,
   documento: 200,
   sei: 50,
-  justificativa: 4000,
+  /** O mesmo máximo do servidor (F2). */
+  justificativa: 2000,
   nota: 8000,
   observacao: 2000
 } as const;

@@ -17,6 +17,7 @@ import {
   renomearElemento, rotuloNomeElemento, rotuloSugeridoSaida, rotuloTipoElemento, tipoEntraNaSeta, tipoNumerado, tipoPedeNome
 } from '../shared/pe-fluxo-rotulos';
 import { juntar } from '../shared/pe-modelo-rotulos';
+import { acertarRolagemSobCabecalho, alturaDoPePreso } from '../shared/pe-rolagem';
 import { PeFluxoTrabalho, PeSelecaoFluxo, PeSelecionarFluxo, idNaTela } from './pe-fluxo-trabalho';
 
 /** Espera depois da última mudança antes de pedir a geometria de novo (a mudança seguinte cancela o pedido). */
@@ -379,9 +380,14 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     for (const l of vista.ligacoes) entradas.set(l.para, [...(entradas.get(l.para) ?? []), l.de]);
     this.nomes = new Map(vista.blocos.map(b => {
       const antes = (entradas.get(b.id) ?? []).map(id => this.curto(id));
-      const principal = tipoNumerado(b.tipo) ? `${rotuloTipoElemento(b.tipo)} ${this.trabalho.rotuloPorId(b.id)}` : this.trabalho.rotuloPorId(b.id);
+      const rotulo = this.trabalho.rotuloPorId(b.id);
+      const tipo = rotuloTipoElemento(b.tipo);
+      // Sem repetir o tipo ("Tarefa sem nome...") nem a raia, quando o rótulo já a diz ("Fim, o 2º da raia Equipe"; F2)
+      const principal = tipoNumerado(b.tipo) && !rotulo.startsWith(tipo) ? `${tipo} ${rotulo}` : rotulo;
+      const nomeRaia = this.trabalho.nomeRaiaPorId(b.raiaId);
+      const raia = rotulo.includes(`da raia ${nomeRaia}`) || /da \d+ª raia/.test(rotulo) ? '' : `, raia ${nomeRaia}`;
       const depois = b.tipo !== 'inicio' && antes.length ? `, depois de ${juntar(antes)}` : '';
-      return [b.id, `${principal}, raia ${this.trabalho.nomeRaiaPorId(b.raiaId)}${depois}${b.solto ? ', sem ligação' : ''}`];
+      return [b.id, `${principal}${raia}${depois}${b.solto ? ', sem ligação' : ''}`];
     }));
     this.nomesSetas = new Map(vista.ligacoes.map(l => [
       l.id,
@@ -420,7 +426,12 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     if (topo - FOLGA_VISTA_PX < top) top = Math.max(0, topo - FOLGA_VISTA_PX);
     rolagem.scrollLeft = left;
     rolagem.scrollTop = top;
-    if (comNome) document.getElementById('pe-fxv-nome')?.closest('form')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    const campo = comNome ? document.getElementById('pe-fxv-nome')?.closest('form') ?? null : null;
+    if (!campo) return;
+    campo.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    // A página rolou até o campo: nenhuma linha da paleta (nem outro botão acima) fica cortada pela borda do
+    // cabeçalho preso da tela (F2, A-N03 e D-O3)
+    acertarRolagemSobCabecalho(rolagem.closest('app-pe-fluxo-editor') ?? rolagem, campo, alturaDoPePreso(), '.pe-fxv-rolagem');
   }
 
   // ── Consultas do modelo ───────────────────────────────────────────────────

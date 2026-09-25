@@ -11,5 +11,7 @@
 @media (min-width: 64rem) {
   .pe-fx-visual { flex-direction: row; align-items: flex-start; }
   .pe-fx-painel { width: 18rem; flex: none; position: sticky; top: 5rem; max-height: calc(100vh - 10rem); overflow-y: auto; }
-  .pe-fx-painel-fechado .pe-fx-painel { width: auto; }
+  /* Escondido: só o botão com o ícone, fino, e o desenho fica com a largura (F2; eram 174 px de coluna) */
+  .pe-fx-painel-fechado .pe-fx-painel { width: auto; padding: 0.25rem; }
+  .pe-fx-painel-fechado .pe-fx-painel-texto { display: none; }
 }

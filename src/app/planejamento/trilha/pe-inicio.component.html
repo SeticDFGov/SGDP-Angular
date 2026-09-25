@@ -33,7 +33,7 @@
           <li>As etapas estão numeradas na ordem em que o trabalho acontece. Comece pela etapa 1.</li>
           <li>Cada passo mostra o que fazer, a base legal e, quando há, a atividade do Guia de PDTIC do SISP (o guia do governo
             federal que o módulo segue). Passe o mouse sobre um artigo, ou chegue nele pelo teclado, para ler o texto da norma.</li>
-          <li>No fim de cada tela, o botão "Próximo passo" leva adiante, sem precisar procurar em menus.</li>
+          <li>Dentro de cada passo, o botão "Próximo passo", no fim da tela, leva ao seguinte, sem precisar procurar em menus.</li>
           <li *ngIf="e.perfil === 'orgao'">Cada passo mostra a situação: feito, pendente, com comentário aberto da SGDI, "não se
             aplica", aguardando outra coisa antes (a deliberação do CGTIC ou a publicação, por exemplo) ou feito fora do sistema,
             sempre com o motivo escrito. Um passo fica feito quando as seções obrigatórias dele estão preenchidas.</li>
@@ -146,7 +146,7 @@
             <span class="material-icons text-purple-700" aria-hidden="true">swap_horiz</span>
             <div class="leading-relaxed">
               <p>Você está vendo a versão {{ v.vigente.Versao }}, a vigente{{ v.vigente.Situacao === 'em_acompanhamento' ? ', que segue em acompanhamento' : ', publicada' }}.
-                A revisão (versão {{ v.emRevisao.Versao }}) está {{ situacaoEmTexto(v.emRevisao.Situacao) }}.</p>
+                A revisão (versão {{ v.emRevisao.Versao }}) {{ situacaoEmTexto(v.emRevisao.Situacao) }}.</p>
               <button type="button" (click)="verVersao(v.emRevisao)"
                       class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
                 <span class="material-icons text-base" aria-hidden="true">swap_horiz</span> Ver a versão {{ v.emRevisao.Versao }} (em revisão)
@@ -178,7 +178,7 @@
           <!-- Aprovado: falta a publicação -->
           <div *ngIf="p.Situacao === 'aprovado'" class="mt-3 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
             <span class="material-icons text-green-600" aria-hidden="true">verified</span>
-            <p class="leading-relaxed"><strong>Aprovado pelo CGTIC<ng-container *ngIf="p.AprovadoEm"> em {{ quando(p.AprovadoEm) }}</ng-container><ng-container *ngIf="ato(p) as a"> ({{ a }})</ng-container>.</strong>
+            <p class="leading-relaxed"><strong>Aprovado pelo CGTIC<ng-container *ngIf="p.AprovadoEm"> em {{ quandoMarco(p, p.AprovadoEm) }}</ng-container><ng-container *ngIf="ato(p) as a"> ({{ a }})</ng-container>.</strong>
               Falta registrar a publicação<ng-container *ngIf="links.publicacao as l"> no
                 <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold underline">passo {{ l.numero }}</a></ng-container>:
               com ela, o PDTIC passa a valer e começa o acompanhamento.</p>
@@ -234,12 +234,12 @@
             <!-- "Aprovado pelo CGTIC" só com a deliberação aprovada; o PDTIC aprovado fora do sistema por outra instância diz só "Aprovado" (F1, C09) -->
             <div *ngIf="p.AprovadoEm">
               <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ aprovadoPeloCgtic(p) ? 'Aprovado pelo CGTIC' : 'Aprovado' }}</dt>
-              <dd class="text-gray-900 font-medium mt-0.5">{{ quando(p.AprovadoEm) }}<ng-container *ngIf="!aprovadoPeloCgtic(p) && p.RegistradoExternamente">
+              <dd class="text-gray-900 font-medium mt-0.5">{{ quandoMarco(p, p.AprovadoEm) }}<ng-container *ngIf="!aprovadoPeloCgtic(p) && p.RegistradoExternamente">
                 (fora do sistema, por outra instância)</ng-container></dd>
             </div>
             <div *ngIf="p.PublicadoEm">
               <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Publicado</dt>
-              <dd class="text-gray-900 font-medium mt-0.5">{{ quando(p.PublicadoEm) }}</dd>
+              <dd class="text-gray-900 font-medium mt-0.5">{{ quandoMarco(p, p.PublicadoEm) }}</dd>
             </div>
             <div *ngIf="p.EncerradoEm">
               <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Encerrado</dt>

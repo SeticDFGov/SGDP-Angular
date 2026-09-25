@@ -31,6 +31,20 @@ export type CargaTrilhaPe = 'carregando' | 'pronta' | 'sem-papel' | 'sem-orgao' 
  */
 export type CargaPdticPe = 'carregando' | 'ok' | 'sem-pdtic' | 'erro';
 
+/**
+ * F2 (C-O1): o endereço pedia uma versão (`?versao=`) que a trilha não mostra
+ * (substituída, encerrada ou que não é do órgão): a moldura diz qual versão está
+ * à vista e onde consultar a anterior.
+ */
+export interface AvisoVersaoPe {
+  /** A versão pedida, quando é uma das versões do órgão (null quando não se sabe qual é). */
+  pedida: PePdtic | null;
+  /** A versão que substituiu a pedida (a seguinte, na lista das versões), quando ela foi substituída. */
+  sucessora: PePdtic | null;
+  /** A versão à vista. */
+  atual: PePdtic;
+}
+
 export interface EstadoTrilhaPe {
   carga: CargaTrilhaPe;
   /** Perfil admin do SGDP: vê todas as trilhas ("Ver a trilha de") e tudo no módulo. */
@@ -146,6 +160,16 @@ export class PeTrilhaEstadoService {
    */
   private versaoDoEndereco: { pdticId: number | null; comCiclos: boolean } | null = null;
   private cacheVersoes: { lista: PePdtic[] | null; valor: { emRevisao: PePdtic; vigente: PePdtic } | null } = { lista: null, valor: null };
+  /** F2 (C-O1): o aviso da versão pedida pelo endereço que a trilha não mostra; sai na troca de tela. */
+  private avisoVersaoPedida: AvisoVersaoPe | null = null;
+
+  get avisoVersao(): AvisoVersaoPe | null {
+    return this.avisoVersaoPedida;
+  }
+
+  limparAvisoVersao(): void {
+    this.avisoVersaoPedida = null;
+  }
 
   get atual(): EstadoTrilhaPe | null {
     return this.estado.value;
@@ -247,6 +271,23 @@ export class PeTrilhaEstadoService {
   /** "Começar o PDTIC": só a equipe do órgão, no próprio órgão sem PDTIC (os demais veem só para ler). */
   get podeAbrirPdtic(): boolean {
     return this.ehEquipeDoOrgao && this.estado.value?.cargaPdtic === 'sem-pdtic';
+  }
+
+  /**
+   * C08 (F1 na visão geral, F2 na moldura e no passo): sem PDTIC atual, a versão
+   * encerrada (ou substituída) mais recente do órgão, quando há uma. Os textos
+   * dizem que ela foi encerrada, e não que o PDTIC nunca começou.
+   */
+  get ultimaEncerrada(): PePdtic | null {
+    const e = this.estado.value;
+    if (e?.cargaPdtic !== 'sem-pdtic') return null;
+    return (e.versoes ?? []).find(v => v.Situacao === 'encerrado' || v.Situacao === 'substituido') ?? null;
+  }
+
+  /** A versão que o "Começar" abre (e a sugerida no registro fora do sistema): 1.0 ou a do próximo ciclo (a maior mais um). */
+  get versaoNova(): string {
+    const maiores = (this.estado.value?.versoes ?? []).map(v => Number(v.Versao.split('.')[0])).filter(n => Number.isInteger(n) && n > 0);
+    return maiores.length ? `${Math.max(...maiores) + 1}.0` : '1.0';
   }
 
   /** Perfil admin do SGDP (pelo /me ou pelo `meu-papel`). */
@@ -458,6 +499,7 @@ export class PeTrilhaEstadoService {
     const agora = this.estado.value;
     const versao = agora?.versoes?.find(v => v.Id === pdticId);
     if (!agora || !versao || agora.pdtic?.Id === pdticId) return;
+    this.avisoVersaoPedida = null;
     this.versaoEscolhida = { orgaoId: agora.orgaoVisto, pdticId };
     this.estado.next({ ...agora, pdtic: versao, situacao: null });
     this.atualizarStatus(true);
@@ -476,9 +518,26 @@ export class PeTrilhaEstadoService {
       // As versões já chegaram: aplica agora
       const alvo = this.versaoPedida(lista, agora.pdtic, { pdticId, comCiclos });
       if (alvo) this.escolherVersao(alvo.Id);
+      else this.avisarVersaoPedida(lista, agora.pdtic, pdticId);
       return;
     }
     this.versaoDoEndereco = { pdticId, comCiclos };
+  }
+
+  /**
+   * F2 (C-O1): a versão do `?versao=` não é a à vista nem uma das que se escolhem:
+   * guarda o aviso (a trilha segue com a versão atual, e o endereço perde o `versao`).
+   * `versoes` nulo: o órgão não tem a lista (sem revisão), então não se sabe qual é.
+   */
+  private avisarVersaoPedida(versoes: PePdtic[] | null, atual: PePdtic, pdticId: number | null): void {
+    if (pdticId === null || pdticId === atual.Id) return;
+    const lista = versoes ?? [];
+    const i = lista.findIndex(v => v.Id === pdticId);
+    const pedida = i >= 0 ? lista[i] : null;
+    if (pedida && (pdticVigente(pedida.Situacao) || pdticAntesDaPublicacao(pedida.Situacao))) return;
+    // A lista vem da mais nova para a mais antiga: quem substituiu a pedida é a de antes dela
+    const sucessora = pedida?.Situacao === 'substituido' && i > 0 ? lista[i - 1] : null;
+    this.avisoVersaoPedida = { pedida, sucessora, atual };
   }
 
   /**
@@ -501,6 +560,8 @@ export class PeTrilhaEstadoService {
   private carregarVersoes(orgaoId: number | null, pdtic: PePdtic): void {
     this.cargaVersoes?.unsubscribe();
     if (!pdtic.Revisao && !pdtic.AnteriorId) {
+      // Sem versão anterior à vista: um `?versao=` de outra versão só ganha o aviso (F2, C-O1)
+      if (this.versaoDoEndereco) this.avisarVersaoPedida(null, pdtic, this.versaoDoEndereco.pdticId);
       this.versaoDoEndereco = null;
       return;
     }
@@ -511,10 +572,12 @@ export class PeTrilhaEstadoService {
         const pedida = this.versaoDoEndereco;
         this.versaoDoEndereco = null;
         const escolhida = this.versaoEscolhida;
-        const volta = (pedida ? this.versaoPedida(versoes, agora.pdtic, pedida) : null)
+        const doEndereco = pedida ? this.versaoPedida(versoes, agora.pdtic, pedida) : null;
+        const volta = doEndereco
           ?? (escolhida && escolhida.orgaoId === orgaoId && escolhida.pdticId !== agora.pdtic.Id
             ? versoes.find(v => v.Id === escolhida.pdticId && (pdticVigente(v.Situacao) || pdticAntesDaPublicacao(v.Situacao))) ?? null
             : null);
+        if (pedida && !doEndereco) this.avisarVersaoPedida(versoes, volta ?? agora.pdtic, pedida.pdticId);
         if (volta) {
           this.versaoEscolhida = { orgaoId, pdticId: volta.Id };
           this.estado.next({ ...agora, versoes, pdtic: volta, situacao: null });
@@ -564,6 +627,7 @@ export class PeTrilhaEstadoService {
   private carregarPdtic(orgaoId: number | null): void {
     this.cargaPdtic?.unsubscribe();
     this.cargaVersoes?.unsubscribe();
+    this.avisoVersaoPedida = null;
     const antes = this.estado.value;
     if (!antes) return;
     this.estado.next({ ...antes, ...SEM_PDTIC, cargaPdtic: 'carregando', situacao: null });

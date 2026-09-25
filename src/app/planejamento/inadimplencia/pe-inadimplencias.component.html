@@ -148,7 +148,7 @@
 
         <div class="px-6 py-4 max-h-[70vh] overflow-y-auto text-sm text-gray-700 leading-relaxed space-y-4">
           <p *ngIf="alvo as a" class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 break-words">
-            <span class="font-semibold text-gray-900">Comunicação pendente:</span> <span data-sem-dica>{{ a.Obrigacao }}</span>
+            <span class="font-semibold text-gray-900">Comunicação pendente: </span><span data-sem-dica>{{ a.Obrigacao }}</span>
           </p>
 
           <!-- O que falta, com o botão que leva a cada campo -->
@@ -229,8 +229,9 @@
               </div>
               <div>
                 <label [for]="ids.sei" class="block text-sm font-semibold text-gray-800">Número do processo SEI</label>
-                <input [id]="ids.sei" name="pe-inad-sei" type="text" [(ngModel)]="form.sei" (ngModelChange)="mudou('sei')"
-                       [maxlength]="limites.sei" placeholder="Ex.: 00000-00000000/2026-00"
+                <!-- A máscara do SEI enquanto a pessoa digita, como na decisão do CGTIC (F2) -->
+                <input [id]="ids.sei" #campoSei name="pe-inad-sei" type="text" inputmode="numeric" autocomplete="off" [ngModel]="form.sei"
+                       (ngModelChange)="digitarSeiNotificacao(campoSei)" [maxlength]="tamanhoSei" placeholder="Ex.: 00000-00000000/2026-00"
                        [attr.aria-invalid]="erro('sei') ? true : null" [attr.aria-describedby]="descritores('sei', 'pe-inad-sei-ajuda')"
                        class="mt-1 w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                        [ngClass]="erro('sei') ? 'border-red-500' : 'border-gray-300'" />

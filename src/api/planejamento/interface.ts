@@ -1301,6 +1301,12 @@ export interface PeDocMarcador {
   Chave: string;
   Descricao: string;
   Exemplo: string | null;
+  /**
+   * F2: onde o valor se preenche, indicado pelo servidor (o passo, pela chave, ou a
+   * seção). Sem eles, vale o que a tela sabe (`ondeSePreencheMarcador`).
+   */
+  PassoChave?: string | null;
+  SecaoChave?: string | null;
 }
 
 /**

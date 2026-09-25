@@ -171,10 +171,11 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
 
   ngAfterViewChecked(): void {
     if (!this.focoPendente || !this.noNavegador) return;
-    const alvo = document.getElementById(this.focoPendente);
-    if (!alvo) return;
+    const id = this.focoPendente;
+    if (!document.getElementById(id)) return;
     this.focoPendente = null;
-    alvo.focus();
+    // Depois da renderização: com as animações ligadas, o que sai da tela ainda está nela neste momento
+    queueMicrotask(() => document.getElementById(id)?.focus());
   }
 
   tentarPapelDeNovo(): void {
@@ -301,11 +302,21 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
     return this.escolhidaId !== null && !this.carregandoFila && !this.erroFila && !this.escolhida;
   }
 
+  /**
+   * Abre o registro da decisão. Na mesma tela (passo 2.1 da Secretaria), a fila sai
+   * e o foco vai para o título do que se decide; vindo de outra tela, a troca de
+   * página já leva o foco ao título (F2, C-N2).
+   */
   registrar(d: PeDeliberacao): void {
+    if (this.modo === 'decisao') this.focoPendente = 'pe-dec-titulo';
     this.router.navigate(['/planejamento/cgtic/deliberacao'], { queryParams: { deliberacao: d.Id } });
   }
 
+  /** De volta à fila, o foco vai para o "Registrar a decisão" do mesmo item (ou para a fila, sem ele) (F2, C-N2). */
   voltarParaFila(): void {
+    const id = this.escolhidaId;
+    this.focoPendente = id !== null && this.podeDecidir && this.filaVisivel.some(x => x.Id === id)
+      ? `pe-dec-registrar-${id}` : 'pe-dec-fila';
     this.router.navigate([], { relativeTo: this.rota, queryParams: { deliberacao: null }, queryParamsHandling: 'merge' });
   }
 

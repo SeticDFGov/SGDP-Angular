@@ -146,10 +146,12 @@
         </div>
         <!-- O painel se esconde, para o desenho ficar com a linha inteira; Enter num item do desenho mostra de novo (F1, D04) -->
         <aside class="pe-fx-painel rounded-lg border border-gray-200 bg-white p-4 space-y-4" aria-label="Painel do item selecionado">
+          <!-- Escondido, nas telas largas, fica só o ícone (o nome acessível diz o que o botão faz): o desenho usa a largura (F2) -->
           <button type="button" id="pe-fx-painel-alternar" (click)="alternarPainel()" [attr.aria-expanded]="painelAberto" aria-controls="pe-fx-painel-corpo"
+                  [attr.aria-label]="painelAberto ? null : 'Mostrar o painel do item selecionado'" [attr.title]="painelAberto ? null : 'Mostrar o painel'"
                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
             <span class="material-icons text-sm" aria-hidden="true">{{ painelAberto ? 'chevron_right' : 'chevron_left' }}</span>
-            {{ painelAberto ? 'Esconder o painel' : 'Mostrar o painel' }}
+            <span class="pe-fx-painel-texto">{{ painelAberto ? 'Esconder o painel' : 'Mostrar o painel' }}</span>
           </button>
           <div *ngIf="painelAberto" id="pe-fx-painel-corpo" class="space-y-4">
             <ng-container *ngTemplateOutlet="painel"></ng-container>
@@ -295,7 +297,7 @@
 
   <!-- Pé da tela: salvar, desfazer e descartar -->
   <!-- Espaços menores: no celular (375 px), os botões cabem numa linha só e o pé não cobre o desenho (F1, B21) -->
-  <div *ngIf="aberto && podeEditar" role="region" aria-label="Ações do fluxo"
+  <div *ngIf="aberto && podeEditar" id="pe-fx-pe" role="region" aria-label="Ações do fluxo"
        class="sticky bottom-0 z-10 flex flex-wrap items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-3 shadow-lg">
     <span class="material-icons" [ngClass]="sujo ? 'text-amber-600' : 'text-green-600'" aria-hidden="true">{{ sujo ? 'edit_note' : 'cloud_done' }}</span>
     <p class="flex-1 text-sm text-gray-800">
@@ -397,9 +399,9 @@
         {{ rotuloNome(e) }}<ng-container *ngIf="pedeNome(e)"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
       </label>
       <input [id]="idEl(e, 'nome')" type="text" [ngModel]="e.Nome" (ngModelChange)="mudarNome(e, $event)" [maxlength]="maxNomeElemento"
-             [attr.aria-describedby]="numerado(e) ? idEl(e, 'numero') : null"
+             [attr.aria-describedby]="comNumero(e) ? idEl(e, 'numero') : null"
              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <p *ngIf="numerado(e)" [id]="idEl(e, 'numero')" class="text-xs text-gray-600 mt-1">
+      <p *ngIf="comNumero(e)" [id]="idEl(e, 'numero')" class="text-xs text-gray-600 mt-1">
         Número automático: {{ numero(e) || 'sai no desenho' }}, pela ordem do fluxo.<ng-container *ngIf="sujo"> Ao salvar, vale o
         número do desenho.</ng-container>
       </p>

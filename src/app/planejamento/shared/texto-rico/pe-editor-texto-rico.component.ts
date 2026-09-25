@@ -442,6 +442,14 @@ export class PeEditorTextoRicoComponent implements OnChanges, AfterViewInit, Aft
     return !this.erroArquivoImagem && !this.erroDescricaoImagem;
   }
 
+  /** A ajuda do campo da imagem e os erros dele: o da conferência daqui e o do envio (F2, B-N2). */
+  get descritoresArquivoImagem(): string {
+    const ids = [`${this.idBase}-imagem-arquivo-ajuda`];
+    if (this.erroArquivoImagem) ids.push(`${this.idBase}-imagem-arquivo-erro`);
+    if (this.erroEnvioImagem) ids.push(`${this.idBase}-imagem-envio-erro`);
+    return ids.join(' ');
+  }
+
   inserirImagem(): void {
     if (this.enviandoImagem || !this.editor) return;
     this.tentouImagem = true;
@@ -462,6 +470,8 @@ export class PeEditorTextoRicoComponent implements OnChanges, AfterViewInit, Aft
       error: erro => {
         this.enviandoImagem = false;
         this.erroEnvioImagem = mensagemErroPe(erro, 'Não foi possível enviar a imagem. Tente de novo.');
+        // O foco vai para o campo da imagem, que diz o erro (F2, B-N2)
+        if (this.erroEnvioImagem) this.focoPendente = `${this.idBase}-imagem-arquivo`;
       }
     });
   }

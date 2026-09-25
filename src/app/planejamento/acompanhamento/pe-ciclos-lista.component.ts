@@ -60,6 +60,8 @@ export class PeCiclosListaComponent implements OnChanges, AfterViewChecked, OnDe
   /** A equipe pode abrir uma avaliação agora (o passo aceita gravação e nenhuma está aberta). */
   @Input() podeAbrirAvaliacao = false;
   @Input() pdticId: number | null = null;
+  /** O que a equipe registra em cada ciclo, pelas seções que o nível do órgão tem (F2: no Básico, só a situação das ações). */
+  @Input() oQueSeRegistra = 'a situação das ações, as medições e os riscos que ocorreram';
   /** Pede para ver outro ciclo (a tela do passo troca o endereço). */
   @Output() readonly escolher = new EventEmitter<number>();
   /** A avaliação nova foi aberta (a tela busca os ciclos de novo e passa a mostrá-la). */
@@ -171,8 +173,8 @@ export class PeCiclosListaComponent implements OnChanges, AfterViewChecked, OnDe
     return this.tipo === 'avaliacao'
       ? 'A avaliação intermediária consolida os resultados no meio da vigência, compara com as metas e leva ao comitê, que decide seguir '
         + 'com o PDTIC ou revisá-lo. A equipe abre uma avaliação quando o comitê pedir; só uma fica aberta por vez.'
-      : 'Os ciclos seguem a periodicidade do plano de monitoramento (trimestral, se o órgão não mudou). Em cada ciclo, a equipe registra a '
-        + 'situação das ações, as medições e os riscos que ocorreram e fecha o ciclo até o prazo.';
+      : 'Os ciclos seguem a periodicidade do plano de monitoramento (trimestral, se o órgão não mudou). Em cada ciclo, a equipe registra '
+        + `${this.oQueSeRegistra} e fecha o ciclo até o prazo.`;
   }
 
   get vazio(): string {

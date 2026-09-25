@@ -164,7 +164,7 @@ export class PePainelComponent implements OnInit {
     return this.painel?.Filtros.Situacoes ?? [];
   }
 
-  /** "Nível Avançado · Situação: Publicado", em palavras, para dizer o que está filtrado. */
+  /** "nível Avançado e situação "Publicado"", em palavras, para dizer o que está filtrado ("Os números com ..."). */
   get descricaoFiltros(): string {
     const partes: string[] = [];
     if (this.nivel !== null) {
@@ -173,7 +173,8 @@ export class PePainelComponent implements OnInit {
     }
     if (this.situacao !== null) {
       const rotulo = this.painel?.Filtros?.Situacoes?.find(s => s.Chave === this.situacao)?.Rotulo ?? this.situacao;
-      partes.push(`situação do PDTIC ${rotulo.toLowerCase()}`);
+      // O rótulo como o servidor manda, entre aspas: a sigla fica como é ("Sem PDTIC", não "sem pdtic"; F2)
+      partes.push(`situação "${rotulo}"`);
     }
     return partes.join(' e ');
   }

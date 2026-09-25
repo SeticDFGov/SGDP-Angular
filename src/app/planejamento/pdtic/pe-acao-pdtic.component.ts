@@ -18,7 +18,8 @@ import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 export type ModoAcaoPdtic = 'encerrar-equipe' | 'encerrar-admin' | 'revisao-avaliacao' | 'revisao-justificativa';
 
 /** Tamanho do motivo e da justificativa (o servidor confere de novo). */
-const MAX_TEXTO = 2000;
+/** O motivo de encerrar e a justificativa da revisão: o mesmo máximo do servidor (F2). */
+const MAX_TEXTO = 1000;
 
 /**
  * Encerrar o PDTIC ou abrir a revisão (E7), com a confirmação numa janela da

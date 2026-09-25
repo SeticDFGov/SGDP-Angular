@@ -50,6 +50,8 @@ export class PeTabelaRegistrosComponent implements OnChanges, AfterViewChecked {
   @Input({ required: true }) dados!: PeRegistrosDaSecao;
   @Input({ required: true }) fonte!: PeFonteRegistros;
   @Input() prefixoId = 'pe-tab';
+  /** Quem dá o aviso de "incluído" ou "salvo" (sem ele, um toast daqui; F2, C-O3). */
+  @Input() avisarSalvo: ((texto: string) => void) | null = null;
   /** Nome de um item ("princípio", "objetivo"): o botão diz "Incluir princípio". */
   @Input() rotuloItem = 'registro';
   /** A lista depois de cada inclusão, alteração, exclusão ou mudança de ordem. */
@@ -167,7 +169,9 @@ export class PeTabelaRegistrosComponent implements OnChanges, AfterViewChecked {
     this.alterado.emit(false);
     // "Registro A03 incluído": neutro no gênero, que muda de item para item (F1, C16)
     const nome = salvo.Codigo ? `Registro ${salvo.Codigo}` : 'Registro';
-    this.notificacoes.success(novo ? `${nome} incluído.` : `${nome} salvo.`);
+    const texto = novo ? `${nome} incluído.` : `${nome} salvo.`;
+    if (this.avisarSalvo) this.avisarSalvo(texto);
+    else this.notificacoes.success(texto);
     this.mudou.emit(this.registros);
   }
 

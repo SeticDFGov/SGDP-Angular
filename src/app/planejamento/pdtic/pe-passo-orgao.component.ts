@@ -19,13 +19,13 @@ import { NomesDoModelo, citacaoTravado, descricaoCampo, rotuloTipoPasso } from '
 import {
   GrupoPassoPdtic, SECAO_APROVACAO_AUTORIDADE, SECAO_AVALIACAO_COMITE, SECAO_CRONOGRAMA, SECAO_PUBLICACAO,
   TIPOS_PASSO_COM_SECOES, TIPOS_PASSO_COM_TELA, aceitaNaoSeAplica, classeEstadoPasso, ehPassoSistemasIa, grupoDoPasso,
-  iconeEstadoPasso, itemDaSecaoPdtic, minusculaInicial, motivoLeituraDoPasso, passoTemFluxos, pdticAntesDaPublicacao,
-  pdticDepoisDaPublicacao, pdticVigente, rotuloSituacaoPdtic, statusDoPassoPdtic, textoDoStatus
+  iconeEstadoPasso, itemDaSecaoPdtic, motivoLeituraDoPasso, passoTemFluxos, pdticAntesDaPublicacao,
+  pdticDepoisDaPublicacao, pdticVigente, situacaoDaVersaoNaFrase, statusDoPassoPdtic, textoDoStatus
 } from '../shared/pe-pdtic-rotulos';
 import {
   PassoDaGrade, SECAO_ACOES, SECAO_INDICADORES_MONITORAMENTO, SECAO_MEDICOES, SECAO_MONITORAMENTO_ACOES, SECAO_RELATORIO_CICLO,
-  SECOES_DO_RR, SECOES_POR_CICLO, TipoGrade, cicloAceitaDados, cicloAnterior, cicloDoEndereco, cicloMaisRecente, cicloPadrao,
-  ciclosEmOrdem, porCicloDaSecao, tipoCicloDoPasso
+  SECAO_RISCOS_OCORRIDOS, SECOES_DO_RR, SECOES_POR_CICLO, TipoGrade, cicloAceitaDados, cicloAnterior, cicloDoEndereco, cicloMaisRecente,
+  cicloPadrao, ciclosEmOrdem, oQueSeRegistraNoCiclo, porCicloDaSecao, tipoCicloDoPasso
 } from '../shared/pe-ciclos-rotulos';
 import { RelatorioDoc } from '../shared/pe-documento-rotulos';
 import { hojeIso, textoData } from '../shared/registros/pe-valores';
@@ -111,6 +111,9 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
  * gravar aparece sem ele. A mesma instância serve a todos os passos (a rota tem
  * parâmetro). Passo que não está na trilha à vista volta para a visão geral.
  */
+/** F2 (C-O3): quanto o aviso de uma gravação espera a situação do passo, para sair junto com o "Passo N.M feito". */
+const ESPERA_AVISO_SALVO_MS = 1500;
+
 @Component({
   selector: 'app-pe-passo-orgao',
   standalone: true,
@@ -219,11 +222,37 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   /** Uma mudança foi salva: a próxima situação que chegar é comparada com a de antes. */
   private esperandoSituacao = false;
   private destruida = false;
+  /** F2 (C-O3): o aviso da última gravação numa seção, esperando a situação do passo. */
+  private avisoSalvo: string | null = null;
+  private esperaAvisoSalvo: ReturnType<typeof setTimeout> | undefined;
+
+  /**
+   * F2 (C-O3): quem dá o aviso de uma gravação nas seções (como "Quem acompanha"
+   * preenchido). Ele espera a situação do passo, que vem logo depois: quando a
+   * gravação completa o passo, os dois saem num aviso só ("... preenchido. Passo 4.1
+   * feito: ..."). Sem a situação a tempo, ele sai sozinho.
+   */
+  readonly avisarSalvo = (texto: string): void => {
+    this.soltarAvisoSalvo();
+    this.avisoSalvo = texto;
+    this.esperaAvisoSalvo = setTimeout(() => this.soltarAvisoSalvo(), ESPERA_AVISO_SALVO_MS);
+  };
+
+  /** Dá o aviso guardado da gravação, com o texto do passo feito quando há (um toast só). */
+  private soltarAvisoSalvo(passoFeito?: string): void {
+    clearTimeout(this.esperaAvisoSalvo);
+    this.esperaAvisoSalvo = undefined;
+    const texto = [this.avisoSalvo, passoFeito].filter(t => !!t).join(' ');
+    this.avisoSalvo = null;
+    if (texto) this.notificacoes.success(texto);
+  }
 
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
       this.destruida = true;
       this.cargaCiclos?.unsubscribe();
+      // Saiu do passo com o aviso de uma gravação ainda esperando a situação: ele sai agora
+      this.soltarAvisoSalvo();
     });
     this.estadoService.estado$
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -350,9 +379,9 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     return (this.estadoService.atual?.versoes ?? []).find(v => v.Id !== p.Id && pdticAntesDaPublicacao(v.Situacao)) ?? null;
   }
 
-  /** "em elaboração", "devolvido pelo CGTIC" (no meio da frase). */
+  /** "está em elaboração", "foi devolvida pelo CGTIC para ajustes" (a versão no meio da frase, F2, C-N1). */
   situacaoEmTexto(situacao: string): string {
-    return minusculaInicial(rotuloSituacaoPdtic(situacao));
+    return situacaoDaVersaoNaFrase(situacao);
   }
 
   /** Vai para a versão em revisão (a troca de versão acontece na visão geral, como no seletor do alto da trilha). */
@@ -418,18 +447,54 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     return this.estadoService.podeAbrirPdtic;
   }
 
+  /** Sem PDTIC atual: a versão anterior encerrada (ou substituída), quando há uma (F2, C08). */
+  get ultimaEncerrada(): PePdtic | null {
+    return this.estadoService.ultimaEncerrada;
+  }
+
+  /** A versão que o "Começar" abre: 1.0 ou a do próximo ciclo (F2, C08). */
+  get versaoNova(): string {
+    return this.estadoService.versaoNova;
+  }
+
   /** E7: o órgão sem PDTIC pode registrar um aprovado fora do sistema (na visão geral). */
   get podeRegistrarExterno(): boolean {
     return this.estadoService.podeRegistrarExterno;
+  }
+
+  readonly secaoMedicoes = SECAO_MEDICOES;
+  readonly secaoRiscosOcorridos = SECAO_RISCOS_OCORRIDOS;
+
+  /** As seções da trilha do órgão (todos os passos do nível), pela chave: o mesmo objeto enquanto a trilha não muda. */
+  private get secoesDoNivel(): ReadonlySet<string> {
+    const passos = this.estadoService.atual?.passos ?? null;
+    if (passos !== this.cacheSecoes.passos) {
+      this.cacheSecoes = { passos, secoes: new Set((passos ?? []).flatMap(p => p.doOrgao?.Secoes ?? []).map(s => s.Chave)) };
+    }
+    return this.cacheSecoes.secoes;
+  }
+
+  private cacheSecoes: { passos: readonly PassoNumeradoPe[] | null; secoes: ReadonlySet<string> } = { passos: null, secoes: new Set() };
+
+  /** O nível do órgão tem a seção (em algum passo da trilha). */
+  nivelTemSecao(chave: string): boolean {
+    return this.secoesDoNivel.has(chave);
+  }
+
+  /** O que a equipe registra em cada ciclo de monitoramento, pelo nível (F2: no Básico, só a situação das ações). */
+  get oQueSeRegistra(): string {
+    return oQueSeRegistraNoCiclo(this.secoesDoNivel);
   }
 
   /** Como o passo fica feito, para quem preenche. */
   get textoPreencher(): string {
     if (this.tipoCiclo === 'monitoramento') {
       if (this.temGrade) {
-        return 'Escolha o ciclo na lista. Na grade das ações, registre a situação de cada ação no ciclo e salve a grade inteira; faça o '
-          + 'mesmo com as medições, se houver, e inclua os riscos que ocorreram. O passo fica feito quando os ciclos que já começaram '
-          + 'estão fechados.';
+        // Só o que o nível tem: no Básico, sem as medições e os riscos que ocorreram (F2)
+        const medicoes = this.nivelTemSecao(SECAO_MEDICOES) ? '; faça o mesmo com as medições, se houver' : '';
+        const riscos = this.nivelTemSecao(SECAO_RISCOS_OCORRIDOS) ? `${medicoes ? ', e' : ';'} inclua os riscos que ocorreram` : '';
+        return 'Escolha o ciclo na lista. Na grade das ações, registre a situação de cada ação no ciclo e salve a grade inteira'
+          + `${medicoes}${riscos}. O passo fica feito quando os ciclos que já começaram estão fechados.`;
       }
       return 'Confira o resumo do ciclo, preencha o resumo do período e feche o ciclo até o prazo: o sistema gera o relatório de '
         + 'acompanhamento (RA), que fica logo abaixo para conferir, ajustar os textos e baixar.';
@@ -936,6 +1001,7 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     if (this.passo.Chave !== this.chavePasso) {
       // Outro passo: as mudanças pendentes do anterior já passaram pela guarda de rota
       this.chavePasso = this.passo.Chave;
+      this.soltarAvisoSalvo();
       this.sujas.clear();
       this.documentoSujo = false;
       this.fluxosSujos = false;
@@ -1184,13 +1250,12 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     this.status = andamento ? statusDoPassoPdtic(andamento) : null;
     if (this.esperandoSituacao && andamento) {
       this.esperandoSituacao = false;
-      if (this.status?.estado === 'feito' && antes?.estado !== 'feito') {
-        // O toast fica numa região lida pelo leitor de tela: um aviso só. Passo sem seções (o documento, feito pelo
-        // PDF gerado; os fluxos) não fala de seções (F1, B15)
-        this.notificacoes.success(passo.Secoes.length > 0
-          ? `Passo ${passo.Numero} feito: as seções obrigatórias estão preenchidas.`
-          : `Passo ${passo.Numero} feito.`);
-      }
+      // O toast fica numa região lida pelo leitor de tela: um aviso só, junto com o da gravação que completou o passo
+      // (F2, C-O3). Passo sem seções (o documento, feito pelo PDF gerado; os fluxos) não fala de seções (F1, B15)
+      const feito = this.status?.estado === 'feito' && antes?.estado !== 'feito'
+        ? (passo.Secoes.length > 0 ? `Passo ${passo.Numero} feito: as seções obrigatórias estão preenchidas.` : `Passo ${passo.Numero} feito.`)
+        : undefined;
+      if (this.avisoSalvo !== null || feito) this.soltarAvisoSalvo(feito);
     }
   }
 

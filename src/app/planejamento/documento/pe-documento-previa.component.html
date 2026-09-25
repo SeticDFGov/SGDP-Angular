@@ -29,7 +29,10 @@
       </ng-container>
       <p *ngIf="tipoDoc === 'rr'" class="text-sm text-gray-700 leading-relaxed mt-1">
         O relatório de resultados sai do modelo da SGDI, com o resultado de cada meta, os riscos que ocorreram em toda a vigência e o
-        que a equipe registrou nos passos do fechamento. Ele vai ao comitê e à autoridade máxima, que aprovam nos passos seguintes.
+        que a equipe registrou nos passos do fechamento.
+        <!-- Só o que o nível do órgão tem: no Básico, não há a aprovação do comitê (F2) -->
+        {{ rrVaiAoComite ? 'Ele vai ao comitê e à autoridade máxima, que aprovam nos passos seguintes.'
+          : 'Ele vai à autoridade máxima, que o aprova no passo seguinte.' }}
       </p>
       <p *ngIf="d.PodeEditar" class="text-sm text-gray-700 leading-relaxed mt-1">
         Para mudar um texto, clique nele ou use o botão "Editar o texto": ele se salva sozinho. Dá para renomear os capítulos e
@@ -137,8 +140,9 @@
             <div *ngIf="!item.bloco" class="space-y-2" [ngClass]="item.capitulo.Nivel === 2 ? 'pt-3' : ''">
               <ng-container *ngIf="item.capitulo as c">
 
-                <!-- Capítulo escondido: só o título, para mostrar de novo -->
-                <div *ngIf="c.Oculto" [id]="'pe-doc-titulo-' + c.Id" tabindex="-1" style="scroll-margin-top: 6rem;"
+                <!-- Capítulo escondido: só o título, para mostrar de novo. Id próprio: com o mesmo id do título, o foco
+                     de "Mostrar de novo" ia para este quadro, que sai da página logo depois (F2, B01) -->
+                <div *ngIf="c.Oculto" [id]="'pe-doc-oculto-' + c.Id" tabindex="-1" style="scroll-margin-top: 6rem;"
                      class="flex flex-wrap items-center gap-3 rounded-md border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600">
                   <span class="material-icons text-base text-gray-500" aria-hidden="true">visibility_off</span>
                   <p class="flex-1"><strong>Capítulo escondido:</strong> {{ c.Titulo }}. Ele não sai no PDF.</p>
@@ -212,7 +216,7 @@
 
             <!-- Um bloco do capítulo -->
             <app-pe-doc-bloco *ngIf="item.bloco as b" [bloco]="b" [capitulo]="item.capitulo" [pdticId]="d.PdticId" [alvo]="alvo"
-                              [podeEditar]="d.PodeEditar" [aberto]="blocoAberto === b.Id" [passosPorSecao]="passosPorSecao"
+                              [podeEditar]="d.PodeEditar" [aberto]="blocoAberto === b.Id" [passosPorSecao]="passosPorSecao" [passosPorChave]="passosPorChave"
                               [passoDados]="passoDoBloco(item)" [marcadores]="marcadores"
                               (abrir)="abrirBloco(b)" (fechar)="fecharBloco(b)" (atualizado)="aoAtualizarBloco(item.capitulo, $event)"
                               (pendente)="aoPendente(b, $event)"></app-pe-doc-bloco>

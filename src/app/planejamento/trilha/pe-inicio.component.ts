@@ -10,7 +10,7 @@ import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic, rotuloPdfDoPdtic } from '../shared/pe-pdf-pdtic';
 import {
   SECAO_AVALIACAO_COMITE, classeEstadoPasso, classeSituacaoPdtic, minusculaInicial, pdticAntesDaPublicacao, pdticDepoisDaPublicacao,
-  pdticVigente, quandoPdtic, resumoAndamento, rotuloSituacaoPdtic, textoDoStatus, vigenciaTerminou
+  pdticVigente, quandoMarcoPdtic, quandoPdtic, resumoAndamento, rotuloSituacaoPdtic, situacaoDaVersaoNaFrase, textoDoStatus, vigenciaTerminou
 } from '../shared/pe-pdtic-rotulos';
 import { textoAto, textoVigencia } from '../shared/pe-referenciais-rotulos';
 import { hojeIso } from '../shared/registros/pe-valores';
@@ -270,9 +270,7 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
    * nunca começou).
    */
   get ultimaEncerrada(): PePdtic | null {
-    const e = this.estado;
-    if (e?.cargaPdtic !== 'sem-pdtic') return null;
-    return (e.versoes ?? []).find(v => v.Situacao === 'encerrado' || v.Situacao === 'substituido') ?? null;
+    return this.estadoService.ultimaEncerrada;
   }
 
   /** As versões que o órgão já tem (o registro fora do sistema não repete uma delas, F1, C07). */
@@ -282,8 +280,7 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
 
   /** A versão que o "Começar" abre (e a sugerida no registro fora do sistema): 1.0 ou a do próximo ciclo (a maior mais um). */
   get versaoNova(): string {
-    const maiores = (this.estado?.versoes ?? []).map(v => Number(v.Versao.split('.')[0])).filter(n => Number.isInteger(n) && n > 0);
-    return maiores.length ? `${Math.max(...maiores) + 1}.0` : '1.0';
+    return this.estadoService.versaoNova;
   }
 
   /** C09: "Aprovado pelo CGTIC" só com a deliberação aprovada (o registro fora do sistema por outra instância não tem). */
@@ -411,9 +408,14 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     return quandoPdtic(valor);
   }
 
-  /** "em elaboração", "devolvido pelo CGTIC" (no meio da frase). */
+  /** Aprovação e publicação: no PDTIC registrado fora do sistema, só o dia (F2, C-O2). */
+  quandoMarco(p: PePdtic, valor: string | null | undefined): string {
+    return quandoMarcoPdtic(p, valor);
+  }
+
+  /** "está em elaboração", "foi devolvida pelo CGTIC para ajustes" (a versão no meio da frase, F2, C-N1). */
   situacaoEmTexto(situacao: string): string {
-    return minusculaInicial(rotuloSituacaoPdtic(situacao));
+    return situacaoDaVersaoNaFrase(situacao);
   }
 
   /** A revisão ainda antes do CGTIC aprovar (em elaboração, com o comitê ou devolvida): a faixa explica as duas versões. */

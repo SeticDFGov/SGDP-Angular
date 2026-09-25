@@ -38,6 +38,18 @@ const FILTROS_SITUACAO: { valor: string; rotulo: string }[] = [
 export const TAMANHO_MOTIVO = 500;
 
 /**
+ * O exemplo do motivo da recusa, pelo módulo do pedido (F2: o exemplo falava do PGIA
+ * em qualquer módulo). Sem módulo conhecido, um exemplo que vale para todos.
+ */
+const EXEMPLO_MOTIVO: Record<string, string> = {
+  [Modulos.Pgia]: 'Ex.: o PGIA é liberado pelo Responsável de IA do seu órgão. Fale com ele.',
+  [Modulos.Planejamento]: 'Ex.: a Governança Estratégica é da equipe que elabora o PDTIC do seu órgão. Fale com a unidade de TIC do órgão.',
+  [Modulos.Contratacoes]: 'Ex.: a Supervisão Contínua das Contratações é da equipe de análise da SGDI.',
+  [Modulos.Demandas]: 'Ex.: Demandas e Projetos é de quem acompanha as demandas da sua unidade. Fale com o gestor da unidade.'
+};
+const EXEMPLO_MOTIVO_GERAL = 'Ex.: diga por que o acesso não foi liberado e com quem a pessoa pode falar.';
+
+/**
  * Fila dos pedidos de acesso: quem decide aprova (no PGIA e na Governança
  * Estratégica, já escolhendo o papel) ou recusa com motivo, sem sair da linha. A
  * mesma fila serve à Administração (todos os módulos), à SGDI, na tela de pessoas
@@ -91,15 +103,21 @@ export class PedidosAcessoFilaComponent implements OnInit, AfterViewChecked {
 
   ngAfterViewChecked(): void {
     if (!this.focoPendente || !this.noNavegador) return;
-    const alvo = document.getElementById(this.focoPendente);
-    if (!alvo) return;
+    const id = this.focoPendente;
+    if (!document.getElementById(id)) return;
     this.focoPendente = null;
-    alvo.focus();
+    // Depois da renderização: com as animações ligadas, a linha que saiu da lista
+    // ainda está na página neste momento e pode ter o mesmo id (F2, A05)
+    queueMicrotask(() => document.getElementById(id)?.focus());
   }
+
+  /** As linhas ficam as mesmas entre uma busca e outra (o foco não se perde com a lista nova). */
+  readonly porId = (_: number, p: PedidoAcesso): number => p.Id;
 
   // ── Listagem ──────────────────────────────────────────────────────────────
 
-  buscar(page = 1): void {
+  /** `depois`: roda com a página nova aplicada (`ok` verdadeiro) ou com a falha da busca. */
+  buscar(page = 1, depois?: (ok: boolean) => void): void {
     this.page = page;
     this.carregando = true;
     this.erroCarga = false;
@@ -113,17 +131,42 @@ export class PedidosAcessoFilaComponent implements OnInit, AfterViewChecked {
       next: pagina => {
         // A última linha de uma página saiu da fila: volta uma página
         if (pagina.Items.length === 0 && this.page > 1) {
-          this.buscar(this.page - 1);
+          this.buscar(this.page - 1, depois);
           return;
         }
         this.pagina = pagina;
         this.carregando = false;
         if (this.decisao && !pagina.Items.some(p => p.Id === this.decisao!.pedido.Id)) this.decisao = null;
+        depois?.(true);
       },
       error: () => {
         this.carregando = false;
         this.erroCarga = true;
+        depois?.(false);
       }
+    });
+  }
+
+  /**
+   * Depois de uma decisão, a lista vem de novo e o foco vai para o pedido que
+   * ficou no lugar do decidido (o seguinte, ou o anterior se era o último); se o
+   * decidido continua na lista (filtro "Todos"), para ele; sem pedidos, para o
+   * aviso de lista vazia (F2, A05).
+   */
+  private buscarDepoisDaDecisao(idDecidido: number): void {
+    const indice = this.pagina?.Items.findIndex(p => p.Id === idDecidido) ?? -1;
+    this.buscar(this.page, ok => {
+      if (!ok) {
+        this.focoPendente = 'pedidos-acesso-erro';
+        return;
+      }
+      const itens = this.pagina?.Items ?? [];
+      if (itens.some(p => p.Id === idDecidido)) {
+        this.focoPendente = `pedido-acesso-${idDecidido}`;
+        return;
+      }
+      const alvo = itens[Math.min(Math.max(indice, 0), itens.length - 1)];
+      this.focoPendente = alvo ? `pedido-acesso-${alvo.Id}` : 'pedidos-acesso-vazio';
     });
   }
 
@@ -158,6 +201,11 @@ export class PedidosAcessoFilaComponent implements OnInit, AfterViewChecked {
     return rotuloCurtoPapelPlanejamento(papel);
   }
 
+  /** O exemplo do motivo da recusa, do módulo do pedido. */
+  exemploMotivo(modulo: string): string {
+    return EXEMPLO_MOTIVO[modulo] ?? EXEMPLO_MOTIVO_GERAL;
+  }
+
   // ── Decisão ───────────────────────────────────────────────────────────────
 
   abrirDecisao(pedido: PedidoAcesso, tipo: 'aprovar' | 'recusar'): void {
@@ -166,6 +214,13 @@ export class PedidosAcessoFilaComponent implements OnInit, AfterViewChecked {
       return;
     }
     this.decisao = { pedido, tipo, papelPgia: null, papelPlanejamento: null, motivo: '', tentouEnviar: false };
+  }
+
+  /** "Cancelar" tira o painel da tela: o foco volta ao botão que o abriu (F2, A05). */
+  cancelarDecisao(): void {
+    const decisao = this.decisao;
+    this.decisao = null;
+    if (decisao) this.focoPendente = `pedido-acesso-${decisao.tipo}-${decisao.pedido.Id}`;
   }
 
   /** Papel de órgão sem unidade: a unidade é que liga a pessoa ao órgão. */
@@ -215,15 +270,16 @@ export class PedidosAcessoFilaComponent implements OnInit, AfterViewChecked {
       next: decidido => {
         this.salvando = false;
         this.decisao = null;
+        // "ao módulo X", como no card da tela inicial (F2, A12)
         const nomeModulo = this.modulo(decidido.Modulo)?.nome ?? decidido.Modulo;
         if (decidido.Situacao === SituacoesPedidoAcesso.Aprovado) {
-          this.notificacoes.success(`Acesso a ${nomeModulo} liberado para ${decidido.Nome}. Vale no próximo clique da pessoa, sem precisar sair e entrar de novo.`);
+          this.notificacoes.success(`Acesso ao módulo ${nomeModulo} liberado para ${decidido.Nome}. Vale no próximo clique da pessoa, sem precisar sair e entrar de novo.`);
         } else {
           this.notificacoes.success(`Pedido recusado. ${decidido.Nome} vai ver o motivo no card do módulo.`);
         }
         this.pedidos.atualizarPendentes();
         this.decidiu.emit(decidido);
-        this.buscar(this.page);
+        this.buscarDepoisDaDecisao(decisao.pedido.Id);
       },
       error: err => {
         this.salvando = false;
@@ -233,7 +289,7 @@ export class PedidosAcessoFilaComponent implements OnInit, AfterViewChecked {
           this.notificacoes.warning(mensagem);
           this.decisao = null;
           this.pedidos.atualizarPendentes();
-          this.buscar(this.page);
+          this.buscarDepoisDaDecisao(decisao.pedido.Id);
         } else {
           this.notificacoes.error(mensagem);
         }

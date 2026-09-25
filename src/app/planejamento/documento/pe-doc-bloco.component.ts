@@ -17,7 +17,7 @@ import { mensagemErroPe } from '../shared/pe-erros';
 import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { DicionarioFluxo, dicionarioPadrao, normalizarDefinicao, numerosDoServidor } from '../shared/pe-fluxo-rotulos';
 import {
-  AlvoDocumento, MARCADORES_PADRAO, PassoLinkDoc, TIPOS_BLOCO_ACOMPANHAMENTO, descricaoMarcador, rotuloTipoBloco, secaoDoMarcador,
+  AlvoDocumento, MARCADORES_PADRAO, PassoLinkDoc, TIPOS_BLOCO_ACOMPANHAMENTO, descricaoMarcador, ondeSePreencheMarcador, rotuloTipoBloco,
   textoMarcador, tituloComNumero
 } from '../shared/pe-documento-rotulos';
 import { juntar } from '../shared/pe-modelo-rotulos';
@@ -121,6 +121,8 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   @Input() aberto = false;
   /** Onde se preenche cada seção (link "no passo N.M"). */
   @Input() passosPorSecao: ReadonlyMap<string, PassoLinkDoc> = new Map();
+  /** O passo de cada chave da trilha à vista (o marcador que o servidor liga a um passo; F2). */
+  @Input() passosPorChave: ReadonlyMap<string, PassoLinkDoc> = new Map();
   /** O passo dos dados de uma tabela, lista ou matriz (link "editar os dados no passo N.M"). */
   @Input() passoDados: PassoLinkDoc | null = null;
   @Input() marcadores: readonly PeDocMarcador[] = MARCADORES_PADRAO;
@@ -292,7 +294,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   // ── Ciclo de vida ─────────────────────────────────────────────────────────
 
   ngOnChanges(mudancas: SimpleChanges): void {
-    if (mudancas['bloco'] || mudancas['passosPorSecao']) this.montarLeitura();
+    if (mudancas['bloco'] || mudancas['passosPorSecao'] || mudancas['passosPorChave'] || mudancas['marcadores']) this.montarLeitura();
     const aberto = mudancas['aberto'];
     if (aberto && !aberto.firstChange && aberto.previousValue !== aberto.currentValue) {
       if (this.aberto) this.comecarEdicao();
@@ -325,8 +327,10 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     // Marcadores sem valor, pelo passo onde se preenchem
     const grupos = new Map<string, { chaves: string[]; passo: PassoLinkDoc | null }>();
     for (const chave of b.MarcadoresSemValor ?? []) {
-      const secao = secaoDoMarcador(chave);
-      const passo = secao ? this.passosPorSecao.get(secao) ?? null : null;
+      // O passo que o servidor indica no marcador ou, sem ele, o do modelo inicial (as aprovações em 3.11 e 3.12, a
+      // publicação em 3.13) ou a seção (F2)
+      const onde = ondeSePreencheMarcador(chave, this.marcadores);
+      const passo = (onde.passo ? this.passosPorChave.get(onde.passo) : null) ?? (onde.secao ? this.passosPorSecao.get(onde.secao) : null) ?? null;
       const id = passo?.rota ?? '-';
       const grupo = grupos.get(id) ?? { chaves: [], passo };
       grupo.chaves.push(chave);

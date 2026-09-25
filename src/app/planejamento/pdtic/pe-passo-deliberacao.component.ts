@@ -5,7 +5,7 @@ import { PeDeliberacao, PePdtic } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic, rotuloPdfDoPdtic } from '../shared/pe-pdf-pdtic';
-import { quandoPdtic } from '../shared/pe-pdtic-rotulos';
+import { quandoMarcoPdtic, quandoPdtic } from '../shared/pe-pdtic-rotulos';
 import { deliberacaoRegistradaFora, quandoEQuem, textoAto } from '../shared/pe-referenciais-rotulos';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
@@ -135,7 +135,8 @@ export class PePassoDeliberacaoComponent {
   get dataAprovacao(): string {
     const d = this.deliberacao;
     if (d?.Situacao === 'aprovado' && d.AtoData) return quandoPdtic(d.AtoData);
-    return quandoPdtic(this.pdtic.AprovadoEm ?? d?.DecididoEm ?? null);
+    // No registrado fora do sistema, só o dia (F2, C-O2)
+    return quandoMarcoPdtic(this.pdtic, this.pdtic.AprovadoEm ?? d?.DecididoEm ?? null);
   }
 
   baixarPdf(): void {

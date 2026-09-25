@@ -548,7 +548,14 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
     this.errosBloco = [];
     this.selecionadoId = c.Id;
     this.focoPendente = 'pe-md-capitulo-titulo';
-    this.router.navigate([], { relativeTo: this.rota, queryParams: { capitulo: c.Id }, queryParamsHandling: 'merge', replaceUrl: true });
+    this.gravarCapituloNoEndereco();
+  }
+
+  /** O capítulo à vista vai para o endereço (sem capítulo, o parâmetro sai): recarregar volta a ele. */
+  private gravarCapituloNoEndereco(): void {
+    this.router.navigate([], {
+      relativeTo: this.rota, queryParams: { capitulo: this.selecionadoId ?? null }, queryParamsHandling: 'merge', replaceUrl: true
+    });
   }
 
   // ── Capítulo: janela de edição ────────────────────────────────────────────
@@ -630,6 +637,8 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
           if (id) this.selecionadoId = id;
           this.garantirSelecao();
           this.focoPendente = 'pe-md-capitulo-titulo';
+          // O capítulo novo também vai para o endereço, como o escolhido na árvore (F2, A-N02)
+          if (e.novo) this.gravarCapituloNoEndereco();
         });
       },
       error: erro => {
@@ -713,6 +722,8 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
         this.carregar(() => {
           this.garantirSelecao();
           this.focoPendente = 'pe-md-capitulo-titulo';
+          // O endereço deixa o capítulo apagado e fica com o que está à vista (F2, A-N02)
+          this.gravarCapituloNoEndereco();
         });
       },
       error: erro => {

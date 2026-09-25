@@ -107,7 +107,7 @@
                           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
                     <span class="material-icons text-sm" aria-hidden="true">route</span> Trilha do órgão
                   </button>
-                  <button *ngIf="podeDecidir" type="button" (click)="registrar(d)"
+                  <button *ngIf="podeDecidir" type="button" [id]="'pe-dec-registrar-' + d.Id" (click)="registrar(d)"
                           [attr.aria-label]="'Registrar a decisão sobre o ' + objeto(d)"
                           class="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 whitespace-nowrap">
                     <span class="material-icons text-sm" aria-hidden="true">gavel</span> Registrar a decisão
@@ -126,7 +126,8 @@
     <ng-container *ngIf="modo === 'decisao' && escolhida as d">
       <div class="bg-white rounded-lg shadow p-6">
         <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Aguardando a decisão do comitê</p>
-        <h2 class="text-xl font-bold text-gray-900 mt-0.5">{{ objeto(d) }}</h2>
+        <!-- Recebe o foco ao abrir pela fila (F2, C-N2); o espaço acima deixa o contorno do foco longe da linha de cima -->
+        <h2 id="pe-dec-titulo" tabindex="-1" class="text-xl font-bold text-gray-900 mt-2">{{ objeto(d) }}</h2>
         <p class="text-sm text-gray-700 mt-1">Enviado em {{ enviado(d) }}.</p>
         <p *ngIf="!ehPetic(d)" class="text-sm text-gray-700 mt-1">O comitê delibera sobre o PDF enviado pelo órgão, que fica guardado e
           não muda. A trilha do órgão mostra os dados, só para ler.</p>

@@ -70,8 +70,9 @@
             <span class="material-icons text-sm" aria-hidden="true">link_off</span> Tirar o arquivo
           </button>
         </div>
+        <!-- Arquivo recusado (tipo, tamanho ou envio) também marca o campo como inválido (F2, B-N2) -->
         <input [id]="idBase" type="file" [accept]="aceita" (change)="escolherArquivo($event)" [disabled]="enviando"
-               [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro ? true : null"
+               [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro || erroArquivo ? true : null"
                class="block w-full text-sm text-gray-700 file:mr-3 file:px-4 file:py-2 file:rounded-md file:border-0 file:bg-blue-600 file:text-white file:text-sm file:font-semibold hover:file:bg-blue-700 disabled:opacity-50" />
         <p *ngIf="enviando" role="status" class="text-xs text-gray-600 mt-1">Enviando o arquivo...</p>
         <p *ngIf="avisoArquivo && !enviando" role="status" class="text-xs text-gray-600 mt-1">{{ avisoArquivo }}</p>

@@ -8,7 +8,8 @@ import { mensagemErroPe } from '../shared/pe-erros';
 import { quandoEQuem } from '../shared/pe-referenciais-rotulos';
 
 /** Tamanho da justificativa (o servidor confere de novo). */
-const MAX_JUSTIFICATIVA = 2000;
+/** O mesmo máximo do servidor (F2). */
+const MAX_JUSTIFICATIVA = 1000;
 
 /**
  * "Não se aplica" de um passo do PDTIC (só em passo opcional no nível do órgão

@@ -138,6 +138,27 @@ export function secaoDoMarcador(chave: string): string | null {
   return null;
 }
 
+/** Os passos do modelo inicial onde se preenchem as aprovações e a publicação (3.11, 3.12 e 3.13 no Avançado). */
+const PASSO_APROVACAO_SGTIC = 'planejamento.aprovacao-sgtic';
+const PASSO_DELIBERACAO_CGTIC = 'planejamento.deliberacao-cgtic';
+const PASSO_PUBLICACAO = 'planejamento.publicacao';
+
+/**
+ * Onde o valor do marcador se preenche, para o link "preencha no passo N.M" (F2): o
+ * passo ou a seção que o servidor indica no marcador; sem isso, as aprovações e a
+ * publicação pelos passos do modelo inicial (a aprovação do SGTIC no passo do envio,
+ * a do CGTIC no da deliberação e a publicação no dela) e os demais pela seção.
+ */
+export function ondeSePreencheMarcador(chave: string, lista: readonly PeDocMarcador[] = []): { passo: string | null; secao: string | null } {
+  const m = lista.find(x => x.Chave === chave);
+  if (m?.PassoChave) return { passo: m.PassoChave, secao: m.SecaoChave ?? null };
+  if (m?.SecaoChave) return { passo: null, secao: m.SecaoChave };
+  if (chave.startsWith('aprovacao.sgtic.')) return { passo: PASSO_APROVACAO_SGTIC, secao: 'aprovacao_sgtic' };
+  if (chave.startsWith('aprovacao.cgtic.')) return { passo: PASSO_DELIBERACAO_CGTIC, secao: null };
+  if (chave.startsWith('publicacao.')) return { passo: PASSO_PUBLICACAO, secao: 'publicacao' };
+  return { passo: null, secao: secaoDoMarcador(chave) };
+}
+
 function escaparRegex(texto: string): string {
   return texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

@@ -1,6 +1,6 @@
 import {
-  AfterViewChecked, Component, DestroyRef, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, PLATFORM_ID, SimpleChanges,
-  inject
+  AfterViewChecked, Component, DestroyRef, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, PLATFORM_ID,
+  SimpleChanges, inject
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -30,6 +30,7 @@ import { juntar } from '../shared/pe-modelo-rotulos';
 import { quandoEQuem } from '../shared/pe-referenciais-rotulos';
 import { PeFluxoDescricaoComponent } from './pe-fluxo-descricao.component';
 import { PeFluxoDesenhoComponent } from './pe-fluxo-desenho.component';
+import { acertarRolagemSobCabecalho, alturaDoPePreso } from '../shared/pe-rolagem';
 import { PeFluxoTrabalho, PeSelecaoFluxo, PeSelecionarFluxo, idNaTela } from './pe-fluxo-trabalho';
 import { PeFluxoVisualComponent } from './pe-fluxo-visual.component';
 
@@ -118,6 +119,7 @@ interface NovaSaida {
   providers: [{ provide: PeFluxoTrabalho, useExisting: PeFluxoEditorComponent }]
 })
 export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewChecked, OnDestroy, PeFluxoTrabalho {
+  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly router = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly notificacoes = inject(NotificationService);
@@ -294,7 +296,13 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     // Logo depois do fim da renderização (F1, D06): com as animações do Angular ligadas, o elemento que sai da
     // tela só é tirado no fim dela, e o mesmo id recriado noutro lugar (o passo que mudou de raia, o título do
     // painel) ainda acharia o antigo, que logo sai, e o foco cairia no body
-    queueMicrotask(() => document.getElementById(id)?.focus());
+    queueMicrotask(() => {
+      const alvo = document.getElementById(id);
+      if (!alvo) return;
+      alvo.focus();
+      // A rolagem do foco não deixa botão cortado pela borda do cabeçalho preso (F2, A-N03)
+      acertarRolagemSobCabecalho(this.host.nativeElement, alvo, alturaDoPePreso(), '.pe-fxv-rolagem');
+    });
   }
 
   ngOnDestroy(): void {
@@ -406,7 +414,12 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   }
 
   explicacaoTipo(tipo: string): string {
-    return explicacaoTipoElemento(tipo);
+    return explicacaoTipoElemento(tipo, this.temPrefixo);
+  }
+
+  /** Fluxo com prefixo de numeração: só nele as tarefas e os subprocessos têm número (F2, D-O1). */
+  get temPrefixo(): boolean {
+    return !!(this.def?.PrefixoNumeracao ?? '').trim();
   }
 
   rotuloNome(e: PeFluxoElemento): string {
@@ -417,8 +430,14 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     return tipoPedeNome(e.Tipo);
   }
 
+  /** Tarefa ou subprocesso (os que geram documentos e, com prefixo, recebem número). */
   numerado(e: PeFluxoElemento): boolean {
     return tipoNumerado(e.Tipo);
+  }
+
+  /** O campo do nome fala do número automático só num fluxo com prefixo: sem ele, nada tem número (F2, D-O1). */
+  comNumero(e: PeFluxoElemento): boolean {
+    return this.numerado(e) && this.temPrefixo;
   }
 
   numero(e: PeFluxoElemento): string {
@@ -952,8 +971,9 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.avisarMudanca(aviso);
   }
 
-  private textoRemover(nome: string): string {
-    return `Remover "${nome}"? As ligações dele saem junto. Dá para desfazer com o botão "Desfazer".`;
+  /** O texto da janela de remover: sem repetir a pergunta, que já está no título (F2, D-O4). */
+  private textoRemover(): string {
+    return 'As ligações dele saem junto. Dá para desfazer com o botão "Desfazer".';
   }
 
   /** Tira o passo (religando o de antes ao de depois, quando dá) e avisa o leitor de tela. */
@@ -975,7 +995,8 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
   /** A pergunta antes de remover um passo, na janela do módulo (F1, A04). */
   private perguntarRemover(e: PeFluxoElemento): Promise<boolean> {
-    return this.confirmacao.perguntar({ titulo: `Remover ${this.rotulo(e)}?`, texto: this.textoRemover(this.rotulo(e)), sim: 'Remover', perigo: true });
+    // O nome entre aspas: a pergunta de uma decisão ("Revisar o texto?") não emenda com a da janela (F2, D-O4)
+    return this.confirmacao.perguntar({ titulo: `Remover "${this.rotulo(e)}"?`, texto: this.textoRemover(), sim: 'Remover', perigo: true });
   }
 
   private removerPassoSim(e: PeFluxoElemento): void {
@@ -1416,6 +1437,8 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
    * lista, o desenho só é pedido 0,8 s depois: o aviso sai na hora.
    */
   avisarMudanca(texto: string): void {
+    // O nome de uma decisão é uma pergunta ("Revisar o texto?"): sem o ponto logo depois dela (F2, D-O4)
+    texto = texto.replace(/([?!])\./g, '$1');
     if (!this.emModoVisual) {
       this.acessibilidade.anunciar(texto);
       return;

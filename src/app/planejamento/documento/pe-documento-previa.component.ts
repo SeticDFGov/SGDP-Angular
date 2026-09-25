@@ -86,6 +86,11 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   @Output() readonly alterado = new EventEmitter<boolean>();
   /** Um PDF foi gerado (a situação do passo pode ter mudado). */
   @Output() readonly mudou = new EventEmitter<void>();
+  /**
+   * Quem dá o aviso do PDF gerado (F2, C-O3): sem ele, a própria prévia. A tela do
+   * passo o recebe para juntar o aviso ao "Passo N.M feito" (um aviso só).
+   */
+  @Input() avisarSalvo: ((texto: string) => void) | null = null;
 
   readonly maxTitulo = MAX_TITULO;
   /**
@@ -126,7 +131,12 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   logoUrl: string | null = null;
   /** Onde se preenche cada seção, na trilha à vista (links "no passo N.M"). */
   passosPorSecao: ReadonlyMap<string, PassoLinkDoc> = new Map();
-  private passosPorChave = new Map<string, PassoLinkDoc>();
+
+  /** O relatório de resultados passa pelo comitê antes da autoridade máxima (o nível tem o passo; no Básico, não; F2). */
+  get rrVaiAoComite(): boolean {
+    return this.passosPorSecao.has('aprovacao_resultados_comite');
+  }
+  passosPorChave: ReadonlyMap<string, PassoLinkDoc> = new Map();
   /** O passo onde o órgão adapta os fluxos (link dos blocos de fluxo, E6). */
   private passoFluxos: PassoLinkDoc | null = null;
   private passosVistos: PassoNumeradoPe[] | null = null;
@@ -193,7 +203,8 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     const id = this.focoPendente;
     if (!document.getElementById(id)) return;
     this.focoPendente = null;
-    this.focar(id);
+    // Depois da renderização: com as animações ligadas, o que sai da página ainda está nela neste momento (F2, B01)
+    queueMicrotask(() => this.focar(id));
   }
 
   ngOnDestroy(): void {
@@ -402,7 +413,12 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   }
 
   hrefCapitulo(c: PeDocCapitulo): string {
-    return `${this.urlBase}#pe-doc-titulo-${c.Id}`;
+    return `${this.urlBase}#${this.idDoTitulo(c)}`;
+  }
+
+  /** O título do capítulo na página; do escondido, o quadro com "Mostrar de novo" (F2, B01). */
+  private idDoTitulo(c: PeDocCapitulo): string {
+    return c.Oculto ? `pe-doc-oculto-${c.Id}` : `pe-doc-titulo-${c.Id}`;
   }
 
   /**
@@ -605,7 +621,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
 
   irPara(evento: Event, c: PeDocCapitulo): void {
     evento.preventDefault();
-    this.focar(`pe-doc-titulo-${c.Id}`);
+    this.focar(this.idDoTitulo(c));
   }
 
   irParaSumario(): void {
@@ -648,7 +664,8 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
         this.versoes = versoesEmOrdem([versao, ...this.versoes.filter(v => v.Numero !== versao.Numero)]);
         // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
         const texto = `PDF gerado: versão ${versao.Numero} (${rotuloSituacaoVersao(versao.Situacao).toLowerCase()}). O download começa em seguida.`;
-        this.notificacoes.success(texto);
+        if (this.avisarSalvo) this.avisarSalvo(texto);
+        else this.notificacoes.success(texto);
         this.mudou.emit();
         this.baixar(versao, () => {
           this.gerando = false;

@@ -11,11 +11,11 @@ import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import {
   classeEstadoPasso, corIconeEstadoPasso, iconeEstadoPasso, minusculaInicial, rotuloSituacaoPdtic, textoDoStatus
 } from '../shared/pe-pdtic-rotulos';
-import { EstadoTrilhaPe, PeTrilhaEstadoService, valorVisaoOrgao } from './pe-trilha-estado.service';
+import { AvisoVersaoPe, EstadoTrilhaPe, PeTrilhaEstadoService, valorVisaoOrgao } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
 import {
   BASE_PE, EtapaTrilhaPe, PERFIS_CENTRAIS_PE, PREFIXO_PASSO_ORGAO, PassoNumeradoPe, ROTULOS_PERFIL_TRILHA_PE,
-  passoDaUrl, rotuloGuia
+  passoDaUrl, rotaPaginaOrgao, rotuloGuia
 } from './pe-trilhas';
 
 interface OpcaoVisao {
@@ -162,6 +162,8 @@ export class PeShellComponent implements OnInit {
         // Outra tela do módulo (não só outra query nem um trecho da página): começa do alto, onde está o título
         // que recebe o foco (F1, C29; antes, a página nova abria rolada e o foco ficava fora da área visível)
         if (this.noNavegador && caminhoAntes && this.rotaAtual !== caminhoAntes && !url.includes('#')) window.scrollTo(0, 0);
+        // O aviso da versão pedida pelo endereço vale para a tela em que a pessoa chegou (F2, C-O1)
+        if (caminhoAntes && this.rotaAtual !== caminhoAntes) this.estadoService.limparAvisoVersao();
         if (this.estado?.carga === 'pronta') this.conferirVisaoDoOrgao(this.rotaAtual);
         this.sincronizarVersaoNoEndereco();
       });
@@ -243,12 +245,48 @@ export class PeShellComponent implements OnInit {
     return t.NivelPadrao ? `Nível ${t.NivelNome} (o padrão: o nível do órgão ainda não foi definido)` : `Nível ${t.NivelNome}`;
   }
 
-  /** "PDTIC 1.0 · Em elaboração" (ou "PDTIC ainda não começado") na trilha do órgão. */
+  /**
+   * "PDTIC 1.0 · Em elaboração" na trilha do órgão; sem PDTIC atual, "PDTIC ainda
+   * não começado" ou, com uma versão anterior encerrada, "PDTIC 3.0 encerrado ·
+   * a versão 4.0 ainda não começou" (F2, C08).
+   */
   get rotuloPdtic(): string | null {
     const e = this.estado;
     if (e?.perfil !== 'orgao') return null;
     if (e.pdtic) return `PDTIC ${e.pdtic.Versao} · ${rotuloSituacaoPdtic(e.pdtic.Situacao)}`;
-    return e.cargaPdtic === 'sem-pdtic' ? 'PDTIC ainda não começado' : null;
+    if (e.cargaPdtic !== 'sem-pdtic') return null;
+    const u = this.estadoService.ultimaEncerrada;
+    if (!u) return 'PDTIC ainda não começado';
+    return `PDTIC ${u.Versao} ${u.Situacao === 'substituido' ? 'substituído' : 'encerrado'} · a versão ${this.estadoService.versaoNova} ainda não começou`;
+  }
+
+  /**
+   * F2 (C-O1): o endereço pedia uma versão que a trilha não mostra (um link guardado
+   * de uma versão substituída, por exemplo): o que aconteceu e o caminho da página
+   * do órgão, onde as versões anteriores ficam para consulta. O mesmo objeto para o
+   * mesmo aviso (o template usa com *ngIf).
+   */
+  get avisoVersao(): { texto: string; pagina: string | null; anterior: boolean } | null {
+    const a = this.estadoService.avisoVersao;
+    if (a !== this.cacheAvisoVersao.de) this.cacheAvisoVersao = { de: a, valor: a ? this.montarAvisoVersao(a) : null };
+    return this.cacheAvisoVersao.valor;
+  }
+
+  private cacheAvisoVersao: { de: AvisoVersaoPe | null; valor: { texto: string; pagina: string | null; anterior: boolean } | null } =
+    { de: null, valor: null };
+
+  private montarAvisoVersao(a: AvisoVersaoPe): { texto: string; pagina: string | null; anterior: boolean } {
+    const { pedida, sucessora, atual } = a;
+    const vendo = `Você está vendo a versão ${atual.Versao}.`;
+    let texto: string;
+    if (!pedida) texto = `O endereço pedia outra versão do PDTIC, que a trilha não mostra. ${vendo}`;
+    else if (pedida.Situacao === 'substituido') {
+      texto = `A versão ${pedida.Versao} foi substituída${sucessora ? ' pela ' + sucessora.Versao : ''}.`
+        + (sucessora?.Id === atual.Id ? '' : ` ${vendo}`);
+    } else if (pedida.Situacao === 'encerrado') texto = `A versão ${pedida.Versao} foi encerrada. ${vendo}`;
+    else texto = `A versão ${pedida.Versao} não está entre as que a trilha mostra. ${vendo}`;
+    const orgaoId = this.estado?.orgaoVisto ?? this.estadoService.orgaoDoPapel;
+    return { texto, pagina: orgaoId ? rotaPaginaOrgao(orgaoId) : null, anterior: !!pedida };
   }
 
   /** E7: a versão em revisão e a vigente, para a escolha no alto da trilha (null sem revisão em andamento). */

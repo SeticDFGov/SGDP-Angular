@@ -16,7 +16,7 @@ import {
   rotuloSituacaoInadimplencia, situacaoInadimplenciaValida, textoPrazoInadimplencia
 } from '../shared/pe-inadimplencia-rotulos';
 import { idDoParametro, orgaosEmOrdem } from '../shared/pe-paineis-rotulos';
-import { dataValida, hojeIso, textoData } from '../shared/registros/pe-valores';
+import { TAMANHO_SEI, dataValida, digitarSei, hojeIso, seiValido, textoData } from '../shared/registros/pe-valores';
 import { PeInadimplenciasService } from '../services/pe-inadimplencias.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { BASE_PE, rotaPaginaOrgao } from '../trilha/pe-trilhas';
@@ -400,7 +400,7 @@ export class PeInadimplenciasComponent implements OnInit, AfterViewChecked {
       case 'documento':
         return this.texto(f.documento, LIMITES_INADIMPLENCIA.documento, 'Informe o documento da notificação (o ofício, por exemplo).');
       case 'sei':
-        return f.sei.trim().length > LIMITES_INADIMPLENCIA.sei ? `Escreva até ${LIMITES_INADIMPLENCIA.sei} caracteres.` : null;
+        return f.sei.trim() && !seiValido(f.sei) ? 'Use o número do processo SEI completo, no formato 00000-00000000/0000-00.' : null;
       case 'justificativa':
         return this.texto(f.justificativa, LIMITES_INADIMPLENCIA.justificativa, 'Escreva a justificativa que o órgão apresentou e a SGDI aceitou.');
       case 'motivo':
@@ -444,6 +444,14 @@ export class PeInadimplenciasComponent implements OnInit, AfterViewChecked {
   descritores(campo: CampoInad, ajuda?: string): string | null {
     const ids = [ajuda, this.erro(campo) ? `${IDS[campo]}-erro` : null].filter(Boolean);
     return ids.length ? ids.join(' ') : null;
+  }
+
+  readonly tamanhoSei = TAMANHO_SEI;
+
+  /** A máscara do SEI (00000-00000000/0000-00) enquanto a pessoa digita (F2). */
+  digitarSeiNotificacao(input: HTMLInputElement): void {
+    this.form.sei = digitarSei(input);
+    this.mudou('sei');
   }
 
   /** O campo mudou: a mensagem do servidor para ele sai (a conferência da tela continua). */

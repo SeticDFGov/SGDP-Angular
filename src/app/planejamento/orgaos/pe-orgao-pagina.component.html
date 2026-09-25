@@ -120,12 +120,12 @@
               <dd class="text-gray-900 mt-0.5">{{ quando(p.EnviadoEm) }}</dd>
             </div>
             <div *ngIf="p.AprovadoEm">
-              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Aprovado pelo CGTIC</dt>
-              <dd class="text-gray-900 mt-0.5">{{ quando(p.AprovadoEm) }}</dd>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ rotuloAprovado(p) }}</dt>
+              <dd class="text-gray-900 mt-0.5">{{ quandoMarco(p, p.AprovadoEm) }}</dd>
             </div>
             <div *ngIf="p.PublicadoEm">
               <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Publicado</dt>
-              <dd class="text-gray-900 mt-0.5">{{ quando(p.PublicadoEm) }}</dd>
+              <dd class="text-gray-900 mt-0.5">{{ quandoMarco(p, p.PublicadoEm) }}</dd>
             </div>
             <div *ngIf="p.EncerradoEm">
               <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Encerrado</dt>
@@ -155,7 +155,7 @@
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeSituacaoPdtic(v.Situacao)">{{ rotuloSituacaoPdtic(v.Situacao) }}</span>
                   </td>
                   <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ vigencia(v) }}</td>
-                  <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ quando(v.PublicadoEm) }}</td>
+                  <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ quandoMarco(v, v.PublicadoEm) }}</td>
                 </tr>
               </tbody>
             </table>

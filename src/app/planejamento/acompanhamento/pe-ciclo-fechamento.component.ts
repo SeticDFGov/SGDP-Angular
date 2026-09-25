@@ -71,6 +71,9 @@ export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked, 
   @Input() pdticId: number | null = null;
   /** O passo da tela (a pendência deste mesmo passo leva à célula, não a um link que não sai do lugar). */
   @Input() passoId: number | null = null;
+  /** O nível do órgão tem as medições e os riscos que ocorreram (no Básico, não: o resumo não os mostra; F2). */
+  @Input() comMedicoes = true;
+  @Input() comRiscos = true;
   @Output() readonly mudou = new EventEmitter<PeCiclo>();
 
   janela: 'fechar' | 'reabrir' | null = null;
@@ -131,6 +134,12 @@ export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked, 
   /** "o ciclo" ou "a avaliação". */
   get oCiclo(): string {
     return oCiclo(this.ciclo.Tipo);
+  }
+
+  /** "Avaliação intermediária 1": o nome da avaliação já diz que é uma avaliação (sem "Avaliação Avaliação"). */
+  private nomeDaAvaliacao(c: PeCiclo): string {
+    const rotulo = c.Rotulo.trim();
+    return /^avalia/i.test(rotulo) ? rotulo : `Avaliação ${rotulo}`;
   }
 
   get titulo(): string {
@@ -246,10 +255,13 @@ export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked, 
         const novo = ciclo ?? { ...this.ciclo, Situacao: qual === 'fechar' ? 'fechado' : 'aberto' };
         if (qual === 'fechar') {
           this.notificacoes.success(this.avaliacao
-            ? `Avaliação "${novo.Rotulo}" fechada. Os dados dela ficam só para consulta.`
+            ? `${this.nomeDaAvaliacao(novo)} fechada. Os dados dela ficam só para consulta.`
             : `Ciclo ${novo.Rotulo} fechado.${novo.Relatorio ? ' O relatório de acompanhamento saiu em minuta: confira logo abaixo.' : ''}`);
         } else {
-          this.notificacoes.success(`${this.avaliacao ? 'Avaliação' : 'Ciclo'} ${novo.Rotulo} reaberto: a equipe já pode mudar os dados.`);
+          // A avaliação no feminino e sem repetir a palavra ("Avaliação intermediária 1 reaberta"; F2)
+          this.notificacoes.success(this.avaliacao
+            ? `${this.nomeDaAvaliacao(novo)} reaberta: a equipe já pode mudar os dados.`
+            : `Ciclo ${novo.Rotulo} reaberto: a equipe já pode mudar os dados.`);
         }
         this.focoPendente = 'pe-fechamento-titulo';
         this.mudou.emit(novo);

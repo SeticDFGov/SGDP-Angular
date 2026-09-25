@@ -27,6 +27,8 @@ export class PeFormularioSecaoComponent implements OnChanges {
   @Input({ required: true }) dados!: PeRegistrosDaSecao;
   @Input({ required: true }) fonte!: PeFonteRegistros;
   @Input() prefixoId = 'pe-form';
+  /** Quem dá o aviso de "preenchido" ou "salvo" (sem ele, um toast daqui; F2, C-O3). */
+  @Input() avisarSalvo: ((texto: string) => void) | null = null;
   @Output() readonly salvou = new EventEmitter<PeRegistro>();
   @Output() readonly alterado = new EventEmitter<boolean>();
   /** A tela deve buscar a seção de novo (alguém criou o formulário antes). */
@@ -50,7 +52,9 @@ export class PeFormularioSecaoComponent implements OnChanges {
   aoSalvar(registro: PeRegistro): void {
     const primeiro = !this.registro;
     this.registro = registro;
-    this.notificacoes.success(primeiro ? `"${this.dados.Secao.Titulo}" preenchido.` : `"${this.dados.Secao.Titulo}" salvo.`);
+    const texto = primeiro ? `"${this.dados.Secao.Titulo}" preenchido.` : `"${this.dados.Secao.Titulo}" salvo.`;
+    if (this.avisarSalvo) this.avisarSalvo(texto);
+    else this.notificacoes.success(texto);
     this.salvou.emit(registro);
   }
 

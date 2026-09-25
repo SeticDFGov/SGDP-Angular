@@ -42,11 +42,11 @@
           </span>
         </dd>
       </div>
-      <div>
+      <div *ngIf="comMedicoes">
         <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Medições</dt>
         <dd class="text-gray-900 font-medium mt-0.5">{{ r.Medicoes }}</dd>
       </div>
-      <div>
+      <div *ngIf="comRiscos">
         <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Riscos que ocorreram</dt>
         <dd class="text-gray-900 font-medium mt-0.5">{{ r.RiscosOcorridos }}</dd>
       </div>

@@ -114,11 +114,16 @@ export class PePessoasComponent implements OnInit, AfterViewChecked {
 
   ngAfterViewChecked(): void {
     if (!this.focoPendente || !this.noNavegador) return;
-    const alvo = document.getElementById(this.focoPendente);
-    if (!alvo) return;
+    const id = this.focoPendente;
+    if (!document.getElementById(id)) return;
     this.focoPendente = null;
-    alvo.focus();
+    // Depois da renderização: com as animações ligadas, o select da linha antiga
+    // ainda está na página neste momento, com o mesmo id (F2, A05)
+    queueMicrotask(() => document.getElementById(id)?.focus());
   }
+
+  /** As linhas ficam as mesmas quando a lista vem de novo (o foco não se perde). */
+  readonly porUserId = (_: number, p: PePessoa): string => p.UserId;
 
   /** Consulta o papel de novo (a lista abre sozinha quando ele chegar). */
   tentarDeNovo(): void {

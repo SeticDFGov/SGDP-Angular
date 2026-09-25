@@ -77,6 +77,20 @@
       </button>
     </div>
 
+    <!-- F2 (C-O1): o endereço pedia uma versão que a trilha não mostra (substituída, encerrada). A região fica sempre
+         na página, para o leitor de tela ler o aviso quando ele chega (as versões vêm depois da trilha) -->
+    <div role="status">
+      <div *ngIf="e.carga === 'pronta' && avisoVersao as a"
+           class="mb-3 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm text-blue-900">
+        <span class="material-icons text-blue-600" aria-hidden="true">history</span>
+        <p class="flex-1 leading-relaxed">
+          {{ a.texto }}
+          <ng-container *ngIf="a.pagina">{{ a.anterior ? 'Consulte a anterior na' : 'As versões anteriores ficam na' }}
+            <a [routerLink]="a.pagina" data-sem-dica class="font-semibold underline">página do órgão{{ siglaOrgao ? ' ' + siglaOrgao : '' }}</a>.</ng-container>
+        </p>
+      </div>
+    </div>
+
     <!-- Trilha do papel: fica sempre à vista, acima de cada tela -->
     <section *ngIf="e.carga === 'pronta' && e.trilha as trilha" citaPlanejamento class="bg-white rounded-xl shadow-sm border border-gray-200 mb-5">
 
@@ -84,8 +98,9 @@
       <div class="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100">
         <div class="min-w-0">
           <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Sua trilha na Governança Estratégica · Decreto nº 48.900/2026</p>
-          <!-- Espaço acima do título: o contorno do foco (a barra de acessibilidade leva o foco a ele) não cobre a linha de cima (F1, B23) -->
-          <h1 class="text-lg font-bold text-gray-900 truncate mt-2">
+          <!-- Espaço acima e abaixo do título: o contorno do foco (3 px, afastado 2 px; a barra de acessibilidade leva o
+               foco a ele) não cobre a linha de cima (F1, B23) nem a de baixo (F2, B23) -->
+          <h1 class="text-lg font-bold text-gray-900 truncate mt-2 mb-2">
             {{ trilha.nome }}<span *ngIf="siglaOrgao" class="text-gray-500 font-medium"> · {{ siglaOrgao }}</span>
           </h1>
           <p *ngIf="rotuloNivel" class="text-xs text-gray-600">{{ rotuloNivel }}<ng-container *ngIf="rotuloPdtic as r"> · {{ r }}</ng-container></p>
