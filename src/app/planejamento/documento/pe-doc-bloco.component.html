@@ -57,7 +57,7 @@
           {{ g.descricoes }}:
           <a *ngIf="g.passo as p" [routerLink]="p.rota" [queryParams]="{ passo: p.numero }" data-sem-dica
              class="font-semibold underline">{{ (p.editavel ?? podeEditar) ? 'preencha no passo ' + p.numero : 'o dado vem do passo ' + p.numero }}</a>
-          <ng-container *ngIf="!g.passo">o dado vem do cadastro do órgão ou do sistema.</ng-container>
+          <ng-container *ngIf="!g.passo">{{ g.semLink }}</ng-container>
         </li>
       </ul>
     </div>

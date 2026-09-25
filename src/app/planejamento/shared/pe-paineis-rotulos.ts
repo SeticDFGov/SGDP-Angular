@@ -136,10 +136,12 @@ export const CHAVES_SITUACAO_PAINEL: readonly string[] = [
 ];
 
 /**
- * Filtros que só a tela aplica, sobre a lista que chegou, para os alertas do
- * painel abrirem a conformidade já filtrada: vigência vencida (PDTIC publicado
- * sem estar dentro da vigência), revisão vencida, ciclo atrasado e notificação ou
- * inadimplência em aberto.
+ * Os alertas do painel que a conformidade entende no endereço (`alerta=`), para os
+ * números do painel abrirem a lista já filtrada: vigência vencida, revisão vencida
+ * e ciclo atrasado, pelas marcas da linha (`Alertas`, as mesmas que o painel conta;
+ * F2), e notificação ou inadimplência em aberto (a linha tem `Inadimplencia`). A
+ * tela filtra a lista que chegou; o servidor aceita os mesmos valores (`Alerta`), e
+ * é assim que a planilha sai com os órgãos da lista.
  */
 export type AlertaConformidade = 'vigencia' | 'revisao' | 'ciclo' | 'inadimplencia';
 
@@ -158,21 +160,25 @@ export function rotuloAlerta(valor: AlertaConformidade | null): string {
   return ALERTAS_CONFORMIDADE.find(a => a.valor === valor)?.rotulo ?? '';
 }
 
-function naoAtende(o: PeConformidadeOrgao, chave: string): boolean {
-  return o.Itens?.[chave]?.Atende === false;
-}
-
-/** O órgão entra no filtro do alerta. */
+/**
+ * O órgão entra no filtro do alerta. Vigência, revisão e ciclo pelas marcas da
+ * linha, que são o que o painel conta (F2): o "Não" do item também aparece sem
+ * aprovação ainda (revisão) e com a vigência que não começou, e trazia órgãos que o
+ * painel não conta.
+ */
 export function temAlerta(o: PeConformidadeOrgao, alerta: AlertaConformidade): boolean {
   switch (alerta) {
-    case 'vigencia': return (o.PdticSituacao === 'publicado' || o.PdticSituacao === 'em_acompanhamento') && naoAtende(o, 'vigente');
-    case 'revisao': return naoAtende(o, 'revisao_em_dia');
-    case 'ciclo': return naoAtende(o, 'acompanhamento_em_dia');
+    case 'vigencia': return o.Alertas?.VigenciaVencida === true;
+    case 'revisao': return o.Alertas?.RevisaoVencida === true;
+    case 'ciclo': return o.Alertas?.CicloAtrasado === true;
     case 'inadimplencia': return !!o.Inadimplencia;
   }
 }
 
-/** Filtros da conformidade como a tela guarda (o nível vai ao servidor; os demais, a tela aplica). */
+/**
+ * Filtros da conformidade como a tela guarda: o nível vai ao servidor; os demais, a
+ * tela aplica sobre a lista que chegou, e a planilha leva todos (F2).
+ */
 export interface FiltroConformidade {
   grupo: PeGrupoConformidade | null;
   nivel: number | null;

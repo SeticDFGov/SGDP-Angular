@@ -1279,6 +1279,12 @@ export interface PeDocumento {
   Logotipo?: string | null;
   Capitulos: PeDocCapitulo[];
   Versoes: PeDocVersao[];
+  /**
+   * F2: os marcadores deste documento (os do modelo do tipo), cada um com onde o
+   * valor se preenche e o `PassoNumero` na trilha do órgão: o link "preencha no passo
+   * N.M" dos marcadores sem valor, também para quem só lê. Opcional para a resposta antiga.
+   */
+  Marcadores?: PeDocMarcador[];
 }
 
 /** PUT api/planejamento/pdtic/{id}/documento/blocos/{blocoId}: o texto do órgão, com os marcadores como texto. */
@@ -1307,6 +1313,11 @@ export interface PeDocMarcador {
    */
   PassoChave?: string | null;
   SecaoChave?: string | null;
+  /**
+   * F2: o número do passo na trilha do órgão ("3.11"), só na lista `Marcadores` do
+   * documento; null quando o órgão não vê o passo (sem link). No modelo, sempre null.
+   */
+  PassoNumero?: string | null;
 }
 
 /**
@@ -2026,7 +2037,24 @@ export interface PeInadimplenciaVigente {
   Prazo: string | null;
 }
 
-/** A linha de um órgão na conformidade (sobre o PDTIC vigente; sem vigente, sobre o atual). */
+/**
+ * As marcas dos alertas do painel numa linha da conformidade (F2): o painel conta
+ * exatamente as linhas marcadas, e o filtro `alerta` da tela usa as mesmas marcas.
+ */
+export interface PeConformidadeAlertas {
+  /** O PDTIC está publicado (ou em acompanhamento) e a vigência já terminou. */
+  VigenciaVencida: boolean;
+  /** A última aprovação mais a periodicidade de revisão já passou (sem aprovação ainda, não há revisão vencida). */
+  RevisaoVencida: boolean;
+  /** Um ciclo de monitoramento começado passou do prazo de fechamento sem ser fechado. */
+  CicloAtrasado: boolean;
+}
+
+/**
+ * A linha de um órgão na conformidade. A versão e a situação são as do PDTIC de
+ * referência, as mesmas do painel (F2): a vigente; sem ela, a da elaboração; sem as
+ * duas, a mais recente, encerrada. Os itens avaliam só a vigente ou a da elaboração.
+ */
 export interface PeConformidadeOrgao {
   OrgaoId: number;
   Sigla: string;
@@ -2034,9 +2062,12 @@ export interface PeConformidadeOrgao {
   NivelNome: string | null;
   PdticId: number | null;
   PdticVersao: string | null;
+  /** A chave do painel (a substituída vem como `encerrado`); null só quando o órgão nunca abriu um PDTIC. */
   PdticSituacao: PeSituacaoPdtic | null;
   /** Pela chave do item (`PeItemConformidade.Chave`). */
   Itens: Record<string, PeAtendimentoConformidade>;
+  /** F2: as marcas dos alertas do painel (opcional para aceitar a resposta antiga). */
+  Alertas?: PeConformidadeAlertas;
   Atendidos: number;
   Aplicaveis: number;
   /** De 0 a 100. */
@@ -2045,18 +2076,23 @@ export interface PeConformidadeOrgao {
   Inadimplencia: PeInadimplenciaVigente | null;
 }
 
-/** GET api/planejamento/conformidade?Grupo=&NivelId=&Filtro=. */
+/** GET api/planejamento/conformidade?Grupo=&NivelId=&Filtro=&Situacao=&Alerta=. */
 export interface PeConformidade {
   Itens: PeItemConformidade[];
   Resumo: PeResumoConformidade;
   Orgaos: PeConformidadeOrgao[];
 }
 
+/** Os filtros de GET conformidade e da planilha, aplicados do mesmo jeito nas duas rotas. */
 export interface PeConformidadeConsulta {
   Grupo?: PeGrupoConformidade | null;
   NivelId?: number | null;
   /** Parte da sigla ou do nome do órgão. */
   Filtro?: string | null;
+  /** F2: as chaves de situação do painel, separadas por vírgula ("sem_pdtic,encerrado"). */
+  Situacao?: string | null;
+  /** F2: vigencia, revisao, ciclo (as marcas de `Alertas`) ou inadimplencia (a linha tem `Inadimplencia`). */
+  Alerta?: string | null;
 }
 
 /**

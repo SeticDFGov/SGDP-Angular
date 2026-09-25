@@ -102,8 +102,8 @@ export function tipoPedeNome(tipo: string | null | undefined): boolean {
 export const MAX_NOME_FLUXO = 200;
 export const MAX_NOME_RAIA = 120;
 export const MAX_NOME_ELEMENTO = 200;
-/** O nome de um documento do passo: o mesmo máximo do servidor (F2). */
-export const MAX_ARTEFATO = 120;
+/** O nome de um documento do passo: o mesmo máximo do servidor (F2: o servidor ficou com 200). */
+export const MAX_ARTEFATO = 200;
 export const MAX_ROTULO_SAIDA = 60;
 export const MAX_PREFIXO = 10;
 

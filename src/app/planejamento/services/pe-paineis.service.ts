@@ -27,6 +27,21 @@ export function caminhoDeDownload(url: string | null | undefined): string | null
 }
 
 /**
+ * Os filtros da conformidade nos parâmetros (os vazios ficam de fora), os mesmos na
+ * lista e na planilha: grupo, nível, busca, situações (separadas por vírgula) e alerta.
+ */
+function comFiltrosDaConformidade(params: HttpParams, consulta: PeConformidadeConsulta): HttpParams {
+  if (consulta.Grupo) params = params.set('Grupo', consulta.Grupo);
+  if (consulta.NivelId) params = params.set('NivelId', consulta.NivelId);
+  const filtro = consulta.Filtro?.trim();
+  if (filtro) params = params.set('Filtro', filtro);
+  const situacao = consulta.Situacao?.trim();
+  if (situacao) params = params.set('Situacao', situacao);
+  if (consulta.Alerta) params = params.set('Alerta', consulta.Alerta);
+  return params;
+}
+
+/**
  * Painéis da Governança Estratégica (E8): o painel com os números de todos os
  * órgãos, a conformidade (e a planilha dela), a árvore do PETIC-DF e o resumo de
  * um órgão (a página do órgão).
@@ -51,22 +66,14 @@ export class PePaineisService {
 
   /** A conformidade de cada órgão (os filtros vazios ficam de fora). */
   conformidade(consulta: PeConformidadeConsulta = {}): Observable<PeConformidade> {
-    let params = new HttpParams();
-    if (consulta.Grupo) params = params.set('Grupo', consulta.Grupo);
-    if (consulta.NivelId) params = params.set('NivelId', consulta.NivelId);
-    const filtro = consulta.Filtro?.trim();
-    if (filtro) params = params.set('Filtro', filtro);
+    const params = comFiltrosDaConformidade(new HttpParams(), consulta);
     return this.http.get<PeConformidade>(`${this.apiUrl}/conformidade`, { params });
   }
 
   /** A planilha da conformidade: uma linha por órgão e uma coluna por item ("Sim", "Não" ou "Não se aplica"). */
   planilhaConformidade(formato: PeFormatoPlanilha, consulta: PeConformidadeConsulta = {}): Observable<HttpResponse<Blob>> {
-    // Os filtros aplicados na tela (grupo, nível e busca) valem também na planilha (F2)
-    let params = new HttpParams().set('formato', formato);
-    if (consulta.Grupo) params = params.set('Grupo', consulta.Grupo);
-    if (consulta.NivelId) params = params.set('NivelId', consulta.NivelId);
-    const filtro = consulta.Filtro?.trim();
-    if (filtro) params = params.set('Filtro', filtro);
+    // Os filtros aplicados na tela valem também na planilha: ela sai com os órgãos que a lista mostra (F2)
+    const params = comFiltrosDaConformidade(new HttpParams().set('formato', formato), consulta);
     return this.http.get(`${this.apiUrl}/conformidade/planilha`, {
       params,
       responseType: 'blob',

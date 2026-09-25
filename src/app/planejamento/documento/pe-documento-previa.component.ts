@@ -94,12 +94,16 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
 
   readonly maxTitulo = MAX_TITULO;
   /**
-   * Marcadores do editor: a lista da especificação até a do servidor chegar (GET
+   * Marcadores do editor e dos avisos de dado sem valor: os do documento (a lista
+   * `Marcadores` da resposta, com o passo de cada um na trilha do órgão; F2). Sem
+   * ela (resposta antiga), a lista da especificação até a do servidor chegar (GET
    * modelo/documento?tipo=, que todo papel lê), pedida na primeira vez que um texto
    * abre. A do servidor tem também os campos que o administrador criou no dicionário
    * de nomes.
    */
   marcadores: readonly PeDocMarcador[] = marcadoresPadraoDo('pdtic');
+  /** F2: os marcadores vieram do documento (o link "preencha no passo N.M" vale também para quem só lê). */
+  marcadoresDoDocumento = false;
   private marcadoresPedidos: PeTipoDocumento | null = null;
   /** O documento que a tela mostra e grava (o mesmo objeto enquanto não muda: vai para os blocos). */
   alvo: AlvoDocumento = { tipo: 'pdtic', pdticId: 0 };
@@ -182,6 +186,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
       this.pendentes.clear();
       this.avisarAlterado();
       this.linksDoCiclo.clear();
+      this.marcadoresDoDocumento = false;
       if (this.marcadoresPedidos !== this.tipoDoc) {
         this.marcadoresPedidos = null;
         this.marcadores = marcadoresPadraoDo(this.tipoDoc);
@@ -238,6 +243,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
 
   private aplicarDocumento(doc: PeDocumento): void {
     this.doc = doc;
+    this.aplicarMarcadores(doc);
     this.paginas = montarPaginas(doc.Capitulos ?? []);
     this.sumario = capitulosDoSumario(doc.Capitulos ?? []);
     this.versoes = versoesEmOrdem(doc.Versoes);
@@ -253,6 +259,23 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     if (this.blocoAberto !== null && !ids.has(this.blocoAberto)) this.blocoAberto = null;
     for (const id of [...this.pendentes]) if (!ids.has(id)) this.pendentes.delete(id);
     this.avisarAlterado();
+  }
+
+  /**
+   * F2: os marcadores que o documento traz (os do modelo do tipo, com o número do passo
+   * na trilha do órgão) valem para os avisos de dado sem valor e para o editor, sem
+   * pedir a lista do modelo. A lista só troca quando muda: ela vai para os blocos e
+   * para o editor aberto.
+   */
+  private aplicarMarcadores(doc: PeDocumento): void {
+    if (!doc.Marcadores?.length) {
+      this.marcadoresDoDocumento = false;
+      return;
+    }
+    const lista = marcadoresDoTipo(this.tipoDoc, doc.Marcadores);
+    if (!this.marcadoresDoDocumento || JSON.stringify(lista) !== JSON.stringify(this.marcadores)) this.marcadores = lista;
+    this.marcadoresDoDocumento = true;
+    this.marcadoresPedidos = this.tipoDoc;
   }
 
   /** Links para os passos: a seção de cada passo da trilha à vista e o passo de cada capítulo. */
@@ -490,7 +513,10 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     // Segundo plano: o editor já abre com a lista da especificação
     this.documentoService.modelo(tipo, semCarregamento()).subscribe({
       next: modelo => {
-        if (modelo.Marcadores?.length && this.tipoDoc === tipo) this.marcadores = marcadoresDoTipo(tipo, modelo.Marcadores);
+        // A lista do documento, se chegou nesse meio tempo, fica (ela tem o número do passo na trilha do órgão)
+        if (modelo.Marcadores?.length && this.tipoDoc === tipo && !this.marcadoresDoDocumento) {
+          this.marcadores = marcadoresDoTipo(tipo, modelo.Marcadores);
+        }
       },
       error: () => {
         if (this.marcadoresPedidos === tipo) this.marcadoresPedidos = null;

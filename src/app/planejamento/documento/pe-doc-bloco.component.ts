@@ -17,7 +17,7 @@ import { mensagemErroPe } from '../shared/pe-erros';
 import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { DicionarioFluxo, dicionarioPadrao, normalizarDefinicao, numerosDoServidor } from '../shared/pe-fluxo-rotulos';
 import {
-  AlvoDocumento, MARCADORES_PADRAO, PassoLinkDoc, TIPOS_BLOCO_ACOMPANHAMENTO, descricaoMarcador, ondeSePreencheMarcador, rotuloTipoBloco,
+  AlvoDocumento, MARCADORES_PADRAO, PassoLinkDoc, TIPOS_BLOCO_ACOMPANHAMENTO, descricaoMarcador, destinoDoMarcador, rotuloTipoBloco,
   textoMarcador, tituloComNumero
 } from '../shared/pe-documento-rotulos';
 import { juntar } from '../shared/pe-modelo-rotulos';
@@ -43,6 +43,8 @@ interface GrupoSemValor {
   chave: string;
   descricoes: string;
   passo: PassoLinkDoc | null;
+  /** Sem o passo, de onde o dado vem ("o dado vem do cadastro do órgão ou do sistema."). */
+  semLink: string;
 }
 
 interface QuadranteSwot {
@@ -126,6 +128,11 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   /** O passo dos dados de uma tabela, lista ou matriz (link "editar os dados no passo N.M"). */
   @Input() passoDados: PassoLinkDoc | null = null;
   @Input() marcadores: readonly PeDocMarcador[] = MARCADORES_PADRAO;
+  /**
+   * F2: os marcadores vieram do documento, com o número do passo na trilha do órgão:
+   * valem para o link dos marcadores sem valor (sem ele, o modelo inicial).
+   */
+  @Input() marcadoresDoDocumento = false;
 
   /** Pede à prévia para abrir o editor deste bloco. */
   @Output() readonly abrir = new EventEmitter<void>();
@@ -294,7 +301,8 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   // ── Ciclo de vida ─────────────────────────────────────────────────────────
 
   ngOnChanges(mudancas: SimpleChanges): void {
-    if (mudancas['bloco'] || mudancas['passosPorSecao'] || mudancas['passosPorChave'] || mudancas['marcadores']) this.montarLeitura();
+    if (mudancas['bloco'] || mudancas['passosPorSecao'] || mudancas['passosPorChave'] || mudancas['marcadores']
+      || mudancas['marcadoresDoDocumento']) this.montarLeitura();
     const aberto = mudancas['aberto'];
     if (aberto && !aberto.firstChange && aberto.previousValue !== aberto.currentValue) {
       if (this.aberto) this.comecarEdicao();
@@ -325,14 +333,13 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   private montarLeitura(): void {
     const b = this.bloco;
     // Marcadores sem valor, pelo passo onde se preenchem
-    const grupos = new Map<string, { chaves: string[]; passo: PassoLinkDoc | null }>();
+    const grupos = new Map<string, { chaves: string[]; passo: PassoLinkDoc | null; semLink: string }>();
     for (const chave of b.MarcadoresSemValor ?? []) {
-      // O passo que o servidor indica no marcador ou, sem ele, o do modelo inicial (as aprovações em 3.11 e 3.12, a
-      // publicação em 3.13) ou a seção (F2)
-      const onde = ondeSePreencheMarcador(chave, this.marcadores);
-      const passo = (onde.passo ? this.passosPorChave.get(onde.passo) : null) ?? (onde.secao ? this.passosPorSecao.get(onde.secao) : null) ?? null;
-      const id = passo?.rota ?? '-';
-      const grupo = grupos.get(id) ?? { chaves: [], passo };
+      // O passo que o servidor indica no marcador do documento, com o número na trilha do órgão; sem a lista do
+      // documento, o do modelo inicial (as aprovações em 3.11 e 3.12, a publicação em 3.13) ou a seção (F2)
+      const destino = destinoDoMarcador(chave, this.marcadores, this.marcadoresDoDocumento, this.passosPorChave, this.passosPorSecao);
+      const id = destino.passo?.rota ?? destino.texto;
+      const grupo = grupos.get(id) ?? { chaves: [], passo: destino.passo, semLink: destino.texto };
       grupo.chaves.push(chave);
       grupos.set(id, grupo);
     }
@@ -342,7 +349,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
         const d = descricaoMarcador(c, this.marcadores);
         return d.charAt(0).toLowerCase() + d.slice(1);
       }));
-      return { chave: id, descricoes: descricoes.charAt(0).toUpperCase() + descricoes.slice(1), passo: g.passo };
+      return { chave: id, descricoes: descricoes.charAt(0).toUpperCase() + descricoes.slice(1), passo: g.passo, semLink: g.semLink };
     });
 
     this.temCodigo = !!b.Tabela?.Linhas.some(l => !!l.Codigo);

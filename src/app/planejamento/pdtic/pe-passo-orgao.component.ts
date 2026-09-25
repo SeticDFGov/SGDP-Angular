@@ -17,10 +17,10 @@ import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import { NomesDoModelo, citacaoTravado, descricaoCampo, rotuloTipoPasso } from '../shared/pe-modelo-rotulos';
 import {
-  GrupoPassoPdtic, SECAO_APROVACAO_AUTORIDADE, SECAO_AVALIACAO_COMITE, SECAO_CRONOGRAMA, SECAO_PUBLICACAO,
-  TIPOS_PASSO_COM_SECOES, TIPOS_PASSO_COM_TELA, aceitaNaoSeAplica, classeEstadoPasso, ehPassoSistemasIa, grupoDoPasso,
-  iconeEstadoPasso, itemDaSecaoPdtic, motivoLeituraDoPasso, passoTemFluxos, pdticAntesDaPublicacao,
-  pdticDepoisDaPublicacao, pdticVigente, situacaoDaVersaoNaFrase, statusDoPassoPdtic, textoDoStatus
+  GrupoPassoPdtic, ORIGEM_ART4, SECAO_APROVACAO_AUTORIDADE, SECAO_AVALIACAO_COMITE, SECAO_CRONOGRAMA, SECAO_PRINCIPIOS,
+  SECAO_PUBLICACAO, TIPOS_PASSO_COM_SECOES, TIPOS_PASSO_COM_TELA, aceitaNaoSeAplica, classeEstadoPasso, ehPassoSistemasIa,
+  grupoDoPasso, iconeEstadoPasso, itemDaSecaoPdtic, motivoLeituraDoPasso, passoTemFluxos, pdticAntesDaPublicacao,
+  pdticDepoisDaPublicacao, pdticVigente, situacaoDaVersaoNaFrase, statusDoPassoPdtic, textoDoStatus, textoPrincipiosDoArt4
 } from '../shared/pe-pdtic-rotulos';
 import {
   PassoDaGrade, SECAO_ACOES, SECAO_INDICADORES_MONITORAMENTO, SECAO_MEDICOES, SECAO_MONITORAMENTO_ACOES, SECAO_RELATORIO_CICLO,
@@ -166,6 +166,8 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   private readonly recargas = new Map<string, number>();
   /** E7: a decisão gravada em cada seção de aprovação do passo (pela chave da seção). */
   decisoes: Record<string, string | null> = {};
+  /** F2: quantos princípios do art. 4º a tabela dos princípios tem (o texto do passo fala deles). */
+  private principiosDoArt4 = 0;
   /** E7: muda quando a aprovação do SGTIC é salva (o envio confere de novo o que falta). */
   recargaEnvio = 0;
   /** Onde o passo fica no caminho do PDTIC (elaboração, deliberação, publicação ou acompanhamento). */
@@ -517,6 +519,11 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
       return 'Preencha a publicação abaixo e salve. Depois, use "Registrar a publicação", no bloco logo depois dela: o passo fica '
         + 'feito com o registro. Os campos com asterisco são obrigatórios.';
     }
+    // F2: o PDTIC aberto no sistema já nasce com os princípios do art. 4º na tabela (e o passo, feito)
+    const principios = this.passo?.Secoes.find(s => s.Chave === SECAO_PRINCIPIOS);
+    if (principios && this.principiosDoArt4 > 0) {
+      return textoPrincipiosDoArt4(principios.Campos.some(c => c.Chave === 'criterio_priorizacao'));
+    }
     return 'Preencha as seções abaixo e salve cada uma. O passo fica feito quando as seções obrigatórias estão preenchidas; os campos '
       + 'com asterisco são obrigatórios.';
   }
@@ -856,6 +863,7 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   aoCarregarRegistros(secao: PeSecaoTrilha, registros: PeRegistro[]): void {
     const decisao = registros[0]?.Dados?.['decisao'];
     this.decisoes = { ...this.decisoes, [secao.Chave]: typeof decisao === 'string' ? decisao : null };
+    if (secao.Chave === SECAO_PRINCIPIOS) this.principiosDoArt4 = registros.filter(r => r.Dados?.['origem'] === ORIGEM_ART4).length;
     if (this.focarSecaoAoCarregar === secao.Chave) {
       this.focarSecaoAoCarregar = null;
       this.focoPendente = `pe-secao-${secao.Chave}-titulo`;
@@ -1009,6 +1017,7 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
       this.focarSecaoAoCarregar = null;
       this.status = null;
       this.decisoes = {};
+      this.principiosDoArt4 = 0;
     }
     const etapa = this.numerado ? estado.trilhaOrgao?.Etapas[this.numerado.etapa] : null;
     this.grupo = grupoDoPasso(this.passo.Tipo, etapa?.Chave, this.numerado?.etapa ?? 0);
@@ -1221,8 +1230,9 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     if (chave === this.chaveFonte) return;
     const mesmoPdtic = this.chaveFonte.split('|')[0] === chave.split('|')[0];
     this.chaveFonte = chave;
-    // Outro ciclo: as decisões lidas das seções eram do anterior
+    // Outro ciclo: as decisões lidas das seções eram do anterior (e os princípios, de outro PDTIC)
     this.decisoes = {};
+    this.principiosDoArt4 = 0;
     const ciclos: CiclosDaFonte | null = tipo && ciclo
       ? { chave: chaveCiclo, daSecao: secao => (this.tipoDaSecao(secao) === tipo ? ciclo.Id : null) }
       : null;

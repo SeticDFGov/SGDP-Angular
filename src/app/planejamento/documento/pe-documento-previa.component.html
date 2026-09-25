@@ -217,7 +217,7 @@
             <!-- Um bloco do capítulo -->
             <app-pe-doc-bloco *ngIf="item.bloco as b" [bloco]="b" [capitulo]="item.capitulo" [pdticId]="d.PdticId" [alvo]="alvo"
                               [podeEditar]="d.PodeEditar" [aberto]="blocoAberto === b.Id" [passosPorSecao]="passosPorSecao" [passosPorChave]="passosPorChave"
-                              [passoDados]="passoDoBloco(item)" [marcadores]="marcadores"
+                              [passoDados]="passoDoBloco(item)" [marcadores]="marcadores" [marcadoresDoDocumento]="marcadoresDoDocumento"
                               (abrir)="abrirBloco(b)" (fechar)="fecharBloco(b)" (atualizado)="aoAtualizarBloco(item.capitulo, $event)"
                               (pendente)="aoPendente(b, $event)"></app-pe-doc-bloco>
           </ng-container>

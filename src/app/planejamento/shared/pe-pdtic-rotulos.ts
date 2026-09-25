@@ -321,6 +321,30 @@ export function passoTemFluxos(passo: Pick<PePassoTrilha, 'Tipo' | 'Chave'> | nu
 /** Seção do cronograma do plano de trabalho (1.9 no Avançado): com ela vazia, o passo sugere as linhas pelos fluxos. */
 export const SECAO_CRONOGRAMA = 'cronograma_elaboracao';
 
+/**
+ * Seção dos princípios e diretrizes (1.8 no Avançado). O PDTIC aberto no sistema já
+ * nasce com os princípios do art. 4º nela, como itens comuns do órgão (PD01 a PD11,
+ * de origem `art4`, marcados como critério de priorização), e o passo nasce feito
+ * (F2). Os PDTICs abertos antes disso e o registrado fora do sistema não os têm.
+ */
+export const SECAO_PRINCIPIOS = 'principios_diretrizes';
+/** A origem dos princípios que vieram do art. 4º do Decreto nº 48.900/2026. */
+export const ORIGEM_ART4 = 'art4';
+
+/**
+ * O texto de preenchimento do passo dos princípios quando a tabela tem os do art. 4º
+ * (F2): o órgão confere, ajusta, apaga e inclui os dele. `comCriterio`: o nível mostra
+ * o campo do critério de priorização (no Básico, não).
+ */
+export function textoPrincipiosDoArt4(comCriterio: boolean): string {
+  const criterio = comCriterio
+    ? ' Eles vêm marcados como critério de priorização: mude para "Não" os que o órgão não for usar para priorizar as necessidades.'
+    : '';
+  return 'Os princípios do art. 4º já vêm na tabela, como itens do órgão: confira cada um, ajuste o texto ou apague o que não servir '
+    + `e inclua os princípios e as diretrizes do próprio órgão, salvando cada um.${criterio} O passo fica feito quando as seções `
+    + 'obrigatórias estão preenchidas; os campos com asterisco são obrigatórios.';
+}
+
 /** Selo da classificação de risco do PGIA (Decreto nº 48.901/2026), nas cores do PGIA. */
 export function classeRiscoPgia(classificacao: string | null | undefined): string {
   switch (classificacao) {

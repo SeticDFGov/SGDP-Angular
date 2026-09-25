@@ -159,6 +159,47 @@ export function ondeSePreencheMarcador(chave: string, lista: readonly PeDocMarca
   return { passo: null, secao: secaoDoMarcador(chave) };
 }
 
+/** Para onde a prévia manda quem vê um marcador sem valor (F2). */
+export interface DestinoMarcador {
+  /** O passo da trilha à vista: o link "preencha no passo N.M". */
+  passo: PassoLinkDoc | null;
+  /** Sem o link, o que a prévia diz ("o dado vem do passo 3.11."). */
+  texto: string;
+}
+
+/**
+ * O passo onde o valor de um marcador sem valor se preenche, na trilha à vista (F2).
+ * Com a lista do documento (`doDocumento`: a lista `Marcadores` de GET
+ * pdtic/{id}/documento, do RA e do RR), vale o que o servidor diz: o passo pela chave
+ * (ou pelo número) na trilha do órgão; sem passo nem seção, o dado vem do sistema; com
+ * o `PassoNumero` nulo, o órgão não vê o passo e não há link. Sem essa lista, o passo
+ * pela lista do modelo ou pelas chaves do modelo inicial (`ondeSePreencheMarcador`).
+ */
+export function destinoDoMarcador(
+  chave: string,
+  lista: readonly PeDocMarcador[],
+  doDocumento: boolean,
+  passosPorChave: ReadonlyMap<string, PassoLinkDoc>,
+  passosPorSecao: ReadonlyMap<string, PassoLinkDoc>
+): DestinoMarcador {
+  const doSistema = 'o dado vem do cadastro do órgão ou do sistema.';
+  const foraDaTrilha = 'o dado vem de um passo que não aparece na trilha do órgão.';
+  const m = doDocumento ? lista.find(x => x.Chave === chave) : undefined;
+  if (m) {
+    if (!m.PassoChave && !m.SecaoChave) return { passo: null, texto: doSistema };
+    if (!m.PassoNumero) return { passo: null, texto: foraDaTrilha };
+    const passo = (m.PassoChave ? passosPorChave.get(m.PassoChave) : undefined)
+      ?? [...passosPorChave.values()].find(p => p.numero === m.PassoNumero)
+      ?? (m.SecaoChave ? passosPorSecao.get(m.SecaoChave) : undefined);
+    // A trilha à vista ainda sem o passo: o número, sem o link
+    return passo ? { passo, texto: '' } : { passo: null, texto: `o dado vem do passo ${m.PassoNumero}.` };
+  }
+  const onde = ondeSePreencheMarcador(chave, lista);
+  const passo = (onde.passo ? passosPorChave.get(onde.passo) : undefined) ?? (onde.secao ? passosPorSecao.get(onde.secao) : undefined);
+  if (passo) return { passo, texto: '' };
+  return { passo: null, texto: onde.passo || onde.secao ? foraDaTrilha : doSistema };
+}
+
 function escaparRegex(texto: string): string {
   return texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

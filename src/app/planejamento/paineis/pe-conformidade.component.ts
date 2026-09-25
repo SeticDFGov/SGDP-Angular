@@ -40,10 +40,12 @@ interface FiltroAtivo {
  * - Resumo dos grupos (alta, média e baixa conformidade), que também filtra.
  * - Filtros no endereço: `grupo`, `nivel` (vai ao servidor, `NivelId`), `busca`
  *   (sigla ou nome, sem caixa e sem acento), `situacao` (as chaves do painel,
- *   separadas por vírgula) e `alerta` (os alertas do painel). Os links do painel
- *   chegam por eles. Grupo, busca, situação e alerta a tela aplica sobre a lista
- *   que chegou: o resumo conta os três grupos da lista que passa nos outros filtros.
- * - Planilha em CSV e XLSX (uma linha por órgão, uma coluna por item).
+ *   separadas por vírgula) e `alerta` (os alertas do painel, pelas marcas da linha
+ *   que o painel conta). Os links do painel chegam por eles. Grupo, busca, situação
+ *   e alerta a tela aplica sobre a lista que chegou: o resumo conta os três grupos
+ *   da lista que passa nos outros filtros.
+ * - Planilha em CSV e XLSX (uma linha por órgão, uma coluna por item), com todos os
+ *   filtros aplicados: os mesmos órgãos da lista (F2).
  *
  * Estados vazios distintos (nenhum órgão no sistema; nenhum com os filtros, com
  * "Limpar os filtros"); falha de carregamento como mensagem na tela. Papel de
@@ -317,7 +319,9 @@ export class PeConformidadeComponent implements OnInit {
     if (this.baixando) return;
     this.baixando = formato;
     const f = this.filtro;
-    this.paineisService.planilhaConformidade(formato, { Grupo: f.grupo, NivelId: f.nivel, Filtro: f.busca }).subscribe({
+    // Todos os filtros aplicados: a planilha sai com os órgãos que a lista mostra (F2)
+    const consulta = { Grupo: f.grupo, NivelId: f.nivel, Filtro: f.busca, Situacao: f.situacoes.join(','), Alerta: f.alerta };
+    this.paineisService.planilhaConformidade(formato, consulta).subscribe({
       next: resposta => {
         this.baixando = null;
         salvarResposta(resposta, `PDTIC_conformidade_${hojeIso()}.${formato}`);
