@@ -49,7 +49,10 @@ export class PeTextoRicoLeituraDirective implements OnChanges {
 
   private desenhar(): void {
     const raiz = this.elemento.nativeElement;
-    while (raiz.firstChild) this.r.removeChild(raiz, raiz.firstChild);
+    // Remove pela lista tirada antes: com as animações do Angular ligadas, a remoção pelo
+    // Renderer2 pode ficar para o fim do ciclo, e um laço em firstChild nunca terminaria
+    // (a aba travava ao esconder capítulo ou gerar o PDF com a prévia aberta).
+    for (const filho of Array.from(raiz.childNodes)) this.r.removeChild(raiz, filho);
     this.desenho++;
     this.tabelas = 0;
     this.regexDestaque = this.montarRegexDestaque();
