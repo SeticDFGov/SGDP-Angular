@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
@@ -42,10 +42,12 @@ export class PgiaSistemaService {
     return new HttpHeaders().set('Authorization', `Bearer ${token}`);
   }
 
-  listarSistemas(orgaoId: number, page: number = 1, pageSize: number = 50): Observable<PgiaPagedResponse<PgiaSistema>> {
+  /** `contexto`: a situação da trilha consulta em segundo plano (sem o indicador de carregamento). */
+  listarSistemas(orgaoId: number, page: number = 1, pageSize: number = 50,
+    contexto?: HttpContext): Observable<PgiaPagedResponse<PgiaSistema>> {
     return this.http.get<PgiaPagedResponse<PgiaSistema>>(
       `${this.apiUrl}/orgao/${orgaoId}?Page=${page}&PageSize=${pageSize}`,
-      { headers: this.getHeaders() });
+      { headers: this.getHeaders(), context: contexto });
   }
 
   getSistema(id: number): Observable<PgiaSistema> {

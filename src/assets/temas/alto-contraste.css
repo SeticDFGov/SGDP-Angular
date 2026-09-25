@@ -1,5 +1,5 @@
 /* GERADO por scripts/temas/gerar-temas.mjs a partir do CSS do Tailwind: não editar à mão (npm run temas). */
-html.tema-alto-contraste{color-scheme:dark;background-color:#000;color:#fff;--foco:#ffff00}
+html.tema-alto-contraste{color-scheme:dark;background-color:#000;color:#fff;--foco:#ffff00;--carregando:#ffff00}
 html.tema-alto-contraste body{background-color:#000;color:#fff}
 html.tema-alto-contraste *,html.tema-alto-contraste ::before,html.tema-alto-contraste ::after{--tw-ring-offset-color:#000}
 html.tema-alto-contraste app-root a[href]{color:#ffff00;text-decoration:underline;text-underline-offset:2px}

@@ -23,6 +23,7 @@ import {
   REGEX_NUMERO_SEI,
   STATUS_TCDF
 } from '../../../api/contratacoes/interface';
+import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import {
   badgeCriticidade,
@@ -211,7 +212,8 @@ export class CtrManifestacaoFormComponent implements OnChanges, AfterViewChecked
     this.numeroConsultado = numero;
     const consulta = ++this.consultaSugestao;
     // Os concluídos (contrato assinado) também contam: ficam fora da lista por padrão
-    this.processoService.listar({ Filtro: numero, IncluirConcluidos: true, Page: 1, PageSize: 5 }).subscribe({
+    // Segundo plano, enquanto a pessoa digita: o aviso com o processo achado é o sinal
+    this.processoService.listar({ Filtro: numero, IncluirConcluidos: true, Page: 1, PageSize: 5 }, semCarregamento()).subscribe({
       next: pagina => {
         if (consulta !== this.consultaSugestao) return; // número mudou no meio
         this.sugestao = (pagina.Items ?? []).find(p => p.NumeroProcesso === numero) ?? null;

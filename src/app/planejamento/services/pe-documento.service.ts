@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import {
@@ -54,10 +54,14 @@ export class PeDocumentoService {
     return this.http.get<PeDocumento>(this.base(alvo));
   }
 
-  /** Grava o texto do órgão num bloco (com os marcadores como texto) e devolve o bloco resolvido. */
-  salvarBloco(alvo: AlvoDocumento, blocoId: number, texto: PeDocTextoRico): Observable<PeDocBloco> {
+  /**
+   * Grava o texto do órgão num bloco (com os marcadores como texto) e devolve o bloco
+   * resolvido. `contexto`: o salvamento do texto na prévia vai em segundo plano (sem o
+   * indicador de carregamento).
+   */
+  salvarBloco(alvo: AlvoDocumento, blocoId: number, texto: PeDocTextoRico, contexto?: HttpContext): Observable<PeDocBloco> {
     const corpo: PeDocBlocoForm = { Texto: texto };
-    return this.http.put<PeDocBloco>(`${this.base(alvo)}/blocos/${blocoId}`, corpo);
+    return this.http.put<PeDocBloco>(`${this.base(alvo)}/blocos/${blocoId}`, corpo, { context: contexto });
   }
 
   /** Apaga o texto do órgão: o bloco volta a seguir o texto do modelo. Devolve o bloco resolvido. */
@@ -90,9 +94,13 @@ export class PeDocumentoService {
     return `${this.apiUrl}/modelo/documento`;
   }
 
-  /** O modelo de um dos três documentos (pdtic, ra ou rr), com os marcadores que os textos dele podem usar. */
-  modelo(tipo: PeTipoDocumento = 'pdtic'): Observable<PeDocModelo> {
-    return this.http.get<PeDocModelo>(this.baseModelo, { params: new HttpParams().set('tipo', tipo) });
+  /**
+   * O modelo de um dos três documentos (pdtic, ra ou rr), com os marcadores que os
+   * textos dele podem usar. `contexto`: a prévia pede os marcadores em segundo plano
+   * (sem o indicador de carregamento).
+   */
+  modelo(tipo: PeTipoDocumento = 'pdtic', contexto?: HttpContext): Observable<PeDocModelo> {
+    return this.http.get<PeDocModelo>(this.baseModelo, { params: new HttpParams().set('tipo', tipo), context: contexto });
   }
 
   criarCapitulo(form: PeDocCapituloModeloNovoForm): Observable<PeDocModeloCapitulo> {

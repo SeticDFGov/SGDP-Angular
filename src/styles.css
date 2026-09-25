@@ -45,6 +45,40 @@ app-root .min-h-screen {
   outline: none;
 }
 
+/* Indicador de carregamento (core/carregamento). Enquanto a barra do topo está à
+   vista, a página mostra o cursor de espera (links e botões ficam com o deles). O
+   botão ou link clicado que ainda espera ganha o cursor de espera e um giro por cima,
+   na cor do texto, sem mudar de largura: o serviço põe o giro logo depois do texto,
+   dentro do elemento quando cabe, ou logo depois do elemento. Com menos movimento, o
+   giro fica parado. */
+html.pagina-carregando {
+  cursor: progress;
+}
+
+.clique-ocupado {
+  cursor: wait !important;
+}
+
+.clique-ocupado::after {
+  content: "";
+  position: absolute;
+  top: calc(50% - .375em);
+  right: var(--giro-direita, auto);
+  left: var(--giro-esquerda, auto);
+  width: .75em;
+  height: .75em;
+  border: 2px solid;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: giro-ocupado .8s linear infinite;
+}
+
+@keyframes giro-ocupado {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 /* Menos movimento: pedido pelo sistema operacional ou na página de acessibilidade.
    "transition: none" e não uma duração mínima: a duração sozinha, com a propriedade
    padrão (all), criaria transição em elementos que não tinham nenhuma. */

@@ -52,7 +52,9 @@ const ESCURO = {
     50: 'oklch(25% 0.014 264)', 100: 'oklch(26.5% 0.015 264)', 200: 'oklch(30.5% 0.016 264)',
     300: 'oklch(37% 0.018 264)', 400: 'oklch(45% 0.02 264)'
   },
-  foco: '#60a5fa'
+  foco: '#60a5fa',
+  // barra de carregamento do topo (a do claro, a cor principal, fica no CSS do componente)
+  carregando: '#60a5fa'
 };
 
 function corEscuro(categoria, familia, tom, emMistura) {
@@ -187,13 +189,13 @@ const PARES_CHEIOS = [
 
 const BASE = {
   escuro: `
-html.tema-escuro{color-scheme:dark;background-color:${ESCURO.pagina};color:${PALETA.gray[200]};--foco:${ESCURO.foco}}
+html.tema-escuro{color-scheme:dark;background-color:${ESCURO.pagina};color:${PALETA.gray[200]};--foco:${ESCURO.foco};--carregando:${ESCURO.carregando}}
 html.tema-escuro body{background-color:${ESCURO.pagina}}
 html.tema-escuro *,html.tema-escuro ::before,html.tema-escuro ::after{--tw-ring-offset-color:${ESCURO.cartao}}
 html.tema-escuro #gantt-chart-container::-webkit-scrollbar-track{background:${ESCURO.elevado[200]}}
 html.tema-escuro #gantt-chart-container::-webkit-scrollbar-thumb{background:${PALETA.gray[500]}}`,
   'alto-contraste': `
-html.tema-alto-contraste{color-scheme:dark;background-color:#000;color:#fff;--foco:${AC.link}}
+html.tema-alto-contraste{color-scheme:dark;background-color:#000;color:#fff;--foco:${AC.link};--carregando:${AC.link}}
 html.tema-alto-contraste body{background-color:#000;color:#fff}
 html.tema-alto-contraste *,html.tema-alto-contraste ::before,html.tema-alto-contraste ::after{--tw-ring-offset-color:#000}
 html.tema-alto-contraste app-root a[href]{color:${AC.link};text-decoration:underline;text-underline-offset:2px}

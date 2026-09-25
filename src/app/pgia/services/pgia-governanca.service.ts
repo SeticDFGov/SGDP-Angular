@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
@@ -64,11 +64,12 @@ export class PgiaGovernancaService {
 
   // ── Fila de homologação ───────────────────────────────────────────────────
 
-  listarHomologacoes(situacao?: string): Observable<PgiaHomologacaoPendente[]> {
+  /** `contexto`: a situação da trilha consulta em segundo plano (sem o indicador de carregamento). */
+  listarHomologacoes(situacao?: string, contexto?: HttpContext): Observable<PgiaHomologacaoPendente[]> {
     const url = situacao
       ? `${this.apiUrl}/homologacoes?situacao=${encodeURIComponent(situacao)}`
       : `${this.apiUrl}/homologacoes`;
-    return this.http.get<PgiaHomologacaoPendente[]>(url, { headers: this.getHeaders() });
+    return this.http.get<PgiaHomologacaoPendente[]>(url, { headers: this.getHeaders(), context: contexto });
   }
 
   /** Todos os sistemas visíveis às instâncias centrais, em formato resumido. */
@@ -207,8 +208,8 @@ export class PgiaGovernancaService {
   }
 
   /** Auditorias designadas ao usuário logado (área da entidade auditora). */
-  listarMinhasAuditorias(): Observable<PgiaAuditoria[]> {
-    return this.http.get<PgiaAuditoria[]>(`${this.apiUrl}/auditorias/minhas`, { headers: this.getHeaders() });
+  listarMinhasAuditorias(contexto?: HttpContext): Observable<PgiaAuditoria[]> {
+    return this.http.get<PgiaAuditoria[]>(`${this.apiUrl}/auditorias/minhas`, { headers: this.getHeaders(), context: contexto });
   }
 
   listarAuditoriasDoSistema(sistemaId: number): Observable<PgiaAuditoria[]> {

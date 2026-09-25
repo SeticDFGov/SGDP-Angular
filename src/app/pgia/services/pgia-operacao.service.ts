@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
@@ -74,11 +74,12 @@ export class PgiaOperacaoService {
     return this.http.get<PgiaIncidente[]>(`${this.apiUrl}/incidente/orgao/${orgaoId}`, { headers: this.getHeaders() });
   }
 
-  listarIncidentesComunicados(status?: string): Observable<PgiaIncidente[]> {
+  /** `contexto`: a situação da trilha consulta em segundo plano (sem o indicador de carregamento). */
+  listarIncidentesComunicados(status?: string, contexto?: HttpContext): Observable<PgiaIncidente[]> {
     const url = status
       ? `${this.apiUrl}/incidente/comunicados?status=${encodeURIComponent(status)}`
       : `${this.apiUrl}/incidente/comunicados`;
-    return this.http.get<PgiaIncidente[]>(url, { headers: this.getHeaders() });
+    return this.http.get<PgiaIncidente[]>(url, { headers: this.getHeaders(), context: contexto });
   }
 
   // ── Não conformidades ─────────────────────────────────────────────────────
@@ -127,8 +128,8 @@ export class PgiaOperacaoService {
    * e do aviso de problema. Aberto a qualquer autenticado (art. 13); sem órgão
    * resolvido devolve OrgaoId nulo e listas vazias.
    */
-  listarFontesUso(): Observable<PgiaUsoFontes> {
-    return this.http.get<PgiaUsoFontes>(`${this.apiUrl}/conformidade/uso/fontes`, { headers: this.getHeaders() });
+  listarFontesUso(contexto?: HttpContext): Observable<PgiaUsoFontes> {
+    return this.http.get<PgiaUsoFontes>(`${this.apiUrl}/conformidade/uso/fontes`, { headers: this.getHeaders(), context: contexto });
   }
 
   registrarUso(form: PgiaRegistroUsoForm): Observable<PgiaRegistroUso> {

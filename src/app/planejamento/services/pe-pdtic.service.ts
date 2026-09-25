@@ -3,6 +3,7 @@ import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { SERVICE_API_URL } from '../../../api/consts';
+import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import {
   PaginaPePdtics,
   PeAndamentoPdtic,
@@ -68,9 +69,13 @@ export class PePdticService {
     return this.http.get<PaginaPePdtics>(`${this.apiUrl}/pdtic`, { params });
   }
 
-  /** Situação de cada passo, os avisos do guia e o próximo passo recomendado. */
+  /**
+   * Situação de cada passo, os avisos do guia e o próximo passo recomendado. Só a
+   * trilha consulta, em segundo plano (a bolinha dos passos é o sinal): sem o
+   * indicador de carregamento.
+   */
   situacao(id: number): Observable<PeAndamentoPdtic> {
-    return this.http.get<PeAndamentoPdtic>(`${this.apiUrl}/pdtic/${id}/situacao`);
+    return this.http.get<PeAndamentoPdtic>(`${this.apiUrl}/pdtic/${id}/situacao`, { context: semCarregamento() });
   }
 
   // ── E7 · Caminho da aprovação ─────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
+import { semCarregamento } from '../carregamento/sem-carregamento';
 import {
   MeuPedidoAcesso,
   PaginaPedidosAcesso,
@@ -47,10 +48,14 @@ export class PedidosAcessoService {
     return this.http.get<PaginaPedidosAcesso>(this.apiUrl, { params });
   }
 
-  /** Quantos pedidos esperam a decisão de quem está logado (zero para quem não decide). */
+  /**
+   * Quantos pedidos esperam a decisão de quem está logado (zero para quem não decide).
+   * Contador de segundo plano, com o número na tela como sinal: não acende o
+   * indicador de carregamento.
+   */
   contarPendentes(modulo?: string): Observable<{ Total: number }> {
     const params = modulo ? new HttpParams().set('modulo', modulo) : undefined;
-    return this.http.get<{ Total: number }>(`${this.apiUrl}/pendentes`, { params });
+    return this.http.get<{ Total: number }>(`${this.apiUrl}/pendentes`, { params, context: semCarregamento() });
   }
 
   /** Recarrega o contador geral. Falha deixa o valor anterior (é só um aviso). */

@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { SERVICE_API_URL } from '../../../api/consts';
+import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import {
   PaginaPeDeliberacoes,
   PeDecisaoForm,
@@ -24,9 +25,12 @@ export class PePeticService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${SERVICE_API_URL}/api/planejamento/petic`;
 
-  /** Todas as versões, da mais nova para a mais antiga. */
-  listar(): Observable<PePetic[]> {
-    return this.http.get<PePetic[]>(this.apiUrl);
+  /**
+   * Todas as versões, da mais nova para a mais antiga. `contexto`: a situação da
+   * trilha consulta em segundo plano (sem o indicador de carregamento).
+   */
+  listar(contexto?: HttpContext): Observable<PePetic[]> {
+    return this.http.get<PePetic[]>(this.apiUrl, { context: contexto });
   }
 
   /** A versão aprovada que vale hoje, ou null (204: ainda não há vigente). */
@@ -66,16 +70,17 @@ export class PeDeliberacoesService {
   private readonly apiUrl = `${SERVICE_API_URL}/api/planejamento/deliberacoes`;
 
   /** Aguardando primeiro (a mais antiga antes), depois as decididas (a mais nova antes). */
-  listar(consulta: PeDeliberacoesConsulta): Observable<PaginaPeDeliberacoes> {
+  listar(consulta: PeDeliberacoesConsulta, contexto?: HttpContext): Observable<PaginaPeDeliberacoes> {
     let params = new HttpParams().set('Page', consulta.Page).set('PageSize', consulta.PageSize);
     if (consulta.Situacao) params = params.set('Situacao', consulta.Situacao);
     if (consulta.ObjetoTipo) params = params.set('ObjetoTipo', consulta.ObjetoTipo);
-    return this.http.get<PaginaPeDeliberacoes>(this.apiUrl, { params });
+    return this.http.get<PaginaPeDeliberacoes>(this.apiUrl, { params, context: contexto });
   }
 
-  /** Quantas esperam a decisão do comitê. */
+  /** Quantas esperam a decisão do comitê (contador da trilha, em segundo plano: sem o indicador de carregamento). */
   contarAguardando(): Observable<number> {
-    return this.listar({ Situacao: 'aguardando', Page: 1, PageSize: 1 }).pipe(map(p => p.TotalItems ?? p.Items.length));
+    return this.listar({ Situacao: 'aguardando', Page: 1, PageSize: 1 }, semCarregamento())
+      .pipe(map(p => p.TotalItems ?? p.Items.length));
   }
 
   /** Registra a decisão. Já decidida: 409. */
