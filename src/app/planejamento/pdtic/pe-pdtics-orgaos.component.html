@@ -59,13 +59,14 @@
       <div *ngIf="itens.length > 0" class="mt-2 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region"
            aria-label="Tabela: PDTICs dos órgãos">
         <table class="w-full text-sm">
-          <caption class="sr-only">PDTICs atuais dos órgãos, com a situação e o nível de maturidade</caption>
+          <caption class="sr-only">PDTICs atuais dos órgãos, com a situação e o {{ colunaNivelAlcancado ? 'nível alcançado' : 'nível de maturidade' }}</caption>
           <thead>
             <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
               <th scope="col" class="px-3 py-2.5">Órgão</th>
               <th scope="col" class="px-3 py-2.5">Versão</th>
               <th scope="col" class="px-3 py-2.5">Situação</th>
-              <th scope="col" class="px-3 py-2.5">Nível</th>
+              <!-- F3: no modo livre, o nível que cada PDTIC alcançou -->
+              <th scope="col" class="px-3 py-2.5">{{ colunaNivelAlcancado ? 'Nível alcançado' : 'Nível' }}</th>
               <th scope="col" class="px-3 py-2.5">Vigência</th>
               <th scope="col" class="px-3 py-2.5">Aberto em</th>
               <th scope="col" class="px-3 py-2.5"><span class="sr-only">Ações</span></th>
@@ -81,7 +82,7 @@
               <td class="px-3 py-2.5">
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeSituacao(p.Situacao)">{{ rotuloSituacao(p.Situacao) }}</span>
               </td>
-              <td class="px-3 py-2.5 text-gray-800">{{ p.NivelNome || '-' }}</td>
+              <td class="px-3 py-2.5 text-gray-800">{{ nivel(p) }}</td>
               <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ vigencia(p) }}</td>
               <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ abertoEm(p) }}</td>
               <td class="px-3 py-2.5 text-right">
@@ -100,6 +101,9 @@
           </tbody>
         </table>
       </div>
+      <p *ngIf="temNaoCalculado && itens.length > 0" class="text-xs text-gray-500 italic mt-2">
+        Nível "Não calculado": o PDTIC foi aprovado fora do sistema, e o nível não é calculado.
+      </p>
 
       <button *ngIf="temMais" type="button" (click)="carregarMais()" [attr.aria-disabled]="carregando || null"
               class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">

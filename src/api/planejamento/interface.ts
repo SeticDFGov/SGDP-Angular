@@ -852,6 +852,13 @@ export interface PePdtic {
   AnteriorId: number | null;
   NivelId: number | null;
   NivelNome: string | null;
+  /**
+   * F3 (correções): o nível que o PDTIC alcançou, nos itens da lista dos PDTICs (GET pdtic).
+   * Nulos sem nível alcançado e no PDTIC registrado fora do sistema. Sem os campos (a
+   * resposta anterior), a lista mostra o nível do órgão, como antes.
+   */
+  NivelAlcancadoId?: number | null;
+  NivelAlcancadoNome?: string | null;
   /** Quem está logado preenche este PDTIC (equipe do órgão, em elaboração ou devolvido). */
   PodeEditar: boolean;
   CriadoEm: string;
@@ -2324,7 +2331,10 @@ export interface PeHistoricoNivelResumo {
   AlteradoPorNome?: string | null;
 }
 
-/** Andamento da trilha do órgão numa etapa. */
+/**
+ * Andamento da trilha do órgão numa etapa. F3 (correções): com `OpcionaisFeitos`, `Feitos`
+ * e `Total` contam só os passos obrigatórios; sem ele (a resposta anterior), todos.
+ */
 export interface PeAndamentoEtapa {
   Etapa: number;
   Titulo: string;
@@ -2334,6 +2344,8 @@ export interface PeAndamentoEtapa {
   Aguardando: number;
   /** F3 (B): quantos passos da etapa estão validados pela equipe (sem o campo, a resposta antiga). */
   Validados?: number;
+  /** F3 (correções): quantos passos opcionais da etapa o órgão já fez (os opcionais não entram em `Feitos` nem em `Total`). */
+  OpcionaisFeitos?: number;
 }
 
 export interface PeNaoSeAplicaResumo {

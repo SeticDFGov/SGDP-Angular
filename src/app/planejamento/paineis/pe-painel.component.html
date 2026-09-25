@@ -2,10 +2,13 @@
 
   <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-xl font-bold text-gray-900">Painel dos órgãos</h2>
+    <!-- F3: o nome do nível muda com o modo, que chega com a resposta; ele fica num nó de texto só dele (o ng-container),
+         para a dica de norma do fim do parágrafo não ser refeita -->
     <p class="text-sm text-gray-700 leading-relaxed mt-1">
-      Os números de todos os órgãos, como estão agora: a situação do PDTIC de cada um, {{ modoLivre ? 'o nível alcançado' : 'o nível de maturidade' }},
-      as necessidades e as metas ligadas ao PETIC-DF, as ações, os riscos e os alertas. A SGDI coordena o monitoramento e a avaliação dos
-      PDTICs (art. 9º, IV, do Decreto nº 48.899/2026).
+      Os números de todos os órgãos, como estão agora: a situação do PDTIC de cada um,
+      <ng-container>{{ modoLivre ? 'o nível alcançado' : 'o nível de maturidade' }}</ng-container>, as necessidades e as metas ligadas
+      ao PETIC-DF, as ações, os riscos e os alertas. A SGDI coordena o monitoramento e a avaliação dos PDTICs (art. 9º, IV, do Decreto
+      nº 48.899/2026).
     </p>
     <p *ngIf="geradoEm" class="text-xs text-gray-500 italic mt-2">Números calculados em {{ geradoEm }}.</p>
   </div>

@@ -1,13 +1,14 @@
 <div citaPlanejamento class="tela-pgia max-w-5xl mx-auto space-y-5">
 
-  <!-- O que é -->
+  <!-- O que é. F3: o nome da coluna do nível muda com o modo; ele fica num nó de texto só dele (o ng-container), para a
+       dica de norma do fim do parágrafo não ser refeita quando o modo chega -->
   <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-base font-semibold text-gray-900 mb-1">Planilhas consolidadas</h2>
     <p class="text-sm text-gray-700 leading-relaxed">
       Cada planilha junta uma seção do PDTIC de todos os órgãos, com o PDTIC atual de cada um. As primeiras colunas dizem de quem
-      é a linha: órgão, sigla, nível de maturidade, versão e situação do PDTIC. Depois vêm os campos da seção, de todos os níveis
-      (a célula fica vazia quando o campo não vale para o órgão). É a base do portfólio estratégico de TIC do GDF
-      (art. 9º, V, do Decreto nº 48.899/2026).
+      é a linha: órgão, sigla, <ng-container>{{ modoLivre ? 'nível alcançado' : 'nível de maturidade' }}</ng-container>, versão e
+      situação do PDTIC. Depois vêm os campos da seção, de todos os níveis (a célula fica vazia quando o campo não vale para o órgão).
+      É a base do portfólio estratégico de TIC do GDF (art. 9º, V, do Decreto nº 48.899/2026).
     </p>
   </div>
 

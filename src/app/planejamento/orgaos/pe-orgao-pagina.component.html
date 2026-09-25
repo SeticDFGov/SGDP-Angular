@@ -219,7 +219,8 @@
           </p>
           <div class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: andamento por etapa">
             <table class="w-full text-sm">
-              <caption class="sr-only">Andamento do passo a passo do órgão {{ r.Orgao.Sigla }} por etapa: passos resolvidos, atrasados e
+              <caption class="sr-only">Andamento do passo a passo do órgão {{ r.Orgao.Sigla }} por etapa:
+                {{ andamentoPorObrigatorio ? 'passos obrigatórios resolvidos e opcionais feitos' : 'passos resolvidos' }}, atrasados e
                 aguardando{{ temValidados ? ', e os validados pela equipe' : '' }}</caption>
               <thead>
                 <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
@@ -237,6 +238,8 @@
                   <td class="px-3 py-2 text-gray-900 min-w-[8.5rem]">
                     <span class="tabular-nums">{{ resolvidos(a) }}</span>
                     <progress *ngIf="a.Total > 0" class="block w-full mt-1" [value]="a.Feitos" [max]="a.Total" aria-hidden="true"></progress>
+                    <!-- F3 (correções): os opcionais feitos, quando houver (como na visão geral) -->
+                    <span *ngIf="opcionaisFeitos(a) as opcionais" class="block text-xs text-gray-600 mt-1"><span class="sr-only">; </span>{{ opcionais }}</span>
                   </td>
                   <td class="px-3 py-2 text-right tabular-nums" [ngClass]="a.Atrasados > 0 ? 'font-bold text-red-700' : 'text-gray-800'">{{ a.Atrasados }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-gray-800">{{ a.Aguardando }}</td>
@@ -245,8 +248,10 @@
               </tbody>
             </table>
           </div>
-          <p class="text-xs text-gray-500 italic mt-2">Passo resolvido é o feito, o marcado como "não se aplica" ou o feito fora do sistema. Aguardando é
-            o passo que depende de outra coisa antes, como a deliberação do CGTIC ou a publicação.</p>
+          <p class="text-xs text-gray-500 italic mt-2">Passo resolvido é o feito, o marcado como "não se aplica" ou o feito fora do sistema.<ng-container
+              *ngIf="andamentoPorObrigatorio"> A coluna conta os passos obrigatórios; os opcionais não são cobrados e aparecem embaixo,
+            quando o órgão fez algum.</ng-container> Aguardando é o passo que depende de outra coisa antes, como a deliberação do CGTIC ou a
+            publicação.</p>
         </ng-container>
       </section>
 

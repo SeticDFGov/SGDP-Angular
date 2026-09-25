@@ -121,6 +121,11 @@ export class PeOrgaoPaginaComponent implements OnInit {
   nivelAlcancado: PeNivelAlcancado | null = null;
   /** B: o andamento traz os validados pela equipe (a API nova). */
   temValidados = false;
+  /**
+   * F3 (correções): o andamento conta só os obrigatórios em `Feitos` e `Total` e traz
+   * os `OpcionaisFeitos` (a API nova); sem o campo, conta todos os passos, como antes.
+   */
+  andamentoPorObrigatorio = false;
   baixando: string | null = null;
 
   ngOnInit(): void {
@@ -225,6 +230,7 @@ export class PeOrgaoPaginaComponent implements OnInit {
       }
       : null;
     this.temValidados = resumo.Andamento.some(a => typeof a.Validados === 'number');
+    this.andamentoPorObrigatorio = resumo.Andamento.some(a => typeof a.OpcionaisFeitos === 'number');
     this.ciclos = ciclosEmOrdem(resumo.Ciclos);
     this.inadimplencias = [...resumo.Inadimplencias]
       .sort((a, b) => Number(inadimplenciaVigente(b.Situacao)) - Number(inadimplenciaVigente(a.Situacao)));
@@ -329,8 +335,21 @@ export class PeOrgaoPaginaComponent implements OnInit {
 
   // ── Andamento ─────────────────────────────────────────────────────────────
 
+  /**
+   * "2 de 3" (a API anterior, todos os passos) ou, com a API nova, como na visão geral,
+   * os obrigatórios: "2 de 3 obrigatórios", "1 de 1 obrigatório" ou "Nenhum obrigatório".
+   */
   resolvidos(a: PeAndamentoEtapa): string {
-    return `${a.Feitos} de ${a.Total}`;
+    if (!this.andamentoPorObrigatorio) return `${a.Feitos} de ${a.Total}`;
+    if (a.Total === 0) return 'Nenhum obrigatório';
+    return `${a.Feitos} de ${a.Total} ${a.Total === 1 ? 'obrigatório' : 'obrigatórios'}`;
+  }
+
+  /** F3 (correções): "1 opcional feito" ou "2 opcionais feitos", só quando houver (senão, vazio). */
+  opcionaisFeitos(a: PeAndamentoEtapa): string {
+    const n = this.andamentoPorObrigatorio ? a.OpcionaisFeitos ?? 0 : 0;
+    if (n <= 0) return '';
+    return n === 1 ? '1 opcional feito' : `${n} opcionais feitos`;
   }
 
   // ── Trilha, documento e planilha ──────────────────────────────────────────

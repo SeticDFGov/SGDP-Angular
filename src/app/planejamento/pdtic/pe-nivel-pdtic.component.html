@@ -12,8 +12,9 @@
       <span class="material-icons text-purple-600" aria-hidden="true">stairs</span>
       <strong>{{ frase }}</strong>
     </p>
+    <!-- F3 (correções): a régua do servidor; a forma mais completa vale pela mais simples -->
     <p class="text-xs text-gray-500 italic mt-1">O nível sai do que o PDTIC tem: o PDTIC alcança um nível quando todos os passos que o nível
-      pede estão feitos (e os dos níveis anteriores também).</p>
+      pede estão feitos, na forma daquele nível ou numa forma mais completa.</p>
     <p *ngIf="noUltimoNivel" class="mt-2 text-sm text-gray-700">O PDTIC tem tudo o que o nível mais completo do modelo pede.</p>
 
     <ng-container *ngIf="queFalta">

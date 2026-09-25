@@ -47,6 +47,10 @@ function ligadoEmAlgumNivel(item: PePassoModelo | PeSecaoModelo): boolean {
  * As seções saem do modelo (GET modelo: seções do PDTIC não apagadas, marcadas
  * "na planilha" e ligadas em algum nível). Papel de órgão vê um aviso e a tela
  * não consulta nada (o 403 tiraria a pessoa do módulo).
+ *
+ * F3 (correções): no modo livre, a coluna do nível da planilha é o nível alcançado,
+ * e o texto da tela diz o mesmo (o modo vem do próprio GET modelo; antes dele, o
+ * que a sessão já conhece).
  */
 @Component({
   selector: 'app-pe-consolidado',
@@ -74,6 +78,8 @@ export class PeConsolidadoComponent implements OnInit {
   busca = '';
   /** O que está sendo baixado ("necessidades:xlsx" ou "completa"). */
   baixando: string | null = null;
+  /** F3: o modo livre (a planilha traz o nível alcançado no lugar do nível do órgão). */
+  modoLivre = this.modeloService.modoConhecido === 'livre';
 
   ngOnInit(): void {
     this.estadoService.estado$
@@ -99,6 +105,7 @@ export class PeConsolidadoComponent implements OnInit {
     this.modeloService.modelo().subscribe({
       next: modelo => {
         this.carregando = false;
+        this.modoLivre = modelo.ModoNiveis === 'livre';
         this.etapas = this.montar(modelo);
       },
       error: erro => {
