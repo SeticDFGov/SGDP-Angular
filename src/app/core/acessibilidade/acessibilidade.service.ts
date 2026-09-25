@@ -1,5 +1,6 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import { CarregamentoService } from '../carregamento/carregamento.service';
 
 export type Tema = 'claro' | 'escuro' | 'alto-contraste';
 
@@ -81,6 +82,9 @@ export class AcessibilidadeService {
     }
 
     effect(() => this.aplicar(this.tema(), this.fonte(), this.reduzirAnimacoes()));
+
+    // A espera longa do indicador de carregamento é lida nesta mesma região viva
+    inject(CarregamentoService).anunciar = texto => this.anunciar(texto);
   }
 
   escolherTema(tema: Tema): void {

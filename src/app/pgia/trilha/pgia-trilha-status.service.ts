@@ -7,6 +7,7 @@ import { PgiaGovernancaService } from '../services/pgia-governanca.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
 import { PedidosAcessoService } from '../../core/acessos/pedidos-acesso.service';
 import { PgiaPrazo } from '../../../api/pgia/interface';
+import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import { ChaveStatus, PerfilTrilha } from './pgia-trilhas';
 
 /**
@@ -71,6 +72,9 @@ function fila(quantidade: number | null, singular: string, plural: string, vazia
  * Situação de cada passo da trilha, calculada com as MESMAS consultas que as telas
  * do papel já fazem, nunca uma que o backend negaria ao papel (o 403 tira o
  * usuário da tela). Falha de uma consulta só deixa o passo sem status.
+ *
+ * As consultas são de segundo plano (a bolinha dos passos é o sinal delas): vão
+ * com `semCarregamento()` e não acendem o indicador de carregamento.
  */
 @Injectable({ providedIn: 'root' })
 export class PgiaTrilhaStatusService {
@@ -91,15 +95,15 @@ export class PgiaTrilhaStatusService {
   }
 
   private doOrgao(): Observable<SituacaoTrilha> {
-    return this.orgaoService.getMeuOrgao().pipe(
+    return this.orgaoService.getMeuOrgao(semCarregamento()).pipe(
       catchError(() => of(null)),
       switchMap(meu => {
         const orgao = meu?.Orgao ?? null;
         if (!orgao) return of({ ...VAZIA });
 
         return forkJoin({
-          prazos: this.orgaoService.listarPrazos(orgao.Id).pipe(catchError(() => of([] as PgiaPrazo[]))),
-          sistemas: this.sistemaService.listarSistemas(orgao.Id, 1, 1).pipe(
+          prazos: this.orgaoService.listarPrazos(orgao.Id, semCarregamento()).pipe(catchError(() => of([] as PgiaPrazo[]))),
+          sistemas: this.sistemaService.listarSistemas(orgao.Id, 1, 1, semCarregamento()).pipe(
             map(pagina => pagina.TotalItems), catchError(() => of(null)))
         }).pipe(map(({ prazos, sistemas }) => {
           const status: Partial<Record<ChaveStatus, StatusPasso>> = {};
@@ -134,12 +138,12 @@ export class PgiaTrilhaStatusService {
 
   private daSgdi(): Observable<SituacaoTrilha> {
     return forkJoin({
-      fila: this.governancaService.listarHomologacoes('Aguardando avaliação da SGDI').pipe(
+      fila: this.governancaService.listarHomologacoes('Aguardando avaliação da SGDI', semCarregamento()).pipe(
         map(itens => itens.length), catchError(() => of(null))),
-      incidentes: this.operacaoService.listarIncidentesComunicados().pipe(
+      incidentes: this.operacaoService.listarIncidentesComunicados(undefined, semCarregamento()).pipe(
         map(itens => itens.filter(i => i.StatusApuracao === 'Recebida' || i.StatusApuracao === 'Em apuração').length),
         catchError(() => of(null))),
-      prazos: this.orgaoService.listarPrazosCentrais().pipe(catchError(() => of([] as PgiaPrazo[]))),
+      prazos: this.orgaoService.listarPrazosCentrais(semCarregamento()).pipe(catchError(() => of([] as PgiaPrazo[]))),
       // Só os pedidos do PGIA (o admin, que também vê esta trilha, decide os de todos os módulos)
       pedidos: this.pedidosAcesso.contarPendentes('pgia').pipe(
         map(resposta => resposta.Total), catchError(() => of(null)))
@@ -160,7 +164,7 @@ export class PgiaTrilhaStatusService {
   }
 
   private doCgtic(): Observable<SituacaoTrilha> {
-    return this.governancaService.listarHomologacoes('Aguardando deliberação do CGTIC').pipe(
+    return this.governancaService.listarHomologacoes('Aguardando deliberação do CGTIC', semCarregamento()).pipe(
       map(itens => itens.length),
       catchError(() => of(null)),
       map(casos => {
@@ -171,7 +175,7 @@ export class PgiaTrilhaStatusService {
   }
 
   private daAuditoria(): Observable<SituacaoTrilha> {
-    return this.governancaService.listarMinhasAuditorias().pipe(
+    return this.governancaService.listarMinhasAuditorias(semCarregamento()).pipe(
       map(itens => itens.filter(a => !a.Parecer).length),
       catchError(() => of(null)),
       map(pendentes => {
@@ -183,7 +187,7 @@ export class PgiaTrilhaStatusService {
 
   private doAgente(): Observable<SituacaoTrilha> {
     // O agente só usa as fontes do registro de uso: a sigla do órgão vem de lá
-    return this.operacaoService.listarFontesUso().pipe(
+    return this.operacaoService.listarFontesUso(semCarregamento()).pipe(
       map(fontes => ({ ...VAZIA, orgaoSigla: fontes.OrgaoSigla ?? null })),
       catchError(() => of({ ...VAZIA }))
     );

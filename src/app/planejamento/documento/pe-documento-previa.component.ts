@@ -11,6 +11,7 @@ import {
   PeCiclo, PeDocBloco, PeDocCapitulo, PeDocMarcador, PeDocVersao, PeDocumento, PePdtic, PeTipoDocumento
 } from '../../../api/planejamento/interface';
 import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
+import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import { NotificationService } from '../../core/services/notification.service';
 import { PeDocumentoService } from '../services/pe-documento.service';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
@@ -449,7 +450,8 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     const tipo = this.tipoDoc;
     if (this.marcadoresPedidos === tipo) return;
     this.marcadoresPedidos = tipo;
-    this.documentoService.modelo(tipo).subscribe({
+    // Segundo plano: o editor já abre com a lista da especificação
+    this.documentoService.modelo(tipo, semCarregamento()).subscribe({
       next: modelo => {
         if (modelo.Marcadores?.length && this.tipoDoc === tipo) this.marcadores = modelo.Marcadores;
       },

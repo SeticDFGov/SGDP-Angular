@@ -6,6 +6,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { carregamentoInterceptor } from './core/interceptors/carregamento.interceptor';
 import { TituloPaginaStrategy } from './core/acessibilidade/titulo-pagina.strategy';
 
 export const appConfig: ApplicationConfig = {
@@ -18,7 +19,8 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideHttpClient(
       withFetch(),
-      withInterceptors([authInterceptor])
+      // O indicador de carregamento conta antes: a renovação do token no 401 é a mesma espera
+      withInterceptors([carregamentoInterceptor, authInterceptor])
     )
   ]
 };

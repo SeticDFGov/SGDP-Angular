@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { SERVICE_API_URL } from '../../../api/consts';
+import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import {
   PeFluxoDefinicao, PeFluxoDesenhoForm, PeFluxoDoOrgao, PeFluxoForm, PeFluxoGeometria, PeFluxoGeometriaForm, PeFluxoModelo,
   PeFluxoResumo, PePdtic, PeRegistro, PeRegistrosDaSecao
@@ -160,7 +161,8 @@ export class PeFluxosService {
   /** O SVG de uma definição ainda não salva (prévia ao vivo); valida antes e responde 400 com os `Erros`. */
   desenhar(definicao: PeFluxoDefinicao, pdticId: number | null): Observable<string> {
     const corpo: PeFluxoDesenhoForm = { Definicao: definicao, PdticId: pdticId };
-    return this.http.post(`${this.apiUrl}/fluxos/desenho`, corpo, { responseType: 'text' });
+    // Prévia ao vivo, com sinal próprio na tela: não acende o indicador de carregamento
+    return this.http.post(`${this.apiUrl}/fluxos/desenho`, corpo, { responseType: 'text', context: semCarregamento() });
   }
 
   /**
@@ -172,7 +174,8 @@ export class PeFluxosService {
    */
   geometria(definicao: PeFluxoDefinicao, pdticId: number | null, nome: string | null = null): Observable<PeFluxoGeometria> {
     const corpo: PeFluxoGeometriaForm = { Definicao: definicao, PdticId: pdticId, Nome: nome };
-    return this.http.post<PeFluxoGeometria>(`${this.apiUrl}/fluxos/geometria`, corpo);
+    // Pedida a cada mudança no editor visual: não acende o indicador de carregamento
+    return this.http.post<PeFluxoGeometria>(`${this.apiUrl}/fluxos/geometria`, corpo, { context: semCarregamento() });
   }
 
   /** A geometria do fluxo salvo do órgão (com os nomes do dicionário dele). */

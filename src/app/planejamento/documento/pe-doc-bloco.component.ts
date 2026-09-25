@@ -7,6 +7,7 @@ import {
   PeDocBloco, PeDocCapitulo, PeDocItemLista, PeDocLinha, PeDocMarcador, PeDocTabela, PeDocTextoRico, PeFluxoDefinicao
 } from '../../../api/planejamento/interface';
 import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
+import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import { NotificationService } from '../../core/services/notification.service';
 import { PeFluxoDescricaoComponent } from '../fluxos/pe-fluxo-descricao.component';
 import { PeFluxoDesenhoComponent } from '../fluxos/pe-fluxo-desenho.component';
@@ -547,7 +548,8 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     this.salvando = true;
     this.situacaoSalvar = 'salvando';
     this.avisarPendente();
-    this.documentoService.salvarBloco(this.alvoDoTexto, this.bloco.Id, texto).subscribe({
+    // Segundo plano: a situação do texto ("Salvando...", "Salvo às") é o sinal
+    this.documentoService.salvarBloco(this.alvoDoTexto, this.bloco.Id, texto, semCarregamento()).subscribe({
       next: novo => {
         this.salvando = false;
         this.versaoSalva = Math.max(this.versaoSalva, versao);

@@ -1,0 +1,27 @@
+/* Barra de carregamento do topo. A cor padrão (tema claro) é a cor principal dos
+   botões; os temas escuro e de alto contraste redefinem --carregando.
+   A faixa que corre é um recorte (clip-path) da própria barra: sem a animação (menos
+   movimento, pelas regras globais do styles.css), sobra a barra inteira, parada. */
+:host {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: block;
+  height: 3px;
+  pointer-events: none;
+  background-color: var(--carregando, #155dfc);
+  animation: correr 1.2s ease-in-out infinite;
+}
+
+@keyframes correr {
+  from { clip-path: inset(0 100% 0 -40%); }
+  to { clip-path: inset(0 -40% 0 100%); }
+}
+
+@media print {
+  :host {
+    display: none;
+  }
+}

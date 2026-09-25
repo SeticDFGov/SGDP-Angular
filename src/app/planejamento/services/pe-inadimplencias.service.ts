@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { SERVICE_API_URL } from '../../../api/consts';
@@ -32,11 +32,11 @@ export class PeInadimplenciasService {
   private readonly apiUrl = `${SERVICE_API_URL}/api/planejamento`;
 
   /** As notificações de todos os órgãos (as vigentes primeiro), paginadas. */
-  listar(consulta: PeInadimplenciasConsulta): Observable<PaginaPeInadimplencias> {
+  listar(consulta: PeInadimplenciasConsulta, contexto?: HttpContext): Observable<PaginaPeInadimplencias> {
     let params = new HttpParams().set('Page', consulta.Page).set('PageSize', consulta.PageSize);
     if (consulta.Situacao) params = params.set('Situacao', consulta.Situacao);
     if (consulta.OrgaoId) params = params.set('OrgaoId', consulta.OrgaoId);
-    return this.http.get<PaginaPeInadimplencias>(`${this.apiUrl}/inadimplencias`, { params });
+    return this.http.get<PaginaPeInadimplencias>(`${this.apiUrl}/inadimplencias`, { params, context: contexto });
   }
 
   /** As notificações de um órgão (a equipe e a consulta do órgão leem as do próprio órgão). */

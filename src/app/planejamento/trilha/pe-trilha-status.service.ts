@@ -3,6 +3,7 @@ import { Observable, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { PeAndamentoPdtic } from '../../../api/planejamento/interface';
 import { PedidosAcessoService } from '../../core/acessos/pedidos-acesso.service';
+import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import { Modulos } from '../../core/modulos/modulos';
 import { PeDeliberacoesService, PePeticService } from '../services/pe-petic.service';
 import { PePdticService } from '../services/pe-pdtic.service';
@@ -71,7 +72,10 @@ function porPasso(andamento: PeAndamentoPdtic): Record<string, StatusPassoPe> {
  *   avisos do guia e o próximo passo recomendado, do servidor (quem vê a trilha
  *   pode ler o PDTIC: o próprio órgão, os papéis globais e o admin do SGDP).
  *
- * Falha de uma consulta só deixa o passo dela sem situação.
+ * Falha de uma consulta só deixa o passo dela sem situação. As consultas são de
+ * segundo plano (a bolinha dos passos é o sinal delas): não acendem o indicador de
+ * carregamento (os pedidos, a deliberação e a situação do PDTIC já saem assim dos
+ * serviços; a lista do PETIC vai com `semCarregamento()`).
  */
 @Injectable({ providedIn: 'root' })
 export class PeTrilhaStatusService {
@@ -89,7 +93,7 @@ export class PeTrilhaStatusService {
             'Nenhum pedido de acesso aguardando')),
           catchError(() => of(null))
         ),
-        petic: this.peticService.listar().pipe(map(statusDoPetic), catchError(() => of(null))),
+        petic: this.peticService.listar(semCarregamento()).pipe(map(statusDoPetic), catchError(() => of(null))),
         inadimplencias: this.notificacoesVencidas()
       }).pipe(map(({ pedidos, petic, inadimplencias }) => {
         const status: SituacaoTrilhaPe['status'] = {};
@@ -124,7 +128,7 @@ export class PeTrilhaStatusService {
    * inadimplência já pode ser registrada). Falha deixa o passo sem situação.
    */
   private notificacoesVencidas(): Observable<StatusPassoPe | null> {
-    return this.inadimplenciasService.listar({ Situacao: 'notificado', Page: 1, PageSize: 100 }).pipe(
+    return this.inadimplenciasService.listar({ Situacao: 'notificado', Page: 1, PageSize: 100 }, semCarregamento()).pipe(
       map(pagina => fila((pagina?.Items ?? []).filter(i => i.Vencido).length,
         'notificação com o prazo vencido', 'notificações com o prazo vencido', 'Nenhuma notificação com o prazo vencido')),
       catchError(() => of(null))
