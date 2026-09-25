@@ -26,11 +26,12 @@ export class CtrProcessoService {
   private apiUrl = `${SERVICE_API_URL}/api/contratacoes`;
 
   /**
-   * Parâmetros de URL dos últimos filtros aplicados na lista de processos (a
-   * lista grava ao aplicar). O "Voltar para a lista" da página do processo usa,
-   * para não perder a busca. Só na memória: recarregar a página começa do zero.
+   * A última lista de processos aberta (a seção: supervisão contínua ou comunicações do
+   * TCDF) e os parâmetros de URL dos filtros aplicados nela (a lista grava ao aplicar). O
+   * "Voltar para a lista" da página do processo usa, para não perder a busca, quando o
+   * processo é dessa lista. Só na memória: recarregar a página começa do zero.
    */
-  filtrosDaLista: Params = {};
+  ultimaLista: { secao: string; params: Params } | null = null;
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 

@@ -2,17 +2,25 @@ import { Component, OnInit } from '@angular/core';
 import { CitaInDirective } from '../shared/cita-in.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Params, Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { acompanharSecao } from '../../pgia/shared/secao-rota';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
-import { filtroDosParametros, parametrosDaLista } from '../shared/ctr-filtro-lista';
+import {
+  SECAO_LISTA_SUPERVISAO,
+  SECAO_LISTA_TCDF,
+  filtroDosParametros,
+  origemDaSecao,
+  parametrosDaLista
+} from '../shared/ctr-filtro-lista';
 import {
   badgeCriticidade,
   badgeNivelRisco,
   badgeSituacao,
+  badgeStatusSupervisao,
   corDiasSemMovimento,
+  resumoComposicao,
   rotuloEtapaPlanejamento
 } from '../shared/ctr-rotulos';
 import {
@@ -26,7 +34,6 @@ import {
   ETAPA_ASSINATURA,
   ETAPAS_PLANEJAMENTO,
   NIVEIS_RISCO,
-  ORIGENS,
   SEM_RISCOS_DECLARADOS,
   SITUACOES
 } from '../../../api/contratacoes/interface';
@@ -38,18 +45,25 @@ interface FiltroAtivo {
   rotulo: string;
 }
 
-/** Filtros que ficam em "Mais filtros" (os demais estão sempre à mostra). */
+/**
+ * Filtros que ficam em "Mais filtros" (os demais estão sempre à mostra). A origem
+ * saiu em 2026-09-24 (é a sub-aba que a escolhe), e a restituição também (as telas
+ * não a pedem mais).
+ */
 const CAMPOS_AVANCADOS: (keyof CtrProcessoFiltro)[] = [
-  'Categoria', 'Sigla', 'EtapaPlanejamento', 'Origem', 'EsclarecimentoPendente', 'Restituidos', 'IncluirConcluidos',
-  'De', 'Ate'
+  'Categoria', 'Sigla', 'EtapaPlanejamento', 'EsclarecimentoPendente', 'IncluirConcluidos', 'De', 'Ate'
 ];
 
 /** A situação dos processos com contrato assinado (fora da lista por padrão). */
 const SITUACAO_CONCLUIDO = 'Concluído';
 
 /**
- * Área "Processos": a lista com busca e filtros e a página de cadastro.
- * Uma seção por página (`/analises/processos/:secao`), como no PGIA.
+ * Área "Processos": as duas listas com busca e filtros e a página de cadastro. Uma
+ * seção por página (`/analises/processos/:secao`), como no PGIA. Desde 2026-09-24 são
+ * duas listas, sub-abas de Processos, separadas pela origem: "Processos de supervisão
+ * contínua" (`lista`, os que vieram do órgão comunicante) e "Comunicações do TCDF"
+ * (`comunicacoes-tcdf`, os que nasceram de uma comunicação do Tribunal), cada uma com os
+ * mesmos filtros.
  *
  * Os filtros da lista valem assim que escolhidos (a busca por texto, no Enter
  * ou no botão) e ficam gravados na URL: voltar de um processo, recarregar ou
@@ -81,8 +95,11 @@ export class CtrProcessosComponent implements OnInit {
   filtro: CtrProcessoFiltro = CtrProcessosComponent.filtroVazio();
   /** Cópia dos filtros da consulta que está na tela (congelada a cada aplicação). */
   private filtroAplicado: CtrProcessoFiltro = {};
-  /** A lista é buscada na primeira vez que a seção dela abre. */
-  private carregouLista = false;
+  /**
+   * Qual das duas listas está carregada: cada uma é buscada quando a seção dela abre,
+   * e trocar de lista busca a outra, com os filtros da URL dela.
+   */
+  private listaCarregada: string | null = null;
   /** Painel "Mais filtros" aberto. */
   filtrosAbertos = false;
   /** Etiquetas dos filtros aplicados (montadas a cada aplicação). */
@@ -93,16 +110,25 @@ export class CtrProcessosComponent implements OnInit {
   readonly etapaAssinatura = ETAPA_ASSINATURA;
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
   criticidades = CRITICIDADES;
-  origens = ORIGENS;
   niveisRisco = NIVEIS_RISCO;
   readonly semRiscosDeclarados = SEM_RISCOS_DECLARADOS;
 
   private static filtroVazio(): CtrProcessoFiltro {
     return {
-      Filtro: '', Categoria: '', Situacao: '', Sigla: '', Restituidos: null, De: '', Ate: '',
-      EtapaPlanejamento: '', Criticidade: '', Origem: '', EsclarecimentoPendente: null,
+      Filtro: '', Categoria: '', Situacao: '', Sigla: '', De: '', Ate: '',
+      EtapaPlanejamento: '', Criticidade: '', EsclarecimentoPendente: null,
       NivelRiscoDeclarado: '', IncluirConcluidos: false
     };
+  }
+
+  /** A seção mostra uma das duas listas (e não o cadastro). */
+  get ehLista(): boolean {
+    return origemDaSecao(this.secao) !== null;
+  }
+
+  /** A lista das comunicações do TCDF (a outra é a dos processos de supervisão contínua). */
+  get ehListaTcdf(): boolean {
+    return this.secao === SECAO_LISTA_TCDF;
   }
 
   // Cadastro
@@ -119,9 +145,11 @@ export class CtrProcessosComponent implements OnInit {
   exportando = false;
 
   badgeSituacao = badgeSituacao;
+  badgeStatusSupervisao = badgeStatusSupervisao;
   badgeCriticidade = badgeCriticidade;
   badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
+  resumoComposicao = resumoComposicao;
   rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
 
   constructor(
@@ -135,11 +163,14 @@ export class CtrProcessosComponent implements OnInit {
       // O modal é da lista: trocar de seção (inclusive pelo histórico) o fecha.
       this.fecharCheckpoint();
       // A lista só é buscada quando é ela que está na tela: a mensagem de erro
-      // dela mora na própria seção e ficaria muda em "Novo processo". Na
-      // primeira vez, os filtros vêm da URL (volta de um processo, link do painel).
-      if (secao === 'lista' && !this.carregouLista) {
+      // dela mora na própria seção e ficaria muda em "Novo processo". Ao abrir
+      // uma lista (ou trocar de uma para a outra), os filtros vêm da URL dela
+      // (volta de um processo, link do painel); voltar do cadastro para a mesma
+      // lista não busca de novo.
+      if (this.ehLista && this.listaCarregada !== secao) {
         this.filtro = { ...CtrProcessosComponent.filtroVazio(), ...filtroDosParametros(this.route.snapshot.queryParamMap) };
         this.filtrosAbertos = this.filtrosAvancadosAtivos(this.filtro) > 0;
+        this.processos = [];
         this.buscar();
       }
     });
@@ -166,12 +197,14 @@ export class CtrProcessosComponent implements OnInit {
       // A sigla é gravada em caixa alta: mandar assim evita filtro que não casa.
       Sigla: (this.filtro.Sigla || '').trim().toUpperCase() || null,
       // Só vai quando marcado: desmarcado é o padrão (concluídos fora)
-      IncluirConcluidos: this.filtro.IncluirConcluidos ? true : null
+      IncluirConcluidos: this.filtro.IncluirConcluidos ? true : null,
+      // A origem é a da lista aberta (sub-aba), nunca um filtro da tela
+      Origem: origemDaSecao(this.secao)
     };
   }
 
   buscar(): void {
-    this.carregouLista = true;
+    this.listaCarregada = this.secao;
     // Os filtros da consulta ficam congelados aqui: "Carregar mais" e o export
     // trabalham sobre a lista que está na tela, não sobre o que foi digitado
     // depois e ainda não foi buscado.
@@ -207,14 +240,20 @@ export class CtrProcessosComponent implements OnInit {
    */
   private gravarFiltrosNaUrl(): void {
     const queryParams = parametrosDaLista(this.filtroAplicado);
-    this.processoService.filtrosDaLista = queryParams;
-    // A URL já tem estes filtros (a primeira abertura, sem filtro ou pelo link do painel): nada a gravar. Navegar
-    // aqui, no meio da navegação que abriu a tela, cancelava a dela, e a aba ficava com o título da tela anterior
-    // ("Início · SGDP" entrando pelo card da tela inicial)
-    const atuais = this.route.snapshot.queryParamMap;
-    const chaves = Object.keys(queryParams);
-    if (atuais.keys.length === chaves.length && chaves.every(chave => atuais.get(chave) === queryParams[chave])) return;
-    this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl: true });
+    this.processoService.ultimaLista = { secao: this.secao, params: queryParams };
+    // Ao abrir uma lista (inclusive trocando de sub-aba) os filtros vêm da própria URL:
+    // sem mudança não há o que gravar. E a gravação espera a navegação em curso
+    // terminar: navegar enquanto a rota ainda está sendo ativada cancelava a navegação
+    // da sub-aba, e o cabeçalho e o título da página ficavam na seção anterior.
+    if (CtrProcessosComponent.mesmosParametros(queryParams, this.route.snapshot.queryParams)) return;
+    Promise.resolve().then(() =>
+      this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl: true }));
+  }
+
+  private static mesmosParametros(a: Params, b: Params): boolean {
+    const chavesA = Object.keys(a);
+    const chavesB = Object.keys(b);
+    return chavesA.length === chavesB.length && chavesA.every(chave => String(a[chave]) === String(b[chave]));
   }
 
   /** Quantos filtros de "Mais filtros" estão preenchidos (checkbox desmarcado não conta). */
@@ -249,15 +288,11 @@ export class CtrProcessosComponent implements OnInit {
     if (f.Sigla) ativos.push({ campo: 'Sigla', rotulo: `Órgão: ${f.Sigla}` });
     if (f.Criticidade) ativos.push({ campo: 'Criticidade', rotulo: `Criticidade: ${f.Criticidade}` });
     if (f.EtapaPlanejamento) ativos.push({ campo: 'EtapaPlanejamento', rotulo: `Etapa: ${f.EtapaPlanejamento}` });
-    if (f.Origem) ativos.push({ campo: 'Origem', rotulo: `Origem: ${f.Origem}` });
     if (f.EsclarecimentoPendente !== null && f.EsclarecimentoPendente !== undefined) {
       ativos.push({
         campo: 'EsclarecimentoPendente',
         rotulo: f.EsclarecimentoPendente ? 'Aguardando esclarecimento' : 'Sem esclarecimento pendente'
       });
-    }
-    if (f.Restituidos !== null && f.Restituidos !== undefined) {
-      ativos.push({ campo: 'Restituidos', rotulo: f.Restituidos ? 'Só os restituídos' : 'Sem os restituídos' });
     }
     if (f.De) ativos.push({ campo: 'De', rotulo: `Chegada na SGDI a partir de ${data(f.De)}` });
     if (f.Ate) ativos.push({ campo: 'Ate', rotulo: `Chegada na SGDI até ${data(f.Ate)}` });
@@ -267,7 +302,7 @@ export class CtrProcessosComponent implements OnInit {
   /** Tira um filtro (a etiqueta) e busca de novo. */
   removerFiltro(campo: keyof CtrProcessoFiltro): void {
     (this.filtro as Record<string, unknown>)[campo] =
-      campo === 'EsclarecimentoPendente' || campo === 'Restituidos' ? null
+      campo === 'EsclarecimentoPendente' ? null
       : campo === 'IncluirConcluidos' ? false
       : '';
     this.buscar();
@@ -310,7 +345,10 @@ export class CtrProcessosComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'supervisao-continua-contratacoes.csv';
+        // Cada lista baixa o próprio arquivo (o formato é o mesmo e reimporta igual)
+        link.download = this.ehListaTcdf
+          ? 'supervisao-continua-comunicacoes-tcdf.csv'
+          : 'supervisao-continua-contratacoes.csv';
         link.click();
         // Revogar na hora corre com o início do download em alguns navegadores.
         setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -529,7 +567,11 @@ export class CtrProcessosComponent implements OnInit {
     });
   }
 
+  /** "Cancelar" do cadastro: volta à lista dos processos de supervisão contínua. */
   irParaLista(): void {
-    this.router.navigate(['/analises/processos/lista'], { queryParams: this.processoService.filtrosDaLista });
+    const lista = this.processoService.ultimaLista;
+    this.router.navigate([`/analises/processos/${SECAO_LISTA_SUPERVISAO}`], {
+      queryParams: lista?.secao === SECAO_LISTA_SUPERVISAO ? lista.params : {}
+    });
   }
 }
