@@ -183,7 +183,7 @@ export function destinoDoMarcador(
   passosPorSecao: ReadonlyMap<string, PassoLinkDoc>
 ): DestinoMarcador {
   const doSistema = 'o dado vem do cadastro do órgão ou do sistema.';
-  const foraDaTrilha = 'o dado vem de um passo que não aparece na trilha do órgão.';
+  const foraDaTrilha = 'o dado vem de um passo que não aparece para o órgão.';
   const m = doDocumento ? lista.find(x => x.Chave === chave) : undefined;
   if (m) {
     if (!m.PassoChave && !m.SecaoChave) return { passo: null, texto: doSistema };

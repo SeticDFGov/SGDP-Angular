@@ -169,7 +169,7 @@ export class PeComentariosPassoComponent implements OnChanges, AfterViewChecked,
         this.enviandoNovo = false;
         this.novo = '';
         // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
-        this.notificacoes.success('Comentário enviado. A equipe do órgão vê o aviso na trilha.');
+        this.notificacoes.success('Comentário enviado. A equipe do PDTIC vê o aviso no passo a passo.');
         this.carregar();
         this.mudou.emit();
       },

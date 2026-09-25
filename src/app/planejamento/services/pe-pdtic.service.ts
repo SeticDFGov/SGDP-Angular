@@ -12,6 +12,7 @@ import {
   PeEncerrarForm,
   PeFormatoPlanilha,
   PeNaoSeAplicaForm,
+  PePassoSituacao,
   PePdtic,
   PePdticNovoForm,
   PePdticsConsulta,
@@ -139,6 +140,20 @@ export class PePdticService {
 
   desfazerNaoSeAplica(id: number, passoId: number): Observable<unknown> {
     return this.http.delete(`${this.apiUrl}/pdtic/${id}/passos/${passoId}/nao-se-aplica`);
+  }
+
+  /**
+   * F3 (B): marca o passo como validado pela equipe (a equipe do PDTIC e o admin do
+   * SGDP, com o passo feito e editável; de novo, regrava quem e quando). Devolve a
+   * situação do passo. 409 (1145) quando o passo não aceita ou não está feito.
+   */
+  validarPasso(id: number, passoId: number): Observable<PePassoSituacao> {
+    return this.http.put<PePassoSituacao>(`${this.apiUrl}/pdtic/${id}/passos/${passoId}/validacao`, {});
+  }
+
+  /** F3 (B): desfaz a validação da equipe. Devolve a situação do passo. */
+  desfazerValidacao(id: number, passoId: number): Observable<PePassoSituacao> {
+    return this.http.delete<PePassoSituacao>(`${this.apiUrl}/pdtic/${id}/passos/${passoId}/validacao`);
   }
 
   /** As ações de cada tema do decreto (V, VI e IX) e a justificativa de quem ficou sem ação. */

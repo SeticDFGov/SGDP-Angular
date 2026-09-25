@@ -9,8 +9,10 @@ import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive
 import { PeConfirmacaoComponent } from '../shared/pe-confirmacao.component';
 import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import {
-  classeEstadoPasso, corIconeEstadoPasso, iconeEstadoPasso, minusculaInicial, rotuloSituacaoPdtic, textoDoStatus
+  ValidacaoDoPasso, classeEstadoPasso, corIconeEstadoPasso, corValidacaoDoPasso, iconeEstadoPasso, iconeValidacaoDoPasso,
+  minusculaInicial, rotuloSituacaoPdtic, textoDoStatus, textoValidacaoDoPasso
 } from '../shared/pe-pdtic-rotulos';
+import { nomeDoNivelAlcancado } from '../shared/pe-niveis-rotulos';
 import { AvisoVersaoPe, EstadoTrilhaPe, PeTrilhaEstadoService, valorVisaoOrgao } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
 import {
@@ -238,11 +240,27 @@ export class PeShellComponent implements OnInit {
     return this.estado.trilhaOrgao?.OrgaoSigla ?? this.estado.meuPapel?.OrgaoSigla ?? null;
   }
 
-  /** "Nível Avançado" (ou "Nível Básico, o padrão") na trilha do órgão. */
+  /**
+   * "Nível Avançado" (ou "Nível Básico, o padrão") na trilha do órgão. F3: no modo
+   * livre, "Nível alcançado: Básico" (o que o PDTIC tem), no lugar do nível do órgão.
+   */
   get rotuloNivel(): string | null {
     const t = this.estado?.trilhaOrgao;
     if (!t) return null;
+    if (this.estadoService.modoLivre) {
+      const e = this.estado;
+      if (e?.cargaPdtic === 'sem-pdtic') return 'Nível alcançado: nenhum ainda';
+      const andamento = e?.situacao?.andamento;
+      if (!andamento) return e?.situacao?.erroAndamento || e?.cargaPdtic === 'erro' ? 'Nível alcançado: -' : 'Nível alcançado: conferindo...';
+      const nome = nomeDoNivelAlcancado(andamento.Nivel);
+      return `Nível alcançado: ${nome ?? '-'}`;
+    }
     return t.NivelPadrao ? `Nível ${t.NivelNome} (o padrão: o nível do órgão ainda não foi definido)` : `Nível ${t.NivelNome}`;
+  }
+
+  /** F3: o passo a passo do órgão à vista está no modo livre. */
+  get modoLivre(): boolean {
+    return this.estadoService.modoLivre;
   }
 
   /**
@@ -279,12 +297,12 @@ export class PeShellComponent implements OnInit {
     const { pedida, sucessora, atual } = a;
     const vendo = `Você está vendo a versão ${atual.Versao}.`;
     let texto: string;
-    if (!pedida) texto = `O endereço pedia outra versão do PDTIC, que a trilha não mostra. ${vendo}`;
+    if (!pedida) texto = `O endereço pedia outra versão do PDTIC, que o passo a passo não mostra. ${vendo}`;
     else if (pedida.Situacao === 'substituido') {
       texto = `A versão ${pedida.Versao} foi substituída${sucessora ? ' pela ' + sucessora.Versao : ''}.`
         + (sucessora?.Id === atual.Id ? '' : ` ${vendo}`);
     } else if (pedida.Situacao === 'encerrado') texto = `A versão ${pedida.Versao} foi encerrada. ${vendo}`;
-    else texto = `A versão ${pedida.Versao} não está entre as que a trilha mostra. ${vendo}`;
+    else texto = `A versão ${pedida.Versao} não está entre as que o passo a passo mostra. ${vendo}`;
     const orgaoId = this.estado?.orgaoVisto ?? this.estadoService.orgaoDoPapel;
     return { texto, pagina: orgaoId ? rotaPaginaOrgao(orgaoId) : null, anterior: !!pedida };
   }
@@ -348,7 +366,7 @@ export class PeShellComponent implements OnInit {
     const perfis = !e ? [] : e.adminGeral ? PERFIS_CENTRAIS_PE : e.perfilProprio ? [e.perfilProprio] : [];
     this.opcoesCentrais = perfis.map(p => ({
       valor: p,
-      rotulo: e?.adminGeral ? ROTULOS_PERFIL_TRILHA_PE[p] : `Minha trilha (${ROTULOS_PERFIL_TRILHA_PE[p]})`
+      rotulo: e?.adminGeral ? ROTULOS_PERFIL_TRILHA_PE[p] : `Meu passo a passo (${ROTULOS_PERFIL_TRILHA_PE[p]})`
     }));
     this.opcoesOrgaos = (this.orgaos ?? []).map(o => ({ valor: valorVisaoOrgao(o.OrgaoId), rotulo: `${o.Sigla} · ${o.Nome}` }));
     this.avisoOrgaos = this.orgaos === null ? 'Carregando os órgãos...' : this.orgaos.length === 0 ? 'Nenhum órgão encontrado' : null;
@@ -395,17 +413,54 @@ export class PeShellComponent implements OnInit {
   }
 
   /**
+   * O que o leitor de tela ouve no link do passo, entre parênteses: a situação com o
+   * motivo e, no passo opcional que já tem outra situação, que ele é opcional (F3).
+   */
+  textoLinkStatus(passo: PassoNumeradoPe, s: StatusPassoPe): string {
+    const texto = textoDoStatus(s);
+    return s.estado !== 'opcional' && !this.ehObrigatorio(passo, s) && !!passo.doOrgao ? `${texto}, passo opcional` : texto;
+  }
+
+  /** F3: o passo é obrigatório para o órgão (o que a situação diz; sem ela, a trilha). */
+  private ehObrigatorio(passo: PassoNumeradoPe, s: StatusPassoPe | null): boolean {
+    if (typeof s?.obrigatorio === 'boolean') return s.obrigatorio;
+    return !passo.doOrgao || passo.doOrgao.Situacao === 'obrigatorio';
+  }
+
+  /** B: a marca "validado pela equipe" do passo. */
+  validacao(passo: PassoNumeradoPe): ValidacaoDoPasso {
+    return this.status(passo)?.validacao ?? null;
+  }
+
+  textoValidacao(v: ValidacaoDoPasso): string {
+    return textoValidacaoDoPasso(v);
+  }
+
+  iconeValidacao(v: ValidacaoDoPasso): string {
+    return iconeValidacaoDoPasso(v);
+  }
+
+  corValidacao(v: ValidacaoDoPasso): string {
+    return corValidacaoDoPasso(v);
+  }
+
+  /**
    * Pior situação entre os passos da etapa (vale para a bolinha da barra):
    * atrasado, atenção, pendente e, depois, aguardando. Passo feito fora do
-   * sistema conta como feito; "não se aplica", como resolvido.
+   * sistema conta como feito; "não se aplica", como resolvido. F3: só os passos
+   * obrigatórios contam (mais os que pedem atenção, de qualquer tipo); a etapa só
+   * com passos opcionais fica "opcional".
    */
   private estadoEtapa(indice: number): EstadoPassoPe | null {
-    const estados = this.passosDaEtapa(indice).map(p => this.status(p)?.estado).filter((e): e is EstadoPassoPe => !!e);
+    const comStatus = this.passosDaEtapa(indice).map(p => ({ p, s: this.status(p) })).filter(x => !!x.s);
+    const contam = comStatus.filter(x => this.ehObrigatorio(x.p, x.s) || x.s!.estado === 'atencao');
+    const estados = contam.map(x => x.s!.estado);
     for (const e of ['atrasado', 'atencao', 'pendente', 'aguardando'] as EstadoPassoPe[]) {
       if (estados.includes(e)) return e;
     }
     if (estados.includes('feito') || estados.includes('externo')) return 'feito';
-    return estados.length > 0 ? 'nao_se_aplica' : null;
+    if (estados.length > 0) return 'nao_se_aplica';
+    return comStatus.length > 0 ? 'opcional' : null;
   }
 
   classeEstado(estado: EstadoPassoPe | undefined): string {
@@ -429,6 +484,7 @@ export class PeShellComponent implements OnInit {
       case 'aguardando': return this.textoAguardando(indice);
       case 'feito': return this.estado?.perfil === 'orgao' ? 'passos resolvidos' : 'nada esperando';
       case 'nao_se_aplica': return 'não se aplica';
+      case 'opcional': return 'só passos opcionais';
       default: return '';
     }
   }

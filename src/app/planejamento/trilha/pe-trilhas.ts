@@ -152,7 +152,7 @@ export const ROTULOS_PERFIL_TRILHA_PE: Record<PerfilTrilhaPe, string> = {
   admin: 'Administrador do módulo',
   sgdi: 'Equipe da SGDI',
   cgtic: 'Secretaria do CGTIC',
-  orgao: 'Órgão (equipe e consulta)'
+  orgao: 'Órgão (Equipe do PDTIC e Consulta do PDTIC)'
 };
 
 /** As trilhas centrais que o admin do SGDP escolhe em "Ver a trilha de" (a do órgão pede o órgão). */
@@ -199,7 +199,7 @@ const INADIMPLENCIA: PassoTrilhaPe = {
 const PAGINA_ORGAO: PassoTrilhaPe = {
   titulo: 'Abra a página do órgão',
   rota: tela('orgaos'),
-  oQueFazer: 'Escolha o órgão e veja tudo dele num lugar só: situação e versão do PDTIC, andamento da trilha, nível, conformidade, '
+  oQueFazer: 'Escolha o órgão e veja tudo dele num lugar só: situação e versão do PDTIC, andamento do passo a passo, nível, conformidade, '
     + 'aprovações, deliberações, documentos, ciclos e inadimplências.',
   baseLegal: 'art. 9º, IV, do Decreto nº 48.899/2026',
   subrotas: true
@@ -208,7 +208,7 @@ const PAGINA_ORGAO: PassoTrilhaPe = {
 const COMENTARIOS: PassoTrilhaPe = {
   titulo: 'Comente os passos do órgão',
   rota: tela('comentarios'),
-  oQueFazer: 'Escolha o órgão, abra a trilha dele e comente um passo do PDTIC. A equipe do órgão responde e marca o comentário como resolvido.',
+  oQueFazer: 'Escolha o órgão, abra o passo a passo dele e comente um passo do PDTIC. A equipe do PDTIC responde e marca o comentário como resolvido.',
   baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
 };
 
@@ -235,13 +235,14 @@ const TRILHA_ADMIN: TrilhaPe = {
         {
           titulo: 'Defina os níveis de maturidade',
           rota: tela('modelo/niveis'),
-          oQueFazer: 'Crie, renomeie, descreva e ordene os níveis: Básico, Intermediário e Avançado. O nível do órgão define os passos e os campos que ele preenche.',
+          oQueFazer: 'Crie, renomeie, descreva e ordene os níveis (Básico, Intermediário e Avançado) e escolha como os órgãos usam os níveis: '
+            + 'no modo livre, cada órgão começa pelo mínimo do decreto e o nível sai do que o PDTIC tem; no definido, você escolhe o nível de cada órgão.',
           baseLegal: 'art. 9º, X, do Decreto nº 48.899/2026'
         },
         {
           titulo: 'Monte etapas, passos, seções e campos',
           rota: tela('modelo/estrutura'),
-          oQueFazer: 'Diga o que cada nível pede: ligue, desligue, renomeie e crie passos, seções e campos da trilha do órgão. Os nove conteúdos mínimos do PDTIC ficam travados: não desligam em nenhum nível.',
+          oQueFazer: 'Diga o que cada nível pede: ligue, desligue, renomeie e crie os passos, as seções e os campos que o órgão preenche. Os nove conteúdos mínimos do PDTIC ficam travados: não desligam em nenhum nível.',
           baseLegal: 'art. 12, § 2º'
         },
         {
@@ -295,19 +296,22 @@ const TRILHA_ADMIN: TrilhaPe = {
     {
       rotulo: 'Acessos',
       titulo: 'Dê acesso',
-      resumo: 'Responda aos pedidos, defina o papel de cada pessoa e o nível de cada órgão.',
+      resumo: 'Responda aos pedidos, defina o papel de cada pessoa e acompanhe o nível de cada órgão.',
       icone: 'manage_accounts',
       passos: [
         {
           titulo: 'Responda aos pedidos e defina os papéis',
           rota: tela('pessoas'),
-          oQueFazer: 'Responda aos pedidos de acesso ao módulo e defina o papel de cada pessoa: administrador do módulo, equipe da SGDI, Secretaria do CGTIC, equipe do órgão ou consulta do órgão.',
+          oQueFazer: 'Responda aos pedidos de acesso ao módulo e defina o papel de cada pessoa: administrador do módulo, equipe da SGDI, Secretaria do CGTIC, equipe do PDTIC ou Consulta do PDTIC.',
           status: 'pedidos-acesso'
         },
         {
-          titulo: 'Defina o nível de cada órgão',
+          // F3: neutro quanto ao modo dos níveis (no livre, o nível é calculado; no definido, o administrador escolhe)
+          titulo: 'Acompanhe o nível de cada órgão',
           rota: tela('orgaos/niveis'),
-          oQueFazer: 'Escolha o nível de maturidade de cada órgão, com a justificativa, e ajuste um item para um órgão quando precisar. O histórico dos níveis ajuda no Relatório de Maturidade.',
+          oQueFazer: 'Veja o nível de cada órgão e ajuste um passo, uma seção ou um campo para um órgão quando precisar. No modo livre, o nível '
+            + 'é calculado pelo que o PDTIC tem; no definido, você escolhe o nível de cada órgão, com a justificativa. O histórico dos níveis '
+            + 'ajuda no Relatório de Maturidade.',
           baseLegal: 'art. 9º, X, do Decreto nº 48.899/2026'
         }
       ]

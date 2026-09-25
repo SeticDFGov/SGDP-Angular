@@ -86,7 +86,11 @@ export const ErrosPlanejamento = {
   /** 403 (o interceptor tira a pessoa da tela: só chame pessoas* depois do meu-papel) */
   SemPermissao: 1002,
   /** 409: o administrador do módulo não tira nem troca o próprio papel. */
-  AutoRebaixamento: 1003
+  AutoRebaixamento: 1003,
+  /** F3 (409): a validação da equipe não vale para este passo agora (passo que não aceita, ou que não está feito). */
+  ValidacaoRecusada: 1145,
+  /** F3 (409): a forma do passo não muda agora (modo definido, ou o passo não pode mudar no PDTIC atual). */
+  DetalheRecusado: 1146
 } as const;
 
 // ── E2 · Modelo configurável e níveis de maturidade ─────────────────────────
@@ -266,6 +270,8 @@ export interface PeModelo {
   Etapas: PeEtapaModelo[];
   /** Seções de escopo petic e df: sem `Niveis`, com `SituacaoGeral`. */
   SecoesForaDoPdtic: PeSecaoModelo[];
+  /** F3: como os órgãos usam os níveis. Sem o campo (resposta antiga), vale `definido`. */
+  ModoNiveis?: PeModoNiveis;
 }
 
 // ── Trilha resolvida de um órgão (GET api/planejamento/modelo/trilha?orgaoId=) ─
@@ -329,6 +335,19 @@ export interface PePassoTrilha {
   Situacao: Exclude<PeSituacao, 'desligado'>;
   AjustadoParaOrgao: boolean;
   Secoes: PeSecaoTrilha[];
+  /**
+   * F3 (modo livre): a forma em uso, o nível cujas seções e campos valem para o
+   * passo. Nulo no modo definido (e ausente na resposta antiga).
+   */
+  Detalhe?: PeDetalhePasso | null;
+  /** F3: o órgão escolheu a forma (não é a forma padrão do passo). */
+  DetalheEscolhido?: boolean;
+  /**
+   * F3: as formas que o órgão pode escolher, do nível mais baixo para o mais alto,
+   * com as seções e os campos visíveis em cada uma. Vazia sem escolha (uma forma só)
+   * e no modo definido.
+   */
+  OpcoesDetalhe?: PeOpcaoDetalhe[];
 }
 
 export interface PeEtapaTrilha {
@@ -340,6 +359,11 @@ export interface PeEtapaTrilha {
   Passos: PePassoTrilha[];
 }
 
+/**
+ * A trilha resolvida de um órgão (GET modelo/trilha e resposta do PUT da forma de
+ * um passo, `PeTrilhaResponse` no servidor). F3: no modo livre, `NivelId` e
+ * `NivelNome` são os do nível base (o padrão), com `NivelPadrao` verdadeiro.
+ */
 export interface PeTrilhaOrgao {
   OrgaoId: number;
   OrgaoSigla: string;
@@ -349,6 +373,10 @@ export interface PeTrilhaOrgao {
   /** O administrador ainda não definiu o nível do órgão: vale o nível padrão (o primeiro ativo). */
   NivelPadrao: boolean;
   Etapas: PeEtapaTrilha[];
+  /** F3. Sem o campo (resposta antiga), vale `definido`. */
+  ModoNiveis?: PeModoNiveis;
+  /** F3: o nível está ativo (no modo livre, sempre). */
+  NivelAtivo?: boolean;
 }
 
 // ── Escrita do modelo (administrador do módulo e admin do SGDP) ───────────────
@@ -455,6 +483,13 @@ export interface PeOrgaoNivel {
   NivelPadrao: boolean;
   /** Quantos ajustes o órgão tem por cima do nível. */
   Ajustes: number;
+  /**
+   * F3: o nível que o PDTIC do órgão alcançou (nos dois modos; a tela usa no modo
+   * livre). Nulos sem PDTIC de referência, sem nível alcançado ou no PDTIC
+   * registrado fora do sistema.
+   */
+  NivelAlcancadoId?: number | null;
+  NivelAlcancadoNome?: string | null;
 }
 
 /**
@@ -874,7 +909,12 @@ export interface PaginaPePdtics {
  */
 export type PeSituacaoPasso =
   | 'feito' | 'pendente' | 'atencao' | 'nao_se_aplica' | 'continuo'
-  | 'aguardando' | 'atrasado' | 'externo';
+  | 'aguardando' | 'atrasado' | 'externo'
+  /**
+   * F3 (nos dois modos): passo opcional para o órgão ainda sem conteúdo no PDTIC.
+   * Não é cobrança (onde antes ficaria pendente ou atrasado); vem sem `Motivo`.
+   */
+  | 'opcional';
 
 /** "Não se aplica" marcado num passo (só em passo opcional no nível do órgão que aceita). */
 export interface PeNaoSeAplica {
@@ -908,7 +948,27 @@ export interface PeSituacaoPassoPdtic {
    * `PodeEditar` do PDTIC.
    */
   PodeEditar?: boolean;
+  /**
+   * F3: a situação do passo no passo a passo do órgão é `obrigatorio`. Sem o campo
+   * (resposta antiga), vale a situação do passo na trilha.
+   */
+  Obrigatorio?: boolean;
+  /**
+   * F3 (B): o passo recebe a marca "validado pela equipe" (os passos da elaboração
+   * dos tipos dados, conferência dos temas, documento e fluxo). Sem o campo
+   * (resposta antiga), o passo não tem validação.
+   */
+  AceitaValidacao?: boolean;
+  /** F3 (B): a marca da equipe, ou nula (sem marca). */
+  Validacao?: PeValidacaoPasso | null;
 }
+
+/**
+ * F3 (B): a resposta do PUT e do DELETE de
+ * api/planejamento/pdtic/{id}/passos/{passoId}/validacao (`PePassoSituacaoResponse`
+ * no servidor): a situação do passo, na forma dos passos de GET pdtic/{id}/situacao.
+ */
+export type PePassoSituacao = PeSituacaoPassoPdtic;
 
 /** GET api/planejamento/pdtic/{id}/situacao: a moldura usa para as bolinhas e o próximo passo. */
 export interface PeAndamentoPdtic {
@@ -920,6 +980,8 @@ export interface PeAndamentoPdtic {
    */
   ProximoPassoMotivo?: string | null;
   Passos: PeSituacaoPassoPdtic[];
+  /** F3 (C5): o nível que o PDTIC alcançou e o que falta para o próximo (a tela usa no modo livre). */
+  Nivel?: PeNivelAlcancado | null;
 }
 
 // ── E7 · Caminho da aprovação do PDTIC (rodada A) ───────────────────────────
@@ -1933,6 +1995,11 @@ export interface PePainelEtapa {
   Quantidade: number;
 }
 
+/**
+ * Órgãos por nível. F3: no modo livre, pelo nível alcançado, com o item
+ * `{ NivelId: 0, Nome: "Sem nível alcançado" }` (sem PDTIC, sem nível ou registrado
+ * fora do sistema); no modo definido, pelo nível do órgão, como antes.
+ */
 export interface PePainelNivel {
   NivelId: number;
   Nome: string;
@@ -2074,6 +2141,12 @@ export interface PeConformidadeOrgao {
   Percentual: number;
   Grupo: PeGrupoConformidade;
   Inadimplencia: PeInadimplenciaVigente | null;
+  /**
+   * F3: o nível que o PDTIC de referência alcançou (nos dois modos; a tela usa no
+   * modo livre). Nulos sem PDTIC de referência, sem nível ou no registrado fora do sistema.
+   */
+  NivelAlcancadoId?: number | null;
+  NivelAlcancadoNome?: string | null;
 }
 
 /** GET api/planejamento/conformidade?Grupo=&NivelId=&Filtro=&Situacao=&Alerta=. */
@@ -2259,6 +2332,8 @@ export interface PeAndamentoEtapa {
   Total: number;
   Atrasados: number;
   Aguardando: number;
+  /** F3 (B): quantos passos da etapa estão validados pela equipe (sem o campo, a resposta antiga). */
+  Validados?: number;
 }
 
 export interface PeNaoSeAplicaResumo {
@@ -2302,11 +2377,30 @@ export interface PeDocumentoResumo {
   Url: string | null;
 }
 
+/**
+ * O bloco do nível no resumo do órgão. `Padrao`, a mais que o contrato: o órgão não
+ * tem nível escolhido e vale o padrão. F3: o modo, o nível alcançado e o que falta
+ * para o próximo (os campos de `PeNivelAlcancado`, opcionais para a resposta antiga).
+ */
+export interface PeNivelDoResumo {
+  Id: number | null;
+  Nome: string | null;
+  Padrao?: boolean;
+  Historico: PeHistoricoNivelResumo[];
+  Modo?: PeModoNiveis;
+  AlcancadoId?: number | null;
+  AlcancadoNome?: string | null;
+  ProximoId?: number | null;
+  ProximoNome?: string | null;
+  Faltam?: PeFaltaNivel[] | null;
+  /** F3: por que o nível não é calculado (o PDTIC registrado fora do sistema), quando o servidor manda. */
+  Motivo?: string | null;
+}
+
 /** GET api/planejamento/orgaos/{id}/resumo: tudo do órgão num lugar só (a página do órgão). */
 export interface PeResumoOrgao {
   Orgao: { Id: number; Sigla: string; Nome: string };
-  /** `Padrao`, a mais que o contrato: o órgão não tem nível escolhido e vale o padrão. */
-  Nivel: { Id: number | null; Nome: string | null; Padrao?: boolean; Historico: PeHistoricoNivelResumo[] };
+  Nivel: PeNivelDoResumo;
   Pdtic: PePdtic | null;
   Versoes: PePdtic[];
   Andamento: PeAndamentoEtapa[];
@@ -2321,4 +2415,90 @@ export interface PeResumoOrgao {
   Documentos: PeDocumentoResumo[];
   Ciclos: PeCiclo[];
   Inadimplencias: PeInadimplencia[];
+}
+
+// ── F3 · Retorno do dono do produto: níveis no modo livre e validação ────────
+//
+// Modo dos níveis: `livre` (todo órgão começa pelo nível base, o mínimo do decreto;
+// os outros passos do Guia aparecem como opcionais; cada passo pode ser detalhado
+// na forma de um nível mais alto; o nível sai do que o PDTIC tem) ou `definido`
+// (o administrador escolhe o nível de cada órgão, como antes). Tudo o que é novo é
+// opcional nas respostas: sem os campos (a API anterior), vale o modo definido,
+// sem validação. Erros novos: 1145 (validação recusada) e 1146 (forma recusada).
+
+export type PeModoNiveis = 'livre' | 'definido';
+
+/** PUT api/planejamento/modelo/modo-niveis (o administrador do módulo e o admin do SGDP). */
+export interface PeModoNiveisForm {
+  Modo: PeModoNiveis;
+}
+
+/** Resposta do PUT modelo/modo-niveis. */
+export interface PeModoNiveisResposta {
+  ModoNiveis: PeModoNiveis;
+}
+
+/** A forma em uso de um passo: o nível cujas seções e campos valem para ele. */
+export interface PeDetalhePasso {
+  NivelId: number;
+  NivelNome: string;
+}
+
+/** Uma forma que o órgão pode escolher para o passo, com o que ela mostra. */
+export interface PeOpcaoDetalhe {
+  NivelId: number;
+  NivelNome: string;
+  /** Seções visíveis do passo nesta forma. */
+  Secoes: number;
+  /** Campos visíveis do passo nesta forma. */
+  Campos: number;
+}
+
+/**
+ * PUT api/planejamento/orgaos/{orgaoId}/passos/{passoId}/detalhe: `NivelId` nulo
+ * volta à forma padrão. Devolve o passo a passo do órgão (`PeTrilhaOrgao`).
+ */
+export interface PeDetalheForm {
+  NivelId: number | null;
+}
+
+/**
+ * B: a marca "validado pela equipe" de um passo. Instantes (exibidos sem `:'UTC'`).
+ * `AlteradoDepoisEm`: a data da primeira mudança nos dados do passo depois da
+ * validação (a marca fica, com o aviso); nula sem mudança.
+ */
+export interface PeValidacaoPasso {
+  ValidadoEm: string;
+  /** E-mail de quem validou. */
+  ValidadoPor: string | null;
+  /** O nome de quem validou (sem ele, vale o e-mail). */
+  ValidadoPorNome?: string | null;
+  AlteradoDepoisEm: string | null;
+}
+
+/** C5: um passo que falta para o PDTIC chegar ao próximo nível. */
+export interface PeFaltaNivel {
+  PassoId: number;
+  /** O número no passo a passo do órgão; nulo quando o órgão não vê o passo. */
+  PassoNumero: string | null;
+  PassoTitulo: string;
+  /** O que falta, em linguagem simples (o mesmo texto do "o que falta" do envio). */
+  Motivo: string;
+}
+
+/**
+ * C5: o nível que o PDTIC alcançou (GET pdtic/{id}/situacao, `Nivel`). O mais alto
+ * nível que o PDTIC atende junto com todos os anteriores; nulo quando não atende nem
+ * ao primeiro. O próximo é o seguinte ao alcançado (sem alcançado, o primeiro), com
+ * o que falta; sem próximo (alcançou o último), `Faltam` vazia. No PDTIC registrado
+ * fora do sistema o nível não é calculado, e `Motivo` diz por quê.
+ */
+export interface PeNivelAlcancado {
+  Modo: PeModoNiveis;
+  AlcancadoId: number | null;
+  AlcancadoNome: string | null;
+  ProximoId: number | null;
+  ProximoNome: string | null;
+  Faltam: PeFaltaNivel[];
+  Motivo: string | null;
 }

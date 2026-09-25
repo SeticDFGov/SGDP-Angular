@@ -3,7 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import {
-  PeAjusteOrgao, PeAlvoAjuste, PeCampoModelo, PeModelo, PeOrgaoNivel, PePassoModelo, PeSecaoModelo, PeSituacao
+  PeAjusteOrgao, PeAlvoAjuste, PeCampoModelo, PeModelo, PeModoNiveis, PeOrgaoNivel, PePassoModelo, PeSecaoModelo, PeSituacao
 } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { SITUACOES, citacaoTravado, corSituacao, rotuloSituacao } from '../shared/pe-modelo-rotulos';
@@ -11,6 +11,7 @@ import {
   SituacaoEfetiva, campoNaoDesliga, campoTravadoPorSi, chaveAjuste, modeloOrdenado, situacaoNoNivel
 } from '../shared/pe-modelo-arvore';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { modoDosNiveis, nivelDaFormaPadrao, situacaoLivreDoPasso } from '../shared/pe-niveis-rotulos';
 import { PeModeloService } from '../services/pe-modelo.service';
 import { PeOrgaosService } from '../services/pe-orgaos.service';
 
@@ -35,6 +36,11 @@ const MAX_JUSTIFICATIVA = 500;
  *
  * Mora dentro da tela dos órgãos, que tem o `citaPlanejamento` no raiz (por isso
  * este componente não tem o dele: dois no mesmo texto duplicariam os chips).
+ *
+ * F3: no modo livre, a coluna da situação sem ajuste mostra a do modo livre: o
+ * passo, obrigatório no nível base ou opcional só em outro nível; a seção e o
+ * campo, a situação na forma do passo (a que o órgão escolheu, vinda do passo a
+ * passo dele; senão a padrão). Sem "Trocar nível" (o nível é calculado).
  */
 @Component({
   selector: 'app-pe-orgao-ajustes',
@@ -61,6 +67,10 @@ export class PeOrgaoAjustesComponent implements OnChanges, AfterViewChecked {
   readonly maxJustificativa = MAX_JUSTIFICATIVA;
 
   modelo: PeModelo | null = null;
+  /** F3: o modo dos níveis (do GET modelo; sem o campo, o definido). */
+  modo: PeModoNiveis = 'definido';
+  /** F3 (modo livre): a forma que o órgão escolheu em cada passo (id do passo para o id do nível). */
+  private formas = new Map<number, number>();
   carregando = false;
   erroCarga = false;
   salvando = false;
@@ -85,6 +95,9 @@ export class PeOrgaoAjustesComponent implements OnChanges, AfterViewChecked {
     forkJoin({ modelo: this.modeloService.modelo(), ajustes: this.orgaosService.ajustes(this.orgao.OrgaoId) }).subscribe({
       next: ({ modelo, ajustes }) => {
         this.modelo = modeloOrdenado(modelo);
+        this.modo = modoDosNiveis(modelo);
+        this.formas = new Map();
+        if (this.modo === 'livre') this.carregarFormas();
         this.indexarNomes();
         this.aplicarAjustes(ajustes);
         // Abre os passos que têm ajuste dentro, para o que já foi ajustado ficar à vista
@@ -103,6 +116,39 @@ export class PeOrgaoAjustesComponent implements OnChanges, AfterViewChecked {
         this.erroCarga = true;
       }
     });
+  }
+
+  get modoLivre(): boolean {
+    return this.modo === 'livre';
+  }
+
+  /** F3 (modo livre): as formas que o órgão escolheu, pelo passo a passo dele (sem ele, valem as padrão). */
+  private carregarFormas(): void {
+    const orgaoId = this.orgao.OrgaoId;
+    this.modeloService.trilha(orgaoId).subscribe({
+      next: trilha => {
+        if (orgaoId !== this.orgao.OrgaoId) return;
+        const mapa = new Map<number, number>();
+        for (const etapa of trilha?.Etapas ?? []) {
+          for (const passo of etapa.Passos ?? []) {
+            if (passo.Detalhe && passo.DetalheEscolhido) mapa.set(passo.Id, passo.Detalhe.NivelId);
+          }
+        }
+        this.formas = mapa;
+      },
+      error: () => undefined
+    });
+  }
+
+  /** F3 (modo livre): o nível da forma do passo (a escolhida pelo órgão; senão a padrão). */
+  private nivelDaForma(passo: PePassoModelo): number | null {
+    return this.formas.get(passo.Id) ?? nivelDaFormaPadrao(passo, this.modelo?.Niveis ?? []);
+  }
+
+  /** F3 (modo livre): o nome da forma que o órgão escolheu para o passo (null: segue a padrão). */
+  formaEscolhida(passo: PePassoModelo): string | null {
+    const id = this.formas.get(passo.Id);
+    return id === undefined ? null : this.modelo?.Niveis.find(n => n.Id === id)?.Nome ?? null;
   }
 
   private indexarNomes(): void {
@@ -187,8 +233,18 @@ export class PeOrgaoAjustesComponent implements OnChanges, AfterViewChecked {
     return this.orgao.NivelId;
   }
 
-  noNivel(item: PePassoModelo | PeSecaoModelo | PeCampoModelo): PeSituacao {
-    return situacaoNoNivel(item, this.nivelId);
+  /**
+   * A situação do item sem o ajuste: no modo definido, a do nível do órgão; no livre
+   * (F3), a do modo livre (o passo pela regra do nível base; a seção e o campo, na
+   * forma do passo).
+   */
+  semAjuste(tipo: PeAlvoAjuste, item: PePassoModelo | PeSecaoModelo | PeCampoModelo): PeSituacao {
+    if (!this.modoLivre) return situacaoNoNivel(item, this.nivelId);
+    const niveis = this.modelo?.Niveis ?? [];
+    if (tipo === 'passo') return situacaoLivreDoPasso(item as PePassoModelo, niveis);
+    const passo = this.parentes.get(chaveAjuste(tipo, item.Id))?.passo;
+    const forma = passo ? this.nivelDaForma(passo) : null;
+    return forma === null ? 'desligado' : situacaoNoNivel(item, forma);
   }
 
   rotulo(situacao: string): string {
@@ -243,7 +299,7 @@ export class PeOrgaoAjustesComponent implements OnChanges, AfterViewChecked {
   // ── Como o item fica para o órgão ─────────────────────────────────────────
 
   private comAjuste(tipo: PeAlvoAjuste, item: PePassoModelo | PeSecaoModelo | PeCampoModelo, naoDesliga: boolean): PeSituacao {
-    const ajustada = (this.ajuste(tipo, item.Id)?.situacao || null) ?? this.noNivel(item);
+    const ajustada = (this.ajuste(tipo, item.Id)?.situacao || null) ?? this.semAjuste(tipo, item);
     return naoDesliga && ajustada === 'desligado' ? 'obrigatorio' : ajustada;
   }
 
@@ -352,7 +408,7 @@ export class PeOrgaoAjustesComponent implements OnChanges, AfterViewChecked {
         const gravados = Array.isArray(resposta) ? resposta : lista.filter(a => a.Situacao);
         this.aplicarAjustes(gravados);
         // Sem artigo antes da sigla: o gênero muda de órgão para órgão (F1, A11)
-        this.notificacoes.success(`Ajustes do órgão ${this.orgao.Sigla} salvos. A trilha do órgão já mudou.`);
+        this.notificacoes.success(`Ajustes do órgão ${this.orgao.Sigla} salvos. O passo a passo do órgão já mudou.`);
         this.salvou.emit(this.ajustes.size);
       },
       error: erro => {

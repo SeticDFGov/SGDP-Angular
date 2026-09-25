@@ -15,12 +15,13 @@ import {
   classeSituacaoInadimplencia, iconeSituacaoInadimplencia, rotuloSituacaoInadimplencia
 } from '../shared/pe-inadimplencia-rotulos';
 import {
-  FiltroConformidade, GRUPOS_CONFORMIDADE, GrupoConformidade, ITENS_CONFORMIDADE_PADRAO, MarcaAtendimento, atendeQuando,
-  contarGrupos, filtrarSemGrupo, filtroConformidadeDaUrl, filtroConformidadeVazio, grupoConformidade, marcaAtendimento,
-  orgaosEmOrdem, parametrosConformidade, rotuloAlerta, rotuloSituacaoDoOrgao, textoPercentualConformidade
+  FiltroConformidade, GRUPOS_CONFORMIDADE, GrupoConformidade, ITENS_CONFORMIDADE_PADRAO, MarcaAtendimento, SEM_NIVEL_ALCANCADO,
+  atendeQuando, contarGrupos, filtrarSemGrupo, filtroConformidadeDaUrl, filtroConformidadeVazio, grupoConformidade, marcaAtendimento,
+  nivelDoParametro, orgaosEmOrdem, parametrosConformidade, rotuloAlerta, rotuloSituacaoDoOrgao, textoPercentualConformidade
 } from '../shared/pe-paineis-rotulos';
 import { hojeIso, textoData } from '../shared/registros/pe-valores';
 import { PePaineisService } from '../services/pe-paineis.service';
+import { PeModeloService } from '../services/pe-modelo.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { BASE_PE, rotaPaginaOrgao } from '../trilha/pe-trilhas';
 
@@ -50,6 +51,10 @@ interface FiltroAtivo {
  * Estados vazios distintos (nenhum órgão no sistema; nenhum com os filtros, com
  * "Limpar os filtros"); falha de carregamento como mensagem na tela. Papel de
  * órgão vê um aviso e a tela não consulta nada (o 403 tiraria a pessoa do módulo).
+ *
+ * F3: no modo livre (o modo e os níveis ativos do GET modelo, guardados na sessão),
+ * o filtro de nível é pelo nível alcançado, com "Sem nível alcançado" (0), e a
+ * tabela ganha a coluna "Nível alcançado". No modo definido, tudo como antes.
  */
 @Component({
   selector: 'app-pe-conformidade',
@@ -62,6 +67,7 @@ interface FiltroAtivo {
 export class PeConformidadeComponent implements OnInit {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly paineisService = inject(PePaineisService);
+  private readonly modeloService = inject(PeModeloService);
   private readonly notificacoes = inject(NotificationService);
   private readonly router = inject(Router);
   private readonly rota = inject(ActivatedRoute);
@@ -86,8 +92,12 @@ export class PeConformidadeComponent implements OnInit {
   filtro: FiltroConformidade = filtroConformidadeVazio();
   buscaDigitada = '';
   nivelEscolhido = '';
-  /** Os níveis que os órgãos têm (da lista de órgãos que a moldura já carrega). */
+  /** Os níveis que os órgãos têm (da lista de órgãos que a moldura já carrega); no modo livre, os ativos e o "Sem nível alcançado". */
   niveis: { Id: number; Nome: string }[] = [];
+  /** F3: o modo dos níveis (null enquanto não se sabe: a tela fica como no modo definido). */
+  modoLivre = false;
+  private niveisDosOrgaos: { Id: number; Nome: string }[] = [];
+  private niveisAtivos: { Id: number; Nome: string }[] = [];
 
   itens: PeItemConformidade[] = [];
   /** O que cada item pede, para a lista que abre antes da tabela (a frase do servidor ou a do front). */
@@ -113,6 +123,15 @@ export class PeConformidadeComponent implements OnInit {
         this.paginaDoMeuOrgao = meuOrgao ? rotaPaginaOrgao(meuOrgao) : null;
         if (this.podeVer && !this.iniciado) {
           this.iniciado = true;
+          // F3: o modo dos níveis e os níveis ativos (sem a resposta, o definido)
+          this.modeloService.infoNiveis().subscribe({
+            next: info => {
+              this.modoLivre = info.modo === 'livre';
+              this.niveisAtivos = info.niveis.map(n => ({ Id: n.Id, Nome: n.Nome }));
+              this.atualizarNiveis();
+            },
+            error: () => undefined
+          });
           this.estadoService.orgaos$
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(orgaos => this.montarNiveis(orgaos ?? []));
@@ -133,9 +152,25 @@ export class PeConformidadeComponent implements OnInit {
     for (const o of orgaos) {
       if (o.NivelId && !mapa.has(o.NivelId)) mapa.set(o.NivelId, o.NivelNome);
     }
-    this.niveis = [...mapa.entries()].map(([Id, Nome]) => ({ Id, Nome }))
+    this.niveisDosOrgaos = [...mapa.entries()].map(([Id, Nome]) => ({ Id, Nome }))
       .sort((a, b) => a.Nome.localeCompare(b.Nome, 'pt-BR'));
+    this.atualizarNiveis();
+  }
+
+  /**
+   * As opções do filtro de nível: no modo livre, os níveis ativos na ordem e o "Sem
+   * nível alcançado" (F3); no definido, os níveis que os órgãos têm.
+   */
+  private atualizarNiveis(): void {
+    this.niveis = this.modoLivre
+      ? [...this.niveisAtivos, { Id: SEM_NIVEL_ALCANCADO, Nome: 'Sem nível alcançado' }]
+      : this.niveisDosOrgaos;
     this.filtrosAtivos = this.descreverFiltros();
+  }
+
+  /** F3: o nível alcançado da linha, em palavras. */
+  nivelAlcancado(o: PeConformidadeOrgao): string {
+    return o.NivelAlcancadoNome?.trim() || 'Sem nível alcançado';
   }
 
   private lerFiltros(filtro: FiltroConformidade): void {
@@ -190,7 +225,12 @@ export class PeConformidadeComponent implements OnInit {
     if (f.grupo) ativos.push({ chave: 'grupo', texto: grupoConformidade(f.grupo)?.rotulo ?? f.grupo });
     if (f.nivel !== null) {
       const nome = this.niveis.find(n => n.Id === f.nivel)?.Nome;
-      ativos.push({ chave: 'nivel', texto: nome ? `Nível ${nome}` : 'Nível escolhido' });
+      // F3: no modo livre, o nível alcançado
+      if (this.modoLivre) {
+        ativos.push({ chave: 'nivel', texto: f.nivel === SEM_NIVEL_ALCANCADO ? 'Sem nível alcançado' : `Nível alcançado: ${nome ?? 'escolhido'}` });
+      } else {
+        ativos.push({ chave: 'nivel', texto: nome ? `Nível ${nome}` : 'Nível escolhido' });
+      }
     }
     if (f.busca) ativos.push({ chave: 'busca', texto: `Órgão: "${f.busca}"` });
     if (f.situacoes.length) {
@@ -214,7 +254,7 @@ export class PeConformidadeComponent implements OnInit {
   }
 
   escolherNivel(): void {
-    const nivel = /^\d+$/.test(this.nivelEscolhido) ? Number(this.nivelEscolhido) : null;
+    const nivel = nivelDoParametro(this.nivelEscolhido);
     if (nivel !== this.filtro.nivel) this.navegar({ ...this.filtro, nivel });
   }
 
@@ -302,7 +342,7 @@ export class PeConformidadeComponent implements OnInit {
   }
 
   get colunas(): number {
-    return this.itens.length + 4;
+    return this.itens.length + (this.modoLivre ? 5 : 4);
   }
 
   get semOrgaos(): boolean {

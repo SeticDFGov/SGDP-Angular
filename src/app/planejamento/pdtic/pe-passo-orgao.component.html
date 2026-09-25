@@ -14,10 +14,11 @@
           <span class="material-icons text-sm" aria-hidden="true">{{ iconeStatus(s.estado) }}</span>
           <span><span class="sr-only">Situação do passo: </span>{{ s.texto }}</span>
         </span>
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
+        <!-- Com ajuste para o órgão, a situação é a do ajuste, e não a do nível (F1, B15). F3: no modo livre, sem o nível,
+             e sem repetir o "Opcional" do selo da situação -->
+        <span *ngIf="seloSituacaoDoPasso as selo" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
               [ngClass]="p.Situacao === 'obrigatorio' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
-          <!-- Com ajuste para o órgão, a situação é a do ajuste, e não a do nível (F1, B15) -->
-          {{ p.Situacao === 'obrigatorio' ? 'Obrigatório' : 'Opcional' }}{{ p.AjustadoParaOrgao ? ' para o órgão' : ' no nível ' + nomeNivel }}
+          {{ selo }}
         </span>
         <span *ngIf="p.Travado" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap bg-purple-50 text-purple-800 border-purple-200">
           <span class="material-icons text-sm" aria-hidden="true">lock</span> Conteúdo mínimo do PDTIC
@@ -29,6 +30,12 @@
 
       <!-- O porquê de aguardando, atrasado e feito fora do sistema: em texto, não só na cor -->
       <p *ngIf="motivoStatus" class="mt-2 text-sm text-gray-700 leading-relaxed">{{ motivoStatus }}</p>
+
+      <!-- F3: o passo opcional ainda sem conteúdo não é cobrado (quadro neutro, curto, no alto) -->
+      <p *ngIf="opcionalVazio" class="mt-3 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+        <span class="material-icons text-gray-500" aria-hidden="true">add_circle_outline</span>
+        <span>{{ textoOpcional }}</span>
+      </p>
 
       <p *ngIf="p.Travado" class="mt-4 text-sm text-gray-600 leading-relaxed">
         Este passo é um dos nove conteúdos mínimos do PDTIC ({{ citacaoTravado }}): aparece em todos os níveis e não pode ser
@@ -110,12 +117,13 @@
         documentos). Os fluxos aparecem aqui quando o PDTIC começar.
       </p>
 
+      <!-- F3 (modo livre): a forma deste passo, só para ler enquanto o PDTIC não começa -->
+      <app-pe-forma-passo *ngIf="mostraForma && orgaoDaTrilha as orgao" [passo]="p" [orgaoId]="orgao" [nivelBaseId]="nivelBaseId"
+                          [podeTrocar]="false" [semPdtic]="true"></app-pe-forma-passo>
+
       <!-- Prévia do que o passo pede, enquanto o PDTIC não começa -->
       <ng-container *ngIf="temSecoes">
-        <p *ngIf="p.Secoes.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">
-          Este passo ainda não tem seções ligadas no nível {{ nomeNivel }}. Se você esperava encontrar campos aqui, fale com o
-          administrador do módulo.
-        </p>
+        <p *ngIf="p.Secoes.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">{{ textoSemSecoes }}</p>
         <section *ngFor="let s of p.Secoes; trackBy: porId" class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="'pe-previa-' + s.Id">
           <div class="flex flex-wrap items-start justify-between gap-2">
             <h3 [id]="'pe-previa-' + s.Id" class="text-base font-semibold text-gray-900">{{ s.Titulo }}</h3>
@@ -166,10 +174,6 @@
         </div>
       </div>
 
-      <!-- Não se aplica (passo opcional no nível do órgão que aceita) -->
-      <app-pe-nao-se-aplica *ngIf="aceitaNsa" [pdticId]="pd.Id" [passoId]="p.Id" [numero]="p.Numero" [marcado]="naoSeAplica"
-                            [podeEditar]="podeEditarPasso" (mudou)="aoMudarSituacao()"></app-pe-nao-se-aplica>
-
       <!-- Rodada B: os ciclos do passo (a lista no primeiro passo do tipo; a troca compacta nos seguintes), num pacote próprio -->
       <ng-container *ngIf="ciclosDisponiveis && tipoCiclo as tipo">
         @defer (on idle) {
@@ -181,6 +185,11 @@
           <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando os ciclos...</p>
         }
       </ng-container>
+
+      <!-- F3 (modo livre): a forma deste passo, antes das seções (a escolha só vale no botão; a troca busca as seções de novo) -->
+      <app-pe-forma-passo *ngIf="mostraForma && orgaoDaTrilha as orgao" [passo]="p" [orgaoId]="orgao" [nivelBaseId]="nivelBaseId"
+                          [podeTrocar]="podeTrocarForma" [mudancaPendente]="mudancaPendente"
+                          (trocou)="aoTrocarForma($event)"></app-pe-forma-passo>
 
       <ng-container *ngIf="temSecoes && fonte as f">
         <!-- E8: a planilha deste passo, com todas as seções num arquivo só (no passo por ciclo, o ciclo à vista) -->
@@ -213,10 +222,7 @@
         <!-- Conferência dos temas: as ações de cada tema do decreto -->
         <app-pe-temas-acoes *ngIf="passoTemas" [pdticId]="pd.Id" [recarga]="recargaTemas" [passoAcoes]="passoAcoes"></app-pe-temas-acoes>
 
-        <p *ngIf="p.Secoes.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">
-          Este passo ainda não tem seções ligadas no nível {{ nomeNivel }}. Se você esperava encontrar campos aqui, fale com o
-          administrador do módulo.
-        </p>
+        <p *ngIf="p.Secoes.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">{{ textoSemSecoes }}</p>
 
         <!-- As seções do passo, com os componentes genéricos de registros -->
         <ng-container *ngFor="let s of p.Secoes; trackBy: porId">
@@ -342,6 +348,15 @@
           <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o relatório de resultados...</p>
         }
       </ng-container>
+
+      <!-- Não se aplica (passo opcional que aceita). F3: depois das seções, mais discreto -->
+      <app-pe-nao-se-aplica *ngIf="aceitaNsa" [pdticId]="pd.Id" [passoId]="p.Id" [numero]="p.Numero" [marcado]="naoSeAplica"
+                            [podeEditar]="podeEditarPasso" [modoLivre]="modoLivre" [validado]="!!andamento?.Validacao"
+                            (mudou)="aoMudarSituacao()"></app-pe-nao-se-aplica>
+
+      <!-- F3 (B): a validação da equipe, nos passos da elaboração que aceitam (depois das seções e antes dos comentários) -->
+      <app-pe-validacao-passo *ngIf="aceitaValidacao" [pdticId]="pd.Id" [passoId]="p.Id" [numero]="p.Numero" [andamento]="andamento"
+                              [podeEditar]="podeEditarPasso" (mudou)="aoValidar($event)"></app-pe-validacao-passo>
 
       <!-- Comentários do passo -->
       <app-pe-comentarios-passo [pdticId]="pd.Id" [passoId]="p.Id" [podeComentar]="podeComentar" [podeResponder]="podeResponder"

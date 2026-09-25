@@ -119,9 +119,9 @@ export class LoginLocalComponent {
     personaPlanejamento('pe-cgtic@local.teste', 'Célia do Comitê', PapeisPlanejamento.Cgtic,
       'Secretaria do CGTIC: recebe os PDTICs e o PETIC-DF enviados e registra as deliberações do comitê'),
     personaPlanejamento('pe-orgao@local.teste', 'Sérgio da Saúde', PapeisPlanejamento.Orgao,
-      'Equipe do órgão (SES): elabora e acompanha o PDTIC da Secretaria de Saúde, com a trilha de sete etapas'),
+      'Equipe do PDTIC (SES): elabora e acompanha o PDTIC da Secretaria de Saúde, com o passo a passo de sete etapas'),
     personaPlanejamento('pe-consulta@local.teste', 'Solange da Saúde', PapeisPlanejamento.OrgaoConsulta,
-      'Consulta do órgão (SES): só lê o PDTIC da Secretaria de Saúde')
+      'Consulta do PDTIC (SES): só lê o PDTIC da Secretaria de Saúde')
   ];
 
   perfis = ['admin', 'gestor', 'basico'];

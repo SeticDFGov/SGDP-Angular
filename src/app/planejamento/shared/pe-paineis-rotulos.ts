@@ -198,13 +198,25 @@ export function idDoParametro(valor: string | null | undefined): number | null {
   return id > 0 ? id : null;
 }
 
+/** F3: o id do nível alcançado que "Sem nível alcançado" usa nos filtros do modo livre. */
+export const SEM_NIVEL_ALCANCADO = 0;
+
+/**
+ * O nível de um parâmetro do endereço: um id positivo ou, no modo livre, 0 ("sem
+ * nível alcançado"); qualquer outra coisa, null.
+ */
+export function nivelDoParametro(valor: string | null | undefined): number | null {
+  if (valor === String(SEM_NIVEL_ALCANCADO)) return SEM_NIVEL_ALCANCADO;
+  return idDoParametro(valor);
+}
+
 /** Os filtros lidos do endereço (`grupo`, `nivel`, `busca`, `situacao` separada por vírgula, `alerta`); o estranho fica vazio. */
 export function filtroConformidadeDaUrl(ler: (nome: string) => string | null): FiltroConformidade {
   const grupo = grupoConformidade(ler('grupo'))?.valor ?? null;
   const situacoes = (ler('situacao') ?? '').split(',').map(s => s.trim()).filter(s => CHAVES_SITUACAO_PAINEL.includes(s));
   return {
     grupo,
-    nivel: idDoParametro(ler('nivel')),
+    nivel: nivelDoParametro(ler('nivel')),
     busca: (ler('busca') ?? '').trim().slice(0, 100),
     situacoes: [...new Set(situacoes)],
     alerta: alertaValido(ler('alerta'))
@@ -218,7 +230,7 @@ export function filtroConformidadeDaUrl(ler: (nome: string) => string | null): F
 export function parametrosConformidade(f: FiltroConformidade): Record<string, string | null> {
   return {
     grupo: f.grupo,
-    nivel: f.nivel ? String(f.nivel) : null,
+    nivel: f.nivel !== null ? String(f.nivel) : null,
     busca: f.busca.trim() || null,
     situacao: f.situacoes.length ? f.situacoes.join(',') : null,
     alerta: f.alerta

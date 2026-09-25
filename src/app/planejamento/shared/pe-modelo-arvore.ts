@@ -27,6 +27,8 @@ export function modeloOrdenado(modelo: PeModelo): PeModelo {
     Campos: [...(s.Campos ?? [])].sort(porOrdem).map(c => ({ ...c, Opcoes: [...(c.Opcoes ?? [])].sort(porOrdem) }))
   });
   return {
+    // F3: o modo dos níveis vai junto (sem ele, a tela entenderia o modo definido)
+    ModoNiveis: modelo.ModoNiveis,
     Niveis: [...(modelo.Niveis ?? [])].sort(porOrdem),
     Etapas: [...(modelo.Etapas ?? [])].sort(porOrdem).map(e => ({
       ...e,

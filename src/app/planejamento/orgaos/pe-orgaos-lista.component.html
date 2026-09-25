@@ -3,7 +3,7 @@
   <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-xl font-bold text-gray-900">Página de cada órgão</h2>
     <p class="text-sm text-gray-700 leading-relaxed mt-1">
-      Escolha o órgão para ver tudo dele num lugar só: a situação e a versão do PDTIC, o andamento da trilha, o nível de maturidade, a
+      Escolha o órgão para ver tudo dele num lugar só: a situação e a versão do PDTIC, o andamento do passo a passo, o nível de maturidade, a
       conformidade, o que o órgão marcou como "não se aplica", os comentários abertos, as aprovações e as deliberações, os documentos, os
       ciclos de acompanhamento e as notificações da SGDI (art. 9º, IV, do Decreto nº 48.899/2026).
     </p>
@@ -69,7 +69,7 @@
               <thead>
                 <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
                   <th scope="col" class="px-3 py-2.5">Órgão</th>
-                  <th scope="col" class="px-3 py-2.5">Nível</th>
+                  <th scope="col" class="px-3 py-2.5">{{ modoLivre ? 'Nível alcançado' : 'Nível' }}</th>
                   <th scope="col" class="px-3 py-2.5">PDTIC</th>
                   <th scope="col" class="px-3 py-2.5">Conformidade</th>
                   <th scope="col" class="px-3 py-2.5">Notificação</th>
@@ -82,7 +82,7 @@
                     <span class="font-semibold text-gray-900">{{ o.Sigla }}</span>
                     <span class="block text-xs text-gray-600">{{ o.Nome }}</span>
                   </th>
-                  <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ o.NivelNome || '-' }}</td>
+                  <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ nivel(o) }}</td>
                   <td class="px-3 py-2.5">
                     <span *ngIf="o.PdticVersao" class="font-mono text-gray-900 mr-1">{{ o.PdticVersao }}</span>
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeSituacao(o)">{{ situacao(o) }}</span>
@@ -107,9 +107,9 @@
                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 whitespace-nowrap">
                         Abrir a página <span class="material-icons text-sm" aria-hidden="true">arrow_forward</span>
                       </a>
-                      <button type="button" (click)="verTrilha(o)" [attr.aria-label]="'Ver a trilha do órgão ' + o.Sigla"
+                      <button type="button" (click)="verTrilha(o)" [attr.aria-label]="'Ver o passo a passo do órgão ' + o.Sigla"
                               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
-                        <span class="material-icons text-sm" aria-hidden="true">visibility</span> Ver a trilha
+                        <span class="material-icons text-sm" aria-hidden="true">visibility</span> Ver o passo a passo
                       </button>
                     </div>
                   </td>

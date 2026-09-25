@@ -5,15 +5,21 @@
     <div class="flex flex-col md:flex-row items-start gap-4">
       <div class="flex-1">
         <h2 class="text-base font-semibold text-gray-900">Ajustes do órgão {{ orgao.Sigla }}</h2>
-        <p class="text-sm text-gray-600">{{ orgao.Nome }} · nível {{ orgao.NivelNome }}<ng-container *ngIf="orgao.NivelPadrao"> (o padrão)</ng-container></p>
-        <p class="text-sm text-gray-700 leading-relaxed mt-2">O ajuste muda a situação de um passo, de uma seção ou de um campo só para
-          este órgão, por cima do nível. Por exemplo: pedir a análise SWOT a um órgão do nível Básico, ou dispensar um campo que não
-          faz sentido para ele. Cada ajuste precisa de justificativa.</p>
+        <!-- F3: no modo livre, não há nível do órgão (o nível é calculado pelo que o PDTIC tem) -->
+        <p *ngIf="!modoLivre" class="text-sm text-gray-600">{{ orgao.Nome }} · nível {{ orgao.NivelNome }}<ng-container *ngIf="orgao.NivelPadrao"> (o padrão)</ng-container></p>
+        <p *ngIf="modoLivre" class="text-sm text-gray-600">{{ orgao.Nome }} · modo livre<ng-container *ngIf="orgao.NivelAlcancadoNome"> · nível
+          alcançado: {{ orgao.NivelAlcancadoNome }}</ng-container></p>
+        <p *ngIf="!modoLivre" class="text-sm text-gray-700 leading-relaxed mt-2">O ajuste muda a situação de um passo, de uma seção ou de
+          um campo só para este órgão, por cima do nível. Por exemplo: pedir a análise SWOT a um órgão do nível Básico, ou dispensar um
+          campo que não faz sentido para ele. Cada ajuste precisa de justificativa.</p>
+        <p *ngIf="modoLivre" class="text-sm text-gray-700 leading-relaxed mt-2">O ajuste muda a situação de um passo, de uma seção ou de
+          um campo só para este órgão, por cima do modo livre. Por exemplo: tornar obrigatória a análise SWOT para o órgão, ou dispensar
+          um campo que não faz sentido para ele. Cada ajuste precisa de justificativa.</p>
         <p class="text-xs text-gray-500 italic mt-1">Os conteúdos mínimos do PDTIC (art. 12, § 2º) não desligam, nem com ajuste. Nada
           se apaga: o que o ajuste esconder fica guardado e volta se o ajuste sair.</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <button type="button" (click)="trocarNivel.emit()"
+        <button *ngIf="!modoLivre" type="button" (click)="trocarNivel.emit()"
                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 whitespace-nowrap">
           <span class="material-icons text-base" aria-hidden="true">swap_vert</span> Trocar nível
         </button>
@@ -35,11 +41,13 @@
   <div *ngIf="modelo as m" class="bg-white rounded-lg shadow">
     <div class="relative overflow-x-auto" tabindex="0" role="region" aria-label="Tabela: ajustes do órgão">
       <table class="w-full text-sm">
-        <caption class="sr-only">Passos, seções e campos com a situação no nível do órgão, o ajuste para o órgão e como cada item fica</caption>
+        <caption class="sr-only">{{ modoLivre
+          ? 'Passos, seções e campos com a situação sem ajuste no modo livre, o ajuste para o órgão e como cada item fica'
+          : 'Passos, seções e campos com a situação no nível do órgão, o ajuste para o órgão e como cada item fica' }}</caption>
         <thead>
           <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
             <th scope="col" class="px-3 py-3">Item</th>
-            <th scope="col" class="px-2 py-3 whitespace-nowrap">No nível {{ orgao.NivelNome }}</th>
+            <th scope="col" class="px-2 py-3 whitespace-nowrap">{{ modoLivre ? 'Sem ajuste (modo livre)' : 'No nível ' + orgao.NivelNome }}</th>
             <th scope="col" class="px-2 py-3">Ajuste para o órgão</th>
             <th scope="col" class="px-2 py-3">Justificativa do ajuste</th>
             <th scope="col" class="px-3 py-3">Fica assim</th>
@@ -68,6 +76,8 @@
                         <span class="material-icons text-sm align-middle" aria-hidden="true">lock</span>
                         Conteúdo mínimo ({{ citacao(passo.IncisoDecreto) }}): não desliga.
                       </p>
+                      <!-- F3 (modo livre): a forma que o órgão escolheu (as seções e os campos seguem ela) -->
+                      <p *ngIf="modoLivre && formaEscolhida(passo) as forma" class="text-xs text-gray-600 mt-0.5">Forma escolhida pelo órgão: {{ forma }}</p>
                     </div>
                   </div>
                 </th>
@@ -116,7 +126,7 @@
     </div>
     <div class="flex flex-wrap items-center gap-3">
       <p class="flex-1 text-sm text-gray-700">
-        {{ quantosAjustes === 0 ? 'Nenhum ajuste: o órgão segue o nível.' : (quantosAjustes === 1 ? '1 ajuste para o órgão.' : quantosAjustes + ' ajustes para o órgão.') }}
+        {{ quantosAjustes === 0 ? (modoLivre ? 'Nenhum ajuste: o órgão segue o modo livre.' : 'Nenhum ajuste: o órgão segue o nível.') : (quantosAjustes === 1 ? '1 ajuste para o órgão.' : quantosAjustes + ' ajustes para o órgão.') }}
         <strong *ngIf="alterado" class="text-amber-700"> Há mudanças não salvas.</strong>
       </p>
       <!-- Indisponíveis sem sair do Tab (aria-disabled): desligados, os botões perdiam o foco depois de salvar ou desfazer (F1, C11) -->
@@ -138,13 +148,13 @@
 
 <!-- Situação no nível, ajuste, justificativa e como o item fica -->
 <ng-template #celulas let-tipo="tipo" let-item="item">
-  <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold" [ngClass]="cor(noNivel(item))">{{ rotulo(noNivel(item)) }}</td>
+  <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold" [ngClass]="cor(semAjuste(tipo, item))">{{ rotulo(semAjuste(tipo, item)) }}</td>
   <td class="px-2 py-2">
     <select [attr.aria-label]="'Ajuste de ' + nomeDe(item) + ' para o órgão'"
             [ngModel]="valorAjuste(tipo, item.Id)" (ngModelChange)="mudarAjuste(tipo, item.Id, $event)" [disabled]="salvando"
             class="w-full min-w-[8.5rem] px-1.5 py-1 border rounded text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             [ngClass]="mudou(tipo, item.Id) ? 'border-amber-400' : 'border-gray-300'">
-      <option value="">Segue o nível</option>
+      <option value="">{{ modoLivre ? 'Sem ajuste' : 'Segue o nível' }}</option>
       <option *ngFor="let s of situacoes" [value]="s.valor" [disabled]="s.valor === 'desligado' && naoDesliga(tipo, item)">
         {{ s.rotulo }}{{ s.valor === 'desligado' && naoDesliga(tipo, item) ? ' (travado)' : '' }}
       </option>
@@ -155,7 +165,7 @@
            (ngModelChange)="mudarJustificativa(tipo, item.Id, $event)"
            [maxlength]="maxJustificativa" [readonly]="salvando" [attr.aria-label]="'Justificativa do ajuste de ' + nomeDe(item)"
            [attr.aria-invalid]="justificativaFaltando(tipo, item.Id) || null"
-           [attr.aria-describedby]="justificativaFaltando(tipo, item.Id) ? 'pe-ajustes-erros' : null" placeholder="Por que o órgão foge do nível"
+           [attr.aria-describedby]="justificativaFaltando(tipo, item.Id) ? 'pe-ajustes-erros' : null" [placeholder]="modoLivre ? 'Por que o órgão precisa do ajuste' : 'Por que o órgão foge do nível'"
            class="w-full min-w-[12rem] px-2 py-1 border rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
            [ngClass]="justificativaFaltando(tipo, item.Id) ? 'border-red-500' : 'border-gray-300'" />
   </td>

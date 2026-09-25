@@ -84,40 +84,88 @@ export function plural(n: number, singular: string, varios: string): string {
   return `${n} ${n === 1 ? singular : varios}`;
 }
 
-export type EstadoPassoPdtic = 'feito' | 'pendente' | 'atencao' | 'nao_se_aplica' | 'aguardando' | 'atrasado' | 'externo';
+/** F3: `opcional` é o passo opcional ainda sem conteúdo (não é cobrança; selo neutro). */
+export type EstadoPassoPdtic = 'feito' | 'pendente' | 'atencao' | 'nao_se_aplica' | 'aguardando' | 'atrasado' | 'externo' | 'opcional';
+
+/** B: a marca da equipe no passo: validado, validado com mudança depois, ou nenhuma. */
+export type ValidacaoDoPasso = 'validado' | 'mudou' | null;
 
 /** O motivo que o servidor manda para o feito fora do sistema: o selo já diz isso. */
 const MOTIVO_EXTERNO = 'feito fora do sistema';
+
+/** A situação de um passo como a trilha usa (selo, bolinha, próximo passo, o sinal da validação). */
+export interface StatusDoPassoPdtic {
+  estado: EstadoPassoPdtic;
+  texto: string;
+  motivo: string | null;
+  /** F3: a situação do passo no passo a passo do órgão é obrigatório (nulo: a resposta não disse). */
+  obrigatorio: boolean | null;
+  /** F3 (B): a marca "validado pela equipe". */
+  validacao: ValidacaoDoPasso;
+}
 
 /**
  * Situação de um passo para a trilha (bolinha, selo e próximo passo). O passo
  * `continuo` (tipo que ganha tela nas próximas entregas) fica sem situação.
  * Os avisos do guia não mudam a situação: entram no texto. O `motivo` (E7) é o
  * porquê de aguardando, atrasado e externo, sempre mostrado em texto ao lado do selo.
+ * F3: `opcional` (o passo opcional sem conteúdo, sem cobrança), se o passo é
+ * obrigatório e a marca da validação.
  */
-export function statusDoPassoPdtic(s: PeSituacaoPassoPdtic): { estado: EstadoPassoPdtic; texto: string; motivo: string | null } | null {
+export function statusDoPassoPdtic(s: PeSituacaoPassoPdtic): StatusDoPassoPdtic | null {
   const avisos = s.Avisos?.length ? ` · ${plural(s.Avisos.length, 'aviso', 'avisos')}` : '';
   const motivo = s.Motivo?.trim() || null;
+  const extra = {
+    obrigatorio: typeof s.Obrigatorio === 'boolean' ? s.Obrigatorio : null,
+    validacao: validacaoDoPasso(s)
+  };
   switch (s.Situacao) {
-    case 'feito': return { estado: 'feito', texto: `Feito${avisos}`, motivo };
-    case 'pendente': return { estado: 'pendente', texto: `Pendente${avisos}`, motivo };
+    case 'feito': return { estado: 'feito', texto: `Feito${avisos}`, motivo, ...extra };
+    case 'pendente': return { estado: 'pendente', texto: `Pendente${avisos}`, motivo, ...extra };
     case 'atencao': return {
       estado: 'atencao',
       texto: s.ComentariosAbertos > 0 ? plural(s.ComentariosAbertos, 'comentário aberto', 'comentários abertos') : `Pede atenção${avisos}`,
-      motivo
+      motivo,
+      ...extra
     };
     // Marcado pelo órgão: a justificativa aparece no bloco do passo. Calculado pelo servidor (sem a marcação),
     // o porquê vem no motivo (F1)
-    case 'nao_se_aplica': return { estado: 'nao_se_aplica', texto: 'Não se aplica', motivo: s.NaoSeAplica ? null : motivo };
-    case 'aguardando': return { estado: 'aguardando', texto: 'Aguardando', motivo };
-    case 'atrasado': return { estado: 'atrasado', texto: `Atrasado${avisos}`, motivo };
+    case 'nao_se_aplica': return { estado: 'nao_se_aplica', texto: 'Não se aplica', motivo: s.NaoSeAplica ? null : motivo, ...extra };
+    case 'aguardando': return { estado: 'aguardando', texto: 'Aguardando', motivo, ...extra };
+    case 'atrasado': return { estado: 'atrasado', texto: `Atrasado${avisos}`, motivo, ...extra };
     case 'externo': return {
       estado: 'externo',
       texto: 'Feito fora do sistema',
-      motivo: motivo && motivo.toLowerCase().replace(/\.$/, '') !== MOTIVO_EXTERNO ? motivo : null
+      motivo: motivo && motivo.toLowerCase().replace(/\.$/, '') !== MOTIVO_EXTERNO ? motivo : null,
+      ...extra
     };
+    // F3: o passo opcional sem conteúdo não cobra (selo neutro, sem motivo)
+    case 'opcional': return { estado: 'opcional', texto: `Opcional${avisos}`, motivo: null, ...extra };
     default: return null;
   }
+}
+
+/** B: a marca da equipe no passo (nenhuma quando a resposta não traz a validação). */
+export function validacaoDoPasso(s: Pick<PeSituacaoPassoPdtic, 'Validacao'> | null | undefined): ValidacaoDoPasso {
+  const v = s?.Validacao;
+  if (!v) return null;
+  return v.AlteradoDepoisEm ? 'mudou' : 'validado';
+}
+
+/** B: a marca em palavras, para o leitor de tela e a dica ("validado pela equipe, com mudança depois"). */
+export function textoValidacaoDoPasso(v: ValidacaoDoPasso): string {
+  if (v === 'mudou') return 'validado pela equipe, com mudança depois';
+  return v === 'validado' ? 'validado pela equipe' : '';
+}
+
+/** B: o ícone da marca (a cor só acompanha: o texto vai junto, na dica e para o leitor de tela). */
+export function iconeValidacaoDoPasso(v: ValidacaoDoPasso): string {
+  return v === 'mudou' ? 'change_circle' : 'how_to_reg';
+}
+
+/** B: a cor do ícone da marca sobre fundo branco. */
+export function corValidacaoDoPasso(v: ValidacaoDoPasso): string {
+  return v === 'mudou' ? 'text-amber-600' : 'text-green-600';
 }
 
 /** Primeira letra minúscula, a não ser que o texto comece por uma sigla ("PDTIC..."). */
@@ -160,6 +208,8 @@ export function iconeEstadoPasso(estado: string | null | undefined): string {
     case 'nao_se_aplica': return 'do_not_disturb_on';
     case 'aguardando': return 'hourglass_empty';
     case 'externo': return 'task';
+    // F3: o passo opcional sem conteúdo (dá para acrescentar ao plano, se o órgão quiser)
+    case 'opcional': return 'add_circle_outline';
     default: return 'schedule';
   }
 }
@@ -171,10 +221,35 @@ export function corIconeEstadoPasso(estado: string | null | undefined): string {
     case 'atrasado': return 'text-red-600';
     case 'atencao': return 'text-amber-600';
     case 'nao_se_aplica':
-    case 'aguardando': return 'text-gray-500';
+    case 'aguardando':
+    case 'opcional': return 'text-gray-500';
     case 'externo': return 'text-purple-600';
     default: return 'text-blue-600';
   }
+}
+
+/** Passo resolvido: feito, marcado como "não se aplica" ou feito fora do sistema. */
+function resolvido(situacao: string): boolean {
+  return situacao === 'feito' || situacao === 'nao_se_aplica' || situacao === 'externo';
+}
+
+/**
+ * O andamento dos passos, para a visão geral. F3: `porObrigatorio` quando o servidor
+ * diz, em cada passo, se ele é obrigatório para o órgão (a API nova): aí os números
+ * contam os obrigatórios resolvidos e, à parte, os opcionais feitos (os opcionais não
+ * cobram); sem isso (a API anterior), valem os de sempre (`feitos` de `total`). B:
+ * quantos passos a equipe validou, entre os que aceitam a validação.
+ */
+export interface ResumoAndamento {
+  feitos: number;
+  total: number;
+  aguardando: number;
+  porObrigatorio: boolean;
+  obrigatoriosResolvidos: number;
+  obrigatorios: number;
+  opcionaisFeitos: number;
+  validados: number;
+  aceitamValidacao: number;
 }
 
 /**
@@ -182,12 +257,22 @@ export function corIconeEstadoPasso(estado: string | null | undefined): string {
  * feitos, os marcados como "não se aplica" e os feitos fora do sistema;
  * `aguardando` conta os que dependem de outra coisa antes (a publicação, por exemplo).
  */
-export function resumoAndamento(andamento: PeAndamentoPdtic | null | undefined): { feitos: number; total: number; aguardando: number } {
+export function resumoAndamento(andamento: PeAndamentoPdtic | null | undefined): ResumoAndamento {
   const comSituacao = (andamento?.Passos ?? []).filter(p => p.Situacao !== 'continuo');
+  const porObrigatorio = comSituacao.some(p => typeof p.Obrigatorio === 'boolean');
+  const obrigatorios = porObrigatorio ? comSituacao.filter(p => p.Obrigatorio === true) : [];
+  const opcionais = porObrigatorio ? comSituacao.filter(p => p.Obrigatorio !== true) : [];
+  const aceitam = comSituacao.filter(p => p.AceitaValidacao === true);
   return {
-    feitos: comSituacao.filter(p => p.Situacao === 'feito' || p.Situacao === 'nao_se_aplica' || p.Situacao === 'externo').length,
+    feitos: comSituacao.filter(p => resolvido(p.Situacao)).length,
     total: comSituacao.length,
-    aguardando: comSituacao.filter(p => p.Situacao === 'aguardando').length
+    aguardando: comSituacao.filter(p => p.Situacao === 'aguardando').length,
+    porObrigatorio,
+    obrigatoriosResolvidos: obrigatorios.filter(p => resolvido(p.Situacao)).length,
+    obrigatorios: obrigatorios.length,
+    opcionaisFeitos: opcionais.filter(p => p.Situacao === 'feito' || p.Situacao === 'externo').length,
+    validados: aceitam.filter(p => !!p.Validacao).length,
+    aceitamValidacao: aceitam.length
   };
 }
 

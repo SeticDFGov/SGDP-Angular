@@ -15,6 +15,7 @@ import {
 } from '../shared/pe-paineis-rotulos';
 import { classeSituacaoPdtic } from '../shared/pe-pdtic-rotulos';
 import { PePaineisService } from '../services/pe-paineis.service';
+import { PeModeloService } from '../services/pe-modelo.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { BASE_PE, rotaPaginaOrgao } from '../trilha/pe-trilhas';
 
@@ -30,6 +31,8 @@ import { BASE_PE, rotaPaginaOrgao } from '../trilha/pe-trilhas';
  * Estados vazios distintos (nenhum órgão; nenhum com a busca); falha como
  * mensagem na tela. Papel de órgão vê o link para a página do próprio órgão e a
  * tela não consulta a lista (o 403 tiraria a pessoa do módulo).
+ *
+ * F3: no modo livre, a coluna do nível é a do nível alcançado (o que o PDTIC tem).
  */
 @Component({
   selector: 'app-pe-orgaos-lista',
@@ -42,6 +45,7 @@ import { BASE_PE, rotaPaginaOrgao } from '../trilha/pe-trilhas';
 export class PeOrgaosListaComponent implements OnInit {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly paineisService = inject(PePaineisService);
+  private readonly modeloService = inject(PeModeloService);
   private readonly router = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -60,6 +64,8 @@ export class PeOrgaosListaComponent implements OnInit {
 
   busca = '';
   buscaDigitada = '';
+  /** F3: o modo dos níveis (sem a resposta, o definido). */
+  modoLivre = false;
 
   ngOnInit(): void {
     this.estadoService.estado$
@@ -73,6 +79,7 @@ export class PeOrgaosListaComponent implements OnInit {
         this.siglaMeuOrgao = estado.meuPapel?.OrgaoSigla ?? '';
         if (this.podeVer && !this.iniciado) {
           this.iniciado = true;
+          this.modeloService.infoNiveis().subscribe({ next: info => this.modoLivre = info.modo === 'livre', error: () => undefined });
           this.carregar();
           this.rota.queryParamMap
             .pipe(takeUntilDestroyed(this.destroyRef))
@@ -122,6 +129,12 @@ export class PeOrgaosListaComponent implements OnInit {
   limparBusca(): void {
     this.buscaDigitada = '';
     this.buscar();
+  }
+
+  /** F3: o nível da linha: no modo livre, o alcançado; no definido, o do órgão. */
+  nivel(o: PeConformidadeOrgao): string {
+    if (this.modoLivre) return o.NivelAlcancadoNome?.trim() || 'Sem nível alcançado';
+    return o.NivelNome || '-';
   }
 
   /** "Ver a trilha": a moldura passa a mostrar a trilha do órgão (só para ler), a partir da visão geral. */

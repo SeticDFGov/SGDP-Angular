@@ -1,5 +1,6 @@
-<section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="idBase + '-titulo'">
-  <h2 [id]="idBase + '-titulo'" class="text-base font-semibold text-gray-900">Este passo se aplica ao órgão?</h2>
+<!-- F3: mais discreto (borda, sem sombra), depois das seções: o passo opcional já não cobra -->
+<section class="rounded-lg border border-gray-200 bg-white px-5 py-4" [attr.aria-labelledby]="idBase + '-titulo'">
+  <h2 [id]="idBase + '-titulo'" class="text-sm font-semibold text-gray-800">Este passo se aplica ao órgão?</h2>
 
   <!-- Já marcado -->
   <ng-container *ngIf="marcado as m; else naoMarcado">
@@ -21,8 +22,8 @@
   <!-- Ainda não marcado -->
   <ng-template #naoMarcado>
     <p class="text-sm text-gray-700 leading-relaxed mt-1">
-      Este passo é opcional no nível do órgão. Se ele não fizer sentido para o órgão, a equipe marca "não se aplica" e diz por quê.
-      O passo sai das pendências, e a SGDI vê a justificativa.
+      {{ modoLivre ? 'Este passo é opcional para o órgão.' : 'Este passo é opcional no nível do órgão.' }} Se ele não fizer sentido
+      para o órgão, a equipe do PDTIC marca "não se aplica" e diz por quê. O passo fica resolvido, e a SGDI vê a justificativa.
     </p>
     <ng-container *ngIf="podeEditar">
       <button *ngIf="!formAberto" type="button" [id]="idBase + '-marcar'" (click)="abrir()"
@@ -35,7 +36,8 @@
           Por que este passo não se aplica ao órgão?<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
         </label>
         <p [id]="idBase + '-ajuda'" class="text-xs text-gray-500 italic">
-          Explique em poucas frases. Exemplo: "O órgão não tem PDTIC anterior: este é o primeiro."
+          Explique em poucas frases. Exemplo: "O órgão não tem PDTIC anterior: este é o primeiro."<ng-container *ngIf="validado"> O passo
+            está validado pela equipe: marcar "não se aplica" tira a validação.</ng-container>
         </p>
         <textarea [id]="idBase + '-justificativa'" name="pe-nsa-justificativa" rows="3" [ngModel]="justificativa"
                   (ngModelChange)="justificativa = $event; aoDigitar()" [maxlength]="maxJustificativa"

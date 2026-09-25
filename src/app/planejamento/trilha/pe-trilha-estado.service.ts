@@ -2,19 +2,20 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AuthService, Perfis } from '../../auth/services/auth';
-import { PeMeuPapel, PeOrgaoNivel, PePdtic, PeSituacaoPassoPdtic, PeTrilhaOrgao } from '../../../api/planejamento/interface';
+import { PeMeuPapel, PeModoNiveis, PeOrgaoNivel, PePdtic, PeSituacaoPassoPdtic, PeTrilhaOrgao } from '../../../api/planejamento/interface';
 import { PePessoasService } from '../services/pe-pessoas.service';
 import { PeModeloService } from '../services/pe-modelo.service';
 import { PeOrgaosService } from '../services/pe-orgaos.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { modoDosNiveis } from '../shared/pe-niveis-rotulos';
 import { pdticAntesDaPublicacao, pdticDepoisDaPublicacao, pdticVigente } from '../shared/pe-pdtic-rotulos';
 import {
   PassoNumeradoPe, PerfilCentralPe, PerfilTrilhaPe, TrilhaPe,
   passosNumerados, perfilDoPapel, trilhaDoOrgao, trilhaDoPerfil
 } from './pe-trilhas';
-import { PeTrilhaStatusService, SituacaoTrilhaPe, StatusPassoPe } from './pe-trilha-status.service';
+import { PeTrilhaStatusService, SituacaoTrilhaPe, StatusPassoPe, statusPorPasso } from './pe-trilha-status.service';
 import { PeVisaoService } from './pe-visao.service';
 
 /**
@@ -352,6 +353,52 @@ export class PeTrilhaEstadoService {
   /** Situação de um passo do PDTIC à vista (null sem PDTIC ou enquanto carrega). */
   andamentoDoPasso(chave: string): PeSituacaoPassoPdtic | null {
     return this.estado.value?.situacao?.andamento?.Passos.find(p => p.Chave === chave) ?? null;
+  }
+
+  /**
+   * F3: o modo dos níveis do passo a passo de um órgão à vista (o que o servidor
+   * mandou na trilha; sem o campo, o definido). Null fora do passo a passo de um órgão.
+   */
+  get modoNiveis(): PeModoNiveis | null {
+    const t = this.estado.value?.trilhaOrgao;
+    return t ? modoDosNiveis(t) : null;
+  }
+
+  /** F3: o passo a passo do órgão à vista está no modo livre. */
+  get modoLivre(): boolean {
+    return this.modoNiveis === 'livre';
+  }
+
+  /**
+   * F3: o passo a passo do órgão como o servidor devolveu depois de trocar a forma de
+   * um passo (as seções e os campos dele mudam). Entra no estado sem passar por
+   * "carregando" (as telas não piscam), e a situação dos passos vem de novo.
+   */
+  aplicarTrilha(resolvida: PeTrilhaOrgao): void {
+    const agora = this.estado.value;
+    if (!agora || agora.perfil !== 'orgao' || agora.carga !== 'pronta' || !resolvida?.Etapas) return;
+    // Resposta de outro órgão (a pessoa trocou de órgão enquanto a forma gravava) é descartada
+    if (agora.trilhaOrgao && resolvida.OrgaoId !== agora.trilhaOrgao.OrgaoId) return;
+    const trilha = trilhaDoOrgao(resolvida);
+    this.estado.next({ ...agora, trilha, passos: passosNumerados(trilha), trilhaOrgao: resolvida });
+    this.atualizarStatus(true);
+  }
+
+  /**
+   * F3 (B): a situação de um passo como a validação devolveu: entra no estado, e a
+   * moldura, a visão geral e a tela do passo acompanham. Sem como achar o passo na
+   * situação à vista, a situação inteira vem de novo.
+   */
+  aplicarSituacaoDoPasso(passo: PeSituacaoPassoPdtic | null | undefined): void {
+    const agora = this.estado.value;
+    const andamento = agora?.situacao?.andamento;
+    const i = passo && andamento ? andamento.Passos.findIndex(p => p.PassoId === passo.PassoId || (!!passo.Chave && p.Chave === passo.Chave)) : -1;
+    if (!agora || !agora.situacao || !andamento || !passo || i < 0) {
+      this.atualizarStatus(true);
+      return;
+    }
+    const novo = { ...andamento, Passos: andamento.Passos.map((p, j) => (j === i ? { ...p, ...passo } : p)) };
+    this.estado.next({ ...agora, situacao: { ...agora.situacao, andamento: novo, passosOrgao: statusPorPasso(novo) } });
   }
 
   /** Monta a trilha de quem está logado (chamado ao entrar no módulo e no "Tentar de novo"). */
@@ -741,7 +788,7 @@ export class PeTrilhaEstadoService {
         const agora = this.estado.value;
         if (!agora || agora.orgaoVisto !== orgaoId) return;
         // 403: o interceptor já tirou a pessoa do módulo
-        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a trilha do órgão.');
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar o passo a passo do órgão.');
         if (mensagem === null) return;
         this.estado.next({ ...agora, carga: 'erro-trilha', erroTrilha: mensagem });
       }

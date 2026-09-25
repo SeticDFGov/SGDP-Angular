@@ -20,7 +20,7 @@
   </div>
 
   <p *ngIf="avisoCiclo as a" class="mt-3 text-xs text-gray-500 italic">{{ a }}</p>
-  <p *ngIf="!podeEditar && !semAvisoLeitura" class="mt-3 text-xs text-gray-500 italic">Você pode consultar. Quem registra é a equipe do órgão, com o ciclo aberto.</p>
+  <p *ngIf="!podeEditar && !semAvisoLeitura" class="mt-3 text-xs text-gray-500 italic">Você pode consultar. Quem registra é a equipe do PDTIC, com o ciclo aberto.</p>
 
   <p *ngIf="carregando && linhas.length === 0" role="status" class="mt-3 text-sm text-gray-600">Carregando a grade...</p>
   <div *ngIf="erroCarga" role="alert" class="mt-3 text-sm text-red-700">

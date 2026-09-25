@@ -6,8 +6,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import {
-  PeCampoTrilha, PeCiclo, PeFormatoPlanilha, PeNaoSeAplica, PePassoTrilha, PePdtic, PeRegistro, PeSecaoTrilha, PeSituacaoPassoPdtic,
-  PeTipoCiclo
+  PeCampoTrilha, PeCiclo, PeFormatoPlanilha, PeNaoSeAplica, PePassoSituacao, PePassoTrilha, PePdtic, PeRegistro, PeSecaoTrilha,
+  PeSituacaoPassoPdtic, PeTipoCiclo, PeTrilhaOrgao
 } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
@@ -51,6 +51,8 @@ import { PePassoPublicacaoComponent } from './pe-passo-publicacao.component';
 import { PeSistemasIaPgiaComponent } from './pe-sistemas-ia-pgia.component';
 import { PeSugerirCronogramaComponent } from './pe-sugerir-cronograma.component';
 import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
+import { PeFormaPassoComponent } from './pe-forma-passo.component';
+import { PeValidacaoPassoComponent } from './pe-validacao-passo.component';
 
 /**
  * Tela de um passo da trilha do órgão (/planejamento/pdtic/{chave}), lida da
@@ -121,7 +123,8 @@ const ESPERA_AVISO_SALVO_MS = 1500;
     CommonModule, RouterModule, CitaPlanejamentoDirective, PeSecaoRegistrosComponent, PeNaoSeAplicaComponent,
     PeComentariosPassoComponent, PeSistemasIaPgiaComponent, PeTemasAcoesComponent, PeDocumentoPreviaComponent,
     PeFluxoEditorComponent, PeSugerirCronogramaComponent, PePassoEnvioComponent, PePassoDeliberacaoComponent,
-    PePassoPublicacaoComponent, PeAcaoPdticComponent, PeCiclosListaComponent, PeGradeCicloComponent, PeCicloFechamentoComponent
+    PePassoPublicacaoComponent, PeAcaoPdticComponent, PeCiclosListaComponent, PeGradeCicloComponent, PeCicloFechamentoComponent,
+    PeFormaPassoComponent, PeValidacaoPassoComponent
   ],
   templateUrl: './pe-passo-orgao.component.html',
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
@@ -435,6 +438,84 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     return aceitaNaoSeAplica(this.passo);
   }
 
+  // ── F3 · Níveis no modo livre e validação da equipe ───────────────────────
+
+  /** O passo a passo do órgão está no modo livre (sem o campo, o definido: tudo como antes). */
+  get modoLivre(): boolean {
+    return this.estadoService.modoLivre;
+  }
+
+  /** O passo opcional ainda sem conteúdo (a situação `opcional`): o quadro curto no alto. */
+  get opcionalVazio(): boolean {
+    return this.status?.estado === 'opcional';
+  }
+
+  /** O quadro do passo opcional sem conteúdo (no modo definido, sem falar do nível alcançado, que ele não mostra). */
+  get textoOpcional(): string {
+    const inicio = 'Passo opcional: não é exigido para enviar o PDTIC.';
+    return this.modoLivre
+      ? `${inicio} Preencha se o órgão quiser detalhar o plano; ele conta para o nível alcançado.`
+      : `${inicio} Preencha se o órgão quiser detalhar o plano.`;
+  }
+
+  /** O selo "Obrigatório/Opcional no nível" (no modo livre, sem o nível; some quando repete o selo da situação). */
+  get seloSituacaoDoPasso(): string | null {
+    const p = this.passo;
+    if (!p) return null;
+    const rotulo = p.Situacao === 'obrigatorio' ? 'Obrigatório' : 'Opcional';
+    if (!this.modoLivre) return `${rotulo}${p.AjustadoParaOrgao ? ' para o órgão' : ' no nível ' + this.nomeNivel}`;
+    if (this.opcionalVazio && !p.AjustadoParaOrgao) return null;
+    return p.AjustadoParaOrgao ? `${rotulo} para o órgão` : rotulo;
+  }
+
+  /** O passo sem seções: no modo livre, fala da forma em uso; no definido, do nível do órgão. */
+  get textoSemSecoes(): string {
+    const forma = this.passo?.Detalhe?.NivelNome;
+    const onde = this.modoLivre ? (forma ? `na forma ${forma}` : 'nesta forma') : `no nível ${this.nomeNivel}`;
+    return `Este passo ainda não tem seções ligadas ${onde}. Se você esperava encontrar campos aqui, fale com o administrador do módulo.`;
+  }
+
+  /** "Forma deste passo": no modo livre, o passo com duas formas ou mais. */
+  get mostraForma(): boolean {
+    return this.modoLivre && (this.passo?.OpcoesDetalhe?.length ?? 0) > 1;
+  }
+
+  /** Troca a forma: quem grava no passo agora, com papel que grava (a equipe do PDTIC, o administrador do módulo, o admin do SGDP). */
+  get podeTrocarForma(): boolean {
+    return this.podeEditarPasso && (this.estadoService.ehEquipeDoOrgao || this.estadoService.ehAdministrador);
+  }
+
+  /** O órgão do passo a passo à vista (a forma se grava para ele). */
+  get orgaoDaTrilha(): number | null {
+    return this.estadoService.atual?.trilhaOrgao?.OrgaoId ?? null;
+  }
+
+  /** O nível base do modo livre (no passo a passo do modo livre, o nível que vem nele). */
+  get nivelBaseId(): number | null {
+    return this.estadoService.atual?.trilhaOrgao?.NivelId ?? null;
+  }
+
+  /**
+   * A forma do passo mudou: o passo a passo do órgão (a resposta) entra no estado, as
+   * seções do passo vêm de novo (os campos mudaram) e as mudanças não salvas, que a
+   * troca já confirmou, saem.
+   */
+  aoTrocarForma(trilha: PeTrilhaOrgao): void {
+    this.sujas.clear();
+    this.estadoService.aplicarTrilha(trilha);
+    for (const secao of this.passo?.Secoes ?? []) this.recarregarSecao(secao);
+  }
+
+  /** B: o quadro da validação aparece nos passos que aceitam (a resposta anterior da API não traz: nenhum). */
+  get aceitaValidacao(): boolean {
+    return this.andamento?.AceitaValidacao === true;
+  }
+
+  /** B: a validação devolveu a situação do passo: ela entra no estado (a moldura e a visão geral acompanham). */
+  aoValidar(situacao: PePassoSituacao): void {
+    this.estadoService.aplicarSituacaoDoPasso(situacao);
+  }
+
   get naoSeAplica(): PeNaoSeAplica | null {
     return this.andamento?.NaoSeAplica ?? null;
   }
@@ -495,8 +576,14 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
         // Só o que o nível tem: no Básico, sem as medições e os riscos que ocorreram (F2)
         const medicoes = this.nivelTemSecao(SECAO_MEDICOES) ? '; faça o mesmo com as medições, se houver' : '';
         const riscos = this.nivelTemSecao(SECAO_RISCOS_OCORRIDOS) ? `${medicoes ? ', e' : ';'} inclua os riscos que ocorreram` : '';
+        // F3: o fechamento fica no último passo obrigatório do monitoramento (no modo livre, este passo quando o do resumo é opcional)
+        const fecha = this.passoFechaCiclo ? ' Depois, feche o ciclo no quadro do resumo, logo abaixo, até o prazo.' : '';
         return 'Escolha o ciclo na lista. Na grade das ações, registre a situação de cada ação no ciclo e salve a grade inteira'
-          + `${medicoes}${riscos}. O passo fica feito quando os ciclos que já começaram estão fechados.`;
+          + `${medicoes}${riscos}.${fecha} O passo fica feito quando os ciclos que já começaram estão fechados.`;
+      }
+      if (!this.passoFechaCiclo) {
+        const onde = this.numeroPassoFecha ? ` no passo ${this.numeroPassoFecha}` : '';
+        return `Preencha o resumo do período de cada ciclo e salve. O ciclo se fecha${onde}.`;
       }
       return 'Confira o resumo do ciclo, preencha o resumo do período e feche o ciclo até o prazo: o sistema gera o relatório de '
         + 'acompanhamento (RA), que fica logo abaixo para conferir, ajustar os textos e baixar.';
@@ -562,10 +649,10 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     // No passo do documento, o que se baixa são as versões em PDF
     const baixa = this.passoDocumento ? 'baixa as versões em PDF' : 'baixa as planilhas';
     if (estado?.orgaoVisto !== null) {
-      return `Você está lendo o PDTIC do órgão ${this.siglaOrgao}. Quem preenche é a equipe do órgão.`;
+      return `Você está lendo o PDTIC do órgão ${this.siglaOrgao}. Quem preenche é a equipe do PDTIC.`;
     }
     if (estado?.meuPapel?.Papel === PapeisPlanejamento.OrgaoConsulta) {
-      return `O seu papel é de consulta: você lê o PDTIC e ${baixa}. Quem preenche é a equipe do órgão.`;
+      return `O seu papel é de consulta: você lê o PDTIC e ${baixa}. Quem preenche é a equipe do PDTIC.`;
     }
     if (this.status?.estado === 'externo') {
       return 'Este passo foi feito fora do sistema: ele está no PDF do PDTIC registrado já aprovado.';
@@ -585,7 +672,7 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
         ? `${qual} está ${this.tipoCiclo === 'avaliacao' ? 'fechada' : 'fechado'}: os dados só se leem. Para mudar, reabra${onde}.`
         : `${qual} ainda não começou${ciclo.Inicio ? `: os dados entram a partir de ${textoData(ciclo.Inicio)}` : ''}.`;
     }
-    return `Você pode consultar e ${baixa.replace('baixa ', 'baixar ')}. Quem preenche é a equipe do órgão.`;
+    return `Você pode consultar e ${baixa.replace('baixa ', 'baixar ')}. Quem preenche é a equipe do PDTIC.`;
   }
 
   /** O quadro "por que só leio" no alto: passos que gravam algo (seções, documento, fluxos) e que a pessoa não edita agora. */
@@ -724,8 +811,8 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
 
   /** Quem vê o órgão sem PDTIC e não pode abrir: o motivo. */
   get quemAbre(): string {
-    if (this.estadoService.atual?.orgaoVisto !== null) return 'Quem começa o PDTIC é a equipe do órgão.';
-    return 'Quem começa o PDTIC é a equipe do órgão. O seu papel de consulta só lê.';
+    if (this.estadoService.atual?.orgaoVisto !== null) return 'Quem começa o PDTIC é a equipe do PDTIC.';
+    return 'Quem começa o PDTIC é a equipe do PDTIC. O seu papel de consulta só lê.';
   }
 
   // ── Seções ────────────────────────────────────────────────────────────────
@@ -1052,10 +1139,13 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     this.ciclosDasSecoes = new Map((passo?.Secoes ?? []).map(s => [s.Chave, porCicloDaSecao(s)] as [string, PeTipoCiclo | null]));
     const doTipo = tipo ? passos.filter(p => tipoCicloDoPasso(p.doOrgao) === tipo) : [];
     this.passoListaCiclos = doTipo.length > 0 && doTipo[0].doOrgao?.Chave === passo?.Chave;
-    const fecha = doTipo[doTipo.length - 1] ?? null;
+    // F3: o fechamento fica no último passo OBRIGATÓRIO do tipo (no modo livre, o 5.2 pode ser opcional); sem obrigatório, no último
+    const obrigatorios = doTipo.filter(p => this.passoObrigatorio(p));
+    const fecha = obrigatorios[obrigatorios.length - 1] ?? doTipo[doTipo.length - 1] ?? null;
     this.passoFechaCiclo = !!fecha && fecha.doOrgao?.Chave === passo?.Chave;
     this.numeroPassoFecha = fecha?.numero ?? null;
-    this.exigeResumo = passos.some(p => p.doOrgao?.Secoes.some(s => s.Chave === SECAO_RELATORIO_CICLO));
+    // O fechamento exige o resumo do ciclo só quando o passo dele é obrigatório para o órgão (F3, C4)
+    this.exigeResumo = passos.some(p => this.passoObrigatorio(p) && p.doOrgao?.Secoes.some(s => s.Chave === SECAO_RELATORIO_CICLO));
 
     const comRr = passos.find(p => p.doOrgao?.Secoes.some(s => s.Chave === SECOES_DO_RR[0]))
       ?? passos.find(p => p.doOrgao?.Secoes.some(s => SECOES_DO_RR.includes(s.Chave)));
@@ -1071,6 +1161,12 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     };
     this.passoAcoesGrade = achar(SECAO_ACOES);
     this.passoIndicadores = achar(SECAO_INDICADORES_MONITORAMENTO);
+  }
+
+  /** F3: o passo é obrigatório para o órgão (a situação do passo diz; sem ela, a trilha). */
+  private passoObrigatorio(p: PassoNumeradoPe): boolean {
+    const doServidor = p.doOrgao ? this.estadoService.andamentoDoPasso(p.doOrgao.Chave)?.Obrigatorio : undefined;
+    return typeof doServidor === 'boolean' ? doServidor : p.doOrgao?.Situacao === 'obrigatorio';
   }
 
   /**

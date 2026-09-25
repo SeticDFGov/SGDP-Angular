@@ -1,0 +1,45 @@
+<section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="idBase + '-titulo'">
+  <h2 [id]="idBase + '-titulo'" class="text-base font-semibold text-gray-900">Nível do PDTIC</h2>
+
+  <!-- PDTIC registrado fora do sistema: o nível não é calculado (o motivo do servidor) -->
+  <p *ngIf="nivel.Motivo; else calculado" class="mt-2 flex items-start gap-2 text-sm text-gray-700">
+    <span class="material-icons text-gray-500" aria-hidden="true">info</span>
+    <span>{{ nivel.Motivo }}</span>
+  </p>
+
+  <ng-template #calculado>
+    <p class="mt-2 flex items-start gap-2 text-sm text-gray-900">
+      <span class="material-icons text-purple-600" aria-hidden="true">stairs</span>
+      <strong>{{ frase }}</strong>
+    </p>
+    <p class="text-xs text-gray-500 italic mt-1">O nível sai do que o PDTIC tem: o PDTIC alcança um nível quando todos os passos que o nível
+      pede estão feitos (e os dos níveis anteriores também).</p>
+    <p *ngIf="noUltimoNivel" class="mt-2 text-sm text-gray-700">O PDTIC tem tudo o que o nível mais completo do modelo pede.</p>
+
+    <ng-container *ngIf="queFalta">
+      <button type="button" (click)="alternar()" [attr.aria-expanded]="aberto" [attr.aria-controls]="aberto ? idBase + '-faltam' : null"
+              class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 text-left">
+        {{ queFalta }}
+        <span class="material-icons text-base" aria-hidden="true">{{ aberto ? 'expand_less' : 'expand_more' }}</span>
+      </button>
+      <ol *ngIf="aberto" [id]="idBase + '-faltam'" class="mt-3 space-y-2">
+        <li *ngFor="let item of itens; trackBy: porPasso" class="rounded-md border border-gray-200 px-4 py-3 text-sm">
+          <p class="font-semibold text-gray-900">
+            <!-- O passo à vista: link (data-sem-dica: citação no título não vira chip dentro do link) -->
+            <a *ngIf="item.rota; else semLink" [routerLink]="item.rota" [queryParams]="{ passo: item.falta.PassoNumero }" data-sem-dica
+               class="text-purple-700 underline">{{ item.falta.PassoNumero }} · {{ item.falta.PassoTitulo }}</a>
+            <ng-template #semLink>
+              <button *ngIf="item.falta.PassoNumero && !passos; else semNumero" type="button" (click)="abrirPasso.emit(item.falta)"
+                      class="text-left text-purple-700 underline">{{ item.falta.PassoNumero }} · {{ item.falta.PassoTitulo }}</button>
+              <ng-template #semNumero>
+                <span>{{ item.falta.PassoNumero ? item.falta.PassoNumero + ' · ' : '' }}{{ item.falta.PassoTitulo }}</span>
+                <span *ngIf="!item.falta.PassoNumero" class="font-normal text-gray-600"> (este passo não aparece para o órgão)</span>
+              </ng-template>
+            </ng-template>
+          </p>
+          <p class="text-gray-700 mt-0.5 leading-relaxed">{{ item.falta.Motivo }}</p>
+        </li>
+      </ol>
+    </ng-container>
+  </ng-template>
+</section>

@@ -6,7 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import {
   PeAndamentoEtapa, PeAprovacaoResumo, PeCiclo, PeComentarioAberto, PeConformidadeOrgao, PeDeliberacao, PeDocumentoResumo,
-  PeInadimplencia, PeNaoSeAplicaResumo, PePdtic, PeResumoOrgao
+  PeFaltaNivel, PeInadimplencia, PeNaoSeAplicaResumo, PeNivelAlcancado, PePdtic, PeResumoOrgao
 } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
@@ -34,6 +34,8 @@ import { PeRegistrosService } from '../services/pe-registros.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { BASE_PE, PassoNumeradoPe, rotaPaginaOrgao } from '../trilha/pe-trilhas';
 import { PeInadimplenciaDetalheComponent } from '../inadimplencia/pe-inadimplencia-detalhe.component';
+import { PeNivelPdticComponent } from '../pdtic/pe-nivel-pdtic.component';
+import { MOTIVO_NIVEL_NAO_CALCULADO } from '../shared/pe-niveis-rotulos';
 
 /** O título da rota (a tela troca pelo título com a sigla quando o órgão chega). */
 const TITULO_PAGINA = 'Página do órgão';
@@ -66,11 +68,15 @@ interface ItemConformidadePagina {
  * Os papéis globais e o admin do SGDP veem a de qualquer órgão; a equipe e a
  * consulta do órgão, só a do próprio órgão (outro endereço mostra um aviso e a
  * tela não consulta: o 403 tiraria a pessoa do módulo). Tudo só para ler.
+ *
+ * F3: no modo livre (`Nivel.Modo` do resumo), o nível alcançado no cabeçalho e o
+ * quadro "Nível do PDTIC" com o que falta para o próximo nível (cada passo abre o
+ * passo a passo do órgão nele); no andamento por etapa, os validados pela equipe.
  */
 @Component({
   selector: 'app-pe-orgao-pagina',
   standalone: true,
-  imports: [CommonModule, RouterModule, CitaPlanejamentoDirective, PeInadimplenciaDetalheComponent],
+  imports: [CommonModule, RouterModule, CitaPlanejamentoDirective, PeInadimplenciaDetalheComponent, PeNivelPdticComponent],
   templateUrl: './pe-orgao-pagina.component.html',
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
@@ -110,6 +116,11 @@ export class PeOrgaoPaginaComponent implements OnInit {
   ciclos: PeCiclo[] = [];
   inadimplencias: PeInadimplencia[] = [];
   historicoAberto = false;
+  /** F3: o modo livre (do resumo) e o nível alcançado (o mesmo objeto por carga: vai num *ngIf e num input). */
+  modoLivre = false;
+  nivelAlcancado: PeNivelAlcancado | null = null;
+  /** B: o andamento traz os validados pela equipe (a API nova). */
+  temValidados = false;
   baixando: string | null = null;
 
   ngOnInit(): void {
@@ -176,6 +187,7 @@ export class PeOrgaoPaginaComponent implements OnInit {
     const resumo: PeResumoOrgao = {
       ...bruto,
       Nivel: {
+        ...bruto?.Nivel,
         Id: bruto?.Nivel?.Id ?? null, Nome: bruto?.Nivel?.Nome ?? null, Padrao: bruto?.Nivel?.Padrao === true,
         Historico: bruto?.Nivel?.Historico ?? []
       },
@@ -201,6 +213,18 @@ export class PeOrgaoPaginaComponent implements OnInit {
         detalhe: linha.Itens?.[i.Chave]?.Detalhe?.trim() ?? ''
       }))
       : [];
+    // F3: o modo e o nível alcançado (sem o modo, o definido: tudo como antes)
+    const n = resumo.Nivel;
+    this.modoLivre = n.Modo === 'livre';
+    this.nivelAlcancado = this.modoLivre
+      ? {
+        Modo: 'livre', AlcancadoId: n.AlcancadoId ?? null, AlcancadoNome: n.AlcancadoNome ?? null, ProximoId: n.ProximoId ?? null,
+        ProximoNome: n.ProximoNome ?? null, Faltam: n.Faltam ?? [],
+        // O resumo não traz o motivo do nível não calculado: no PDTIC registrado fora do sistema, o do servidor
+        Motivo: n.Motivo ?? (!n.AlcancadoNome?.trim() && resumo.Pdtic?.RegistradoExternamente ? MOTIVO_NIVEL_NAO_CALCULADO : null)
+      }
+      : null;
+    this.temValidados = resumo.Andamento.some(a => typeof a.Validados === 'number');
     this.ciclos = ciclosEmOrdem(resumo.Ciclos);
     this.inadimplencias = [...resumo.Inadimplencias]
       .sort((a, b) => Number(inadimplenciaVigente(b.Situacao)) - Number(inadimplenciaVigente(a.Situacao)));
@@ -324,6 +348,19 @@ export class PeOrgaoPaginaComponent implements OnInit {
   /** O passo do próximo passo recomendado. */
   abrirProximoPasso(numero: string): void {
     this.abrirNaTrilha(p => p.numero === numero);
+  }
+
+  /** F3: um passo que falta para o próximo nível (pelo id do passo; senão, pelo número). */
+  abrirPassoQueFalta(f: PeFaltaNivel): void {
+    this.abrirNaTrilha(p => p.doOrgao?.Id === f.PassoId || (!!f.PassoNumero && p.numero === f.PassoNumero));
+  }
+
+  /** F3: o nível alcançado no cabeçalho, em palavras. */
+  get textoNivelAlcancado(): string {
+    const n = this.nivelAlcancado;
+    if (!n) return '-';
+    if (n.AlcancadoNome?.trim()) return n.AlcancadoNome.trim();
+    return n.Motivo?.trim() ? 'Não calculado' : 'Sem nível alcançado';
   }
 
   /** O passo do comentário (pelo id do passo; senão, pelo número). */

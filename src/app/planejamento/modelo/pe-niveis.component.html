@@ -25,10 +25,15 @@
       <div class="flex flex-col md:flex-row items-start gap-4">
         <div class="flex-1">
           <h2 class="text-base font-semibold text-gray-900 mb-1">Níveis de maturidade</h2>
-          <p class="text-sm text-gray-700 leading-relaxed">O nível diz o que cada órgão preenche no PDTIC. Um órgão do nível mais
-            simples faz uma trilha curta, com menos campos; um do nível mais completo faz a trilha inteira do Guia de PDTIC. O que
-            cada nível pede é definido no passo "Monte etapas, passos, seções e campos", e o nível de cada órgão, com justificativa,
-            no passo "Defina o nível de cada órgão".</p>
+          <!-- F3: o texto segue o modo dos níveis -->
+          <p *ngIf="!modoLivre" class="text-sm text-gray-700 leading-relaxed">O nível diz o que cada órgão preenche no PDTIC. Um órgão do
+            nível mais simples faz um passo a passo curto, com menos campos; um do nível mais completo faz o passo a passo inteiro do Guia
+            de PDTIC. O que cada nível pede é definido no passo "Monte etapas, passos, seções e campos", e o nível de cada órgão, com
+            justificativa, no passo "Acompanhe o nível de cada órgão".</p>
+          <p *ngIf="modoLivre" class="text-sm text-gray-700 leading-relaxed">O nível diz o que o PDTIC de cada órgão tem. No modo livre,
+            todo órgão começa pelo primeiro nível ativo, o mínimo do decreto: os passos dos outros níveis aparecem como opcionais, cada
+            passo pode ser detalhado na forma de um nível mais alto, e o nível alcançado é calculado pelo que o PDTIC tem. O que cada
+            nível pede é definido no passo "Monte etapas, passos, seções e campos".</p>
           <p class="text-xs text-gray-500 italic mt-2">Ordene do nível mais simples ao mais completo: o passo que você criar nasce
             ligado no último nível da lista. Os nove conteúdos mínimos do PDTIC (art. 12, § 2º) valem em todos os níveis.</p>
         </div>
@@ -38,6 +43,38 @@
         </button>
       </div>
     </div>
+
+    <!-- F3: como os órgãos usam os níveis (a escolha só vale no "Salvar", com a confirmação do módulo) -->
+    <section *ngIf="modelo" class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-niveis-modo-titulo">
+      <h2 id="pe-niveis-modo-titulo" tabindex="-1" class="text-base font-semibold text-gray-900">Como os órgãos usam os níveis</h2>
+      <fieldset class="mt-2">
+        <legend class="sr-only">Modo dos níveis</legend>
+        <div class="flex items-start gap-2 mt-2">
+          <input type="radio" id="pe-niveis-modo-livre" name="pe-niveis-modo" value="livre" [checked]="modoEscolhido === 'livre'"
+                 (change)="modoEscolhido = 'livre'" class="mt-1 shrink-0" />
+          <label for="pe-niveis-modo-livre" class="text-sm text-gray-800">
+            <strong>Livre (recomendado):</strong> cada órgão começa pelo mínimo do decreto, detalha o que quiser e o nível é calculado pelo
+            que o PDTIC tem<span *ngIf="modo === 'livre'" class="text-gray-600"> (em uso)</span>
+          </label>
+        </div>
+        <div class="flex items-start gap-2 mt-2">
+          <input type="radio" id="pe-niveis-modo-definido" name="pe-niveis-modo" value="definido" [checked]="modoEscolhido === 'definido'"
+                 (change)="modoEscolhido = 'definido'" class="mt-1 shrink-0" />
+          <label for="pe-niveis-modo-definido" class="text-sm text-gray-800">
+            <strong>Definido:</strong> o administrador escolhe o nível de cada órgão<span *ngIf="modo === 'definido'" class="text-gray-600"> (em uso)</span>
+          </label>
+        </div>
+      </fieldset>
+      <button type="button" (click)="salvarModo()" [attr.aria-disabled]="(salvandoModo || modoEscolhido === modo) || null"
+              class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+              [ngClass]="salvandoModo || modoEscolhido === modo ? 'opacity-50' : ''">
+        <span class="material-icons text-base" aria-hidden="true">save</span> {{ salvandoModo ? 'Salvando...' : 'Salvar' }}
+      </button>
+      <p class="text-xs text-gray-500 italic mt-2">Trocar o modo não apaga nada: o nível escolhido para cada órgão e as formas que os
+        órgãos escolheram ficam guardados e voltam a valer com o modo.</p>
+      <p *ngIf="erroModo" id="pe-niveis-modo-erro" tabindex="-1"
+         class="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erroModo }}</p>
+    </section>
 
     <!-- Lista dos níveis -->
     <div class="bg-white rounded-lg shadow p-6">
@@ -59,7 +96,7 @@
               <th scope="col" class="px-3 py-3">Nível</th>
               <th scope="col" class="px-3 py-3">Passos ligados</th>
               <th scope="col" class="px-3 py-3">Campos ligados</th>
-              <th scope="col" class="px-3 py-3">Órgãos</th>
+              <th scope="col" class="px-3 py-3">{{ modoLivre ? 'Órgãos que alcançaram' : 'Órgãos' }}</th>
               <th scope="col" class="px-3 py-3">Ações</th>
             </tr>
           </thead>
@@ -90,7 +127,9 @@
                     <span *ngIf="!n.Ativo" class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold bg-gray-100 text-gray-700 border-gray-300">Desativado</span>
                   </p>
                   <p class="text-xs text-gray-600 mt-0.5 leading-relaxed">{{ n.Descricao || 'Sem descrição.' }}</p>
-                  <p *ngIf="n.Id === idPadrao" class="text-xs text-gray-500 italic mt-0.5">Nível padrão: vale para o órgão que ainda não tem nível definido.</p>
+                  <p *ngIf="n.Id === idPadrao" class="text-xs text-gray-500 italic mt-0.5">{{ modoLivre
+                    ? 'Nível base: o mínimo do decreto, pelo qual todo órgão começa.'
+                    : 'Nível padrão: vale para o órgão que ainda não tem nível definido.' }}</p>
                 </th>
                 <td class="px-3 py-3 whitespace-nowrap">
                   <ng-container *ngIf="resumo(n) as r">
@@ -100,10 +139,16 @@
                 </td>
                 <td class="px-3 py-3 whitespace-nowrap font-semibold text-gray-900">{{ resumo(n).campos }}</td>
                 <td class="px-3 py-3 whitespace-nowrap">
-                  <ng-container *ngIf="orgaosPorNivel; else semOrgaos">
-                    <span class="font-semibold text-gray-900">{{ orgaosNoNivel(n).total }}</span>
-                    <span *ngIf="orgaosNoNivel(n).padrao > 0" class="block text-xs text-gray-600">{{ orgaosNoNivel(n).padrao }} pelo padrão</span>
+                  <!-- F3: no modo livre, quantos órgãos alcançaram o nível (pelo painel) -->
+                  <ng-container *ngIf="modoLivre; else orgaosDoNivel">
+                    <span *ngIf="alcancadosPorNivel; else semOrgaos" class="font-semibold text-gray-900">{{ alcancaram(n) }}</span>
                   </ng-container>
+                  <ng-template #orgaosDoNivel>
+                    <ng-container *ngIf="orgaosPorNivel; else semOrgaos">
+                      <span class="font-semibold text-gray-900">{{ orgaosNoNivel(n).total }}</span>
+                      <span *ngIf="orgaosNoNivel(n).padrao > 0" class="block text-xs text-gray-600">{{ orgaosNoNivel(n).padrao }} pelo padrão</span>
+                    </ng-container>
+                  </ng-template>
                   <ng-template #semOrgaos><span class="text-gray-500">-</span></ng-template>
                 </td>
                 <td class="px-3 py-3">
@@ -140,7 +185,11 @@
 
       <p *ngIf="niveis.length > 0" class="text-xs text-gray-500 italic mt-3">
         Os números contam os passos e os campos que o nível liga no modelo, sem os ajustes feitos para cada órgão.
-        <ng-container *ngIf="!orgaosPorNivel && modelo"> A lista de órgãos não veio agora, por isso a coluna de órgãos está vazia.</ng-container>
+        <ng-container *ngIf="!modoLivre && !orgaosPorNivel && modelo"> A lista de órgãos não veio agora, por isso a coluna de órgãos está vazia.</ng-container>
+        <ng-container *ngIf="modoLivre && alcancadosPorNivel"> No modo livre, a coluna dos órgãos conta os que alcançaram cada nível, pelo que o
+          PDTIC tem<ng-container *ngIf="semNivelAlcancado !== null">; {{ semNivelAlcancado === 1 ? '1 órgão ainda está' : semNivelAlcancado + ' órgãos ainda estão' }}
+          sem nível alcançado</ng-container>.</ng-container>
+        <ng-container *ngIf="modoLivre && !alcancadosPorNivel && modelo"> Os números do painel não vieram agora, por isso a coluna dos órgãos está vazia.</ng-container>
       </p>
       <a routerLink="/planejamento/modelo/estrutura" class="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-purple-700 hover:underline">
         <span class="material-icons text-base" aria-hidden="true">account_tree</span> Dizer o que cada nível pede, no editor do modelo

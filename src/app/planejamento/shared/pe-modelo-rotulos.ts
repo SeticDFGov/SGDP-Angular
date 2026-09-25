@@ -573,13 +573,26 @@ export function mudancasHistorico(antesBruto: unknown, depoisBruto: unknown, niv
   return mudancas;
 }
 
-/** Nome do item no retrato (título, rótulo ou nome), para o histórico geral. */
+/** Configurações do modelo que o histórico mostra pelo nome, pela chave gravada no retrato (F3: o modo dos níveis). */
+const CONFIGURACOES_HISTORICO: Record<string, string> = {
+  modo_niveis: 'Modo dos níveis'
+};
+
+/**
+ * Nome do item no retrato (título, rótulo ou nome), para o histórico geral. A configuração
+ * (entidade `configuracao`, retrato com a chave e o valor) sai pelo nome dela: "Modo dos níveis".
+ */
 export function nomeNoRetrato(antesBruto: unknown, depoisBruto: unknown): string | null {
   for (const lado of [lerJson(depoisBruto), lerJson(antesBruto)]) {
     const obj = objeto(lado);
     if (!obj) continue;
     for (const [k, v] of Object.entries(obj)) {
       if (['titulo', 'rotulo', 'nome'].includes(k.toLowerCase()) && typeof v === 'string' && v.trim()) return v.trim();
+    }
+    for (const [k, v] of Object.entries(obj)) {
+      if (k.toLowerCase() === 'chave' && typeof v === 'string' && CONFIGURACOES_HISTORICO[v.trim().toLowerCase()]) {
+        return CONFIGURACOES_HISTORICO[v.trim().toLowerCase()];
+      }
     }
   }
   return null;

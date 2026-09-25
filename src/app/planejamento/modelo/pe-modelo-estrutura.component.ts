@@ -519,7 +519,7 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
   apagar(tipo: TipoComSituacao, item: ItemComSituacao): void {
     if (item.Sistema || item.Excluido || this.apagando) return;
     const nome = this.nomeDe(item);
-    const onde = tipo === 'campo' ? 'do formulário, das tabelas, do documento e das planilhas' : 'da trilha, do documento e das planilhas';
+    const onde = tipo === 'campo' ? 'do formulário, das tabelas, do documento e das planilhas' : 'do passo a passo, do documento e das planilhas';
     const filhos = tipo === 'passo' ? ' As seções e os campos dele saem junto.' : tipo === 'secao' ? ' Os campos dela saem junto.' : '';
     this.confirmacao.perguntar({
       titulo: `Apagar ${ROTULO_TIPO[tipo]} "${nome}"?`,

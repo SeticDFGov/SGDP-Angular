@@ -286,7 +286,7 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
         this.router.navigate([BASE_PE]);
       },
       error: erro => {
-        const mensagem = mensagemErroPe(erro, 'Não foi possível abrir a trilha do órgão. Tente de novo.');
+        const mensagem = mensagemErroPe(erro, 'Não foi possível abrir o passo a passo do órgão. Tente de novo.');
         if (mensagem) this.notificacoes.error(mensagem);
       }
     });

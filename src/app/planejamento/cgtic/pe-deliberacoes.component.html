@@ -103,9 +103,9 @@
                     <span class="material-icons text-sm" aria-hidden="true">picture_as_pdf</span> {{ baixandoPdf === d.Id ? 'Baixando...' : 'PDF enviado' }}
                   </button>
                   <button *ngIf="!ehPetic(d)" type="button" (click)="abrirTrilha(d)"
-                          [attr.aria-label]="'Abrir a trilha do órgão ' + (d.OrgaoSigla ?? '') + ', só para ler'"
+                          [attr.aria-label]="'Abrir o passo a passo do órgão ' + (d.OrgaoSigla ?? '') + ', só para ler'"
                           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
-                    <span class="material-icons text-sm" aria-hidden="true">route</span> Trilha do órgão
+                    <span class="material-icons text-sm" aria-hidden="true">route</span> Passo a passo do órgão
                   </button>
                   <button *ngIf="podeDecidir" type="button" [id]="'pe-dec-registrar-' + d.Id" (click)="registrar(d)"
                           [attr.aria-label]="'Registrar a decisão sobre o ' + objeto(d)"
@@ -130,7 +130,7 @@
         <h2 id="pe-dec-titulo" tabindex="-1" class="text-xl font-bold text-gray-900 mt-2">{{ objeto(d) }}</h2>
         <p class="text-sm text-gray-700 mt-1">Enviado em {{ enviado(d) }}.</p>
         <p *ngIf="!ehPetic(d)" class="text-sm text-gray-700 mt-1">O comitê delibera sobre o PDF enviado pelo órgão, que fica guardado e
-          não muda. A trilha do órgão mostra os dados, só para ler.</p>
+          não muda. O passo a passo do órgão mostra os dados, só para ler.</p>
         <div class="flex flex-wrap gap-3 mt-3">
           <a *ngIf="ehPetic(d)" routerLink="/planejamento/referenciais/petic" [queryParams]="{ versao: d.ObjetoId }"
              class="inline-flex items-center gap-1 text-sm font-semibold text-purple-700 hover:underline">
@@ -146,7 +146,7 @@
           </button>
           <button *ngIf="!ehPetic(d)" type="button" (click)="abrirTrilha(d)"
                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
-            <span class="material-icons text-base" aria-hidden="true">route</span> Abrir a trilha do órgão
+            <span class="material-icons text-base" aria-hidden="true">route</span> Abrir o passo a passo do órgão
           </button>
           <button type="button" (click)="voltarParaFila()"
                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">

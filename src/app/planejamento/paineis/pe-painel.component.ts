@@ -7,7 +7,7 @@ import { Subscription } from 'rxjs';
 import { PeChaveSituacaoPainel, PePainel } from '../../../api/planejamento/interface';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
-import { CHAVES_SITUACAO_PAINEL, idDoParametro } from '../shared/pe-paineis-rotulos';
+import { CHAVES_SITUACAO_PAINEL, SEM_NIVEL_ALCANCADO, nivelDoParametro } from '../shared/pe-paineis-rotulos';
 import { quandoPdtic } from '../shared/pe-pdtic-rotulos';
 import { PePaineisService } from '../services/pe-paineis.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
@@ -82,6 +82,11 @@ const PUBLICADOS: PeChaveSituacaoPainel[] = ['publicado', 'em_acompanhamento'];
  * carregamento vira mensagem na própria tela, com "Tentar de novo". Papel de órgão
  * vê um aviso (com o link para a página do próprio órgão) e a tela não consulta
  * nada: o 403 tiraria a pessoa do módulo.
+ *
+ * F3: no modo livre, o servidor conta os órgãos pelo nível alcançado, com o item
+ * "Sem nível alcançado" (id 0), e o filtro de nível passa a ser pelo nível
+ * alcançado (0 = sem). A tela reconhece o modo pela própria resposta (o 0 nos
+ * filtros ou nos níveis) e troca os nomes: "Órgãos por nível alcançado".
  */
 @Component({
   selector: 'app-pe-painel',
@@ -123,6 +128,8 @@ export class PePainelComponent implements OnInit {
   graficos: GraficoPainel[] = [];
   /** A soma dos alertas (zero: "nenhum alerta agora"). */
   totalAlertas = 0;
+  /** F3: o painel veio no modo livre (os órgãos contados pelo nível alcançado). */
+  modoLivre = false;
 
   ngOnInit(): void {
     this.estadoService.estado$
@@ -169,7 +176,12 @@ export class PePainelComponent implements OnInit {
     const partes: string[] = [];
     if (this.nivel !== null) {
       const nome = this.painel?.Filtros?.Niveis?.find(n => n.Id === this.nivel)?.Nome;
-      partes.push(`nível ${nome ?? 'escolhido'}`);
+      // F3: no modo livre, o nível alcançado, com o nome entre aspas como o da situação ("Sem nível alcançado" é o 0)
+      if (this.modoLivre) {
+        partes.push(`nível alcançado "${nome ?? (this.nivel === SEM_NIVEL_ALCANCADO ? 'Sem nível alcançado' : 'escolhido')}"`);
+      } else {
+        partes.push(`nível ${nome ?? 'escolhido'}`);
+      }
     }
     if (this.situacao !== null) {
       const rotulo = this.painel?.Filtros?.Situacoes?.find(s => s.Chave === this.situacao)?.Rotulo ?? this.situacao;
@@ -180,7 +192,7 @@ export class PePainelComponent implements OnInit {
   }
 
   private lerFiltros(nivelBruto: string | null, situacaoBruta: string | null): void {
-    const nivel = idDoParametro(nivelBruto);
+    const nivel = nivelDoParametro(nivelBruto);
     const situacao = CHAVES_SITUACAO_PAINEL.includes(situacaoBruta ?? '') ? situacaoBruta as PeChaveSituacaoPainel : null;
     const mudou = nivel !== this.nivel || situacao !== this.situacao || !this.painel;
     this.nivel = nivel;
@@ -199,7 +211,7 @@ export class PePainelComponent implements OnInit {
   /** Mudar uma lista vale na hora: o filtro vai para o endereço (sem entrar no histórico) e o painel vem de novo. */
   aplicarFiltros(): void {
     this.navegar({
-      nivel: idDoParametro(this.nivelEscolhido) !== null ? this.nivelEscolhido : null,
+      nivel: nivelDoParametro(this.nivelEscolhido) !== null ? this.nivelEscolhido : null,
       situacao: this.situacaoEscolhida || null
     });
   }
@@ -258,6 +270,9 @@ export class PePainelComponent implements OnInit {
       Filtros: { Niveis: bruto?.Filtros?.Niveis ?? [], Situacoes: bruto?.Filtros?.Situacoes ?? [] }
     };
     this.painel = painel;
+    // F3: o modo livre se vê na resposta (o item 0, "Sem nível alcançado", nos níveis ou nos filtros)
+    this.modoLivre = painel.PorNivel.some(n => n.NivelId === SEM_NIVEL_ALCANCADO)
+      || painel.Filtros.Niveis.some(n => n.Id === SEM_NIVEL_ALCANCADO);
     this.montarCartoes(painel);
     this.montarAlertas(painel);
     this.montarGraficos(painel);
@@ -344,8 +359,8 @@ export class PePainelComponent implements OnInit {
         vazio: 'Nenhum órgão para contar.'
       },
       {
-        chave: 'etapa', titulo: 'PDTICs em elaboração, por etapa', rotuloCategoria: 'Etapa da trilha', unidade: { singular: 'PDTIC', plural: 'PDTICs' },
-        legenda: 'Em que etapa da trilha está cada PDTIC em elaboração: a etapa do próximo passo recomendado.',
+        chave: 'etapa', titulo: 'PDTICs em elaboração, por etapa', rotuloCategoria: 'Etapa do passo a passo', unidade: { singular: 'PDTIC', plural: 'PDTICs' },
+        legenda: 'Em que etapa do passo a passo está cada PDTIC em elaboração: a etapa do próximo passo recomendado.',
         series: SERIE_PDTICS,
         // A etapa 0 é a dos PDTICs sem próximo passo (o servidor manda "Sem próximo passo" no título)
         barras: p.EmElaboracaoPorEtapa.map(e => ({
@@ -353,13 +368,23 @@ export class PePainelComponent implements OnInit {
         })),
         vazio: 'Nenhum PDTIC em elaboração agora.'
       },
-      {
-        chave: 'nivel', titulo: 'Órgãos por nível de maturidade', rotuloCategoria: 'Nível', unidade: ORGAOS,
-        legenda: 'O nível de maturidade diz os passos e os campos que o órgão preenche; o número é a quantidade de órgãos.',
-        series: SERIE_ORGAOS,
-        barras: p.PorNivel.map(n => ({ chave: `nivel-${n.NivelId}`, rotulo: n.Nome, valores: [n.Quantidade] })),
-        vazio: 'Nenhum órgão para contar.'
-      },
+      // F3: no modo livre, pelo nível alcançado (com "Sem nível alcançado")
+      this.modoLivre
+        ? {
+          chave: 'nivel', titulo: 'Órgãos por nível alcançado', rotuloCategoria: 'Nível alcançado', unidade: ORGAOS,
+          legenda: 'O nível alcançado sai do que o PDTIC de cada órgão tem; "Sem nível alcançado" conta os órgãos sem PDTIC, sem nível '
+            + 'ou com o PDTIC aprovado fora do sistema. O número é a quantidade de órgãos.',
+          series: SERIE_ORGAOS,
+          barras: p.PorNivel.map(n => ({ chave: `nivel-${n.NivelId}`, rotulo: n.Nome, valores: [n.Quantidade] })),
+          vazio: 'Nenhum órgão para contar.'
+        }
+        : {
+          chave: 'nivel', titulo: 'Órgãos por nível de maturidade', rotuloCategoria: 'Nível', unidade: ORGAOS,
+          legenda: 'O nível de maturidade diz os passos e os campos que o órgão preenche; o número é a quantidade de órgãos.',
+          series: SERIE_ORGAOS,
+          barras: p.PorNivel.map(n => ({ chave: `nivel-${n.NivelId}`, rotulo: n.Nome, valores: [n.Quantidade] })),
+          vazio: 'Nenhum órgão para contar.'
+        },
       {
         chave: 'objetivos', titulo: 'Necessidades e metas por objetivo do PETIC-DF', rotuloCategoria: 'Objetivo estratégico',
         unidade: { singular: 'item', plural: 'itens' },

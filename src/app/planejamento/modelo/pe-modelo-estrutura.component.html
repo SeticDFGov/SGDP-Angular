@@ -79,13 +79,13 @@
     <!-- Matriz: etapas, passos, seções e campos × níveis -->
     <div *ngIf="modelo as m" class="bg-white rounded-lg shadow">
       <div class="px-6 pt-4 pb-3">
-        <h2 class="text-base font-semibold text-gray-900">Trilha do órgão</h2>
+        <h2 class="text-base font-semibold text-gray-900">Passo a passo do órgão</h2>
         <p *ngIf="niveis.length === 0" class="text-sm text-amber-700 mt-1">Não há nenhum nível de maturidade. Crie os níveis antes, no
           passo "Defina os níveis de maturidade".</p>
       </div>
-      <div id="pe-estrutura-tabela" class="relative overflow-x-auto border-t border-gray-200" tabindex="0" role="region" aria-label="Tabela: etapas, passos, seções e campos da trilha do órgão">
+      <div id="pe-estrutura-tabela" class="relative overflow-x-auto border-t border-gray-200" tabindex="0" role="region" aria-label="Tabela: etapas, passos, seções e campos do passo a passo do órgão">
         <table class="w-full text-sm">
-          <caption class="sr-only">Etapas, passos, seções e campos da trilha do órgão, com a situação de cada item em cada nível de maturidade</caption>
+          <caption class="sr-only">Etapas, passos, seções e campos do passo a passo do órgão, com a situação de cada item em cada nível de maturidade</caption>
           <thead>
             <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
               <th scope="col" class="px-3 py-3">Item</th>
@@ -491,7 +491,7 @@
           <label for="pe-ed-descricao" class="block text-sm font-semibold text-gray-800 mb-1">Descrição</label>
           <textarea id="pe-ed-descricao" rows="3" [(ngModel)]="e.descricao" name="pe-ed-descricao" [maxlength]="limites.descricao"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-          <p class="text-xs text-gray-500 italic mt-1">Aparece embaixo do título da etapa, na trilha do órgão. As etapas seguem o
+          <p class="text-xs text-gray-500 italic mt-1">Aparece embaixo do título da etapa, no passo a passo do órgão. As etapas seguem o
             Guia de PDTIC: nesta etapa do desenvolvimento, não dá para criar nem apagar etapa.</p>
         </div>
 
@@ -504,7 +504,7 @@
                       class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                       [ngClass]="campoInvalido('oQueFazer') ? 'border-red-500' : 'border-gray-300'"></textarea>
             <p id="pe-ed-oquefazer-ajuda" class="text-xs text-gray-500 italic mt-1">Uma ou duas frases curtas, em linguagem simples.
-              Aparece na caixa "O que fazer" da trilha.</p>
+              Aparece na caixa "O que fazer" do passo a passo.</p>
           </div>
           <div>
             <label for="pe-ed-baselegal" class="block text-sm font-semibold text-gray-800 mb-1">Base legal</label>
@@ -520,13 +520,13 @@
                    aria-describedby="pe-ed-referencia-ajuda" placeholder="Ex.: 2.4"
                    class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
             <p id="pe-ed-referencia-ajuda" class="text-xs text-gray-500 italic mt-1">Como "1.1", "2.8 a 2.11" ou "Anexo X, item 19".
-              A trilha mostra "Guia de PDTIC: atividade 2.4".</p>
+              O passo a passo mostra "Guia de PDTIC: atividade 2.4".</p>
           </div>
           <div *ngIf="!e.novo">
             <label class="inline-flex items-center gap-2 text-sm text-gray-800">
               <input type="checkbox" class="w-4 h-4" [(ngModel)]="e.aceitaNaoSeAplica" name="pe-ed-naoseaplica"
                      [disabled]="e.somenteLeitura || !!e.passo?.Travado" />
-              O órgão pode marcar "não se aplica" (quando o passo for opcional no nível dele)
+              O órgão pode marcar "não se aplica" (quando o passo for opcional para ele)
             </label>
             <p *ngIf="e.passo?.Travado" class="text-xs text-gray-500 italic mt-1">Os conteúdos mínimos do PDTIC nunca aceitam "não se aplica".</p>
           </div>

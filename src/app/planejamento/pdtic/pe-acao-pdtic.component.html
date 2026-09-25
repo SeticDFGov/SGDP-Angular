@@ -9,12 +9,12 @@
     fica só para consulta.
   </p>
   <p *ngIf="modo === 'revisao-avaliacao'" class="text-sm text-gray-700 leading-relaxed mt-1">
-    O comitê decidiu revisar o PDTIC. A revisão abre a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e a trilha dela
-    recomeça no diagnóstico (etapa 2).
+    O comitê decidiu revisar o PDTIC. A revisão abre a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e o passo a passo
+    dela recomeça no diagnóstico (etapa 2).
   </p>
   <p *ngIf="modo === 'revisao-justificativa'" class="text-sm text-gray-700 leading-relaxed mt-1">
-    Quando o PDTIC precisar mudar, abra a revisão: o sistema cria a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e a
-    trilha dela recomeça no diagnóstico (etapa 2). O nível do órgão não tem o passo da avaliação do comitê; por isso, diga o porquê.
+    Quando o PDTIC precisar mudar, abra a revisão: o sistema cria a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e o
+    passo a passo dela recomeça no diagnóstico (etapa 2). A avaliação do comitê não é obrigatória para o órgão; por isso, diga o porquê.
   </p>
   <button type="button" (click)="abrir()"
           class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-white text-sm font-semibold"

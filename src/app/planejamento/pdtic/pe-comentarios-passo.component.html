@@ -1,8 +1,8 @@
 <section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="idBase + '-titulo'">
   <h2 [id]="idBase + '-titulo'" tabindex="-1" class="text-base font-semibold text-gray-900">Comentários deste passo</h2>
   <p class="text-sm text-gray-600 leading-relaxed mt-0.5">
-    A SGDI comenta os passos do PDTIC. A equipe do órgão responde e marca como resolvido. Enquanto houver comentário aberto, o
-    passo pede atenção na trilha.
+    A SGDI comenta os passos do PDTIC. A equipe do PDTIC responde e marca como resolvido. Enquanto houver comentário aberto, o
+    passo pede atenção no passo a passo.
   </p>
 
   <p *ngIf="carregando && comentarios.length === 0" role="status" class="text-sm text-gray-600 mt-3">Carregando os comentários...</p>
@@ -81,7 +81,7 @@
 
     <!-- Comentário novo (SGDI) -->
     <form *ngIf="podeComentar" (ngSubmit)="comentar()" class="mt-5 space-y-2 border-t border-gray-100 pt-4">
-      <label [for]="idBase + '-novo'" class="block text-sm font-semibold text-gray-800">Novo comentário para a equipe do órgão</label>
+      <label [for]="idBase + '-novo'" class="block text-sm font-semibold text-gray-800">Novo comentário para a equipe do PDTIC</label>
       <p [id]="idBase + '-novo-ajuda'" class="text-xs text-gray-500 italic">Diga o que precisa ser visto ou ajustado neste passo. Até {{ maxTexto }} caracteres.</p>
       <textarea [id]="idBase + '-novo'" name="pe-coment-novo" rows="3" [ngModel]="novo" (ngModelChange)="novo = $event" [maxlength]="maxTexto"
                 aria-required="true" [attr.aria-invalid]="erroNovo ? true : null"

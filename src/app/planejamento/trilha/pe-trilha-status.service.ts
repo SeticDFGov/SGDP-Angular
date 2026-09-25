@@ -8,7 +8,7 @@ import { Modulos } from '../../core/modulos/modulos';
 import { PeDeliberacoesService, PePeticService } from '../services/pe-petic.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { PeInadimplenciasService } from '../services/pe-inadimplencias.service';
-import { statusDoPassoPdtic } from '../shared/pe-pdtic-rotulos';
+import { ValidacaoDoPasso, statusDoPassoPdtic } from '../shared/pe-pdtic-rotulos';
 import { statusDoPetic } from '../shared/pe-referenciais-rotulos';
 import { ChaveStatusPe, PerfilTrilhaPe } from './pe-trilhas';
 
@@ -16,9 +16,10 @@ import { ChaveStatusPe, PerfilTrilhaPe } from './pe-trilhas';
  * feito: nada esperando · atencao: fila com itens esperando, algo devolvido ou
  * comentário aberto · pendente: há o que fazer · atrasado: prazo vencido ·
  * nao_se_aplica: passo do PDTIC que o órgão marcou como não se aplica · E7:
- * aguardando (depende de outra coisa antes) e externo (feito fora do sistema).
+ * aguardando (depende de outra coisa antes) e externo (feito fora do sistema) ·
+ * F3: opcional (passo opcional ainda sem conteúdo: não cobra).
  */
-export type EstadoPassoPe = 'feito' | 'atencao' | 'pendente' | 'atrasado' | 'nao_se_aplica' | 'aguardando' | 'externo';
+export type EstadoPassoPe = 'feito' | 'atencao' | 'pendente' | 'atrasado' | 'nao_se_aplica' | 'aguardando' | 'externo' | 'opcional';
 
 export interface StatusPassoPe {
   estado: EstadoPassoPe;
@@ -26,6 +27,10 @@ export interface StatusPassoPe {
   texto: string;
   /** O porquê, em texto, ao lado do selo (E7: aguardando, atrasado, externo). */
   motivo?: string | null;
+  /** F3: o passo é obrigatório para o órgão (nulo ou ausente: a resposta não disse; vale a trilha). */
+  obrigatorio?: boolean | null;
+  /** F3 (B): a marca "validado pela equipe" ("mudou": com mudança depois da validação). */
+  validacao?: ValidacaoDoPasso;
 }
 
 export interface SituacaoTrilhaPe {
@@ -47,8 +52,8 @@ function fila(quantidade: number, singular: string, plural: string, vazia: strin
     : { estado: 'feito', texto: vazia };
 }
 
-/** Situação dos passos do órgão, pela chave do passo. */
-function porPasso(andamento: PeAndamentoPdtic): Record<string, StatusPassoPe> {
+/** Situação dos passos do órgão, pela chave do passo (F3: também quando uma validação devolve a situação de um passo). */
+export function statusPorPasso(andamento: PeAndamentoPdtic): Record<string, StatusPassoPe> {
   const mapa: Record<string, StatusPassoPe> = {};
   for (const passo of andamento.Passos ?? []) {
     const status = statusDoPassoPdtic(passo);
@@ -116,7 +121,7 @@ export class PeTrilhaStatusService {
     }
     if (perfil === 'orgao' && pdticId) {
       return this.pdticService.situacao(pdticId).pipe(
-        map(andamento => ({ status: {}, andamento, passosOrgao: porPasso(andamento) })),
+        map(andamento => ({ status: {}, andamento, passosOrgao: statusPorPasso(andamento) })),
         catchError(() => of({ status: {}, andamento: null, passosOrgao: {}, erroAndamento: true }))
       );
     }

@@ -57,7 +57,7 @@ export const MODULOS: ModuloSgdp[] = [
     nome: 'Governança Estratégica',
     nomeCurto: 'Governança Estratégica',
     descricao: 'Governança de TIC do DF (Decreto nº 48.900/2026): os princípios, o PETIC-DF e o PDTIC de cada órgão, passo a passo, da elaboração ao acompanhamento.',
-    itens: ['Trilha numerada do seu papel', 'Princípios e PETIC-DF', 'PDTIC do órgão, do começo ao fim'],
+    itens: ['O passo a passo do seu papel', 'Princípios e PETIC-DF', 'PDTIC do órgão, do começo ao fim'],
     icone: 'flag',
     rota: '/planejamento',
     prefixos: ['/planejamento'],

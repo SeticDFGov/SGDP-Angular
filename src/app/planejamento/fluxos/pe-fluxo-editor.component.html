@@ -8,8 +8,8 @@
         Os fluxos do Guia de PDTIC vêm prontos. Adapte cada um ao jeito do seu órgão: as raias (quem faz), os passos, as decisões e
         os documentos. O desenho sai sozinho, igual na prévia do documento e no PDF.
       </p>
-      <p class="text-xs text-gray-500 italic mt-2">O fluxo vai para o documento do PDTIC e não muda a trilha: os passos do sistema
-        continuam os mesmos.</p>
+      <p class="text-xs text-gray-500 italic mt-2">O fluxo vai para o documento do PDTIC e não muda o passo a passo do sistema:
+        os passos continuam os mesmos.</p>
     </ng-container>
     <ng-container *ngIf="!doOrgao">
       <p class="text-sm text-gray-700 leading-relaxed mt-1">
@@ -122,7 +122,7 @@
     <div *ngIf="!podeEditar && !semAvisoLeitura" class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
       <span class="material-icons text-gray-500" aria-hidden="true">visibility</span>
       <p class="leading-relaxed">{{ avisoLeitura || (doOrgao
-        ? 'Você pode consultar o fluxo. Quem adapta é a equipe do órgão.'
+        ? 'Você pode consultar o fluxo. Quem adapta é a equipe do PDTIC.'
         : 'Você pode consultar os fluxos-modelo. Quem edita é o administrador do módulo.') }}</p>
     </div>
 

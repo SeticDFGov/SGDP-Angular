@@ -4,9 +4,11 @@ import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import {
   PeAjusteOrgao,
+  PeDetalheForm,
   PeOrgaoNivel,
   PeOrgaoNivelForm,
-  PeOrgaoNivelHistorico
+  PeOrgaoNivelHistorico,
+  PeTrilhaOrgao
 } from '../../../api/planejamento/interface';
 
 /**
@@ -43,5 +45,16 @@ export class PeOrgaosService {
   /** A lista inteira; item com `Situacao` nula remove o ajuste. */
   salvarAjustes(orgaoId: number, ajustes: PeAjusteOrgao[]): Observable<PeAjusteOrgao[]> {
     return this.http.put<PeAjusteOrgao[]>(`${this.apiUrl}/${orgaoId}/ajustes`, ajustes);
+  }
+
+  /**
+   * F3 (modo livre): a forma de um passo para o órgão, uma das `OpcoesDetalhe` do
+   * passo; `nivelId` nulo volta à forma padrão. Devolve o passo a passo do órgão. A
+   * equipe do PDTIC do próprio órgão, o administrador do módulo e o admin do SGDP; no
+   * modo definido, 409 (1146).
+   */
+  definirDetalhe(orgaoId: number, passoId: number, nivelId: number | null): Observable<PeTrilhaOrgao> {
+    const corpo: PeDetalheForm = { NivelId: nivelId };
+    return this.http.put<PeTrilhaOrgao>(`${this.apiUrl}/${orgaoId}/passos/${passoId}/detalhe`, corpo);
   }
 }

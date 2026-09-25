@@ -2,16 +2,18 @@ import { AfterViewChecked, Component, DestroyRef, OnInit, PLATFORM_ID, inject } 
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { PePdtic } from '../../../api/planejamento/interface';
+import { PeNivelAlcancado, PePdtic } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic, rotuloPdfDoPdtic } from '../shared/pe-pdf-pdtic';
 import {
-  SECAO_AVALIACAO_COMITE, classeEstadoPasso, classeSituacaoPdtic, minusculaInicial, pdticAntesDaPublicacao, pdticDepoisDaPublicacao,
-  pdticVigente, quandoMarcoPdtic, quandoPdtic, resumoAndamento, rotuloSituacaoPdtic, situacaoDaVersaoNaFrase, textoDoStatus, vigenciaTerminou
+  ResumoAndamento, SECAO_AVALIACAO_COMITE, ValidacaoDoPasso, classeEstadoPasso, classeSituacaoPdtic, corValidacaoDoPasso,
+  iconeValidacaoDoPasso, minusculaInicial, pdticAntesDaPublicacao, pdticDepoisDaPublicacao, pdticVigente, plural, quandoMarcoPdtic,
+  quandoPdtic, resumoAndamento, rotuloSituacaoPdtic, situacaoDaVersaoNaFrase, textoDoStatus, textoValidacaoDoPasso, vigenciaTerminou
 } from '../shared/pe-pdtic-rotulos';
+import { nomeDoNivelAlcancado } from '../shared/pe-niveis-rotulos';
 import { textoAto, textoVigencia } from '../shared/pe-referenciais-rotulos';
 import { hojeIso } from '../shared/registros/pe-valores';
 import { PePdticService } from '../services/pe-pdtic.service';
@@ -20,6 +22,7 @@ import { PeAcaoPdticComponent } from '../pdtic/pe-acao-pdtic.component';
 import { PeRegistroExternoComponent } from '../pdtic/pe-registro-externo.component';
 import { PePainelAcompanhamentoComponent } from '../acompanhamento/pe-painel-acompanhamento.component';
 import { PeInadimplenciasOrgaoComponent } from '../inadimplencia/pe-inadimplencias-orgao.component';
+import { PeNivelPdticComponent } from '../pdtic/pe-nivel-pdtic.component';
 import { EstadoTrilhaPe, PeTrilhaEstadoService } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
 import { ATALHOS_ACOMPANHAMENTO, ATALHOS_REFERENCIAIS, PassoNumeradoPe, rotaPaginaOrgao, rotuloGuia } from './pe-trilhas';
@@ -30,6 +33,12 @@ interface LinkPasso {
   rota: string;
   numero: string;
 }
+
+/**
+ * F3 (A4): a página da SGDI com os decretos, a instrução normativa e os formulários
+ * (o link da visão geral, que abre em outra aba).
+ */
+export const PAGINA_SGDI = 'https://sgdi.df.gov.br/instru%C3%A7%C3%A3o-normativa-in';
 
 /**
  * Visão geral da Governança Estratégica (primeira tela do módulo): o que o módulo
@@ -67,7 +76,7 @@ interface LinkPasso {
   standalone: true,
   imports: [
     CommonModule, RouterModule, CitaPlanejamentoDirective, PeAcaoPdticComponent, PeRegistroExternoComponent,
-    PePainelAcompanhamentoComponent, PeInadimplenciasOrgaoComponent
+    PePainelAcompanhamentoComponent, PeInadimplenciasOrgaoComponent, PeNivelPdticComponent
   ],
   templateUrl: './pe-inicio.component.html',
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
@@ -82,8 +91,12 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
   private readonly destroyRef = inject(DestroyRef);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
+  readonly paginaSgdi = PAGINA_SGDI;
+
   estado: EstadoTrilhaPe | null = null;
   abrindo = false;
+  /** F3 (modo livre): as etapas com a lista dos passos opcionais aberta (pelo índice). */
+  private opcionaisAbertos = new Set<number>();
   baixando = false;
   baixandoPdf = false;
   /** E7: o formulário do PDTIC aprovado fora do sistema está aberto. */
@@ -207,7 +220,7 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
   get rotuloPapel(): string {
     const e = this.estado;
     if (!e) return '';
-    if (e.adminGeral) return 'Administrador do SGDP: vê todas as trilhas e tudo no módulo';
+    if (e.adminGeral) return 'Administrador do SGDP: vê o passo a passo de todos os papéis e tudo no módulo';
     return rotuloCurtoPapelPlanejamento(e.meuPapel?.Papel);
   }
 
@@ -216,6 +229,31 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     const t = this.estado?.trilhaOrgao;
     if (!t) return null;
     return t.NivelPadrao ? `${t.NivelNome} (o padrão, até o administrador do módulo definir o nível do órgão)` : t.NivelNome;
+  }
+
+  // ── F3 · Níveis no modo livre ─────────────────────────────────────────────
+
+  /** O passo a passo do órgão à vista está no modo livre (sem o campo, o definido: tudo como antes). */
+  get modoLivre(): boolean {
+    return this.estadoService.modoLivre;
+  }
+
+  /** O nível base do modo livre (o "mínimo do decreto"): o do passo a passo do órgão. */
+  get nomeNivelBase(): string | null {
+    return this.estado?.trilhaOrgao?.NivelNome ?? null;
+  }
+
+  /** O nível que o PDTIC alcançou (a situação do PDTIC; null sem ela). */
+  get nivelAlcancado(): PeNivelAlcancado | null {
+    return this.estado?.situacao?.andamento?.Nivel ?? null;
+  }
+
+  /** O nível alcançado no bloco "Seu acesso" (no lugar do nível do órgão, no modo livre). */
+  get textoNivelAlcancado(): string {
+    if (this.estado?.cargaPdtic === 'sem-pdtic') return 'Nenhum ainda: o PDTIC não começou';
+    const nome = nomeDoNivelAlcancado(this.nivelAlcancado);
+    if (!nome) return this.carregandoStatus ? 'Conferindo...' : '-';
+    return nome.charAt(0).toUpperCase() + nome.slice(1);
   }
 
   /** "SES · Secretaria de Estado de Saúde" ou "Todos os órgãos" para os papéis centrais. */
@@ -241,10 +279,10 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     const e = this.estado;
     if (e?.orgaoVisto !== null) {
       return this.podeRegistrarExterno
-        ? 'Quem começa o PDTIC no sistema é a equipe do órgão, na trilha dela. Como admin do SGDP, você pode registrar aqui um PDTIC já aprovado fora do sistema.'
-        : 'Quem começa o PDTIC é a equipe do órgão, na trilha dela. Aqui você só lê.';
+        ? 'Quem começa o PDTIC no sistema é a equipe do PDTIC, no passo a passo do órgão. Como admin do SGDP, você pode registrar aqui um PDTIC já aprovado fora do sistema.'
+        : 'Quem começa o PDTIC é a equipe do PDTIC, no passo a passo do órgão. Aqui você só lê.';
     }
-    return 'Quem começa o PDTIC é a equipe do órgão. O seu papel de consulta só lê.';
+    return 'Quem começa o PDTIC é a equipe do PDTIC. O seu papel de consulta só lê.';
   }
 
   rotuloSituacao(situacao: string): string {
@@ -336,7 +374,7 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
   }
 
   /** Andamento dos passos (o mesmo objeto enquanto a situação não muda: vai num *ngIf). */
-  get andamento(): { feitos: number; total: number; aguardando: number } | null {
+  get andamento(): ResumoAndamento | null {
     const andamento = this.estado?.situacao?.andamento ?? null;
     if (andamento !== this.andamentoDe) {
       this.andamentoDe = andamento;
@@ -346,7 +384,23 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     return this.andamentoCache;
   }
   private andamentoDe: unknown = null;
-  private andamentoCache: { feitos: number; total: number; aguardando: number } | null = null;
+  private andamentoCache: ResumoAndamento | null = null;
+
+  /** "3 de 12 passos obrigatórios resolvidos" (F3: os opcionais não cobram). */
+  textoObrigatorios(a: ResumoAndamento): string {
+    return `${a.obrigatoriosResolvidos} de ${a.obrigatorios} ${a.obrigatorios === 1 ? 'passo obrigatório resolvido' : 'passos obrigatórios resolvidos'}`;
+  }
+
+  /** "2 passos opcionais feitos" (F3). */
+  textoOpcionais(a: ResumoAndamento): string {
+    if (a.opcionaisFeitos === 0) return 'Nenhum passo opcional feito';
+    return plural(a.opcionaisFeitos, 'passo opcional feito', 'passos opcionais feitos');
+  }
+
+  /** "4 de 20 passos validados pela equipe" (F3, B). */
+  textoValidados(a: ResumoAndamento): string {
+    return `${a.validados} de ${a.aceitamValidacao} ${a.aceitamValidacao === 1 ? 'passo validado' : 'passos validados'} pela equipe`;
+  }
 
   abrirPdtic(): void {
     if (this.abrindo || !this.podeAbrirPdtic) return;
@@ -355,7 +409,7 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
       next: pdtic => {
         this.abrindo = false;
         // O toast fica numa região lida pelo leitor de tela: um aviso só
-        this.notificacoes.success(`PDTIC ${pdtic.Versao} aberto. Siga os passos da trilha, a partir do primeiro.`);
+        this.notificacoes.success(`PDTIC ${pdtic.Versao} aberto. Siga o passo a passo, a partir do primeiro passo.`);
         // O botão "Começar o PDTIC" some: o foco vai ao título do bloco do PDTIC (F1, C11)
         this.focoPendente = 'pe-inicio-pdtic-titulo';
       },
@@ -400,6 +454,78 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
   motivoDoPasso(passo: PassoNumeradoPe): string {
     const s = this.status(passo);
     return s?.motivo ? textoDoStatus(s) : '';
+  }
+
+  /** F3: o passo é obrigatório para o órgão (o que a situação diz; sem ela, a trilha). */
+  ehObrigatorio(passo: PassoNumeradoPe): boolean {
+    const s = this.status(passo);
+    if (typeof s?.obrigatorio === 'boolean') return s.obrigatorio;
+    return passo.doOrgao?.Situacao === 'obrigatorio';
+  }
+
+  /**
+   * A linha do passo na lista das etapas: obrigatório ou opcional (no nível, no modo
+   * definido), conteúdo mínimo, a forma (no modo livre, quando o passo tem mais de
+   * uma) e o ajuste para o órgão.
+   */
+  linhaDoPasso(passo: PassoNumeradoPe): string {
+    const d = passo.doOrgao;
+    if (!d) return '';
+    const partes: string[] = [];
+    if (this.modoLivre) partes.push(this.ehObrigatorio(passo) ? 'Obrigatório' : 'Opcional');
+    else partes.push(`${d.Situacao === 'obrigatorio' ? 'Obrigatório' : 'Opcional'} neste nível`);
+    if (d.Travado) partes.push('conteúdo mínimo do PDTIC');
+    if (this.modoLivre && d.Detalhe && (d.OpcoesDetalhe?.length ?? 0) > 1) {
+      partes.push(`forma do nível ${d.Detalhe.NivelNome}${d.DetalheEscolhido ? ', escolhida pelo órgão' : ''}`);
+    }
+    if (d.AjustadoParaOrgao) partes.push('ajustado para este órgão');
+    return partes.join(' · ');
+  }
+
+  /** F3 (modo livre): os passos obrigatórios da etapa (os opcionais ficam atrás do botão). */
+  passosObrigatoriosDaEtapa(indice: number): PassoNumeradoPe[] {
+    return this.passosDaEtapa(indice).filter(p => this.ehObrigatorio(p));
+  }
+
+  passosOpcionaisDaEtapa(indice: number): PassoNumeradoPe[] {
+    return this.passosDaEtapa(indice).filter(p => !this.ehObrigatorio(p));
+  }
+
+  opcionaisAberto(indice: number): boolean {
+    return this.opcionaisAbertos.has(indice);
+  }
+
+  alternarOpcionais(indice: number): void {
+    if (this.opcionaisAbertos.has(indice)) this.opcionaisAbertos.delete(indice);
+    else this.opcionaisAbertos.add(indice);
+  }
+
+  /** "Ver os 5 passos opcionais desta etapa" (e quantos pedem atenção, para não passarem despercebidos). */
+  textoBotaoOpcionais(indice: number): string {
+    const opcionais = this.passosOpcionaisDaEtapa(indice);
+    const n = opcionais.length;
+    const atencao = opcionais.filter(p => this.status(p)?.estado === 'atencao').length;
+    const texto = this.opcionaisAberto(indice)
+      ? (n === 1 ? 'Esconder o passo opcional desta etapa' : `Esconder os ${n} passos opcionais desta etapa`)
+      : (n === 1 ? 'Ver o passo opcional desta etapa' : `Ver os ${n} passos opcionais desta etapa`);
+    return atencao > 0 ? `${texto} (${plural(atencao, 'pede atenção', 'pedem atenção')})` : texto;
+  }
+
+  /** B: a marca "validado pela equipe" do passo (o sinal ao lado da situação). */
+  validacaoDe(passo: PassoNumeradoPe): ValidacaoDoPasso {
+    return this.status(passo)?.validacao ?? null;
+  }
+
+  textoValidacao(v: ValidacaoDoPasso): string {
+    return textoValidacaoDoPasso(v);
+  }
+
+  iconeValidacao(v: ValidacaoDoPasso): string {
+    return iconeValidacaoDoPasso(v);
+  }
+
+  corValidacao(v: ValidacaoDoPasso): string {
+    return corValidacaoDoPasso(v);
   }
 
   // ── E7 · Caminho da aprovação ─────────────────────────────────────────────
@@ -497,10 +623,20 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
       && vigenciaTerminou(p, this.hoje);
   }
 
-  /** "Abrir a revisão" com a justificativa: a equipe do órgão sem o passo da avaliação do comitê (Básico). */
+  /**
+   * "Abrir a revisão" com a justificativa: a equipe do órgão sem o passo da avaliação
+   * do comitê (Básico) ou, desde a F3 (C4), com ele opcional (aí a decisão "revisar"
+   * da avaliação mais recente também basta, pelo passo dela).
+   */
   get mostraRevisaoComJustificativa(): boolean {
     const p = this.estado?.pdtic;
-    return !!p && this.estadoService.ehEquipeDoOrgao && pdticVigente(p.Situacao) && !this.temRevisaoAberta && !this.links.avaliacao;
+    return !!p && this.estadoService.ehEquipeDoOrgao && pdticVigente(p.Situacao) && !this.temRevisaoAberta && !this.avaliacaoObrigatoria;
+  }
+
+  /** F3 (C4): o passo da avaliação do comitê é obrigatório para o órgão (a revisão sai só da decisão "revisar" dele). */
+  private get avaliacaoObrigatoria(): boolean {
+    const passo = this.estado?.passos.find(p => p.doOrgao?.Secoes.some(s => s.Chave === SECAO_AVALIACAO_COMITE));
+    return !!passo && this.ehObrigatorio(passo);
   }
 
   /** A revisão se abre pelo passo da avaliação do comitê (6.3), quando ele está na trilha. */

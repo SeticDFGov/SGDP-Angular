@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
-import { PeModelo, PeNivel, PeOrgaoNivel } from '../../../api/planejamento/interface';
+import { PeModelo, PeModoNiveis, PeNivel, PeOrgaoNivel, PePainel } from '../../../api/planejamento/interface';
 import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -13,8 +13,11 @@ import { PeHistoricoComponent } from '../shared/pe-historico.component';
 import { ResumoNivel, codigoDoNome, modeloOrdenado, resumoDoNivel } from '../shared/pe-modelo-arvore';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
+import { modoDosNiveis } from '../shared/pe-niveis-rotulos';
+import { SEM_NIVEL_ALCANCADO } from '../shared/pe-paineis-rotulos';
 import { PeModeloService } from '../services/pe-modelo.service';
 import { PeOrgaosService } from '../services/pe-orgaos.service';
+import { PePaineisService } from '../services/pe-paineis.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
 interface EdicaoNivel {
@@ -37,6 +40,11 @@ const MAX_DESCRICAO = 1000;
  * desativado, deixa de ser oferecido, e os órgãos que estão nele continuam até o
  * administrador trocar. Só o administrador do módulo e o admin do SGDP: os
  * demais veem um aviso e a tela não faz consulta nenhuma.
+ *
+ * F3: o quadro "Como os órgãos usam os níveis" (livre ou definido, com a
+ * confirmação do módulo; PUT modelo/modo-niveis). No modo livre, a coluna dos
+ * órgãos diz quantos alcançaram cada nível (pelo GET painel, que no modo livre
+ * conta pelo nível alcançado), e o primeiro nível ativo é o nível base.
  */
 @Component({
   selector: 'app-pe-niveis',
@@ -50,6 +58,7 @@ export class PeNiveisComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly modeloService = inject(PeModeloService);
   private readonly orgaosService = inject(PeOrgaosService);
+  private readonly paineisService = inject(PePaineisService);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
   private readonly confirmacao = inject(PeConfirmacaoService);
@@ -87,6 +96,18 @@ export class PeNiveisComponent implements OnInit, AfterViewChecked {
   salvando = false;
   /** Nível com o histórico aberto. */
   historicoAberto: number | null = null;
+
+  // ── F3 · Modo dos níveis ──────────────────────────────────────────────────
+  /** O modo gravado (sem o campo no modelo, o definido). */
+  modo: PeModoNiveis = 'definido';
+  /** O modo marcado no quadro (a escolha só vale no "Salvar"). */
+  modoEscolhido: PeModoNiveis = 'definido';
+  salvandoModo = false;
+  erroModo: string | null = null;
+  /** No modo livre: quantos órgãos alcançaram cada nível (pelo painel); null enquanto não veio ou sem o painel. */
+  alcancadosPorNivel: Map<number, number> | null = null;
+  /** No modo livre: os órgãos sem nível alcançado (o item 0 do painel). */
+  semNivelAlcancado: number | null = null;
 
   ngOnInit(): void {
     this.estadoService.estado$
@@ -136,6 +157,87 @@ export class PeNiveisComponent implements OnInit, AfterViewChecked {
     this.modelo = modeloOrdenado(modelo);
     this.niveis = this.modelo.Niveis;
     this.recontar();
+    // O modo gravado; a marcação do quadro acompanha, a não ser durante a gravação
+    this.modo = modoDosNiveis(modelo);
+    if (!this.salvandoModo) this.modoEscolhido = this.modo;
+    if (this.modo === 'livre') this.contarAlcancados();
+  }
+
+  /** No modo livre, o painel conta os órgãos pelo nível alcançado (com o item 0, "Sem nível alcançado"). */
+  private contarAlcancados(): void {
+    this.alcancadosPorNivel = null;
+    this.semNivelAlcancado = null;
+    this.paineisService.painel({}).subscribe({
+      next: (painel: PePainel) => {
+        if (this.modo !== 'livre') return;
+        const mapa = new Map<number, number>();
+        for (const n of painel?.PorNivel ?? []) {
+          if (n.NivelId === SEM_NIVEL_ALCANCADO) this.semNivelAlcancado = n.Quantidade;
+          else mapa.set(n.NivelId, n.Quantidade);
+        }
+        this.alcancadosPorNivel = mapa;
+      },
+      // Sem o painel, a coluna fica com o traço (e o texto diz por quê)
+      error: () => this.alcancadosPorNivel = null
+    });
+  }
+
+  /** No modo livre: quantos órgãos alcançaram o nível. */
+  alcancaram(nivel: PeNivel): number {
+    return this.alcancadosPorNivel?.get(nivel.Id) ?? 0;
+  }
+
+  get modoLivre(): boolean {
+    return this.modo === 'livre';
+  }
+
+  /**
+   * F3: grava o modo marcado, com a confirmação do módulo (que diz o que muda para os
+   * órgãos). Nada do que os órgãos preencheram se perde.
+   */
+  salvarModo(): void {
+    const modo = this.modoEscolhido;
+    if (this.salvandoModo || modo === this.modo) return;
+    const base = this.niveis.find(n => n.Ativo)?.Nome ?? 'o primeiro nível ativo';
+    const pergunta = modo === 'livre'
+      ? {
+        titulo: 'Passar para o modo livre?',
+        texto: `Todo órgão passa a começar pelo mínimo do decreto (o nível ${base}): os outros passos do Guia aparecem como opcionais, `
+          + 'cada passo pode ser detalhado na forma de um nível mais alto, e o nível de cada órgão passa a ser calculado pelo que o PDTIC '
+          + 'tem. O nível escolhido para cada órgão fica guardado e volta a valer se o modo voltar a ser o definido. Nada do que os órgãos '
+          + 'preencheram se perde.',
+        sim: 'Passar para o modo livre'
+      }
+      : {
+        titulo: 'Passar para o modo definido?',
+        texto: 'Cada órgão volta ao nível que você escolheu para ele (ou ao padrão), e a forma de cada passo passa a seguir esse nível. '
+          + 'As formas que os órgãos escolheram ficam guardadas e voltam a valer se o modo voltar a ser o livre. Nada do que os órgãos '
+          + 'preencheram se perde.',
+        sim: 'Passar para o modo definido'
+      };
+    this.confirmacao.perguntar(pergunta).then(sim => {
+      if (!sim || this.salvandoModo) return;
+      this.salvandoModo = true;
+      this.erroModo = null;
+      this.modeloService.definirModoNiveis(modo).subscribe({
+        next: resposta => {
+          this.salvandoModo = false;
+          this.modo = resposta.ModoNiveis;
+          this.modoEscolhido = this.modo;
+          this.notificacoes.success(this.modo === 'livre'
+            ? 'Modo livre salvo: cada órgão começa pelo mínimo do decreto, e o nível é calculado pelo que o PDTIC tem.'
+            : 'Modo definido salvo: vale o nível que você escolhe para cada órgão.');
+          // A coluna dos órgãos muda de sentido com o modo; o foco volta ao título do quadro (os botões ficam)
+          if (this.modo === 'livre') this.contarAlcancados();
+          this.focoPendente = 'pe-niveis-modo-titulo';
+        },
+        error: erro => {
+          this.salvandoModo = false;
+          this.erroModo = mensagemErroPe(erro, 'Não foi possível salvar o modo dos níveis. Tente de novo.');
+          if (this.erroModo) this.focoPendente = 'pe-niveis-modo-erro';
+        }
+      });
+    });
   }
 
   private recontar(): void {
@@ -281,9 +383,14 @@ export class PeNiveisComponent implements OnInit, AfterViewChecked {
     const aviso = orgaos > 0
       ? ` ${orgaos === 1 ? 'O órgão que está nele continua' : `Os ${orgaos} órgãos que estão nele continuam`} nele até você trocar o nível.`
       : '';
+    // F3: no modo livre, o nível sai do cálculo do nível alcançado (e, se é o base, o próximo ativo passa a ser o base)
+    const ehBase = nivel.Id === this.idPadrao;
+    const texto = this.modoLivre
+      ? `Ele deixa de contar no cálculo do nível alcançado${ehBase ? ', e o próximo nível ativo passa a ser o mínimo do decreto, pelo qual todo órgão começa' : ''}.`
+      : `Ele deixa de ser oferecido para os órgãos.${aviso}`;
     this.confirmacao.perguntar({
       titulo: `Desativar o nível "${nivel.Nome}"?`,
-      texto: `Ele deixa de ser oferecido para os órgãos.${aviso}`,
+      texto,
       sim: 'Desativar o nível',
       perigo: true
     }).then(sim => {

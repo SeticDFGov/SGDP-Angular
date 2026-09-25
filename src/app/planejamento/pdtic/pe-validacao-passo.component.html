@@ -1,0 +1,54 @@
+<section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="idBase + '-titulo'">
+  <!-- Recebe o foco depois de marcar ou desmarcar (os botões trocam e o que tinha o foco sai da tela) -->
+  <h2 [id]="idBase + '-titulo'" tabindex="-1" class="text-base font-semibold text-gray-900">Validação da equipe</h2>
+  <p class="text-sm text-gray-600 leading-relaxed mt-1">
+    Marque quando a equipe revisou o conteúdo deste passo e o considera pronto. A marca não é a aprovação do SGTIC nem a do CGTIC:
+    serve para a equipe saber o que já foi fechado e o que ainda está em discussão.
+  </p>
+
+  <!-- Com a marca -->
+  <ng-container *ngIf="validacao; else semMarca">
+    <p class="mt-3 flex items-start gap-2 text-sm text-gray-800">
+      <span class="material-icons text-green-600" aria-hidden="true">how_to_reg</span>
+      <span>{{ textoValidado }}</span>
+    </p>
+    <!-- Mudança depois da validação: aviso âmbar, em texto (a cor não é a única pista) -->
+    <p *ngIf="mudouDepois" class="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <span class="material-icons text-amber-600" aria-hidden="true">change_circle</span>
+      <span>{{ textoMudou }}</span>
+    </p>
+    <p *ngIf="podeEditar && mudouDepois && !feito" class="mt-2 text-sm text-gray-700">Complete o passo para poder validá-lo de novo.</p>
+    <div *ngIf="podeEditar" class="flex flex-wrap gap-2 mt-3">
+      <button *ngIf="mudouDepois && feito" type="button" (click)="marcar()" [attr.aria-disabled]="gravando !== null || null"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700"
+              [ngClass]="gravando !== null ? 'opacity-50' : ''">
+        <span class="material-icons text-base" aria-hidden="true">how_to_reg</span> {{ gravando === 'marcar' ? 'Validando...' : 'Validar de novo' }}
+      </button>
+      <button type="button" (click)="desfazer()" [attr.aria-disabled]="gravando !== null || null"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50"
+              [ngClass]="gravando !== null ? 'opacity-50' : ''">
+        <span class="material-icons text-base" aria-hidden="true">undo</span> {{ gravando === 'desfazer' ? 'Desfazendo...' : 'Desfazer a validação' }}
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- Sem a marca -->
+  <ng-template #semMarca>
+    <ng-container *ngIf="podeEditar; else soLeitura">
+      <button *ngIf="feito; else incompleto" type="button" (click)="marcar()" [attr.aria-disabled]="gravando !== null || null"
+              class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700"
+              [ngClass]="gravando !== null ? 'opacity-50' : ''">
+        <span class="material-icons text-base" aria-hidden="true">how_to_reg</span> {{ gravando === 'marcar' ? 'Validando...' : 'Marcar como validado pela equipe' }}
+      </button>
+      <ng-template #incompleto>
+        <p class="mt-3 text-sm text-gray-700">Complete o passo para poder validá-lo.</p>
+      </ng-template>
+    </ng-container>
+    <ng-template #soLeitura>
+      <p class="mt-3 text-sm text-gray-700">A equipe do PDTIC ainda não validou este passo.</p>
+    </ng-template>
+  </ng-template>
+
+  <p *ngIf="erro" [id]="idBase + '-erro'" tabindex="-1"
+     class="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erro }}</p>
+</section>

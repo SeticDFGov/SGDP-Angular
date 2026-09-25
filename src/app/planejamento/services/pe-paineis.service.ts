@@ -32,7 +32,8 @@ export function caminhoDeDownload(url: string | null | undefined): string | null
  */
 function comFiltrosDaConformidade(params: HttpParams, consulta: PeConformidadeConsulta): HttpParams {
   if (consulta.Grupo) params = params.set('Grupo', consulta.Grupo);
-  if (consulta.NivelId) params = params.set('NivelId', consulta.NivelId);
+  // F3: 0 é "sem nível alcançado" (modo livre), um filtro de verdade
+  if (consulta.NivelId !== null && consulta.NivelId !== undefined) params = params.set('NivelId', consulta.NivelId);
   const filtro = consulta.Filtro?.trim();
   if (filtro) params = params.set('Filtro', filtro);
   const situacao = consulta.Situacao?.trim();
@@ -59,7 +60,8 @@ export class PePaineisService {
   /** As contagens do painel, com o filtro por nível e por situação. */
   painel(consulta: PePainelConsulta): Observable<PePainel> {
     let params = new HttpParams();
-    if (consulta.NivelId) params = params.set('NivelId', consulta.NivelId);
+    // F3: 0 é "sem nível alcançado" (modo livre), um filtro de verdade
+    if (consulta.NivelId !== null && consulta.NivelId !== undefined) params = params.set('NivelId', consulta.NivelId);
     if (consulta.Situacao) params = params.set('Situacao', consulta.Situacao);
     return this.http.get<PePainel>(`${this.apiUrl}/painel`, { params });
   }

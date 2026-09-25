@@ -62,10 +62,11 @@
           </button>
         </form>
         <div>
-          <label for="pe-conf-nivel" class="block text-sm font-semibold text-gray-800">Nível de maturidade</label>
+          <!-- F3: no modo livre, o filtro é pelo nível alcançado (com "Sem nível alcançado") -->
+          <label for="pe-conf-nivel" class="block text-sm font-semibold text-gray-800">{{ modoLivre ? 'Nível alcançado' : 'Nível de maturidade' }}</label>
           <select id="pe-conf-nivel" name="pe-conf-nivel" [(ngModel)]="nivelEscolhido" (ngModelChange)="escolherNivel()"
                   class="mt-1 w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Todos os níveis</option>
+            <option value="">{{ modoLivre ? 'Todos' : 'Todos os níveis' }}</option>
             <option *ngFor="let n of niveis; trackBy: porNivel" [value]="'' + n.Id">{{ n.Nome }}</option>
           </select>
         </div>
@@ -139,6 +140,8 @@
             <thead>
               <tr class="bg-gray-50 text-left text-xs text-gray-600 align-top">
                 <th scope="col" class="px-3 py-2.5 font-semibold min-w-[12rem]">Órgão</th>
+                <!-- F3: no modo livre, a coluna do nível alcançado (o que o PDTIC tem) -->
+                <th *ngIf="modoLivre" scope="col" class="px-3 py-2.5 font-semibold min-w-[8.5rem]">Nível alcançado</th>
                 <th *ngFor="let it of itens; trackBy: porItem" scope="col" class="px-3 py-2.5 font-semibold min-w-[8.5rem]">
                   {{ it.Rotulo }}
                   <span class="block font-normal text-gray-500 mt-0.5">{{ it.Base }}</span>
@@ -155,8 +158,10 @@
                     <a [routerLink]="pagina(o)" data-sem-dica class="font-semibold text-purple-700 underline"
                        [attr.aria-label]="'Página do órgão ' + o.Sigla">{{ o.Sigla }}</a>
                     <span class="block text-xs text-gray-700">{{ o.Nome }}</span>
-                    <span class="block text-xs text-gray-500 mt-0.5">{{ o.NivelNome ? 'Nível ' + o.NivelNome : 'Nível não informado' }} · {{ pdtic(o) }}</span>
+                    <span *ngIf="!modoLivre" class="block text-xs text-gray-500 mt-0.5">{{ o.NivelNome ? 'Nível ' + o.NivelNome : 'Nível não informado' }} · {{ pdtic(o) }}</span>
+                    <span *ngIf="modoLivre" class="block text-xs text-gray-500 mt-0.5">{{ pdtic(o) }}</span>
                   </th>
+                  <td *ngIf="modoLivre" class="px-3 py-2.5 text-gray-900 whitespace-nowrap">{{ nivelAlcancado(o) }}</td>
                   <td *ngFor="let it of itens; trackBy: porItem" class="px-3 py-2.5" [attr.title]="dica(o, it)">
                     <span class="inline-flex items-center gap-1 font-semibold whitespace-nowrap" [ngClass]="marca(o, it).classe">
                       <span class="material-icons text-base" aria-hidden="true">{{ marca(o, it).icone }}</span>{{ marca(o, it).texto }}

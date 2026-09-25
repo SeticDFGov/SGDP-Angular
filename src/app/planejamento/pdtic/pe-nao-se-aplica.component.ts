@@ -15,7 +15,8 @@ const MAX_JUSTIFICATIVA = 1000;
  * "Não se aplica" de um passo do PDTIC (só em passo opcional no nível do órgão
  * que aceita; travado nunca): a equipe do órgão marca com a justificativa
  * obrigatória e pode desfazer; os demais papéis leem. A tela só mostra este
- * bloco quando o passo aceita.
+ * bloco quando o passo aceita. F3: fica depois das seções, mais discreto (o passo
+ * opcional já não cobra), e avisa que a marca tira a validação da equipe.
  */
 @Component({
   selector: 'app-pe-nao-se-aplica',
@@ -37,6 +38,10 @@ export class PeNaoSeAplicaComponent implements OnChanges, AfterViewChecked {
   @Input() marcado: PeNaoSeAplica | null = null;
   /** A equipe do órgão, com o PDTIC em elaboração ou devolvido. */
   @Input() podeEditar = false;
+  /** F3: o passo a passo do órgão está no modo livre (o passo é opcional para o órgão, e não "no nível"). */
+  @Input() modoLivre = false;
+  /** F3 (B): o passo está validado pela equipe (marcar "não se aplica" tira a validação). */
+  @Input() validado = false;
   @Output() readonly mudou = new EventEmitter<void>();
 
   readonly maxJustificativa = MAX_JUSTIFICATIVA;

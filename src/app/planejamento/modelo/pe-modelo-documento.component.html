@@ -7,7 +7,7 @@
     <h2 class="text-base font-semibold text-gray-900 mb-1">Modelos dos documentos</h2>
     <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem monta os modelos do documento
       do PDTIC e dos relatórios do acompanhamento que os órgãos recebem. O documento do seu órgão fica no passo "Monte o documento e
-      confira a prévia", na trilha do órgão; os relatórios, nos passos do monitoramento e do fechamento.</p>
+      confira a prévia", no passo a passo do órgão; os relatórios, nos passos do monitoramento e do fechamento.</p>
   </div>
 
   <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
@@ -43,7 +43,7 @@
 
       <p *ngIf="tipo === 'pdtic'" class="text-sm text-gray-700 leading-relaxed mt-4">
         Cada órgão monta o documento do PDTIC a partir deste modelo: os capítulos, os textos padrão e os blocos de dados (tabelas,
-        listas de ações e a matriz SWOT), que vêm dos passos da trilha. O órgão edita a cópia dele na prévia: muda os textos, renomeia
+        listas de ações e a matriz SWOT), que vêm dos passos do órgão. O órgão edita a cópia dele na prévia: muda os textos, renomeia
         os capítulos e esconde os opcionais.
       </p>
       <p *ngIf="tipo === 'ra'" class="text-sm text-gray-700 leading-relaxed mt-4">
@@ -118,7 +118,7 @@
       <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
     </div>
     <p *ngIf="semModeloDaTrilha && modelo" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-      O modelo da trilha não veio do servidor: os nomes das seções, dos temas e dos passos aparecem como chaves, e a escolha da seção
+      O modelo do passo a passo não veio do servidor: os nomes das seções, dos temas e dos passos aparecem como chaves, e a escolha da seção
       da tabela fica sem a lista. Recarregue a tela para tentar de novo.
     </p>
 
@@ -351,7 +351,7 @@
           </label>
         </div>
         <div *ngIf="!e.todasColunas" class="mt-2 grid gap-1 md:grid-cols-2 rounded-md border border-gray-200 bg-white p-3">
-          <p *ngIf="!secaoDaEdicao()" class="text-xs text-gray-600">Os campos desta seção não vieram do modelo da trilha.</p>
+          <p *ngIf="!secaoDaEdicao()" class="text-xs text-gray-600">Os campos desta seção não vieram do modelo do passo a passo.</p>
           <label *ngFor="let campo of secaoDaEdicao()?.campos ?? []" class="flex items-center gap-2 text-sm text-gray-800">
             <input type="checkbox" class="w-4 h-4" [checked]="colunaMarcada(campo.valor)" (change)="alternarColuna(campo.valor, $event)" />
             {{ campo.rotulo }}

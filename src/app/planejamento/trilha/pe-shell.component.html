@@ -5,7 +5,7 @@
     <!-- Consultando o papel ou a trilha -->
     <p *ngIf="e.carga === 'carregando'" role="status"
        class="bg-white rounded-xl shadow-sm border border-gray-200 mb-5 px-5 py-4 text-sm text-gray-600">
-      {{ e.orgaoVisto !== null ? 'Carregando a trilha do órgão...' : 'Carregando a sua trilha...' }}
+      {{ e.orgaoVisto !== null ? 'Carregando o passo a passo do órgão...' : 'Carregando o seu passo a passo...' }}
     </p>
 
     <!-- Tem o módulo, mas não tem papel -->
@@ -24,8 +24,8 @@
       <span class="material-icons text-amber-600" aria-hidden="true">domain_disabled</span>
       <div class="text-sm leading-relaxed">
         <h1 class="text-base font-semibold">A sua unidade não está ligada a um órgão</h1>
-        <p class="mt-1">O seu papel é de órgão, e a trilha do PDTIC depende do órgão: é o nível de maturidade dele que diz os passos
-          e os campos que você preenche. Enquanto a unidade não estiver ligada a um órgão, não há trilha para mostrar.</p>
+        <p class="mt-1">O seu papel é de órgão, e o passo a passo do PDTIC depende do órgão: é por ele que o sistema sabe os passos
+          e os campos que você preenche. Enquanto a unidade não estiver ligada a um órgão, não há passo a passo para mostrar.</p>
         <p class="mt-1 font-semibold">Peça à Administração do SGDP que ligue a sua unidade a um órgão.</p>
       </div>
     </div>
@@ -47,7 +47,7 @@
     <div *ngIf="e.carga === 'erro-trilha'" role="alert" class="flex items-start gap-3 bg-red-50 border border-red-200 text-red-900 rounded-xl p-5">
       <span class="material-icons text-red-600" aria-hidden="true">error</span>
       <div class="text-sm leading-relaxed">
-        <h1 class="text-base font-semibold">Não foi possível carregar a trilha do órgão</h1>
+        <h1 class="text-base font-semibold">Não foi possível carregar o passo a passo do órgão</h1>
         <p class="mt-1">{{ e.erroTrilha }} Tente de novo em alguns instantes. Se o problema continuar, avise a equipe que administra o sistema.</p>
         <div class="flex flex-wrap gap-2 mt-3">
           <button type="button" (click)="tentarDeNovo()"
@@ -56,7 +56,7 @@
           </button>
           <button *ngIf="e.orgaoVisto !== null" type="button" (click)="voltarParaMinhaTrilha()"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
-            <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar para a minha trilha
+            <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar para o meu passo a passo
           </button>
         </div>
       </div>
@@ -67,13 +67,17 @@
          class="mb-3 flex flex-col md:flex-row md:items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
       <span class="material-icons text-amber-600" aria-hidden="true">visibility</span>
       <p class="flex-1 leading-relaxed">
-        <strong>Você está vendo a trilha do órgão {{ t.OrgaoSigla }} como ele vê.</strong>
-        É só para ler: os passos, as seções e os campos saem do nível do órgão ({{ t.NivelNome }}<ng-container *ngIf="t.NivelPadrao">, o padrão</ng-container>)
-        e dos ajustes feitos para ele, e os dados são os do PDTIC dele.
+        <strong>Você está vendo o passo a passo do órgão {{ t.OrgaoSigla }} como ele vê.</strong>
+        <!-- F3: no modo livre, os passos saem do mínimo do decreto, dos opcionais e das formas que o órgão escolheu -->
+        <ng-container *ngIf="modoLivre; else doNivel">É só para ler: no modo livre, os passos são os do mínimo do decreto (o nível
+          {{ t.NivelNome }}) mais os outros do Guia, como opcionais, com as formas que o órgão escolheu e os ajustes feitos para ele, e os
+          dados são os do PDTIC dele.</ng-container>
+        <ng-template #doNivel>É só para ler: os passos, as seções e os campos saem do nível do órgão ({{ t.NivelNome }}<ng-container *ngIf="t.NivelPadrao">, o padrão</ng-container>)
+          e dos ajustes feitos para ele, e os dados são os do PDTIC dele.</ng-template>
       </p>
       <button type="button" (click)="voltarParaMinhaTrilha()"
               class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-300 bg-white text-sm font-semibold text-amber-900 hover:bg-gray-50 whitespace-nowrap">
-        <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar para a minha trilha
+        <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar para o meu passo a passo
       </button>
     </div>
 
@@ -97,7 +101,7 @@
       <!-- Papel, visão do admin e visão geral -->
       <div class="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100">
         <div class="min-w-0">
-          <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Sua trilha na Governança Estratégica · Decreto nº 48.900/2026</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Seu passo a passo na Governança Estratégica · Decreto nº 48.900/2026</p>
           <!-- Espaço acima e abaixo do título: o contorno do foco (3 px, afastado 2 px; a barra de acessibilidade leva o
                foco a ele) não cobre a linha de cima (F1, B23) nem a de baixo (F2, B23) -->
           <h1 class="text-lg font-bold text-gray-900 truncate mt-2 mb-2">
@@ -121,13 +125,13 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <form *ngIf="podeTrocarVisao" (ngSubmit)="verTrilha()" class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-            <label for="pe-visao-trilha">Ver a trilha de</label>
+            <label for="pe-visao-trilha">Ver o passo a passo de</label>
             <select id="pe-visao-trilha" [(ngModel)]="visaoEscolhida" name="pe-visao-trilha"
                     class="max-w-xs border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <optgroup [attr.label]="e.adminGeral ? 'Trilhas centrais' : 'Sua trilha'">
+              <optgroup [attr.label]="e.adminGeral ? 'Papéis centrais' : 'Seu passo a passo'">
                 <option *ngFor="let o of opcoesCentrais; trackBy: porValor" [value]="o.valor">{{ o.rotulo }}</option>
               </optgroup>
-              <optgroup label="Trilha de um órgão, como o órgão vê">
+              <optgroup label="Passo a passo de um órgão, como o órgão vê">
                 <option *ngIf="opcaoOrgaoAvulsa as o" [value]="o.valor">{{ o.rotulo }}</option>
                 <option *ngFor="let o of opcoesOrgaos; trackBy: porValor" [value]="o.valor">{{ o.rotulo }}</option>
                 <option *ngIf="avisoOrgaos" value="" disabled>{{ avisoOrgaos }}</option>
@@ -149,7 +153,7 @@
 
       <!-- Etapas numeradas. Com rolagem lateral (tela estreita), cada etapa é um botão: o Tab
            chega a todas, e o navegador rola a lista até o botão com o foco -->
-      <ol class="px-3 py-3 flex gap-1 relative overflow-x-auto" aria-label="Etapas da trilha">
+      <ol class="px-3 py-3 flex gap-1 relative overflow-x-auto" aria-label="Etapas do passo a passo">
         <li *ngFor="let etapa of trilha.etapas; let i = index" class="flex-1 min-w-[8.5rem]">
           <button type="button" (click)="abrirEtapa(i)"
                   class="w-full h-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
@@ -181,9 +185,13 @@
              [attr.aria-current]="passoAtual?.numero === p.numero ? 'step' : null">
             <span class="px-1.5 py-0.5 rounded-full text-xs font-bold"
                   [ngClass]="passoAtual?.numero === p.numero ? 'bg-white/10' : 'bg-gray-100 text-gray-700'">{{ p.numero }}</span>
-            {{ p.titulo }}<span *ngIf="p.semTela" class="sr-only"> (sem tela nesta versão do sistema)</span><span *ngIf="status(p) as s" class="sr-only"> ({{ textoStatus(s) }})</span>
+            {{ p.titulo }}<span *ngIf="p.semTela" class="sr-only"> (sem tela nesta versão do sistema)</span><span *ngIf="status(p) as s" class="sr-only"> ({{ textoLinkStatus(p, s) }})</span><span
+              *ngIf="validacao(p) as v" class="sr-only">, {{ textoValidacao(v) }}</span>
             <span *ngIf="status(p) as s" class="material-icons text-base" aria-hidden="true"
                   [ngClass]="passoAtual?.numero === p.numero ? 'text-white' : corIconeEstado(s.estado)">{{ iconeEstado(s.estado) }}</span>
+            <!-- B: a marca "validado pela equipe" (a dica e o texto para o leitor de tela dizem o que é) -->
+            <span *ngIf="validacao(p) as v" class="material-icons text-base" aria-hidden="true" [title]="textoValidacao(v)"
+                  [ngClass]="passoAtual?.numero === p.numero ? 'text-white' : corValidacao(v)">{{ iconeValidacao(v) }}</span>
           </a>
         </div>
 
@@ -227,7 +235,7 @@
       </button>
       <ng-template #fimTrilha>
         <a [routerLink]="base" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-700 text-white text-sm font-medium hover:bg-green-800">
-          <span class="material-icons text-lg" aria-hidden="true">flag</span> Fim da trilha: voltar à visão geral
+          <span class="material-icons text-lg" aria-hidden="true">flag</span> Fim do passo a passo: voltar à visão geral
         </a>
       </ng-template>
     </nav>

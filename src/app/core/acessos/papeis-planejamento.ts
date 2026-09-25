@@ -15,19 +15,26 @@ export const PapeisPlanejamento = {
   OrgaoConsulta: 'pe_orgao_consulta'
 } as const;
 
-/** Os cinco papéis como as telas de acesso os oferecem (rótulo curto antes dos dois-pontos). */
-export const OPCOES_PAPEL_PLANEJAMENTO: { valor: string; rotulo: string }[] = [
-  { valor: PapeisPlanejamento.Admin, rotulo: 'Administrador do módulo: configura, dá acesso e acompanha todos os órgãos' },
-  { valor: PapeisPlanejamento.Sgdi, rotulo: 'Equipe da SGDI: acompanha e analisa os PDTICs de todos os órgãos' },
-  { valor: PapeisPlanejamento.Cgtic, rotulo: 'Secretaria do CGTIC: registra as deliberações do comitê' },
-  { valor: PapeisPlanejamento.Orgao, rotulo: 'Equipe do órgão: elabora e acompanha o PDTIC do próprio órgão' },
-  { valor: PapeisPlanejamento.OrgaoConsulta, rotulo: 'Consulta do órgão: só lê o PDTIC do próprio órgão' }
+/**
+ * Os cinco papéis como as telas de acesso os oferecem (o rótulo completo) e o nome
+ * curto, para tabelas e resumos. F3 (A1): os papéis de órgão se chamam como o Guia de
+ * PDTIC do SISP chama a equipe (os códigos não mudam).
+ */
+export const OPCOES_PAPEL_PLANEJAMENTO: { valor: string; rotulo: string; curto: string }[] = [
+  { valor: PapeisPlanejamento.Admin, rotulo: 'Administrador do módulo: configura, dá acesso e acompanha todos os órgãos', curto: 'Administrador do módulo' },
+  { valor: PapeisPlanejamento.Sgdi, rotulo: 'Equipe da SGDI: acompanha e analisa os PDTICs de todos os órgãos', curto: 'Equipe da SGDI' },
+  { valor: PapeisPlanejamento.Cgtic, rotulo: 'Secretaria do CGTIC: registra as deliberações do comitê', curto: 'Secretaria do CGTIC' },
+  {
+    valor: PapeisPlanejamento.Orgao, rotulo: 'Equipe do PDTIC (EqPDTIC): elabora e acompanha o PDTIC do próprio órgão',
+    curto: 'Equipe do PDTIC'
+  },
+  { valor: PapeisPlanejamento.OrgaoConsulta, rotulo: 'Consulta do PDTIC: só lê o PDTIC do próprio órgão', curto: 'Consulta do PDTIC' }
 ];
 
-/** Nome curto do papel (a parte antes dos dois-pontos), para tabelas e resumos. */
+/** Nome curto do papel, para tabelas e resumos. */
 export function rotuloCurtoPapelPlanejamento(papel: string | null | undefined): string {
   const opcao = OPCOES_PAPEL_PLANEJAMENTO.find(o => o.valor === papel);
-  return opcao ? opcao.rotulo.split(': ')[0] : (papel ?? '');
+  return opcao ? opcao.curto : (papel ?? '');
 }
 
 /** Papéis que só enxergam o próprio órgão: precisam de unidade ligada a um órgão. */

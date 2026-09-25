@@ -54,7 +54,12 @@
                     [ngClass]="classeSituacaoPdtic(r.Pdtic?.Situacao)">{{ rotuloSituacaoPdtic(r.Pdtic?.Situacao) }}</span>
             </dd>
           </div>
-          <div>
+          <!-- F3: no modo livre, o nível que o PDTIC alcançou -->
+          <div *ngIf="modoLivre">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Nível alcançado</dt>
+            <dd class="mt-0.5 font-medium text-gray-900">{{ textoNivelAlcancado }}</dd>
+          </div>
+          <div *ngIf="!modoLivre">
             <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Nível de maturidade</dt>
             <dd class="mt-0.5 font-medium text-gray-900">{{ r.Nivel.Nome || 'O padrão' }}<ng-container *ngIf="r.Nivel.Padrao && r.Nivel.Nome"> (o padrão)</ng-container></dd>
           </div>
@@ -82,7 +87,7 @@
         <div class="flex flex-wrap gap-2 mt-5">
           <button type="button" (click)="verTrilha()"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700">
-            <span class="material-icons text-base" aria-hidden="true">visibility</span> {{ ehPapelDeOrgao ? 'Ir para a trilha do PDTIC' : 'Ver o PDTIC na trilha do órgão' }}
+            <span class="material-icons text-base" aria-hidden="true">visibility</span> {{ ehPapelDeOrgao ? 'Ir para o passo a passo do PDTIC' : 'Ver o PDTIC no passo a passo do órgão' }}
           </button>
           <button *ngIf="r.Pdtic" type="button" (click)="verDocumento()"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
@@ -101,7 +106,7 @@
             <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar à lista dos órgãos
           </a>
         </div>
-        <p class="text-xs text-gray-500 italic mt-2">A trilha do órgão abre só para ler, com os passos, as seções e os dados do PDTIC como o órgão
+        <p class="text-xs text-gray-500 italic mt-2">O passo a passo do órgão abre só para ler, com as seções e os dados do PDTIC como o órgão
           preencheu. O documento fica no passo do documento, com as versões em PDF.</p>
       </div>
 
@@ -162,14 +167,22 @@
           </div>
         </ng-container>
 
-        <!-- O nível, com o histórico -->
-        <h4 class="text-sm font-semibold text-gray-900 mt-4">Nível de maturidade: {{ r.Nivel.Nome || 'o padrão' }}</h4>
-        <p class="text-xs text-gray-600 mt-0.5">O nível diz os passos e os campos que o órgão preenche. Quem define é o administrador do
-          módulo.<ng-container *ngIf="r.Nivel.Padrao"> O órgão ainda não tem nível escolhido: vale o nível padrão.</ng-container></p>
+        <!-- O nível, com o histórico (F3: no modo livre, o histórico é o dos níveis escolhidos no modo definido) -->
+        <ng-container *ngIf="!modoLivre">
+          <h4 class="text-sm font-semibold text-gray-900 mt-4">Nível de maturidade: {{ r.Nivel.Nome || 'o padrão' }}</h4>
+          <p class="text-xs text-gray-600 mt-0.5">O nível diz os passos e os campos que o órgão preenche. Quem define é o administrador do
+            módulo.<ng-container *ngIf="r.Nivel.Padrao"> O órgão ainda não tem nível escolhido: vale o nível padrão.</ng-container></p>
+        </ng-container>
+        <ng-container *ngIf="modoLivre">
+          <h4 class="text-sm font-semibold text-gray-900 mt-4">Nível alcançado: {{ textoNivelAlcancado }}</h4>
+          <p class="text-xs text-gray-600 mt-0.5">No modo livre, o nível do órgão é calculado pelo que o PDTIC tem. O que falta para o próximo
+            nível está no quadro "Nível do PDTIC", logo abaixo.<ng-container *ngIf="r.Nivel.Historico.length > 0"> O histórico mostra os níveis
+            escolhidos no modo definido, que ficam guardados.</ng-container></p>
+        </ng-container>
         <button *ngIf="r.Nivel.Historico.length > 0" type="button" (click)="historicoAberto = !historicoAberto" [attr.aria-expanded]="historicoAberto"
                 [attr.aria-controls]="historicoAberto ? 'pe-org-historico-nivel' : null"
                 class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
-          <span class="material-icons text-base" aria-hidden="true">history</span> Histórico do nível
+          <span class="material-icons text-base" aria-hidden="true">history</span> {{ modoLivre ? 'Histórico do nível escolhido' : 'Histórico do nível' }}
           <span class="material-icons text-base" aria-hidden="true">{{ historicoAberto ? 'expand_less' : 'expand_more' }}</span>
         </button>
         <ul *ngIf="historicoAberto" id="pe-org-historico-nivel" class="mt-2 space-y-2 text-sm">
@@ -186,9 +199,13 @@
         </ul>
       </section>
 
+      <!-- F3 (modo livre): o nível do PDTIC e o que falta para o próximo (cada passo abre o passo a passo do órgão nele) -->
+      <app-pe-nivel-pdtic *ngIf="modoLivre && r.Pdtic && nivelAlcancado as n" [nivel]="n" idBase="pe-org-nivel"
+                          (abrirPasso)="abrirPassoQueFalta($event)"></app-pe-nivel-pdtic>
+
       <!-- Andamento por etapa -->
       <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-andamento">
-        <h3 id="pe-org-andamento" class="text-base font-semibold text-gray-900">Andamento da trilha</h3>
+        <h3 id="pe-org-andamento" class="text-base font-semibold text-gray-900">Andamento do passo a passo</h3>
         <p *ngIf="r.Andamento.length === 0" class="text-sm text-gray-700 mt-1">
           {{ r.Pdtic ? 'O andamento ainda não está disponível.' : 'O andamento aparece quando o órgão começar o PDTIC.' }}
         </p>
@@ -202,13 +219,16 @@
           </p>
           <div class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: andamento por etapa">
             <table class="w-full text-sm">
-              <caption class="sr-only">Andamento da trilha do órgão {{ r.Orgao.Sigla }} por etapa: passos resolvidos, atrasados e aguardando</caption>
+              <caption class="sr-only">Andamento do passo a passo do órgão {{ r.Orgao.Sigla }} por etapa: passos resolvidos, atrasados e
+                aguardando{{ temValidados ? ', e os validados pela equipe' : '' }}</caption>
               <thead>
                 <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
                   <th scope="col" class="px-3 py-2.5">Etapa</th>
                   <th scope="col" class="px-3 py-2.5">Passos resolvidos</th>
                   <th scope="col" class="px-3 py-2.5 text-right">Atrasados</th>
                   <th scope="col" class="px-3 py-2.5 text-right">Aguardando</th>
+                  <!-- B: os passos validados pela equipe em cada etapa -->
+                  <th *ngIf="temValidados" scope="col" class="px-3 py-2.5 text-right">Validados pela equipe</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,6 +240,7 @@
                   </td>
                   <td class="px-3 py-2 text-right tabular-nums" [ngClass]="a.Atrasados > 0 ? 'font-bold text-red-700' : 'text-gray-800'">{{ a.Atrasados }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-gray-800">{{ a.Aguardando }}</td>
+                  <td *ngIf="temValidados" class="px-3 py-2 text-right tabular-nums text-gray-800">{{ a.Validados ?? 0 }}</td>
                 </tr>
               </tbody>
             </table>
@@ -270,7 +291,7 @@
       <!-- Comentários abertos -->
       <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-comentarios">
         <h3 id="pe-org-comentarios" class="text-base font-semibold text-gray-900">Comentários abertos</h3>
-        <p class="text-xs text-gray-600 mt-0.5">Os comentários da SGDI nos passos que a equipe do órgão ainda não resolveu.</p>
+        <p class="text-xs text-gray-600 mt-0.5">Os comentários da SGDI nos passos que a equipe do PDTIC ainda não resolveu.</p>
         <p *ngIf="r.ComentariosAbertos.length === 0" class="text-sm text-gray-700 mt-2">Nenhum comentário aberto.</p>
         <ul *ngIf="r.ComentariosAbertos.length > 0" class="mt-3 space-y-2">
           <li *ngFor="let c of r.ComentariosAbertos; trackBy: porId" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm">

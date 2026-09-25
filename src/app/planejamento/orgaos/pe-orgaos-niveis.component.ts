@@ -5,12 +5,13 @@ import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
-import { PeNivel, PeOrgaoNivel, PeOrgaoNivelHistorico } from '../../../api/planejamento/interface';
+import { PeModoNiveis, PeNivel, PeOrgaoNivel, PeOrgaoNivelHistorico } from '../../../api/planejamento/interface';
 import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { nomeDeQuem } from '../shared/registros/pe-valores';
+import { modoDosNiveis } from '../shared/pe-niveis-rotulos';
 import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { PeModeloService } from '../services/pe-modelo.service';
 import { PeOrgaosService } from '../services/pe-orgaos.service';
@@ -46,6 +47,10 @@ const TITULO_TELA = 'Nível de cada órgão';
  * a coluna do ajuste) e "Ver como o órgão vê", que abre a trilha resolvida do
  * órgão na moldura, só para ler. Só o administrador do módulo e o admin do SGDP;
  * os demais veem um aviso e a tela não faz consulta nenhuma.
+ *
+ * F3: no modo livre, a coluna "Nível alcançado" (o que o PDTIC de cada órgão tem,
+ * do GET orgaos), sem "Trocar nível" (o nível é calculado); "Ajustes", "Histórico"
+ * e "Ver como o órgão vê" continuam.
  */
 @Component({
   selector: 'app-pe-orgaos-niveis',
@@ -79,6 +84,8 @@ export class PeOrgaosNiveisComponent implements OnInit, AfterViewChecked {
   private iniciado = false;
 
   niveis: PeNivel[] = [];
+  /** F3: o modo dos níveis (do GET modelo; sem o campo, o definido). */
+  modo: PeModoNiveis = 'definido';
   orgaos: PeOrgaoNivel[] | null = null;
   filtro = '';
   filtroAplicado = '';
@@ -145,7 +152,10 @@ export class PeOrgaosNiveisComponent implements OnInit, AfterViewChecked {
 
   private carregarNiveis(): void {
     this.modeloService.modelo().subscribe({
-      next: modelo => this.niveis = [...modelo.Niveis].sort((a, b) => a.Ordem - b.Ordem),
+      next: modelo => {
+        this.niveis = [...modelo.Niveis].sort((a, b) => a.Ordem - b.Ordem);
+        this.modo = modoDosNiveis(modelo);
+      },
       error: () => this.niveis = []
     });
   }
@@ -175,6 +185,16 @@ export class PeOrgaosNiveisComponent implements OnInit, AfterViewChecked {
 
   porOrgao(_: number, o: PeOrgaoNivel): number {
     return o.OrgaoId;
+  }
+
+  /** F3: o modo livre (o nível de cada órgão é calculado pelo que o PDTIC tem). */
+  get modoLivre(): boolean {
+    return this.modo === 'livre';
+  }
+
+  /** F3: o nível alcançado de um órgão, em palavras. */
+  nivelAlcancado(o: PeOrgaoNivel): string {
+    return o.NivelAlcancadoNome?.trim() || 'Sem nível alcançado';
   }
 
   // ── Ajustes (?orgao=) ─────────────────────────────────────────────────────
@@ -303,6 +323,8 @@ export class PeOrgaosNiveisComponent implements OnInit, AfterViewChecked {
   }
 
   abrirTroca(orgao: PeOrgaoNivel): void {
+    // F3: no modo livre o nível é calculado (a tela nem oferece a troca)
+    if (this.modoLivre) return;
     this.troca = { orgao, nivelId: orgao.NivelPadrao ? null : orgao.NivelId, justificativa: '', tentou: false };
   }
 
@@ -359,8 +381,8 @@ export class PeOrgaosNiveisComponent implements OnInit, AfterViewChecked {
         if (this.orgaoAjustes?.OrgaoId === novo.OrgaoId) this.orgaoAjustes = novo;
         // Sem artigo antes da sigla: o gênero muda de órgão para órgão (F1, A11)
         this.notificacoes.success(novo.NivelPadrao
-          ? `O órgão ${novo.Sigla} voltou ao nível padrão (hoje, ${novo.NivelNome}). A trilha do órgão já mudou.`
-          : `O órgão ${novo.Sigla} agora está no nível ${novo.NivelNome}. A trilha do órgão já mudou.`);
+          ? `O órgão ${novo.Sigla} voltou ao nível padrão (hoje, ${novo.NivelNome}). O passo a passo do órgão já mudou.`
+          : `O órgão ${novo.Sigla} agora está no nível ${novo.NivelNome}. O passo a passo do órgão já mudou.`);
         // O "Ver a trilha de" da moldura mostra os órgãos com o nível
         this.estadoService.carregarOrgaos();
       },
