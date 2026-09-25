@@ -45,6 +45,14 @@ export function pdticVigente(situacao: string | null | undefined): boolean {
 }
 
 /**
+ * E7 rodada B: o PDTIC já foi publicado (tem ciclos de acompanhamento e o painel):
+ * publicado, em acompanhamento, encerrado ou substituído.
+ */
+export function pdticDepoisDaPublicacao(situacao: string | null | undefined): boolean {
+  return situacao === 'publicado' || situacao === 'em_acompanhamento' || situacao === 'encerrado' || situacao === 'substituido';
+}
+
+/**
  * A versão ainda a caminho de valer (em elaboração, com o CGTIC, devolvida ou
  * aprovada sem publicar): pode existir junto com uma vigente, na revisão.
  */
@@ -255,15 +263,19 @@ export function aceitaNaoSeAplica(passo: Pick<PePassoTrilha, 'Situacao' | 'Aceit
 
 /**
  * Tipos de passo do órgão que têm tela (os demais: "em construção"); o documento
- * entrou na E5, o fluxo na E6 e o caminho da aprovação (aprovação, envio,
- * deliberação e publicação) na E7. O monitoramento chega na rodada B da E7.
+ * entrou na E5, o fluxo na E6, o caminho da aprovação (aprovação, envio,
+ * deliberação e publicação) na rodada A da E7 e o monitoramento (os ciclos, as
+ * grades e o fechamento) na rodada B.
  */
 export const TIPOS_PASSO_COM_TELA: ReadonlySet<string> = new Set([
-  'dados', 'conferencia_temas', 'documento', 'fluxo', 'aprovacao', 'envio', 'deliberacao', 'publicacao'
+  'dados', 'conferencia_temas', 'documento', 'fluxo', 'aprovacao', 'envio', 'deliberacao', 'publicacao', 'monitoramento'
 ]);
 
-/** Tipos de passo cujas seções a tela mostra com os componentes genéricos de registros. */
-export const TIPOS_PASSO_COM_SECOES: ReadonlySet<string> = new Set(['dados', 'conferencia_temas', 'aprovacao', 'envio', 'publicacao']);
+/**
+ * Tipos de passo cujas seções a tela mostra com os componentes genéricos de
+ * registros (no monitoramento, a situação das ações e as medições vão em grade).
+ */
+export const TIPOS_PASSO_COM_SECOES: ReadonlySet<string> = new Set(['dados', 'conferencia_temas', 'aprovacao', 'envio', 'publicacao', 'monitoramento']);
 
 /**
  * Passos de dados que também mostram os fluxos do órgão (E6): o da metodologia

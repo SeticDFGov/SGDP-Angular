@@ -9,8 +9,8 @@ import { mensagemErroPe } from '../shared/pe-erros';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic } from '../shared/pe-pdf-pdtic';
 import {
-  SECAO_AVALIACAO_COMITE, classeEstadoPasso, classeSituacaoPdtic, minusculaInicial, pdticAntesDaPublicacao, pdticVigente, quandoPdtic,
-  resumoAndamento, rotuloSituacaoPdtic, textoDoStatus, vigenciaTerminou
+  SECAO_AVALIACAO_COMITE, classeEstadoPasso, classeSituacaoPdtic, minusculaInicial, pdticAntesDaPublicacao, pdticDepoisDaPublicacao,
+  pdticVigente, quandoPdtic, resumoAndamento, rotuloSituacaoPdtic, textoDoStatus, vigenciaTerminou
 } from '../shared/pe-pdtic-rotulos';
 import { textoAto, textoVigencia } from '../shared/pe-referenciais-rotulos';
 import { hojeIso } from '../shared/registros/pe-valores';
@@ -18,6 +18,7 @@ import { PePdticService } from '../services/pe-pdtic.service';
 import { PeRegistrosService } from '../services/pe-registros.service';
 import { PeAcaoPdticComponent } from '../pdtic/pe-acao-pdtic.component';
 import { PeRegistroExternoComponent } from '../pdtic/pe-registro-externo.component';
+import { PePainelAcompanhamentoComponent } from '../acompanhamento/pe-painel-acompanhamento.component';
 import { EstadoTrilhaPe, PeTrilhaEstadoService } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
 import { ATALHOS_REFERENCIAIS, PassoNumeradoPe, rotuloGuia } from './pe-trilhas';
@@ -50,11 +51,18 @@ interface LinkPasso {
  * sistema), as datas do caminho da aprovação, o PDF enviado, a escolha entre a
  * versão em revisão e a vigente, "Encerrar o PDTIC" para o administrador quando a
  * vigência terminou e "Abrir a revisão" para o órgão sem a avaliação do comitê.
+ *
+ * E7 rodada B: depois da publicação, o painel de acompanhamento do PDTIC
+ * (AC-PDTIC): metas e ações com os percentuais e a situação em texto, e os
+ * quadros dos riscos (num pacote próprio, pelo `@defer`).
  */
 @Component({
   selector: 'app-pe-inicio',
   standalone: true,
-  imports: [CommonModule, RouterModule, CitaPlanejamentoDirective, PeAcaoPdticComponent, PeRegistroExternoComponent],
+  imports: [
+    CommonModule, RouterModule, CitaPlanejamentoDirective, PeAcaoPdticComponent, PeRegistroExternoComponent,
+    PePainelAcompanhamentoComponent
+  ],
   templateUrl: './pe-inicio.component.html'
 })
 export class PeInicioComponent implements OnInit, AfterViewChecked {
@@ -389,6 +397,11 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     const p = this.estado?.pdtic;
     if (!p || !this.estadoService.ehEquipeDoOrgao || !pdticVigente(p.Situacao) || this.temRevisaoAberta) return null;
     return this.links.avaliacao;
+  }
+
+  /** Rodada B: o painel de acompanhamento aparece depois da publicação (também no encerrado e no substituído, para consulta). */
+  mostraPainel(p: PePdtic): boolean {
+    return pdticDepoisDaPublicacao(p.Situacao);
   }
 
   /** O PDTIC foi encerrado pelo administrador ou a revisão foi aberta: entra no estado, e o foco volta ao bloco do PDTIC. */

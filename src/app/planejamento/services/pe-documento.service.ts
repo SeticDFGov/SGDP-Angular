@@ -17,14 +17,22 @@ import {
   PeDocTextoRico,
   PeDocVersao,
   PeDocumento,
-  PeOrdemForm
+  PeOrdemForm,
+  PeTipoDocumento
 } from '../../../api/planejamento/interface';
+import { AlvoDocumento, caminhoDocumento } from '../shared/pe-documento-rotulos';
 
 /**
  * Documento do PDTIC (E5): a prévia resolvida de um PDTIC (capítulos, blocos,
  * textos e dados), o texto do órgão em cada bloco, o título e o "esconder" de
  * cada capítulo, o PDF com as versões e, para o administrador do módulo, o
  * modelo do documento (capítulos e blocos).
+ *
+ * E7 rodada B: o mesmo motor monta os relatórios do acompanhamento, com as mesmas
+ * sub-rotas e formas: o relatório de acompanhamento de um ciclo (RA, em
+ * pdtic/{id}/ciclos/{cicloId}/relatorio) e o de resultados (RR, em
+ * pdtic/{id}/relatorio-resultados). Cada chamada recebe o alvo (`AlvoDocumento`);
+ * o modelo tem os três tipos (pdtic, ra e rr).
  *
  * Quem pode: quem lê o PDTIC lê o documento e baixa as versões; a equipe do
  * órgão edita (o `PodeEditar` da resposta diz); o modelo é do administrador do
@@ -36,44 +44,44 @@ export class PeDocumentoService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${SERVICE_API_URL}/api/planejamento`;
 
-  private base(pdticId: number): string {
-    return `${this.apiUrl}/pdtic/${pdticId}/documento`;
+  private base(alvo: AlvoDocumento): string {
+    return `${this.apiUrl}/${caminhoDocumento(alvo)}`;
   }
 
-  // ── Documento de um PDTIC ─────────────────────────────────────────────────
+  // ── Documento de um PDTIC (ou um relatório do acompanhamento) ─────────────────
 
-  documento(pdticId: number): Observable<PeDocumento> {
-    return this.http.get<PeDocumento>(this.base(pdticId));
+  documento(alvo: AlvoDocumento): Observable<PeDocumento> {
+    return this.http.get<PeDocumento>(this.base(alvo));
   }
 
   /** Grava o texto do órgão num bloco (com os marcadores como texto) e devolve o bloco resolvido. */
-  salvarBloco(pdticId: number, blocoId: number, texto: PeDocTextoRico): Observable<PeDocBloco> {
+  salvarBloco(alvo: AlvoDocumento, blocoId: number, texto: PeDocTextoRico): Observable<PeDocBloco> {
     const corpo: PeDocBlocoForm = { Texto: texto };
-    return this.http.put<PeDocBloco>(`${this.base(pdticId)}/blocos/${blocoId}`, corpo);
+    return this.http.put<PeDocBloco>(`${this.base(alvo)}/blocos/${blocoId}`, corpo);
   }
 
   /** Apaga o texto do órgão: o bloco volta a seguir o texto do modelo. Devolve o bloco resolvido. */
-  voltarAoModelo(pdticId: number, blocoId: number): Observable<PeDocBloco> {
-    return this.http.delete<PeDocBloco>(`${this.base(pdticId)}/blocos/${blocoId}`);
+  voltarAoModelo(alvo: AlvoDocumento, blocoId: number): Observable<PeDocBloco> {
+    return this.http.delete<PeDocBloco>(`${this.base(alvo)}/blocos/${blocoId}`);
   }
 
   /** Esconde ou mostra o capítulo e grava o título próprio (null volta ao do modelo). Travado não se esconde (409). */
-  salvarCapitulo(pdticId: number, capituloId: number, form: PeDocCapituloForm): Observable<PeDocCapitulo> {
-    return this.http.put<PeDocCapitulo>(`${this.base(pdticId)}/capitulos/${capituloId}`, form);
+  salvarCapitulo(alvo: AlvoDocumento, capituloId: number, form: PeDocCapituloForm): Observable<PeDocCapitulo> {
+    return this.http.put<PeDocCapitulo>(`${this.base(alvo)}/capitulos/${capituloId}`, form);
   }
 
   /** Gera o PDF e guarda a versão (minuta). Devolve a versão; o arquivo sai de `baixarVersao`. */
-  gerarPdf(pdticId: number): Observable<PeDocVersao> {
-    return this.http.post<PeDocVersao>(`${this.base(pdticId)}/pdf`, {});
+  gerarPdf(alvo: AlvoDocumento): Observable<PeDocVersao> {
+    return this.http.post<PeDocVersao>(`${this.base(alvo)}/pdf`, {});
   }
 
-  versoes(pdticId: number): Observable<PeDocVersao[]> {
-    return this.http.get<PeDocVersao[]>(`${this.base(pdticId)}/versoes`);
+  versoes(alvo: AlvoDocumento): Observable<PeDocVersao[]> {
+    return this.http.get<PeDocVersao[]>(`${this.base(alvo)}/versoes`);
   }
 
   /** O PDF de uma versão, com a resposta inteira: o nome sai do `Content-Disposition`. */
-  baixarVersao(pdticId: number, numero: number): Observable<HttpResponse<Blob>> {
-    return this.http.get(`${this.base(pdticId)}/versoes/${numero}/arquivo`, { responseType: 'blob', observe: 'response' });
+  baixarVersao(alvo: AlvoDocumento, numero: number): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.base(alvo)}/versoes/${numero}/arquivo`, { responseType: 'blob', observe: 'response' });
   }
 
   // ── Modelo do documento (administrador do módulo e admin do SGDP) ────────────
@@ -82,7 +90,8 @@ export class PeDocumentoService {
     return `${this.apiUrl}/modelo/documento`;
   }
 
-  modelo(tipo = 'pdtic'): Observable<PeDocModelo> {
+  /** O modelo de um dos três documentos (pdtic, ra ou rr), com os marcadores que os textos dele podem usar. */
+  modelo(tipo: PeTipoDocumento = 'pdtic'): Observable<PeDocModelo> {
     return this.http.get<PeDocModelo>(this.baseModelo, { params: new HttpParams().set('tipo', tipo) });
   }
 

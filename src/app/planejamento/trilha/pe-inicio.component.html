@@ -236,8 +236,8 @@
           </dl>
 
           <p class="text-xs text-gray-500 italic mt-3">
-            Passo resolvido é o feito, o marcado como "não se aplica" ou o feito fora do sistema. Os passos do monitoramento chegam
-            numa próxima etapa do desenvolvimento e ainda não contam.
+            Passo resolvido é o feito, o marcado como "não se aplica" ou o feito fora do sistema. Os passos do monitoramento ficam feitos
+            quando os ciclos que já começaram estão fechados.
           </p>
           <p *ngIf="e.situacao?.erroAndamento" role="alert" class="text-sm text-red-700 mt-2">
             Não foi possível conferir a situação dos passos agora. Os passos continuam abertos; tente de novo em alguns instantes.
@@ -318,6 +318,17 @@
       </div>
 
       <p *ngIf="carregandoStatus" class="text-sm text-gray-600">Conferindo a situação dos passos...</p>
+
+      <!-- E7 rodada B: o painel de acompanhamento do PDTIC (AC-PDTIC), depois da publicação, num pacote próprio -->
+      <ng-container *ngIf="e.pdtic as p">
+        <ng-container *ngIf="mostraPainel(p)">
+          @defer (on idle) {
+            <app-pe-painel-acompanhamento [pdtic]="p"></app-pe-painel-acompanhamento>
+          } @placeholder {
+            <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o painel de acompanhamento...</p>
+          }
+        </ng-container>
+      </ng-container>
 
       <!-- Referenciais do DF (e as deliberações, para os papéis globais) -->
       <div class="bg-white rounded-lg shadow p-6">

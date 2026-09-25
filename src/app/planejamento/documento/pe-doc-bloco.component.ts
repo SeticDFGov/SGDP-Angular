@@ -4,7 +4,7 @@ import {
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import {
-  PeDocBloco, PeDocCapitulo, PeDocLinha, PeDocMarcador, PeDocTextoRico, PeFluxoDefinicao
+  PeDocBloco, PeDocCapitulo, PeDocItemLista, PeDocLinha, PeDocMarcador, PeDocTabela, PeDocTextoRico, PeFluxoDefinicao
 } from '../../../api/planejamento/interface';
 import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -15,7 +15,8 @@ import { PeFluxosService } from '../services/pe-fluxos.service';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { DicionarioFluxo, dicionarioPadrao, normalizarDefinicao, numerosDoServidor } from '../shared/pe-fluxo-rotulos';
 import {
-  MARCADORES_PADRAO, PassoLinkDoc, descricaoMarcador, secaoDoMarcador, textoMarcador, tituloComNumero
+  AlvoDocumento, MARCADORES_PADRAO, PassoLinkDoc, TIPOS_BLOCO_ACOMPANHAMENTO, descricaoMarcador, rotuloTipoBloco, secaoDoMarcador,
+  textoMarcador, tituloComNumero
 } from '../shared/pe-documento-rotulos';
 import { juntar } from '../shared/pe-modelo-rotulos';
 import { quandoEQuem } from '../shared/pe-referenciais-rotulos';
@@ -48,6 +49,21 @@ interface QuadranteSwot {
 }
 
 /**
+ * Um grupo de um bloco do acompanhamento, pronto para a tela (E7 rodada B): a
+ * tabela (do grupo ou montada com as colunas e as linhas dele), a lista ou o texto.
+ */
+interface GrupoAcompanhamento {
+  chave: string;
+  /** Null no bloco de uma tabela só (o título dela fica na legenda). */
+  titulo: string | null;
+  texto: string | null;
+  tabela: PeDocTabela | null;
+  temCodigo: boolean;
+  itens: PeDocItemLista[];
+  vazio: boolean;
+}
+
+/**
  * Um bloco da prévia do documento do PDTIC.
  *
  * - Texto: mostra o texto resolvido (os marcadores trocados pelos dados, os sem
@@ -64,6 +80,11 @@ interface QuadranteSwot {
  *   nada), com zoom e rolagem pelo teclado; a descrição em texto, em lista
  *   numerada, que busca o fluxo do órgão só quando o bloco da descrição abre; e o
  *   link para o passo onde o órgão adapta os fluxos.
+ * - E7 rodada B, nos relatórios do acompanhamento: as ações do ciclo por
+ *   situação, as metas por resultado, os riscos que ocorreram e as medições, só
+ *   leitura, em grupos (cada um com o título e a tabela) ou numa tabela só, com o
+ *   link para o passo onde os dados se editam (no RA, já no ciclo do relatório).
+ *   O texto se grava no documento do alvo (o PDTIC, o RA ou o RR).
  *
  * Quem decide se o editor está aberto é a prévia (`aberto`): um bloco de cada
  * vez. O bloco avisa a prévia do que ainda não foi salvo (`pendente`).
@@ -88,7 +109,10 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
 
   @Input({ required: true }) bloco!: PeDocBloco;
   @Input({ required: true }) capitulo!: PeDocCapitulo;
+  /** O PDTIC (os fluxos do órgão para a descrição em texto). */
   @Input({ required: true }) pdticId!: number;
+  /** E7 rodada B: o documento onde o texto se grava (sem ele, o documento do PDTIC). */
+  @Input() alvo: AlvoDocumento | null = null;
   @Input() podeEditar = false;
   /** O editor deste bloco está aberto (a prévia abre um de cada vez). */
   @Input() aberto = false;
@@ -122,6 +146,8 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   gruposSemValor: GrupoSemValor[] = [];
   quadrantes: QuadranteSwot[] = [];
   temCodigo = false;
+  /** E7 rodada B: os grupos (ou a tabela só) de um bloco do acompanhamento; vazio quando os dados não vieram. */
+  gruposAcompanhamento: GrupoAcompanhamento[] = [];
 
   /** O fluxo do órgão para a descrição em texto (buscado quando o bloco da descrição abre). */
   defFluxo: PeFluxoDefinicao | null = null;
@@ -224,6 +250,37 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     return this.bloco.Tabela?.SecaoTipo === 'formulario';
   }
 
+  /** E7 rodada B: bloco de dados do acompanhamento (ações por situação, metas por resultado, riscos, medições). */
+  get acompanhamento(): boolean {
+    return TIPOS_BLOCO_ACOMPANHAMENTO.has(this.bloco.Tipo);
+  }
+
+  get tituloAcompanhamento(): string {
+    return rotuloTipoBloco(this.bloco.Tipo);
+  }
+
+  /** O que o grupo vazio diz ("Nenhuma ação neste grupo."). */
+  get vazioDoGrupo(): string {
+    switch (this.bloco.Tipo) {
+      case 'acoes_por_situacao': return 'Nenhuma ação neste grupo.';
+      case 'metas_por_resultado': return 'Nenhuma meta neste grupo.';
+      case 'riscos_ocorridos': return 'Nenhum risco ocorreu.';
+      case 'medicoes': return 'Nenhuma medição registrada.';
+      default: return 'Nada neste grupo.';
+    }
+  }
+
+  /** O tipo que esta tela sabe mostrar (os demais saem só no PDF). */
+  get tipoConhecido(): boolean {
+    const t = this.bloco.Tipo;
+    return t === 'texto' || t === 'tabela_secao' || t === 'lista_tema' || t === 'matriz_swot' || t === 'fluxo' || this.acompanhamento;
+  }
+
+  /** O documento onde o texto se grava: o alvo da prévia ou, sem ele, o documento do PDTIC. */
+  private get alvoDoTexto(): AlvoDocumento {
+    return this.alvo ?? { tipo: 'pdtic', pdticId: this.pdticId };
+  }
+
   // ── Ciclo de vida ─────────────────────────────────────────────────────────
 
   ngOnChanges(mudancas: SimpleChanges): void {
@@ -277,6 +334,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     });
 
     this.temCodigo = !!b.Tabela?.Linhas.some(l => !!l.Codigo);
+    this.gruposAcompanhamento = this.acompanhamento ? this.montarGrupos(b) : [];
     const s = b.Swot;
     this.quadrantes = s ? [
       { titulo: 'Forças', itens: s.Forcas ?? [] },
@@ -292,6 +350,41 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
       this.numerosFluxo = null;
       this.erroFluxo = null;
     }
+  }
+
+  /**
+   * Os grupos de um bloco do acompanhamento (E7 rodada B). O contrato não fixa a
+   * forma: vale `Grupos` (cada um com a `Tabela`, ou com `Colunas` e `Linhas`, ou
+   * com `Itens`) ou, sem grupos, a `Tabela` do bloco. Nada disso: vazio (a tela
+   * diz que os dados não vieram).
+   */
+  private montarGrupos(b: PeDocBloco): GrupoAcompanhamento[] {
+    if (Array.isArray(b.Grupos) && b.Grupos.length > 0) {
+      return b.Grupos.map((g, i) => {
+        const soltas = Array.isArray(g.Colunas) || Array.isArray(g.Linhas);
+        const tabela: PeDocTabela | null = g.Tabela ?? (soltas
+          ? { SecaoChave: g.Chave ?? '', SecaoTitulo: g.Titulo, Colunas: g.Colunas ?? [], Linhas: g.Linhas ?? [], Vazia: !(g.Linhas ?? []).length }
+          : null);
+        const itens = Array.isArray(g.Itens) ? g.Itens : [];
+        const linhas = tabela?.Linhas ?? [];
+        return {
+          chave: g.Chave || `g${i}`,
+          titulo: g.Titulo || null,
+          texto: g.Texto?.trim() || null,
+          tabela: tabela && linhas.length > 0 ? tabela : null,
+          temCodigo: linhas.some(l => !!l.Codigo),
+          itens,
+          vazio: linhas.length === 0 && itens.length === 0
+        };
+      });
+    }
+    const t = b.Tabela;
+    if (!t) return [];
+    const linhas = t.Linhas ?? [];
+    return [{
+      chave: 'tabela', titulo: null, texto: null, tabela: linhas.length > 0 ? t : null, temCodigo: linhas.some(l => !!l.Codigo),
+      itens: [], vazio: linhas.length === 0
+    }];
   }
 
   // ── Fluxo ─────────────────────────────────────────────────────────────────
@@ -454,7 +547,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     this.salvando = true;
     this.situacaoSalvar = 'salvando';
     this.avisarPendente();
-    this.documentoService.salvarBloco(this.pdticId, this.bloco.Id, texto).subscribe({
+    this.documentoService.salvarBloco(this.alvoDoTexto, this.bloco.Id, texto).subscribe({
       next: novo => {
         this.salvando = false;
         this.versaoSalva = Math.max(this.versaoSalva, versao);
@@ -521,7 +614,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     if (this.temporizador) clearTimeout(this.temporizador);
     this.temporizador = null;
     this.voltando = true;
-    this.documentoService.voltarAoModelo(this.pdticId, this.bloco.Id).subscribe({
+    this.documentoService.voltarAoModelo(this.alvoDoTexto, this.bloco.Id).subscribe({
       next: novo => {
         this.voltando = false;
         // O que estava no editor foi descartado junto com a cópia do órgão
@@ -551,7 +644,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     const texto = docParaEnvio(this.bloco.TextoBruto);
     if (this.mantendo || !texto || !this.podeEditar) return;
     this.mantendo = true;
-    this.documentoService.salvarBloco(this.pdticId, this.bloco.Id, texto).subscribe({
+    this.documentoService.salvarBloco(this.alvoDoTexto, this.bloco.Id, texto).subscribe({
       next: novo => {
         this.mantendo = false;
         this.comparando = false;

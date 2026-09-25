@@ -7,19 +7,20 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
   PeDocConfigBloco, PeDocMarcador, PeDocModelo, PeDocModeloBloco, PeDocModeloCapitulo, PeDocTextoRico, PeModelo,
-  PeTipoBlocoDoc
+  PeTipoBlocoDoc, PeTipoDocumento
 } from '../../../api/planejamento/interface';
 import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import {
-  MARCADORES_PADRAO, NomesDoDocumento, TIPOS_BLOCO_DOC, blocosEmOrdem, capitulosDoModelo, chaveNovaDeCapitulo,
-  explicacaoTipoBloco, numerosDoModelo, resumoBlocoModelo, rotuloTipoBloco, textoFiltroTabela, textoMarcador
+  NomesDoDocumento, TIPOS_BLOCO_ACOMPANHAMENTO, TIPOS_DOCUMENTO, blocosEmOrdem, capitulosDoModelo, chaveNovaDeCapitulo,
+  explicacaoTipoBloco, marcadoresPadraoDo, numerosDoModelo, resumoBlocoModelo, rotuloTipoBloco, textoFiltroTabela, textoMarcador,
+  tipoDocumentoValido, tiposBlocoDoModelo
 } from '../shared/pe-documento-rotulos';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { modeloOrdenado } from '../shared/pe-modelo-arvore';
-import { citacaoTravado } from '../shared/pe-modelo-rotulos';
+import { OpcaoRotulo, citacaoTravado } from '../shared/pe-modelo-rotulos';
 import { PeEditorTextoRicoComponent } from '../shared/texto-rico/pe-editor-texto-rico.component';
 import { PeTextoRicoLeituraDirective } from '../shared/texto-rico/pe-texto-rico-leitura.directive';
 import { docParaEnvio, docVazio, normalizarDocumento } from '../shared/texto-rico/pe-texto-rico-doc';
@@ -109,6 +110,13 @@ interface EdicaoBloco {
  * admin do SGDP): a árvore dos capítulos (subcapítulos embaixo do capítulo) à
  * esquerda e, à direita, o capítulo escolhido com os blocos dele.
  *
+ * E7 rodada B: o seletor dos três modelos do mesmo motor (o documento do PDTIC, o
+ * relatório de acompanhamento e o relatório de resultados), com o tipo no
+ * endereço (`?tipo=`); cada um tem os capítulos, os blocos e os marcadores dele.
+ * Os relatórios oferecem os blocos do acompanhamento (ações do ciclo por
+ * situação, metas por resultado, riscos que ocorreram e medições), que só têm a
+ * página deitada para configurar.
+ *
  * - Capítulo: título, com número ou sem, obrigatório ou opcional (o órgão só
  *   esconde o opcional) e o passo que o alimenta (desligado para o órgão, o
  *   capítulo some do documento dele); subir, descer, incluir subcapítulo e
@@ -145,8 +153,12 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
 
   readonly maxTitulo = MAX_TITULO;
   readonly maxFluxo = MAX_FLUXO;
-  readonly tiposBloco = TIPOS_BLOCO_DOC;
   readonly exemploMarcador = textoMarcador('orgao.nome');
+  readonly tiposDocumento = TIPOS_DOCUMENTO;
+  /** E7 rodada B: o modelo à vista (pdtic, ra ou rr), guardado no endereço (`?tipo=`). */
+  tipo: PeTipoDocumento = 'pdtic';
+  /** Os tipos de bloco que o modelo à vista oferece. */
+  tiposBloco: OpcaoRotulo<PeTipoBlocoDoc>[] = tiposBlocoDoModelo('pdtic');
 
   pode: boolean | null = null;
   erroPapel = false;
@@ -160,7 +172,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
 
   arvore: RamoCapitulo[] = [];
   numeros = new Map<number, string>();
-  marcadores: readonly PeDocMarcador[] = MARCADORES_PADRAO;
+  marcadores: readonly PeDocMarcador[] = marcadoresPadraoDo('pdtic');
   marcadoresDoServidor = false;
   gruposSecoes: GrupoSecoes[] = [];
   gruposPassos: GrupoOpcoes[] = [];
@@ -192,6 +204,18 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   private focoPendente: string | null = null;
 
   ngOnInit(): void {
+    // O endereço primeiro: o tipo do modelo (?tipo=) vale já na primeira carga
+    this.rota.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const tipo = tipoDocumentoValido(params.get('tipo')) ?? 'pdtic';
+        if (tipo !== this.tipo && !this.aplicarTipo(tipo)) return;
+        const id = Number(params.get('capitulo'));
+        if (Number.isInteger(id) && id > 0 && id !== this.selecionadoId) {
+          this.selecionadoId = id;
+          this.garantirSelecao();
+        }
+      });
     this.estadoService.estado$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(estado => {
@@ -203,15 +227,57 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
           this.carregar();
         }
       });
-    this.rota.queryParamMap
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(params => {
-        const id = Number(params.get('capitulo'));
-        if (Number.isInteger(id) && id > 0 && id !== this.selecionadoId) {
-          this.selecionadoId = id;
-          this.garantirSelecao();
-        }
-      });
+  }
+
+  // ── Qual modelo (E7 rodada B) ─────────────────────────────────────────────
+
+  get rotuloDoTipo(): string {
+    return TIPOS_DOCUMENTO.find(t => t.valor === this.tipo)?.rotulo ?? 'Documento do PDTIC';
+  }
+
+  tipoAberto(tipo: PeTipoDocumento): boolean {
+    return this.tipo === tipo;
+  }
+
+  /** O seletor dos modelos: com mudança não salva, pergunta antes; o tipo vai para o endereço. */
+  escolherTipo(tipo: PeTipoDocumento): void {
+    if (tipo === this.tipo) return;
+    if (this.temMudanca() && !confirm('Há mudanças no modelo que ainda não foram salvas. Trocar de modelo assim mesmo? Elas vão se perder.')) return;
+    this.trocaConfirmada = true;
+    this.router.navigate([], { relativeTo: this.rota, queryParams: { tipo, capitulo: null }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
+
+  /** O tipo que se pede já foi confirmado no seletor (a troca pelo endereço, por fora, pergunta aqui). */
+  private trocaConfirmada = false;
+
+  /**
+   * Passa a mostrar outro modelo (o endereço mudou). Com mudança não salva que
+   * ninguém confirmou (o voltar do navegador), pergunta; sem troca, o endereço volta
+   * ao modelo à vista. Devolve se trocou.
+   */
+  private aplicarTipo(tipo: PeTipoDocumento): boolean {
+    const confirmada = this.trocaConfirmada;
+    this.trocaConfirmada = false;
+    if (!confirmada && this.temMudanca()
+      && !confirm('Há mudanças no modelo que ainda não foram salvas. Trocar de modelo assim mesmo? Elas vão se perder.')) {
+      this.router.navigate([], { relativeTo: this.rota, queryParams: { tipo: this.tipo }, queryParamsHandling: 'merge', replaceUrl: true });
+      return false;
+    }
+    this.tipo = tipo;
+    this.tiposBloco = tiposBlocoDoModelo(tipo);
+    if (!this.tiposBloco.some(t => t.valor === this.tipoNovo)) this.tipoNovo = 'texto';
+    this.edicaoBloco = null;
+    this.errosBloco = [];
+    this.edicaoCapitulo = null;
+    this.errosCapitulo = [];
+    this.modelo = null;
+    this.arvore = [];
+    this.selecionadoId = null;
+    this.marcadoresDoServidor = false;
+    this.marcadores = marcadoresPadraoDo(tipo);
+    // O foco fica no botão do seletor; o leitor de tela ouve que o modelo chegou
+    if (this.iniciado) this.carregar(() => this.acessibilidade.anunciar(`${this.rotuloDoTipo}: modelo carregado.`));
+    return true;
   }
 
   ngAfterViewChecked(): void {
@@ -235,14 +301,17 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   // ── Carga ─────────────────────────────────────────────────────────────────
 
   carregar(depois?: () => void): void {
+    const tipo = this.tipo;
     this.carregando = true;
     this.erroCarga = null;
     forkJoin({
-      documento: this.documentoService.modelo('pdtic'),
+      documento: this.documentoService.modelo(tipo),
       trilha: this.modeloService.modelo().pipe(catchError(() => of(null))),
       fluxos: this.fluxosService.modelos().pipe(catchError(() => of(null)))
     }).subscribe({
       next: ({ documento, trilha, fluxos }) => {
+        // Resposta de um modelo que já foi trocado no seletor: descartada
+        if (tipo !== this.tipo) return;
         this.carregando = false;
         this.semModeloDaTrilha = !trilha;
         if (trilha) this.lerModeloDaTrilha(modeloOrdenado(trilha));
@@ -251,6 +320,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
         depois?.();
       },
       error: erro => {
+        if (tipo !== this.tipo) return;
         this.carregando = false;
         const mensagem = mensagemErroPe(erro, 'Não foi possível carregar o modelo do documento.');
         if (mensagem !== null) this.erroCarga = mensagem;
@@ -264,7 +334,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
     this.arvore = capitulosDoModelo(capitulos, null).map(c => ({ capitulo: c, filhos: capitulosDoModelo(capitulos, c.Id) }));
     this.numeros = numerosDoModelo(capitulos);
     this.marcadoresDoServidor = !!modelo.Marcadores?.length;
-    this.marcadores = this.marcadoresDoServidor ? modelo.Marcadores : MARCADORES_PADRAO;
+    this.marcadores = this.marcadoresDoServidor ? modelo.Marcadores : marcadoresPadraoDo(this.tipo);
     this.garantirSelecao();
   }
 
@@ -381,6 +451,11 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
     return rotuloTipoBloco(tipo);
   }
 
+  /** Bloco do acompanhamento (E7 rodada B): os dados vêm prontos do servidor; só a página deitada se escolhe. */
+  blocoDoAcompanhamento(tipo: string): boolean {
+    return TIPOS_BLOCO_ACOMPANHAMENTO.has(tipo);
+  }
+
   explicacao(tipo: string): string {
     return explicacaoTipoBloco(tipo);
   }
@@ -494,7 +569,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
     const pedido = e.novo
       ? this.documentoService.criarCapitulo({
         ...corpo,
-        Tipo: modelo.Tipo || 'pdtic',
+        Tipo: modelo.Tipo || this.tipo,
         PaiId: e.paiId,
         Chave: chaveNovaDeCapitulo(titulo, modelo.Capitulos.map(c => c.Chave))
       })

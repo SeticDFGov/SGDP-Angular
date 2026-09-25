@@ -7,10 +7,62 @@
  * as que o projeto já usa.
  */
 import {
-  PeDocBloco, PeDocCapitulo, PeDocConfigBloco, PeDocFiltroTabela, PeDocMarcador, PeDocModeloBloco, PeDocModeloCapitulo,
-  PeTipoBlocoDoc
+  PeCiclo, PeDocBloco, PeDocCapitulo, PeDocConfigBloco, PeDocFiltroTabela, PeDocMarcador, PeDocModeloBloco, PeDocModeloCapitulo,
+  PeTipoBlocoDoc, PeTipoDocumento
 } from '../../../api/planejamento/interface';
 import { OpcaoRotulo, juntar } from './pe-modelo-rotulos';
+
+// ── Qual documento (E7 rodada B) ─────────────────────────────────────────────
+
+/**
+ * O relatório que a prévia mostra no lugar do documento do PDTIC: o de
+ * acompanhamento (RA) de um ciclo ou o de resultados (RR).
+ */
+export type RelatorioDoc = { tipo: 'ra'; ciclo: PeCiclo } | { tipo: 'rr' };
+
+/**
+ * O documento que a prévia mostra e grava: o do PDTIC, o relatório de
+ * acompanhamento (RA) de um ciclo ou o relatório de resultados (RR). Os três têm
+ * as mesmas sub-rotas e a mesma forma; muda só a base.
+ */
+export type AlvoDocumento =
+  | { tipo: 'pdtic'; pdticId: number }
+  | { tipo: 'ra'; pdticId: number; cicloId: number }
+  | { tipo: 'rr'; pdticId: number };
+
+/** A base do documento sob api/planejamento ("pdtic/12/documento", "pdtic/12/ciclos/5/relatorio", "pdtic/12/relatorio-resultados"). */
+export function caminhoDocumento(alvo: AlvoDocumento): string {
+  switch (alvo.tipo) {
+    case 'ra': return `pdtic/${alvo.pdticId}/ciclos/${alvo.cicloId}/relatorio`;
+    case 'rr': return `pdtic/${alvo.pdticId}/relatorio-resultados`;
+    default: return `pdtic/${alvo.pdticId}/documento`;
+  }
+}
+
+/** Identifica o documento (muda de PDTIC, de tipo ou de ciclo: a prévia busca de novo). */
+export function chaveDoAlvo(alvo: AlvoDocumento): string {
+  return alvo.tipo === 'ra' ? `ra:${alvo.pdticId}:${alvo.cicloId}` : `${alvo.tipo}:${alvo.pdticId}`;
+}
+
+/** Os três modelos que o administrador edita, na ordem do seletor. */
+export const TIPOS_DOCUMENTO: readonly { valor: PeTipoDocumento; rotulo: string; curto: string }[] = [
+  { valor: 'pdtic', rotulo: 'Documento do PDTIC', curto: 'PDTIC' },
+  { valor: 'ra', rotulo: 'Relatório de acompanhamento (RA)', curto: 'RA' },
+  { valor: 'rr', rotulo: 'Relatório de resultados (RR)', curto: 'RR' }
+];
+
+export function tipoDocumentoValido(valor: string | null | undefined): PeTipoDocumento | null {
+  return TIPOS_DOCUMENTO.find(t => t.valor === valor)?.valor ?? null;
+}
+
+/** "o documento do PDTIC", "o relatório de acompanhamento", "o relatório de resultados" (no meio da frase). */
+export function nomeDoDocumento(tipo: PeTipoDocumento): string {
+  switch (tipo) {
+    case 'ra': return 'o relatório de acompanhamento';
+    case 'rr': return 'o relatório de resultados';
+    default: return 'o documento do PDTIC';
+  }
+}
 
 // ── Marcadores ───────────────────────────────────────────────────────────────
 
@@ -31,8 +83,27 @@ export const MARCADORES_PADRAO: readonly PeDocMarcador[] = [
   { Chave: 'nomes.autoridade_cargo', Descricao: 'Cargo da autoridade máxima', Exemplo: 'Secretária de Estado' },
   { Chave: 'nomes.unidade_tic', Descricao: 'Nome da unidade de TIC', Exemplo: 'Subsecretaria de Tecnologia da Informação' },
   { Chave: 'pdtic.versao', Descricao: 'Versão do PDTIC', Exemplo: '1.0' },
-  { Chave: 'hoje', Descricao: 'Data de hoje (no PDF, a data em que ele foi gerado)', Exemplo: '24/09/2026' }
+  { Chave: 'hoje', Descricao: 'Data de hoje (no PDF, a data em que ele foi gerado)', Exemplo: '24/09/2026' },
+  // E7: as aprovações e a publicação (valem nos três documentos)
+  { Chave: 'aprovacao.sgtic.data', Descricao: 'Data da aprovação do SGTIC', Exemplo: '10/03/2027' },
+  { Chave: 'aprovacao.sgtic.ato', Descricao: 'Ato da aprovação do SGTIC', Exemplo: 'Ata nº 3' },
+  { Chave: 'aprovacao.cgtic.data', Descricao: 'Data da aprovação do CGTIC', Exemplo: '20/03/2027' },
+  { Chave: 'aprovacao.cgtic.ato', Descricao: 'Ato da aprovação do CGTIC', Exemplo: 'Resolução nº 12' },
+  { Chave: 'publicacao.data', Descricao: 'Data da publicação do PDTIC', Exemplo: '25/03/2027' },
+  { Chave: 'publicacao.endereco', Descricao: 'Endereço do PDTIC publicado na internet', Exemplo: 'https://www.saude.df.gov.br/pdtic' }
 ];
+
+/** Os marcadores do ciclo, só no relatório de acompanhamento (RA). */
+const MARCADORES_DO_CICLO: readonly PeDocMarcador[] = [
+  { Chave: 'ciclo.rotulo', Descricao: 'Nome do ciclo', Exemplo: '2027 · 1º trimestre' },
+  { Chave: 'ciclo.inicio', Descricao: 'Início do período do ciclo', Exemplo: '01/01/2027' },
+  { Chave: 'ciclo.fim', Descricao: 'Fim do período do ciclo', Exemplo: '31/03/2027' }
+];
+
+/** A reserva dos marcadores de cada documento, enquanto a lista do servidor não chega (GET modelo/documento?tipo=). */
+export function marcadoresPadraoDo(tipo: PeTipoDocumento): readonly PeDocMarcador[] {
+  return tipo === 'ra' ? [...MARCADORES_PADRAO, ...MARCADORES_DO_CICLO] : MARCADORES_PADRAO;
+}
 
 /** Como o marcador aparece no texto: "{orgao.nome}". */
 export function textoMarcador(chave: string): string {
@@ -52,6 +123,9 @@ export function descricaoMarcador(chave: string, lista: readonly PeDocMarcador[]
 export function secaoDoMarcador(chave: string): string | null {
   if (chave.startsWith('nomes.')) return 'nomes';
   if (chave.startsWith('vigencia.')) return 'abrangencia';
+  // E7: a aprovação do SGTIC (passo do envio) e a publicação; a do CGTIC vem da deliberação
+  if (chave.startsWith('aprovacao.sgtic.')) return 'aprovacao_sgtic';
+  if (chave.startsWith('publicacao.')) return 'publicacao';
   return null;
 }
 
@@ -121,6 +195,8 @@ export interface PassoLinkDoc {
   rota: string;
   numero: string;
   titulo: string;
+  /** E7 rodada B: os parâmetros do link dos dados (o passo e, no RA, o ciclo do relatório). */
+  query?: Record<string, string | number>;
 }
 
 /**
@@ -214,12 +290,22 @@ export function capituloEscondivel(c: Pick<PeDocCapitulo, 'Obrigatorio' | 'Trava
   return !c.Obrigatorio && !c.Travado;
 }
 
-/** Texto de um capítulo sem blocos, na prévia. */
-export function textoCapituloVazio(c: Pick<PeDocCapitulo, 'Chave'>): string {
+/**
+ * Texto de um capítulo sem blocos, na prévia. No relatório de acompanhamento de
+ * um ciclo de monitoramento (`cicloDeMonitoramento`), os capítulos da avaliação
+ * vêm vazios (o guia manda assim).
+ */
+export function textoCapituloVazio(c: Pick<PeDocCapitulo, 'Chave'>, tipo: PeTipoDocumento = 'pdtic', cicloDeMonitoramento = false): string {
   switch (especialDoCapitulo(c.Chave)) {
-    case 'rosto': return 'No PDF, a folha de rosto traz a equipe de elaboração e quem aprovou o PDTIC.';
+    case 'rosto':
+      return tipo === 'pdtic'
+        ? 'No PDF, a folha de rosto traz a equipe de elaboração e quem aprovou o PDTIC.'
+        : 'No PDF, a folha de rosto traz a equipe de acompanhamento.';
     case 'historico': return 'No PDF, o histórico traz as versões do documento: data, versão, descrição e autor.';
-    default: return 'Este capítulo não tem conteúdo no modelo do documento.';
+    default:
+      return tipo === 'ra' && cicloDeMonitoramento
+        ? 'Num ciclo de monitoramento, este capítulo fica em branco, como pede o guia: ele se preenche na avaliação intermediária.'
+        : 'Este capítulo não tem conteúdo no modelo do documento.';
   }
 }
 
@@ -244,10 +330,25 @@ export function classeSituacaoVersao(situacao: string | null | undefined): strin
   }
 }
 
-/** Nome do PDF quando o `Content-Disposition` não chega (o mesmo desenho do servidor). */
-export function nomeArquivoVersao(sigla: string | null | undefined, versao: string | null | undefined, numero: number): string {
+/** "2027 · 1º trimestre" vira "2027_1o_trimestre" (o rótulo curto do ciclo no nome do PDF de reserva do RA). */
+export function rotuloCurtoDoCiclo(rotulo: string | null | undefined): string {
+  const semAcento = (rotulo ?? '').replace(/º/g, 'o').replace(/ª/g, 'a').normalize('NFD')
+    .split('').filter(c => c.charCodeAt(0) < 0x300 || c.charCodeAt(0) > 0x36f).join('');
+  return semAcento.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'ciclo';
+}
+
+/**
+ * Nome do PDF quando o `Content-Disposition` não chega (o mesmo desenho do
+ * servidor): PDTIC_SES_v1.0_3.pdf; E7 rodada B: RA_SES_v1.0_2027_1o_trimestre_2.pdf
+ * e RR_SES_v1.0_1.pdf.
+ */
+export function nomeArquivoVersao(sigla: string | null | undefined, versao: string | null | undefined, numero: number,
+  tipo: PeTipoDocumento = 'pdtic', rotuloCiclo: string | null = null): string {
   const limpa = (sigla ?? '').trim().replace(/[^A-Za-z0-9_-]/g, '_') || 'orgao';
-  return `PDTIC_${limpa}_v${versao || '1.0'}_${numero}.pdf`;
+  const v = versao || '1.0';
+  if (tipo === 'ra') return `RA_${limpa}_v${v}_${rotuloCurtoDoCiclo(rotuloCiclo)}_${numero}.pdf`;
+  if (tipo === 'rr') return `RR_${limpa}_v${v}_${numero}.pdf`;
+  return `PDTIC_${limpa}_v${v}_${numero}.pdf`;
 }
 
 /** As versões da mais nova para a mais antiga. */
@@ -263,8 +364,25 @@ export const TIPOS_BLOCO_DOC: OpcaoRotulo<PeTipoBlocoDoc>[] = [
   { valor: 'lista_tema', rotulo: 'Lista das ações de um tema' },
   { valor: 'matriz_swot', rotulo: 'Matriz SWOT' },
   { valor: 'fluxo', rotulo: 'Fluxo' },
+  { valor: 'acoes_por_situacao', rotulo: 'Ações do ciclo por situação' },
+  { valor: 'metas_por_resultado', rotulo: 'Metas por resultado' },
+  { valor: 'riscos_ocorridos', rotulo: 'Riscos que ocorreram' },
+  { valor: 'medicoes', rotulo: 'Medições dos indicadores' },
   { valor: 'quebra_pagina', rotulo: 'Quebra de página' }
 ];
+
+/** Os blocos de dados dos relatórios do acompanhamento (E7 rodada B): só a página deitada se configura. */
+export const TIPOS_BLOCO_ACOMPANHAMENTO: ReadonlySet<string> = new Set(['acoes_por_situacao', 'metas_por_resultado', 'riscos_ocorridos', 'medicoes']);
+
+/**
+ * Os tipos de bloco que cada modelo oferece: o PDTIC tem as listas de tema, a
+ * matriz SWOT e os fluxos; os relatórios (RA e RR), os blocos do acompanhamento.
+ */
+export function tiposBlocoDoModelo(tipo: PeTipoDocumento): OpcaoRotulo<PeTipoBlocoDoc>[] {
+  return TIPOS_BLOCO_DOC.filter(t => tipo === 'pdtic'
+    ? !TIPOS_BLOCO_ACOMPANHAMENTO.has(t.valor)
+    : t.valor === 'texto' || t.valor === 'tabela_secao' || t.valor === 'quebra_pagina' || TIPOS_BLOCO_ACOMPANHAMENTO.has(t.valor));
+}
 
 export function rotuloTipoBloco(tipo: string | null | undefined): string {
   return TIPOS_BLOCO_DOC.find(t => t.valor === tipo)?.rotulo ?? (tipo || '-');
@@ -274,10 +392,14 @@ export function rotuloTipoBloco(tipo: string | null | undefined): string {
 export function explicacaoTipoBloco(tipo: string | null | undefined): string {
   switch (tipo) {
     case 'texto': return 'Texto com formatação e marcadores. O órgão pode editar a cópia dele na prévia.';
-    case 'tabela_secao': return 'Os registros de uma seção do PDTIC, com as colunas escolhidas. No documento, a tabela só se lê: os dados se editam no passo da seção.';
+    case 'tabela_secao': return 'Os registros de uma seção do PDTIC, com as colunas escolhidas. No documento, a tabela só se lê: os dados se editam no passo da seção. Nos relatórios, a seção por ciclo mostra só os registros do ciclo do relatório.';
     case 'lista_tema': return 'As ações do plano marcadas com um tema, com o código e a situação de cada uma.';
     case 'matriz_swot': return 'O quadro com as forças, as fraquezas, as oportunidades e as ameaças da análise SWOT.';
     case 'fluxo': return 'O desenho de um fluxo: o que o órgão adaptou ou, sem adaptação, o modelo do guia. O desenho sai sozinho, com a descrição em texto.';
+    case 'acoes_por_situacao': return 'As ações do ciclo em grupos: em dia, atrasadas, não iniciadas e canceladas, com a execução física, a orçamentária e a observação de cada uma.';
+    case 'metas_por_resultado': return 'As metas em grupos: alcançadas, não alcançadas e canceladas, com o motivo. No relatório de acompanhamento, vêm dos resultados intermediários da avaliação; no de resultados, do resultado de cada meta.';
+    case 'riscos_ocorridos': return 'Os riscos que ocorreram: os do ciclo, no relatório de acompanhamento, e os de toda a vigência, no de resultados.';
+    case 'medicoes': return 'As medições dos indicadores de monitoramento no ciclo, com o valor de referência de cada um.';
     case 'quebra_pagina': return 'O que vem depois começa numa página nova.';
     default: return '';
   }
@@ -346,6 +468,10 @@ export function resumoBlocoModelo(bloco: Pick<PeDocModeloBloco, 'Tipo' | 'Config
       return fluxo ? `Fluxo "${nomes.fluxo?.(fluxo) ?? fluxo}"${deitada}` : `Fluxo sem escolha${deitada}`;
     }
     case 'quebra_pagina': return 'O que vem depois começa numa página nova';
+    case 'acoes_por_situacao': return `As ações do ciclo em dia, atrasadas, não iniciadas e canceladas${deitada}`;
+    case 'metas_por_resultado': return `As metas alcançadas, não alcançadas e canceladas, com o motivo${deitada}`;
+    case 'riscos_ocorridos': return `Os riscos que ocorreram${deitada}`;
+    case 'medicoes': return `As medições dos indicadores, com o valor de referência${deitada}`;
     default: return deitada ? 'Página deitada' : '';
   }
 }

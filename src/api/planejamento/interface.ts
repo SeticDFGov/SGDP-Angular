@@ -214,6 +214,8 @@ export interface PeSecaoModelo {
   SituacaoGeral: PeSituacao | null;
   Niveis: Record<string, PeSituacao> | null;
   Campos: PeCampoModelo[];
+  /** E7 rodada B: seção por ciclo (monitoramento ou avaliação); opcional para aceitar a resposta antiga. */
+  PorCiclo?: PeTipoCiclo | null;
 }
 
 export interface PePassoModelo {
@@ -289,6 +291,11 @@ export interface PeSecaoTrilha {
   Situacao: Exclude<PeSituacao, 'desligado'>;
   Travada: boolean;
   Campos: PeCampoTrilha[];
+  /**
+   * E7 rodada B: a seção guarda um registro por ciclo (monitoramento ou avaliação).
+   * Opcional: sem ele, a tela usa as seções por ciclo do modelo inicial.
+   */
+  PorCiclo?: PeTipoCiclo | null;
 }
 
 export interface PePassoTrilha {
@@ -515,6 +522,11 @@ export interface PeSecaoDoDono {
   /** Tabela: os registros ganham código com ele (PR01, OE02...). */
   PrefixoCodigo: string | null;
   Campos: PeCampoRegistro[];
+  /**
+   * E7 rodada B: seção por ciclo (as rotas de registros pedem `?cicloId=`; sem ele,
+   * 400). Nulo nas demais. Opcional para aceitar a resposta antiga.
+   */
+  PorCiclo?: PeTipoCiclo | null;
 }
 
 /** Destino de uma ligação (campo `ligacao_secao` ou `ligacao_catalogo`). */
@@ -1004,8 +1016,20 @@ export interface PeDocTextoRico extends PeNoTextoRico {
 // editado fica e ganha o aviso "o modelo mudou". Erros desta entrega na faixa
 // 1070 a 1089 (a tela mostra a `Message` do servidor).
 
-/** Tipos de bloco de um capítulo. */
-export type PeTipoBlocoDoc = 'texto' | 'tabela_secao' | 'lista_tema' | 'matriz_swot' | 'fluxo' | 'quebra_pagina';
+/**
+ * Tipos de bloco de um capítulo. E7 rodada B, nos relatórios do acompanhamento:
+ * as ações do ciclo por situação, as metas por resultado, os riscos que ocorreram e
+ * as medições dos indicadores.
+ */
+export type PeTipoBlocoDoc =
+  | 'texto' | 'tabela_secao' | 'lista_tema' | 'matriz_swot' | 'fluxo' | 'quebra_pagina'
+  | 'acoes_por_situacao' | 'metas_por_resultado' | 'riscos_ocorridos' | 'medicoes';
+
+/**
+ * O documento que o motor da E5 monta: o PDTIC, o relatório de acompanhamento de
+ * um ciclo (RA, Anexo XIV do guia) ou o relatório de resultados (RR, Anexo XV).
+ */
+export type PeTipoDocumento = 'pdtic' | 'ra' | 'rr';
 
 /** Situação de uma versão em PDF (a E7 usa as três últimas). */
 export type PeSituacaoVersaoDoc = 'minuta' | 'enviada' | 'aprovada' | 'publicada';
@@ -1059,6 +1083,24 @@ export interface PeDocSwot {
 }
 
 /**
+ * E7 rodada B: um grupo de linhas de um bloco de dados do acompanhamento ("Ações
+ * em dia", "Ações atrasadas", "Metas alcançadas"...). O contrato não fixa a forma
+ * dos dados dos blocos novos: a prévia aceita o grupo com a tabela (`Tabela`),
+ * com as colunas e as linhas soltas (`Colunas` e `Linhas`) ou com uma lista
+ * (`Itens`); o bloco sem grupos usa a `Tabela` do bloco.
+ */
+export interface PeDocGrupo {
+  Chave?: string | null;
+  Titulo: string;
+  Tabela?: PeDocTabela | null;
+  Colunas?: PeDocColuna[] | null;
+  Linhas?: PeDocLinha[] | null;
+  Itens?: PeDocItemLista[] | null;
+  /** Texto do grupo (a justificativa das atrasadas, por exemplo). */
+  Texto?: string | null;
+}
+
+/**
  * Fluxo do documento: o desenho (SVG) da cópia do órgão, ou do modelo se o órgão
  * ainda não tem cópia (E6). Nulo quando o servidor não conseguiu desenhar.
  */
@@ -1095,6 +1137,8 @@ export interface PeDocBloco {
   Lista: PeDocLista | null;
   Swot: PeDocSwot | null;
   Fluxo: PeDocFluxo | null;
+  /** E7 rodada B: os grupos dos blocos do acompanhamento (ver `PeDocGrupo`). */
+  Grupos?: PeDocGrupo[] | null;
 }
 
 /**
@@ -1136,7 +1180,11 @@ export interface PeDocVersao {
   Paginas: number | null;
 }
 
-/** GET api/planejamento/pdtic/{id}/documento: a estrutura resolvida para o órgão. */
+/**
+ * GET api/planejamento/pdtic/{id}/documento: a estrutura resolvida para o órgão.
+ * E7 rodada B: a mesma forma nos relatórios (GET pdtic/{id}/ciclos/{cicloId}/relatorio
+ * e GET pdtic/{id}/relatorio-resultados), com as mesmas sub-rotas.
+ */
 export interface PeDocumento {
   PdticId: number;
   Versao: string;
@@ -1226,9 +1274,10 @@ export interface PeDocModeloCapitulo {
   Blocos: PeDocModeloBloco[];
 }
 
-/** GET api/planejamento/modelo/documento?tipo=pdtic. */
+/** GET api/planejamento/modelo/documento?tipo=pdtic (E7 rodada B: também ra e rr). */
 export interface PeDocModelo {
   Id: number;
+  /** pdtic, ra ou rr. */
   Tipo: string;
   Nome: string;
   /** Todos os capítulos (os subcapítulos com `PaiId`), cada um com os blocos. */
@@ -1368,4 +1417,210 @@ export interface PeErroFluxo {
   Code?: number;
   Message?: string;
   Erros?: string[] | null;
+}
+
+// ── E7 · Acompanhamento do PDTIC (rodada B) ─────────────────────────────────
+//
+// Depois da publicação, o PDTIC é acompanhado em ciclos: os de monitoramento
+// saem da periodicidade do plano de monitoramento (trimestral por padrão), e os
+// de avaliação intermediária a equipe abre quando o comitê pede. As seções "por
+// ciclo" guardam um registro por ciclo (`?cicloId=` nas rotas de registros). A
+// situação das ações e as medições se gravam em grade; o painel (AC-PDTIC)
+// consolida metas, ações e riscos; os relatórios RA e RR saem do motor de
+// documento da E5. Erros desta rodada na faixa 1120 a 1139.
+
+/** Monitoramento (pela periodicidade) ou avaliação intermediária (aberta pela equipe). */
+export type PeTipoCiclo = 'monitoramento' | 'avaliacao';
+
+/**
+ * Situação exibida do ciclo: futuro (ainda não começou; não aceita dados) ·
+ * aberto · atrasado (o prazo para fechar venceu sem fechar; ainda aceita dados) ·
+ * fechado.
+ */
+export type PeSituacaoCiclo = 'futuro' | 'aberto' | 'atrasado' | 'fechado';
+
+/** O que o ciclo já tem registrado. */
+export interface PeResumoCiclo {
+  AcoesComSituacao: number;
+  TotalAcoes: number;
+  Medicoes: number;
+  RiscosOcorridos: number;
+}
+
+/** O relatório de acompanhamento (RA) do ciclo: a versão mais recente do PDF. */
+export interface PeRelatorioCiclo {
+  Numero: number;
+  Situacao: PeSituacaoVersaoDoc;
+  GeradoEm: string;
+}
+
+/** Um ciclo (GET api/planejamento/pdtic/{id}/ciclos?tipo=, resposta do POST, do fechar e do reabrir). */
+export interface PeCiclo {
+  Id: number;
+  Tipo: PeTipoCiclo;
+  /** Sequencial no PDTIC e no tipo. */
+  Numero: number;
+  /** "2027 · 1º trimestre", "Avaliação intermediária 1". */
+  Rotulo: string;
+  /** Datas puras ("aaaa-mm-dd"). */
+  Inicio: string | null;
+  Fim: string | null;
+  /** O fim do período mais os dias de prazo para fechar. */
+  Prazo: string | null;
+  Situacao: PeSituacaoCiclo;
+  FechadoEm: string | null;
+  /** E-mail de quem fechou. */
+  FechadoPor: string | null;
+  Resumo: PeResumoCiclo | null;
+  Relatorio: PeRelatorioCiclo | null;
+}
+
+/** POST api/planejamento/pdtic/{id}/ciclos: a equipe abre uma avaliação intermediária (uma aberta por vez). */
+export interface PeCicloNovoForm {
+  Tipo: PeTipoCiclo;
+  Rotulo: string | null;
+}
+
+/**
+ * Uma pendência que impede fechar o ciclo (400 do POST ciclos/{cicloId}/fechar).
+ * A mesma forma das pendências do envio; os campos do passo podem faltar.
+ */
+export interface PePendenciaCiclo {
+  PassoId?: number | null;
+  PassoNumero?: string | null;
+  PassoTitulo?: string | null;
+  Motivo: string;
+}
+
+export interface PeErroCiclo {
+  Code?: number;
+  Message?: string;
+  Pendencias?: (PePendenciaCiclo | string)[] | null;
+}
+
+/** Os valores de uma ação no ciclo anterior (ao lado da grade). */
+export interface PeAnteriorAcaoCiclo {
+  Situacao: string | null;
+  ExecucaoFisica: number | null;
+  ExecucaoOrcamentaria: number | null;
+}
+
+/**
+ * Uma linha da grade das ações (GET api/planejamento/ciclos/{cicloId}/acoes): todas
+ * as ações do PDTIC, com o registro do ciclo (se houver) e os valores do ciclo anterior.
+ */
+export interface PeAcaoCiclo {
+  AcaoId: number;
+  Codigo: string | null;
+  Descricao: string | null;
+  /** Códigos das metas ligadas ("M01"). */
+  Metas: string[];
+  InicioPrevisto: string | null;
+  ConclusaoPrevista: string | null;
+  /** O registro da seção `monitoramento_acoes` neste ciclo; nulo enquanto a ação não tem. */
+  RegistroId: number | null;
+  /** O valor da opção (nao_iniciada, em_andamento, concluida, cancelada). */
+  Situacao: string | null;
+  /** Percentuais de 0 a 100. */
+  ExecucaoFisica: number | null;
+  ExecucaoOrcamentaria: number | null;
+  Observacao: string | null;
+  Anterior: PeAnteriorAcaoCiclo | null;
+}
+
+/** Um item do PUT api/planejamento/ciclos/{cicloId}/acoes. */
+export interface PeAcaoCicloForm {
+  AcaoId: number;
+  Situacao: string | null;
+  ExecucaoFisica: number | null;
+  ExecucaoOrcamentaria: number | null;
+  Observacao: string | null;
+}
+
+/**
+ * PUT api/planejamento/ciclos/{cicloId}/acoes: grava pelo motor (seção
+ * `monitoramento_acoes`, com a validação do nível) e devolve a lista; 400 com
+ * `Campos` no formato "<AcaoId>.<campo>".
+ */
+export interface PeAcoesCicloForm {
+  Itens: PeAcaoCicloForm[];
+}
+
+export interface PeAnteriorMedicaoCiclo {
+  ValorApurado: number | null;
+  Data: string | null;
+}
+
+/** Uma linha da grade das medições (GET api/planejamento/ciclos/{cicloId}/medicoes): os indicadores de monitoramento. */
+export interface PeMedicaoCiclo {
+  IndicadorId: number;
+  Codigo: string | null;
+  Indicador: string | null;
+  /** O valor de referência de cada período, como o órgão escreveu no plano de monitoramento. */
+  ValoresReferencia: string | null;
+  RegistroId: number | null;
+  ValorApurado: number | null;
+  /** Data pura ("aaaa-mm-dd"). */
+  Data: string | null;
+  Observacao: string | null;
+  Anterior: PeAnteriorMedicaoCiclo | null;
+}
+
+export interface PeMedicaoCicloForm {
+  IndicadorId: number;
+  ValorApurado: number | null;
+  Data: string | null;
+  Observacao: string | null;
+}
+
+/** PUT api/planejamento/ciclos/{cicloId}/medicoes (400 com `Campos` "<IndicadorId>.<campo>"). */
+export interface PeMedicoesCicloForm {
+  Itens: PeMedicaoCicloForm[];
+}
+
+/** Situação física de uma ação no painel (Anexo XIII): atrasada pelas datas previstas; sem registro no ciclo. */
+export type PeSituacaoFisicaAcao = 'em_dia' | 'atrasada' | 'concluida' | 'cancelada' | 'sem_registro';
+
+export interface PePainelAcao {
+  AcaoId: number;
+  Codigo: string | null;
+  Descricao: string | null;
+  /** Execução física no último ciclo com dado (0 a 100). */
+  PercentualExecucao: number | null;
+  SituacaoFisica: PeSituacaoFisicaAcao;
+  ExecucaoOrcamentaria: number | null;
+  /** A ação não tem investimento nem custeio. */
+  OrcamentoNaoSeAplica: boolean;
+}
+
+export interface PePainelMeta {
+  MetaId: number;
+  Codigo: string | null;
+  Descricao: string | null;
+  Indicador: string | null;
+  Valor: string | null;
+  /** Data pura ("aaaa-mm-dd"). */
+  Prazo: string | null;
+  /** Códigos das necessidades atendidas ("N01"). */
+  Necessidades: string[];
+  /** Média das ações ligadas (ponderada pelo peso da ação na meta, quando houver). */
+  PercentualExecucao: number | null;
+  Acoes: PePainelAcao[];
+}
+
+/** Contagens dos riscos (dicionários com as chaves em minúsculas, como no contrato). */
+export interface PePainelRiscos {
+  /** aberto, fechado, excluido (a última ocorrência de cada risco) e sem_ocorrencia. */
+  PorSituacao: Record<string, number>;
+  /** alto, medio e baixo. */
+  PorNivel: Record<string, number>;
+  /** A matriz situação por nível. */
+  Matriz: { Situacao: string; Nivel: string; Quantidade: number }[];
+}
+
+/** GET api/planejamento/pdtic/{id}/painel-acompanhamento?cicloId= (sem ciclo, o último com dado). */
+export interface PePainelAcompanhamento {
+  Ciclo: { Id: number; Rotulo: string } | null;
+  Metas: PePainelMeta[];
+  Riscos: PePainelRiscos;
 }

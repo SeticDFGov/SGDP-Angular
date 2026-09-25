@@ -43,6 +43,12 @@
           <ng-container *ngIf="p.BaseLegal && guia"> · </ng-container>
           <ng-container *ngIf="guia">{{ guia }}</ng-container>
         </p>
+        <!-- Rodada B: nas aprovações do fechamento, onde está o relatório de resultados que o comitê e a autoridade aprovam -->
+        <p *ngIf="linkRr as l" class="mt-2">
+          O relatório de resultados (RR) que vai para a aprovação está no
+          <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold text-purple-700 underline">passo {{ l.numero }}</a>,
+          com a prévia e as versões em PDF.
+        </p>
       </div>
 
       <!-- Outros tipos de passo: em construção -->
@@ -153,6 +159,18 @@
       <app-pe-nao-se-aplica *ngIf="aceitaNsa" [pdticId]="pd.Id" [passoId]="p.Id" [numero]="p.Numero" [marcado]="naoSeAplica"
                             [podeEditar]="podeEditarPasso" (mudou)="aoMudarSituacao()"></app-pe-nao-se-aplica>
 
+      <!-- Rodada B: os ciclos do passo (a lista no primeiro passo do tipo; a troca compacta nos seguintes), num pacote próprio -->
+      <ng-container *ngIf="ciclosDisponiveis && tipoCiclo as tipo">
+        @defer (on idle) {
+          <app-pe-ciclos-lista [tipo]="tipo" [ciclos]="ciclos" [escolhido]="ciclo" [modo]="passoListaCiclos ? 'lista' : 'compacta'"
+                               [carregando]="carregandoCiclos" [erro]="erroCiclos" [podeAbrirAvaliacao]="podeAbrirAvaliacao && passoListaCiclos"
+                               [pdticId]="pd.Id" (escolher)="escolherCiclo($event)" (abriu)="aoAbrirAvaliacao($event)"
+                               (recarregar)="recarregarCiclos()"></app-pe-ciclos-lista>
+        } @placeholder {
+          <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando os ciclos...</p>
+        }
+      </ng-container>
+
       <ng-container *ngIf="temSecoes && fonte as f">
         <!-- Sistemas de IA: o inventário do PGIA, só para ler -->
         <app-pe-sistemas-ia-pgia *ngIf="passoIa" [pdticId]="pd.Id" [siglaOrgao]="siglaOrgao"></app-pe-sistemas-ia-pgia>
@@ -167,17 +185,55 @@
 
         <!-- As seções do passo, com os componentes genéricos de registros -->
         <ng-container *ngFor="let s of p.Secoes; trackBy: porId">
-          <app-pe-secao-registros [fonte]="f" [secaoChave]="s.Chave" [situacao]="s.Situacao"
-                                  [nomePlanilha]="nomePlanilha(s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura"
-                                  [acaoVazia]="ehCronograma(s) ? sugerirCronograma : null" [recarga]="recargaDe(s)"
-                                  (mudou)="aoMudarSecao(s)" (alterado)="aoAlterar(s, $event)"
-                                  (registros)="aoCarregarRegistros(s, $event)"></app-pe-secao-registros>
+          <!-- Rodada B: a situação das ações e as medições em grade, no ciclo à vista (num pacote próprio) -->
+          <ng-container *ngIf="gradeDaSecao(s) as tipoGrade; else secaoGenerica">
+            <ng-container *ngIf="ciclo as c; else semCiclo">
+              @defer (on idle) {
+                <app-pe-grade-ciclo [tipo]="tipoGrade" [ciclo]="c" [secao]="s" [podeEditar]="podeEditarPasso" [rotuloAnterior]="rotuloAnterior"
+                                    [passoOrigem]="tipoGrade === 'acoes' ? passoAcoesGrade : passoIndicadores"
+                                    (mudou)="aoMudarGrade(s)" (alterado)="aoAlterar(s, $event)"></app-pe-grade-ciclo>
+              } @placeholder {
+                <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando a grade...</p>
+              }
+            </ng-container>
+          </ng-container>
+
+          <ng-template #secaoGenerica>
+            <!-- Seção por ciclo sem ciclo à vista: não abre (a API pede o ciclo) -->
+            <app-pe-secao-registros *ngIf="!secaoPorCiclo(s) || ciclo; else semCiclo" [fonte]="f" [secaoChave]="s.Chave" [situacao]="s.Situacao"
+                                    [nomePlanilha]="nomePlanilha(s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura"
+                                    [acaoVazia]="ehCronograma(s) ? sugerirCronograma : null" [recarga]="recargaDe(s)"
+                                    (mudou)="aoMudarSecao(s)" (alterado)="aoAlterar(s, $event)"
+                                    (registros)="aoCarregarRegistros(s, $event)"></app-pe-secao-registros>
+          </ng-template>
+          <ng-template #semCiclo>
+            <section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="'pe-sem-ciclo-' + s.Id">
+              <h2 [id]="'pe-sem-ciclo-' + s.Id" class="text-base font-semibold text-gray-900">{{ s.Titulo }}</h2>
+              <p class="text-sm text-gray-600 mt-1">{{ textoSemCiclo }}</p>
+            </section>
+          </ng-template>
           <!-- Cronograma do plano de trabalho vazio: a sugestão pelos fluxos (E6) -->
           <ng-template #sugerirCronograma>
             <app-pe-sugerir-cronograma [pdticId]="pd.Id" [passoFluxos]="passoFluxos" (sugeriu)="aoSugerirCronograma(s, $event)"
                                        (recarregar)="recarregarSecao(s)"></app-pe-sugerir-cronograma>
           </ng-template>
         </ng-container>
+
+        <!-- Rodada B: o resumo e o fechamento do ciclo à vista, no último passo do tipo (num pacote próprio) -->
+        <ng-container *ngIf="passoFechaCiclo && ciclosDisponiveis && ciclo as c">
+          @defer (on idle) {
+            <app-pe-ciclo-fechamento [ciclo]="c" [podeEditar]="podeEditarPasso" [mudancaPendente]="mudancaPendente"
+                                     [exigeResumo]="exigeResumo" (mudou)="aoMudarCiclo($event)"></app-pe-ciclo-fechamento>
+          } @placeholder {
+            <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o resumo do ciclo...</p>
+          }
+        </ng-container>
+
+        <!-- Rodada B: na avaliação mais antiga com "revisar", a revisão se abre pela mais recente -->
+        <p *ngIf="revisaoEmOutraAvaliacao" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700 leading-relaxed">
+          Esta avaliação decidiu revisar o PDTIC, mas a revisão se abre pela avaliação mais recente. Veja a mais recente na lista das
+          avaliações, acima.
+        </p>
 
         <!-- E7: envio ao CGTIC, depois da aprovação do SGTIC (a seção acima) -->
         <app-pe-passo-envio *ngIf="passoEnvio" [pdtic]="pd" [podeEditar]="podeEditarPasso" [mudancaPendente]="mudancaPendente"
@@ -213,6 +269,24 @@
           <app-pe-documento-previa [pdtic]="pd" (alterado)="aoAlterarDocumento($event)" (mudou)="aoMudarSituacao()"></app-pe-documento-previa>
         } @placeholder {
           <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando a prévia do documento...</p>
+        }
+      </ng-container>
+
+      <!-- Rodada B: o relatório de acompanhamento (RA) do ciclo à vista, no passo que fecha o ciclo (a mesma prévia, outro alvo) -->
+      <ng-container *ngIf="mostraRa && relatorioRa as r">
+        @defer (on idle) {
+          <app-pe-documento-previa [pdtic]="pd" [relatorio]="r" (alterado)="aoAlterarDocumento($event)" (mudou)="aoGerarRelatorio()"></app-pe-documento-previa>
+        } @placeholder {
+          <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o relatório de acompanhamento...</p>
+        }
+      </ng-container>
+
+      <!-- Rodada B: o relatório de resultados (RR), no passo das lições aprendidas -->
+      <ng-container *ngIf="mostraRr">
+        @defer (on idle) {
+          <app-pe-documento-previa [pdtic]="pd" [relatorio]="relatorioRr" (alterado)="aoAlterarDocumento($event)" (mudou)="aoMudarSituacao()"></app-pe-documento-previa>
+        } @placeholder {
+          <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o relatório de resultados...</p>
         }
       </ng-container>
 

@@ -4,9 +4,10 @@
   <p *ngIf="pode === null" role="status" class="text-sm text-gray-600">Conferindo o seu papel no módulo...</p>
 
   <div *ngIf="pode === false && !erroPapel" class="bg-white rounded-lg shadow p-6">
-    <h2 class="text-base font-semibold text-gray-900 mb-1">Modelo do documento do PDTIC</h2>
-    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem monta o modelo do documento
-      que os órgãos recebem. O documento do seu órgão fica no passo "Monte o documento e confira a prévia", na trilha do órgão.</p>
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Modelos dos documentos</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem monta os modelos do documento
+      do PDTIC e dos relatórios do acompanhamento que os órgãos recebem. O documento do seu órgão fica no passo "Monte o documento e
+      confira a prévia", na trilha do órgão; os relatórios, nos passos do monitoramento e do fechamento.</p>
   </div>
 
   <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
@@ -22,11 +23,37 @@
 
     <!-- Apresentação -->
     <div class="bg-white rounded-lg shadow p-6">
-      <h2 class="text-base font-semibold text-gray-900 mb-1">Modelo do documento do PDTIC</h2>
+      <h2 class="text-base font-semibold text-gray-900 mb-1">Modelos dos documentos</h2>
       <p class="text-sm text-gray-700 leading-relaxed">
+        O mesmo motor monta três documentos: o do PDTIC, o relatório de acompanhamento (RA) de cada ciclo e o relatório de resultados
+        (RR), dos anexos XIV e XV do Guia de PDTIC. Escolha qual modelo editar.
+      </p>
+
+      <!-- O seletor dos modelos (botões com aria-pressed) -->
+      <div role="group" aria-labelledby="pe-md-tipos-rotulo" class="mt-3">
+        <p id="pe-md-tipos-rotulo" class="text-sm font-semibold text-gray-800">Qual modelo editar</p>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <button *ngFor="let t of tiposDocumento" type="button" (click)="escolherTipo(t.valor)" [attr.aria-pressed]="tipoAberto(t.valor)"
+                  class="px-3 py-1.5 rounded-full border text-sm transition-colors"
+                  [ngClass]="tipoAberto(t.valor) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
+            {{ t.rotulo }}
+          </button>
+        </div>
+      </div>
+
+      <p *ngIf="tipo === 'pdtic'" class="text-sm text-gray-700 leading-relaxed mt-4">
         Cada órgão monta o documento do PDTIC a partir deste modelo: os capítulos, os textos padrão e os blocos de dados (tabelas,
         listas de ações e a matriz SWOT), que vêm dos passos da trilha. O órgão edita a cópia dele na prévia: muda os textos, renomeia
         os capítulos e esconde os opcionais.
+      </p>
+      <p *ngIf="tipo === 'ra'" class="text-sm text-gray-700 leading-relaxed mt-4">
+        O relatório de acompanhamento (Anexo XIV do guia) sai a cada ciclo: o sistema gera a minuta ao fechar o ciclo de monitoramento, e
+        a avaliação intermediária também tem o dela. Os blocos do acompanhamento trazem as ações do ciclo por situação, as metas por
+        resultado, os riscos que ocorreram e as medições. Num ciclo de monitoramento, os capítulos 4, 5 e 8 saem em branco, como pede o guia.
+      </p>
+      <p *ngIf="tipo === 'rr'" class="text-sm text-gray-700 leading-relaxed mt-4">
+        O relatório de resultados (Anexo XV do guia) fecha o PDTIC: as metas alcançadas, não alcançadas e canceladas, os riscos de toda a
+        vigência, a execução orçamentária, as lições aprendidas e a conclusão. O comitê e a autoridade máxima o aprovam.
       </p>
       <ul class="mt-2 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
         <li>Toda mudança vale na hora e fica no histórico do modelo.</li>
@@ -34,8 +61,8 @@
           com a comparação e o botão para usar o texto novo.</li>
         <li>O capítulo ligado a um passo some do documento do órgão em que o passo está desligado.</li>
       </ul>
-      <p class="text-xs text-gray-500 italic mt-2">Os nove conteúdos mínimos do PDTIC (art. 12, § 2º) são capítulos travados, com o
-        cadeado: não se apagam, não ficam opcionais e o órgão não consegue escondê-los. O título e os blocos deles podem mudar.</p>
+      <p *ngIf="tipo === 'pdtic'" class="text-xs text-gray-500 italic mt-2">Os nove conteúdos mínimos do PDTIC (art. 12, § 2º) são capítulos
+        travados, com o cadeado: não se apagam, não ficam opcionais e o órgão não consegue escondê-los. O título e os blocos deles podem mudar.</p>
       <div class="flex flex-wrap items-center gap-2 mt-4">
         <button type="button" (click)="novoCapitulo(null)" [disabled]="!modelo"
                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">

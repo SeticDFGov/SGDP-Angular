@@ -70,8 +70,8 @@ export interface PassoNumeradoPe extends PassoTrilhaPe {
   indice: number;
   /**
    * A tela do passo ainda não existe: tela central na "em construção"; passo do
-   * órgão de um tipo que ganha tela nas próximas entregas (o monitoramento, na
-   * rodada B da E7).
+   * órgão de um tipo sem tela (desde a rodada B da E7, todos os tipos do modelo
+   * inicial têm tela).
    */
   emConstrucao: boolean;
 }

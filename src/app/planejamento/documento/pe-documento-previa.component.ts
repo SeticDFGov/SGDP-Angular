@@ -7,21 +7,23 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
-import { PeDocBloco, PeDocCapitulo, PeDocMarcador, PeDocVersao, PeDocumento, PePdtic } from '../../../api/planejamento/interface';
+import {
+  PeCiclo, PeDocBloco, PeDocCapitulo, PeDocMarcador, PeDocVersao, PeDocumento, PePdtic, PeTipoDocumento
+} from '../../../api/planejamento/interface';
 import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { PeDocumentoService } from '../services/pe-documento.service';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import {
-  ItemPaginaDoc, MARCADORES_PADRAO, PaginaDoc, PassoLinkDoc, capituloEscondivel, capitulosDoSumario,
-  classeSituacaoVersao, montarPaginas, nomeArquivoVersao, rotuloSituacaoVersao, textoCapituloVazio, tituloComNumero,
-  versoesEmOrdem
+  AlvoDocumento, ItemPaginaDoc, PaginaDoc, PassoLinkDoc, RelatorioDoc, capituloEscondivel, capitulosDoSumario, chaveDoAlvo,
+  classeSituacaoVersao, marcadoresPadraoDo, montarPaginas, nomeArquivoVersao, rotuloSituacaoVersao, textoCapituloVazio,
+  tituloComNumero, versoesEmOrdem
 } from '../shared/pe-documento-rotulos';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { citacaoTravado } from '../shared/pe-modelo-rotulos';
 import { passoTemFluxos } from '../shared/pe-pdtic-rotulos';
 import { quandoEQuem, textoVigencia } from '../shared/pe-referenciais-rotulos';
-import { tamanhoLegivel } from '../shared/registros/pe-valores';
+import { tamanhoLegivel, textoData } from '../shared/registros/pe-valores';
 import { PeImagensService } from '../shared/texto-rico/pe-imagens.service';
 import { idDaImagem } from '../shared/texto-rico/pe-texto-rico-doc';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
@@ -30,6 +32,13 @@ import { PeDocBlocoComponent } from './pe-doc-bloco.component';
 
 /** Título de capítulo (o próprio do órgão). */
 const MAX_TITULO = 200;
+
+/** As seções onde se editam os dados de cada bloco do acompanhamento (o link "no passo N.M"). */
+const SECAO_DOS_BLOCOS: Readonly<Record<string, string>> = {
+  acoes_por_situacao: 'monitoramento_acoes',
+  riscos_ocorridos: 'riscos_ocorridos',
+  medicoes: 'medicoes_indicadores'
+};
 
 /**
  * Prévia do documento do PDTIC (passo "Monte o documento e confira a prévia" do
@@ -45,6 +54,13 @@ const MAX_TITULO = 200;
  * Quem só lê (consulta do órgão, papéis globais, PDTIC fora de elaboração) vê o
  * mesmo documento, sem os controles, e baixa as versões já geradas. As tabelas,
  * listas e a matriz SWOT só se leem: o link leva ao passo onde os dados se editam.
+ *
+ * E7 rodada B: a mesma prévia mostra os relatórios do acompanhamento (entrada
+ * `relatorio`): o RA de um ciclo, no passo que fecha o ciclo, e o RR, no passo das
+ * lições aprendidas. Muda só a base da API (o alvo), os textos que explicam o
+ * documento, o nome do PDF de reserva e os marcadores (os do modelo do tipo); os
+ * blocos novos (ações por situação, metas por resultado, riscos que ocorreram e
+ * medições) levam ao passo onde os dados se editam, já no ciclo do relatório.
  */
 @Component({
   selector: 'app-pe-documento-previa',
@@ -63,6 +79,8 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   @Input({ required: true }) pdtic!: PePdtic;
+  /** E7 rodada B: o relatório do acompanhamento (RA de um ciclo ou RR) no lugar do documento do PDTIC. */
+  @Input() relatorio: RelatorioDoc | null = null;
   /** Há texto mudado que ainda não foi salvo (a tela do passo pergunta antes de sair). */
   @Output() readonly alterado = new EventEmitter<boolean>();
   /** Um PDF foi gerado (a situação do passo pode ter mudado). */
@@ -71,11 +89,14 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   readonly maxTitulo = MAX_TITULO;
   /**
    * Marcadores do editor: a lista da especificação até a do servidor chegar (GET
-   * modelo/documento, que todo papel lê), pedida na primeira vez que um texto abre.
-   * A do servidor tem também os campos que o administrador criou no dicionário de nomes.
+   * modelo/documento?tipo=, que todo papel lê), pedida na primeira vez que um texto
+   * abre. A do servidor tem também os campos que o administrador criou no dicionário
+   * de nomes.
    */
-  marcadores: readonly PeDocMarcador[] = MARCADORES_PADRAO;
-  private marcadoresPedidos = false;
+  marcadores: readonly PeDocMarcador[] = marcadoresPadraoDo('pdtic');
+  private marcadoresPedidos: PeTipoDocumento | null = null;
+  /** O documento que a tela mostra e grava (o mesmo objeto enquanto não muda: vai para os blocos). */
+  alvo: AlvoDocumento = { tipo: 'pdtic', pdticId: 0 };
 
   doc: PeDocumento | null = null;
   carregando = false;
@@ -108,6 +129,8 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   /** O passo onde o órgão adapta os fluxos (link dos blocos de fluxo, E6). */
   private passoFluxos: PassoLinkDoc | null = null;
   private passosVistos: PassoNumeradoPe[] | null = null;
+  /** Os links que levam ao passo já no ciclo do relatório (o mesmo objeto para o mesmo passo e ciclo). */
+  private linksDoCiclo = new Map<string, PassoLinkDoc>();
 
   private chavePdtic = '';
   private urlBase = '';
@@ -127,12 +150,38 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   }
 
   ngOnChanges(mudancas: SimpleChanges): void {
-    if (!mudancas['pdtic'] || !this.pdtic) return;
-    // Outra situação ou outro PDTIC: o documento (e o PodeEditar) vem de novo
-    const chave = `${this.pdtic.Id}:${this.pdtic.Situacao}:${this.pdtic.PodeEditar}`;
+    if ((!mudancas['pdtic'] && !mudancas['relatorio']) || !this.pdtic) return;
+    const alvo = this.alvoDaEntrada();
+    // Outra situação, outro PDTIC ou outro relatório (no RA, também o ciclo fechado ou reaberto e o relatório
+    // gerado ao fechar): o documento (e o PodeEditar) vem de novo
+    const r = this.relatorio;
+    const ciclo = r?.tipo === 'ra' ? `:${r.ciclo.Situacao}:${r.ciclo.Relatorio?.Numero ?? 0}` : '';
+    const chave = `${this.pdtic.Id}:${this.pdtic.Situacao}:${this.pdtic.PodeEditar}|${chaveDoAlvo(alvo)}${ciclo}`;
     if (chave === this.chavePdtic) return;
+    const outroDocumento = chaveDoAlvo(alvo) !== chaveDoAlvo(this.alvo);
     this.chavePdtic = chave;
+    this.alvo = alvo;
+    if (outroDocumento) {
+      // Outro documento: o anterior sai da tela enquanto o novo carrega (e o editor aberto fecha)
+      this.doc = null;
+      this.blocoAberto = null;
+      this.pendentes.clear();
+      this.avisarAlterado();
+      this.linksDoCiclo.clear();
+      if (this.marcadoresPedidos !== this.tipoDoc) {
+        this.marcadoresPedidos = null;
+        this.marcadores = marcadoresPadraoDo(this.tipoDoc);
+      }
+    }
     this.carregar();
+  }
+
+  /** O alvo pelas entradas: o documento do PDTIC ou o relatório pedido. */
+  private alvoDaEntrada(): AlvoDocumento {
+    const r = this.relatorio;
+    if (r?.tipo === 'ra') return { tipo: 'ra', pdticId: this.pdtic.Id, cicloId: r.ciclo.Id };
+    if (r?.tipo === 'rr') return { tipo: 'rr', pdticId: this.pdtic.Id };
+    return { tipo: 'pdtic', pdticId: this.pdtic.Id };
   }
 
   ngAfterViewChecked(): void {
@@ -150,12 +199,12 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   // ── Carga ─────────────────────────────────────────────────────────────────
 
   carregar(): void {
-    const id = this.pdtic.Id;
+    const alvo = this.alvo;
     this.carga?.unsubscribe();
     this.carregando = true;
     this.erro = null;
     this.urlBase = this.router.url.split('#')[0];
-    this.carga = this.documentoService.documento(id).subscribe({
+    this.carga = this.documentoService.documento(alvo).subscribe({
       next: doc => {
         this.carregando = false;
         this.aplicarDocumento(doc);
@@ -164,7 +213,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
       error: erro => {
         this.carregando = false;
         // 403: o interceptor já tirou a pessoa do módulo
-        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar o documento do PDTIC.');
+        const mensagem = mensagemErroPe(erro, `Não foi possível carregar ${this.nomeDoc}.`);
         if (mensagem !== null) this.erro = mensagem;
       }
     });
@@ -197,7 +246,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     for (const p of passos) {
       const doOrgao = p.doOrgao;
       if (!doOrgao) continue;
-      const link: PassoLinkDoc = { rota: p.rota, numero: p.numero, titulo: p.titulo };
+      const link: PassoLinkDoc = { rota: p.rota, numero: p.numero, titulo: p.titulo, query: { passo: p.numero } };
       porChave.set(doOrgao.Chave, link);
       for (const s of doOrgao.Secoes) if (!porSecao.has(s.Chave)) porSecao.set(s.Chave, link);
       if (!fluxos && passoTemFluxos(doOrgao)) fluxos = link;
@@ -205,6 +254,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     this.passosPorSecao = porSecao;
     this.passosPorChave = porChave;
     this.passoFluxos = fluxos;
+    this.linksDoCiclo.clear();
   }
 
   /**
@@ -238,6 +288,55 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     return textoVigencia(this.pdtic);
   }
 
+  // ── Qual documento (E7 rodada B) ──────────────────────────────────────────
+
+  get tipoDoc(): PeTipoDocumento {
+    return this.alvo.tipo;
+  }
+
+  /** O ciclo do relatório de acompanhamento (null no PDTIC e no RR). */
+  get cicloDoRelatorio(): PeCiclo | null {
+    const r = this.relatorio;
+    return r?.tipo === 'ra' ? r.ciclo : null;
+  }
+
+  /** "o documento do PDTIC", "o relatório de acompanhamento do ciclo 2027 · 1º trimestre", "o relatório de resultados". */
+  get nomeDoc(): string {
+    const ciclo = this.cicloDoRelatorio;
+    if (ciclo) return ciclo.Tipo === 'avaliacao' ? `o relatório de acompanhamento de "${ciclo.Rotulo}"` : `o relatório de acompanhamento do ciclo ${ciclo.Rotulo}`;
+    return this.tipoDoc === 'rr' ? 'o relatório de resultados do PDTIC' : 'o documento do PDTIC';
+  }
+
+  /** O título da caixa do alto ("Prévia do documento", "Prévia do relatório de acompanhamento"). */
+  get tituloPrevia(): string {
+    switch (this.tipoDoc) {
+      case 'ra': return 'Prévia do relatório de acompanhamento (RA)';
+      case 'rr': return 'Prévia do relatório de resultados (RR)';
+      default: return 'Prévia do documento';
+    }
+  }
+
+  /** O nome curto do documento na capa e no rodapé das páginas ("PDTIC · SES", "RA · SES"). */
+  get siglaDoc(): string {
+    switch (this.tipoDoc) {
+      case 'ra': return 'RA';
+      case 'rr': return 'RR';
+      default: return 'PDTIC';
+    }
+  }
+
+  /** O RA de um ciclo de monitoramento: os capítulos da avaliação ficam em branco. */
+  get raDeMonitoramento(): boolean {
+    return this.cicloDoRelatorio?.Tipo === 'monitoramento';
+  }
+
+  /** O período do ciclo do RA ("01/01/2027 a 31/03/2027"). */
+  get periodoDoCiclo(): string {
+    const c = this.cicloDoRelatorio;
+    if (!c?.Inicio || !c.Fim) return '';
+    return `${textoData(c.Inicio)} a ${textoData(c.Fim)}`;
+  }
+
   get passoNomes(): PassoLinkDoc | null {
     return this.passosPorSecao.get('nomes') ?? null;
   }
@@ -259,7 +358,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   }
 
   textoVazio(c: PeDocCapitulo): string {
-    return textoCapituloVazio(c);
+    return textoCapituloVazio(c, this.tipoDoc, this.raDeMonitoramento);
   }
 
   rotuloVersao(v: PeDocVersao): string {
@@ -294,9 +393,32 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     if (b.Tipo === 'tabela_secao') secao = b.Tabela?.SecaoChave ?? null;
     else if (b.Tipo === 'lista_tema') secao = 'acoes';
     else if (b.Tipo === 'matriz_swot') secao = 'swot_forcas';
+    else if (b.Tipo === 'metas_por_resultado') secao = this.tipoDoc === 'rr' ? 'resultados_metas' : 'resultados_intermediarios';
+    else if (SECAO_DOS_BLOCOS[b.Tipo]) secao = SECAO_DOS_BLOCOS[b.Tipo];
     else return null;
-    return (secao ? this.passosPorSecao.get(secao) : null)
+    const link = (secao ? this.passosPorSecao.get(secao) : null)
       ?? (item.capitulo.PassoChave ? this.passosPorChave.get(item.capitulo.PassoChave) ?? null : null);
+    return link ? this.noCicloDoRelatorio(link, secao) : null;
+  }
+
+  /**
+   * No RA, o link de uma seção por ciclo do mesmo tipo do ciclo do relatório leva
+   * ao passo já nesse ciclo (`?ciclo=`); o mesmo objeto para o mesmo passo e ciclo.
+   */
+  private noCicloDoRelatorio(link: PassoLinkDoc, secao: string | null): PassoLinkDoc {
+    const ciclo = this.cicloDoRelatorio;
+    if (!ciclo || !secao) return link;
+    const doTipo = ciclo.Tipo === 'avaliacao'
+      ? secao === 'resultados_intermediarios' || secao === 'analise_intermediaria' || secao === 'avaliacao_comite'
+      : secao === 'monitoramento_acoes' || secao === 'medicoes_indicadores' || secao === 'riscos_ocorridos' || secao === 'relatorio_ciclo';
+    if (!doTipo) return link;
+    const chave = `${link.rota}|${ciclo.Id}`;
+    let noCiclo = this.linksDoCiclo.get(chave);
+    if (!noCiclo) {
+      noCiclo = { ...link, query: { passo: link.numero, ciclo: ciclo.Id } };
+      this.linksDoCiclo.set(chave, noCiclo);
+    }
+    return noCiclo;
   }
 
   porChave(_: number, item: { chave: string }): string {
@@ -320,16 +442,17 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     this.carregarMarcadores();
   }
 
-  /** A lista de marcadores do servidor, uma vez (sem ela, fica a da especificação). */
+  /** A lista de marcadores do servidor, uma vez por tipo de documento (sem ela, fica a da especificação). */
   private carregarMarcadores(): void {
-    if (this.marcadoresPedidos) return;
-    this.marcadoresPedidos = true;
-    this.documentoService.modelo('pdtic').subscribe({
+    const tipo = this.tipoDoc;
+    if (this.marcadoresPedidos === tipo) return;
+    this.marcadoresPedidos = tipo;
+    this.documentoService.modelo(tipo).subscribe({
       next: modelo => {
-        if (modelo.Marcadores?.length) this.marcadores = modelo.Marcadores;
+        if (modelo.Marcadores?.length && this.tipoDoc === tipo) this.marcadores = modelo.Marcadores;
       },
       error: () => {
-        this.marcadoresPedidos = false;
+        if (this.marcadoresPedidos === tipo) this.marcadoresPedidos = null;
       }
     });
   }
@@ -411,7 +534,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     this.blocoAberto = null;
     this.salvandoCapitulo = c.Id;
     this.erroTitulo = null;
-    this.documentoService.salvarCapitulo(this.pdtic.Id, c.Id, form).subscribe({
+    this.documentoService.salvarCapitulo(this.alvo, c.Id, form).subscribe({
       next: novo => {
         this.salvandoCapitulo = null;
         this.renomeando = null;
@@ -494,7 +617,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
       return;
     }
     this.gerando = true;
-    this.documentoService.gerarPdf(this.pdtic.Id).subscribe({
+    this.documentoService.gerarPdf(this.alvo).subscribe({
       next: versao => {
         this.versoes = versoesEmOrdem([versao, ...this.versoes.filter(v => v.Numero !== versao.Numero)]);
         const texto = `PDF gerado: versão ${versao.Numero} (${rotuloSituacaoVersao(versao.Situacao).toLowerCase()}). O download começa em seguida.`;
@@ -516,8 +639,9 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   baixar(v: PeDocVersao, depois?: () => void): void {
     if (this.baixando !== null && !depois) return;
     this.baixando = v.Numero;
-    const reserva = nomeArquivoVersao(this.doc?.OrgaoSigla ?? this.pdtic.OrgaoSigla, this.doc?.Versao ?? this.pdtic.Versao, v.Numero);
-    this.documentoService.baixarVersao(this.pdtic.Id, v.Numero).subscribe({
+    const reserva = nomeArquivoVersao(this.doc?.OrgaoSigla ?? this.pdtic.OrgaoSigla, this.doc?.Versao ?? this.pdtic.Versao, v.Numero,
+      this.tipoDoc, this.cicloDoRelatorio?.Rotulo ?? null);
+    this.documentoService.baixarVersao(this.alvo, v.Numero).subscribe({
       next: resposta => {
         this.baixando = null;
         salvarResposta(resposta, reserva);

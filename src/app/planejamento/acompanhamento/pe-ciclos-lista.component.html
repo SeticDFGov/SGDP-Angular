@@ -1,0 +1,137 @@
+<section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="idBase + '-titulo'">
+  <div class="flex flex-col md:flex-row md:justify-between gap-3">
+    <div class="min-w-0">
+      <h2 [id]="idBase + '-titulo'" tabindex="-1" class="text-base font-semibold text-gray-900">{{ titulo }}</h2>
+      <p *ngIf="modo === 'lista'" class="text-sm text-gray-600 leading-relaxed mt-0.5">{{ explicacao }}</p>
+    </div>
+    <div *ngIf="modo === 'lista' && tipo === 'avaliacao' && podeAbrirAvaliacao" class="shrink-0">
+      <button type="button" [id]="idBase + '-abrir'" (click)="abrirJanela()"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700">
+        <span class="material-icons text-base" aria-hidden="true">add_task</span> Abrir uma avaliação
+      </button>
+    </div>
+  </div>
+
+  <p *ngIf="carregando && ciclos.length === 0" role="status" class="mt-3 text-sm text-gray-600">Carregando os ciclos...</p>
+  <div *ngIf="erro" role="alert" class="mt-3 text-sm text-red-700">
+    {{ erro }}
+    <button type="button" (click)="recarregar.emit()" class="font-semibold underline">Tentar de novo</button>
+  </div>
+  <p *ngIf="!carregando && !erro && ciclos.length === 0" class="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+    {{ vazio }}
+  </p>
+
+  <!-- A lista completa (o primeiro passo do tipo) -->
+  <ng-container *ngIf="modo === 'lista' && visiveis.length > 0">
+    <div class="mt-4 overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" [attr.aria-label]="'Tabela: ' + nomeTabela">
+      <table class="w-full text-sm">
+        <caption class="sr-only">{{ titulo }}: o período, o prazo para fechar, a situação e o que cada um já tem registrado</caption>
+        <thead>
+          <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+            <th scope="col" class="px-3 py-2.5">{{ rotuloCiclo }}</th>
+            <th scope="col" class="px-3 py-2.5">Período</th>
+            <th scope="col" class="px-3 py-2.5">Prazo para fechar</th>
+            <th scope="col" class="px-3 py-2.5">Situação</th>
+            <th scope="col" class="px-3 py-2.5">Registrado no ciclo</th>
+            <th scope="col" class="px-3 py-2.5"><span class="sr-only">Ver</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of visiveis; trackBy: porId" class="border-t border-gray-100 align-top" [ngClass]="ehEscolhido(c) ? 'bg-purple-50' : ''">
+            <th scope="row" class="px-3 py-2.5 text-left font-semibold text-gray-900 whitespace-nowrap">{{ c.Rotulo }}</th>
+            <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ periodo(c) }}</td>
+            <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ data(c.Prazo) }}</td>
+            <td class="px-3 py-2.5">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold" [ngClass]="classeSituacao(c)">
+                <span class="material-icons text-sm" aria-hidden="true">{{ iconeSituacao(c) }}</span> {{ rotuloSituacao(c) }}
+              </span>
+              <span *ngIf="c.FechadoEm" class="block text-xs text-gray-600 mt-0.5">em {{ quando(c.FechadoEm) }}<ng-container *ngIf="c.FechadoPor"> por {{ c.FechadoPor }}</ng-container></span>
+            </td>
+            <td class="px-3 py-2.5 text-gray-800">
+              {{ resumo(c) || '-' }}
+              <span *ngIf="c.Relatorio as r" class="block text-xs text-gray-600 mt-0.5">Relatório: versão {{ r.Numero }}, {{ rotuloVersao(r.Situacao) }}</span>
+            </td>
+            <td class="px-3 py-2.5 text-right">
+              <button type="button" (click)="ver(c)" [attr.aria-current]="ehEscolhido(c) ? 'true' : null"
+                      [attr.aria-label]="(ehEscolhido(c) ? rotuloCiclo + ' à vista: ' : 'Ver ') + c.Rotulo"
+                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-semibold whitespace-nowrap"
+                      [ngClass]="ehEscolhido(c) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
+                <span class="material-icons text-sm" aria-hidden="true">{{ ehEscolhido(c) ? 'check' : 'visibility' }}</span>
+                {{ ehEscolhido(c) ? 'À vista' : 'Ver' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <button *ngIf="futurosEscondidos > 0 || mostrarFuturos" type="button" (click)="alternarFuturos()" [attr.aria-expanded]="mostrarFuturos"
+            class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-purple-700 hover:underline">
+      <span class="material-icons text-base" aria-hidden="true">{{ mostrarFuturos ? 'expand_less' : 'expand_more' }}</span>
+      {{ textoFuturos }}
+    </button>
+  </ng-container>
+
+  <!-- A forma compacta (os passos seguintes): o ciclo à vista e a troca -->
+  <ng-container *ngIf="modo === 'compacta' && ciclos.length > 0">
+    <div *ngIf="escolhido as c" class="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-800">
+      <span class="font-semibold text-gray-900">{{ c.Rotulo }}</span>
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold" [ngClass]="classeSituacao(c)">
+        <span class="material-icons text-sm" aria-hidden="true">{{ iconeSituacao(c) }}</span> {{ rotuloSituacao(c) }}
+      </span>
+      <span *ngIf="periodo(c) !== '-'" class="text-gray-600">Período: {{ periodo(c) }}</span>
+      <span *ngIf="c.Prazo" class="text-gray-600">· Prazo para fechar: {{ data(c.Prazo) }}</span>
+    </div>
+    <div *ngIf="ciclos.length > 1" class="mt-3 flex flex-wrap items-end gap-2">
+      <div>
+        <label [for]="idBase + '-escolha'" class="block text-xs font-semibold text-gray-700 mb-1">{{ tipo === 'avaliacao' ? 'Ver outra avaliação' : 'Ver outro ciclo' }}</label>
+        <select [id]="idBase + '-escolha'" [(ngModel)]="escolhaCompacta" [name]="idBase + '-escolha'"
+                class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option *ngFor="let c of ciclos; trackBy: porId" [ngValue]="c.Id">{{ opcao(c) }}</option>
+        </select>
+      </div>
+      <button type="button" (click)="verEscolhaCompacta()" [disabled]="escolhaCompacta === escolhido?.Id"
+              class="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">Ver</button>
+    </div>
+  </ng-container>
+</section>
+
+<!-- Abrir uma avaliação (janela com foco preso e Esc) -->
+<div *ngIf="janela" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div appDialogo [attr.aria-labelledby]="idBase + '-janela-titulo'" (fechar)="fecharJanela()" class="bg-white rounded-xl shadow-xl w-full max-w-lg">
+    <form (ngSubmit)="abrirAvaliacao()">
+      <div class="px-6 pt-4 pb-3 border-b border-gray-100">
+        <h2 [id]="idBase + '-janela-titulo'" class="text-lg font-bold text-gray-900">Abrir uma avaliação intermediária?</h2>
+      </div>
+      <div class="px-6 py-4 max-h-[70vh] overflow-y-auto text-sm text-gray-700 leading-relaxed">
+        <p>Ao abrir:</p>
+        <ul class="list-disc ml-5 mt-1 space-y-1">
+          <li>a equipe registra os resultados intermediários das metas, a análise e a avaliação do comitê nos passos da avaliação;</li>
+          <li>só uma avaliação fica aberta por vez: para abrir outra, feche esta antes;</li>
+          <li>se o comitê decidir revisar o PDTIC, a equipe abre a revisão no passo da avaliação do comitê.</li>
+        </ul>
+        <div class="mt-4">
+          <label [for]="idBase + '-rotulo'" class="block text-sm font-semibold text-gray-800">
+            Nome da avaliação<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <input [id]="idBase + '-rotulo'" type="text" name="pe-avaliacao-rotulo" [(ngModel)]="rotulo" [maxlength]="maxRotulo"
+                 aria-required="true" [attr.aria-invalid]="erroRotulo ? true : null"
+                 [attr.aria-describedby]="erroRotulo ? idBase + '-rotulo-ajuda ' + idBase + '-rotulo-erro' : idBase + '-rotulo-ajuda'"
+                 class="mt-1 w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erroRotulo ? 'border-red-500' : 'border-gray-300'" />
+          <p [id]="idBase + '-rotulo-ajuda'" class="text-xs text-gray-500 italic mt-1">Como a avaliação aparece nas listas e no relatório de acompanhamento.</p>
+          <p *ngIf="erroRotulo as e" [id]="idBase + '-rotulo-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+        <p *ngIf="erroServidor" [id]="idBase + '-erro-servidor'" tabindex="-1" role="alert"
+           class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erroServidor }}</p>
+      </div>
+      <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+        <button type="button" (click)="fecharJanela()" [disabled]="abrindo"
+                class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+        <button type="submit" [disabled]="abrindo"
+                class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-60">
+          <span class="material-icons text-lg" aria-hidden="true">add_task</span> {{ abrindo ? 'Abrindo...' : 'Abrir a avaliação' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

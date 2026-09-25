@@ -50,6 +50,17 @@ export interface PeFonteRegistros {
   aceitaCatalogo(catalogo: string): boolean;
 }
 
+/**
+ * E7 rodada B: o ciclo das seções por ciclo do PDTIC (o `?cicloId=` das rotas de
+ * registros e da planilha da seção). `daSecao` devolve null na seção que não é
+ * por ciclo (o parâmetro não vai) e quando não há ciclo escolhido.
+ */
+export interface CiclosDaFonte {
+  /** Entra na chave da fonte: trocou o ciclo, os componentes buscam de novo. */
+  readonly chave: string;
+  daSecao(secao: string): number | null;
+}
+
 /** Catálogos que a API responde (os de ligação com catálogo). */
 export const CATALOGOS_DISPONIVEIS: ReadonlySet<string> = new Set(['petic_objetivo', 'petic_eixo', 'principio', 'pgia_sistema']);
 
@@ -72,24 +83,31 @@ export class PeRegistrosService {
    * Fonte dos registros de um dono, para os componentes genéricos. `estado` entra
    * na chave (ex.: a situação da versão do PETIC): quando o dono muda de estado,
    * a chave muda e os componentes buscam de novo (e o `PodeEditar` vem atualizado).
+   * E7 rodada B: `ciclos` põe o `?cicloId=` nas seções por ciclo do PDTIC (a chave
+   * dele também entra na da fonte).
    */
-  fonte(dono: PeDono, estado?: string): PeFonteRegistros {
+  fonte(dono: PeDono, estado?: string, ciclos?: CiclosDaFonte | null): PeFonteRegistros {
     const caminho = caminhoDono(dono);
-    const chave = estado ? `${caminho}:${estado}` : caminho;
+    const chave = (estado ? `${caminho}:${estado}` : caminho) + (ciclos ? `|${ciclos.chave}` : '');
     const base = `${this.apiUrl}/${caminho}`;
     const registros = (secao: string) => `${base}/secoes/${encodeURIComponent(secao)}/registros`;
+    /** O `?cicloId=` da seção por ciclo (nas demais, nada). */
+    const doCiclo = (secao: string, params = new HttpParams()): HttpParams => {
+      const cicloId = ciclos?.daSecao(secao) ?? null;
+      return cicloId ? params.set('cicloId', cicloId) : params;
+    };
     return {
       chave,
-      listar: secao => this.http.get<PeRegistrosDaSecao>(registros(secao)),
-      criar: (secao, form) => this.http.post<PeRegistro>(registros(secao), form),
-      atualizar: (secao, id, form) => this.http.put<PeRegistro>(`${registros(secao)}/${id}`, form),
-      apagar: (secao, id) => this.http.delete(`${registros(secao)}/${id}`),
+      listar: secao => this.http.get<PeRegistrosDaSecao>(registros(secao), { params: doCiclo(secao) }),
+      criar: (secao, form) => this.http.post<PeRegistro>(registros(secao), form, { params: doCiclo(secao) }),
+      atualizar: (secao, id, form) => this.http.put<PeRegistro>(`${registros(secao)}/${id}`, form, { params: doCiclo(secao) }),
+      apagar: (secao, id) => this.http.delete(`${registros(secao)}/${id}`, { params: doCiclo(secao) }),
       ordenar: (secao, ids) => {
         const corpo: PeOrdemForm = { Ids: ids };
-        return this.http.put(`${registros(secao)}/ordem`, corpo);
+        return this.http.put(`${registros(secao)}/ordem`, corpo, { params: doCiclo(secao) });
       },
       planilha: (secao, formato) => this.http.get(`${base}/planilha/${encodeURIComponent(secao)}`, {
-        params: new HttpParams().set('formato', formato),
+        params: doCiclo(secao, new HttpParams().set('formato', formato)),
         responseType: 'blob',
         observe: 'response'
       }),

@@ -3,9 +3,10 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Title } from '@angular/platform-browser';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import {
-  PeCampoTrilha, PeNaoSeAplica, PePassoTrilha, PePdtic, PeRegistro, PeSecaoTrilha, PeSituacaoPassoPdtic
+  PeCampoTrilha, PeCiclo, PeNaoSeAplica, PePassoTrilha, PePdtic, PeRegistro, PeSecaoTrilha, PeSituacaoPassoPdtic, PeTipoCiclo
 } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
@@ -15,17 +16,29 @@ import { NomesDoModelo, citacaoTravado, descricaoCampo, rotuloTipoPasso } from '
 import {
   GrupoPassoPdtic, SECAO_APROVACAO_AUTORIDADE, SECAO_AVALIACAO_COMITE, SECAO_CRONOGRAMA, SECAO_PUBLICACAO,
   TIPOS_PASSO_COM_SECOES, TIPOS_PASSO_COM_TELA, aceitaNaoSeAplica, classeEstadoPasso, ehPassoSistemasIa, grupoDoPasso,
-  iconeEstadoPasso, itemDaSecaoPdtic, motivoLeituraDoPasso, passoTemFluxos, pdticAntesDaPublicacao, pdticVigente, statusDoPassoPdtic,
-  textoDoStatus
+  iconeEstadoPasso, itemDaSecaoPdtic, motivoLeituraDoPasso, passoTemFluxos, pdticAntesDaPublicacao, pdticDepoisDaPublicacao, pdticVigente,
+  statusDoPassoPdtic, textoDoStatus
 } from '../shared/pe-pdtic-rotulos';
+import {
+  PassoDaGrade, SECAO_ACOES, SECAO_INDICADORES_MONITORAMENTO, SECAO_MEDICOES, SECAO_MONITORAMENTO_ACOES, SECAO_RELATORIO_CICLO,
+  SECOES_DO_RR, SECOES_POR_CICLO, TipoGrade, cicloAceitaDados, cicloAnterior, cicloDoEndereco, cicloMaisRecente, cicloPadrao,
+  ciclosEmOrdem, porCicloDaSecao, tipoCicloDoPasso
+} from '../shared/pe-ciclos-rotulos';
+import { RelatorioDoc } from '../shared/pe-documento-rotulos';
+import { textoData } from '../shared/registros/pe-valores';
 import { PeSecaoRegistrosComponent } from '../shared/registros/pe-secao-registros.component';
-import { PeFonteRegistros, PeRegistrosService } from '../services/pe-registros.service';
+import { CiclosDaFonte, PeFonteRegistros, PeRegistrosService } from '../services/pe-registros.service';
 import { PeFluxosService, PeFonteFluxos } from '../services/pe-fluxos.service';
+import { PeCiclosService } from '../services/pe-ciclos.service';
+import { PePdticService } from '../services/pe-pdtic.service';
 import { PeFluxoEditorComponent } from '../fluxos/pe-fluxo-editor.component';
 import { CargaPdticPe, PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { StatusPassoPe } from '../trilha/pe-trilha-status.service';
 import { BASE_PE, PassoNumeradoPe, TITULO_PASSO_GENERICO, passoDaUrl, rotuloGuia } from '../trilha/pe-trilhas';
 import { PeDocumentoPreviaComponent } from '../documento/pe-documento-previa.component';
+import { PeCiclosListaComponent } from '../acompanhamento/pe-ciclos-lista.component';
+import { PeGradeCicloComponent } from '../acompanhamento/pe-grade-ciclo.component';
+import { PeCicloFechamentoComponent } from '../acompanhamento/pe-ciclo-fechamento.component';
 import { PeAcaoPdticComponent } from './pe-acao-pdtic.component';
 import { PeComentariosPassoComponent } from './pe-comentarios-passo.component';
 import { PeNaoSeAplicaComponent } from './pe-nao-se-aplica.component';
@@ -69,6 +82,19 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
  *   publicação" (`pe-passo-publicacao`). Os passos aguardando e os feitos fora do
  *   sistema dizem o porquê no alto.
  *
+ * - Acompanhamento (E7 rodada B), depois da publicação: nos passos com seções por
+ *   ciclo, os ciclos do tipo do passo (monitoramento ou avaliação), com o ciclo à
+ *   vista no endereço (`?ciclo=`; sem ele, o do passo anterior do mesmo tipo, senão
+ *   o que pede atenção) e a fonte dos registros levando o `cicloId` nessas seções.
+ *   No primeiro passo do tipo, a lista dos ciclos (e "Abrir uma avaliação"); nos
+ *   seguintes, a troca compacta. No 5.1, a grade da situação das ações e a das
+ *   medições no lugar das tabelas genéricas; os riscos que ocorreram seguem na
+ *   tabela genérica. No último passo do tipo, o resumo e o fechamento (e a
+ *   reabertura) do ciclo e a prévia do relatório de acompanhamento (RA); no passo
+ *   das lições aprendidas (7.2), a do relatório de resultados (RR). Na avaliação
+ *   do comitê, a revisão sai da decisão "revisar" da avaliação mais recente. Tudo
+ *   isso carrega num pacote próprio, pelo `@defer`, só nesses passos.
+ *
  * Quem não edita lê (consulta do órgão, papéis globais, PDTIC fora de elaboração):
  * quem decide é o `PodeEditar` do servidor (desde a E7, o do passo), e a tela
  * explica o porquê pela situação do PDTIC e pela etapa do passo. Nenhum botão de
@@ -82,7 +108,7 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
     CommonModule, RouterModule, CitaPlanejamentoDirective, PeSecaoRegistrosComponent, PeNaoSeAplicaComponent,
     PeComentariosPassoComponent, PeSistemasIaPgiaComponent, PeTemasAcoesComponent, PeDocumentoPreviaComponent,
     PeFluxoEditorComponent, PeSugerirCronogramaComponent, PePassoEnvioComponent, PePassoDeliberacaoComponent,
-    PePassoPublicacaoComponent, PeAcaoPdticComponent
+    PePassoPublicacaoComponent, PeAcaoPdticComponent, PeCiclosListaComponent, PeGradeCicloComponent, PeCicloFechamentoComponent
   ],
   templateUrl: './pe-passo-orgao.component.html'
 })
@@ -93,6 +119,8 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly registrosService = inject(PeRegistrosService);
   private readonly fluxosService = inject(PeFluxosService);
+  private readonly ciclosService = inject(PeCiclosService);
+  private readonly pdticService = inject(PePdticService);
   private readonly notificacoes = inject(NotificationService);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
@@ -127,6 +155,39 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   /** Onde o passo fica no caminho do PDTIC (elaboração, deliberação, publicação ou acompanhamento). */
   private grupo: GrupoPassoPdtic = 'elaboracao';
 
+  // ── E7 rodada B: ciclos do acompanhamento ─────────────────────────────────
+  /** Os ciclos que o passo usa (monitoramento ou avaliação); null nos demais passos. */
+  tipoCiclo: PeTipoCiclo | null = null;
+  ciclos: PeCiclo[] = [];
+  /** O ciclo à vista (o do endereço, `?ciclo=`). */
+  ciclo: PeCiclo | null = null;
+  carregandoCiclos = false;
+  erroCiclos: string | null = null;
+  /** O primeiro passo do tipo na trilha (5.1, 6.1): a lista completa dos ciclos. */
+  passoListaCiclos = false;
+  /** O último passo do tipo na trilha (5.2, 6.3; 5.1 quando o nível não tem o 5.2): o fechamento e o RA. */
+  passoFechaCiclo = false;
+  /** O número desse passo (o "reabra no passo N" das seções do ciclo fechado). */
+  numeroPassoFecha: string | null = null;
+  /** O nível tem o resumo do ciclo (5.2): o fechamento também o exige. */
+  exigeResumo = false;
+  /** O passo do relatório de resultados (7.2): a prévia do RR. */
+  passoRr = false;
+  /** Nos passos de aprovação da etapa 7, o passo onde está o relatório de resultados. */
+  linkRr: { rota: string; numero: string } | null = null;
+  /** Onde as ações e os indicadores de monitoramento se cadastram (o link das grades vazias). */
+  passoAcoesGrade: PassoDaGrade | null = null;
+  passoIndicadores: PassoDaGrade | null = null;
+  /** O relatório de acompanhamento do ciclo à vista e o de resultados (os mesmos objetos enquanto não mudam). */
+  relatorioRa: RelatorioDoc | null = null;
+  readonly relatorioRr: RelatorioDoc = { tipo: 'rr' };
+  private chaveCiclos = '';
+  private cargaCiclos?: Subscription;
+  /** A troca de ciclo já foi confirmada (a lista pediu com mudança pendente): a leitura do endereço não pergunta de novo. */
+  private trocaDeCicloConfirmada = false;
+  /** Seções do passo pela chave, com o tipo de ciclo de cada uma. */
+  private ciclosDasSecoes = new Map<string, PeTipoCiclo | null>();
+
   private chaveFonte = '';
   private chavePasso = '';
   /** Seções com mudança não salva (pela chave). */
@@ -147,7 +208,10 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   private destruida = false;
 
   ngOnInit(): void {
-    this.destroyRef.onDestroy(() => this.destruida = true);
+    this.destroyRef.onDestroy(() => {
+      this.destruida = true;
+      this.cargaCiclos?.unsubscribe();
+    });
     this.estadoService.estado$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.ler());
@@ -246,8 +310,21 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     const p = this.pdtic;
     if (!p || !this.estadoService.ehEquipeDoOrgao || !pdticVigente(p.Situacao)) return false;
     if (this.decisoes[SECAO_AVALIACAO_COMITE] !== 'revisar') return false;
+    // Rodada B: a revisão vale pela avaliação mais recente (numa mais antiga, a tela só explica)
+    if (this.tipoCiclo === 'avaliacao' && !this.avaliacaoMaisRecenteAVista) return false;
     const versoes = this.estadoService.atual?.versoes ?? [];
     return !versoes.some(v => v.Id !== p.Id && pdticAntesDaPublicacao(v.Situacao));
+  }
+
+  /** A avaliação à vista é a mais recente (é por ela que a revisão se abre). */
+  get avaliacaoMaisRecenteAVista(): boolean {
+    return !!this.ciclo && cicloMaisRecente(this.ciclos)?.Id === this.ciclo.Id;
+  }
+
+  /** Numa avaliação mais antiga com a decisão "revisar": a revisão se abre pela mais recente. */
+  get revisaoEmOutraAvaliacao(): boolean {
+    return this.passoAprovacao && this.tipoCiclo === 'avaliacao' && this.decisoes[SECAO_AVALIACAO_COMITE] === 'revisar'
+      && !!this.ciclo && !this.avaliacaoMaisRecenteAVista && !!this.pdtic && pdticVigente(this.pdtic.Situacao);
   }
 
   /** "Encerrar o PDTIC": na aprovação da autoridade máxima (7.4) com a decisão "aprovado", para a equipe do órgão. */
@@ -313,6 +390,19 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
 
   /** Como o passo fica feito, para quem preenche. */
   get textoPreencher(): string {
+    if (this.tipoCiclo === 'monitoramento') {
+      if (this.temGrade) {
+        return 'Escolha o ciclo na lista. Na grade das ações, registre a situação de cada ação no ciclo e salve a grade inteira; faça o '
+          + 'mesmo com as medições, se houver, e inclua os riscos que ocorreram. O passo fica feito quando os ciclos que já começaram '
+          + 'estão fechados.';
+      }
+      return 'Confira o resumo do ciclo, preencha o resumo do período e feche o ciclo até o prazo: o sistema gera o relatório de '
+        + 'acompanhamento (RA), que fica logo abaixo para conferir, ajustar os textos e baixar.';
+    }
+    if (this.tipoCiclo === 'avaliacao') {
+      return 'Escolha a avaliação intermediária (ou abra uma, quando o comitê pedir) e preencha as seções desta avaliação. Os campos com '
+        + 'asterisco são obrigatórios.';
+    }
     if (this.passoEnvio) {
       return 'Registre a aprovação do SGTIC abaixo e salve. Depois, envie ao CGTIC no bloco "Envio ao CGTIC", logo depois dela: o '
         + 'passo fica feito com o envio. Os campos com asterisco são obrigatórios.';
@@ -373,12 +463,142 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
       const texto = textoDoStatus(this.status);
       return /[.!?]$/.test(texto) ? texto : `${texto}.`;
     }
+    // Rodada B: o passo aceita gravação, mas o ciclo à vista não (fechado ou ainda por começar)
+    const ciclo = this.ciclo;
+    if (this.podeEditarPasso && ciclo && !cicloAceitaDados(ciclo)) {
+      const qual = this.tipoCiclo === 'avaliacao' ? 'Esta avaliação' : 'Este ciclo';
+      const onde = this.numeroPassoFecha ? ` no passo ${this.numeroPassoFecha}` : '';
+      return ciclo.Situacao === 'fechado'
+        ? `${qual} está ${this.tipoCiclo === 'avaliacao' ? 'fechada' : 'fechado'}: os dados só se leem. Para mudar, reabra${onde}.`
+        : `${qual} ainda não começou${ciclo.Inicio ? `: os dados entram a partir de ${textoData(ciclo.Inicio)}` : ''}.`;
+    }
     return `Você pode consultar e ${baixa.replace('baixa ', 'baixar ')}. Quem preenche é a equipe do órgão.`;
   }
 
   /** O quadro "por que só leio" no alto: passos que gravam algo (seções, documento, fluxos) e que a pessoa não edita agora. */
   get mostraAvisoLeitura(): boolean {
     return this.temTela && !this.passoDeliberacao && !this.podeEditarPasso && !!this.andamento;
+  }
+
+  // ── E7 rodada B: ciclos, grades e relatórios ──────────────────────────────
+
+  /** O passo tem uma das grades (5.1): a da situação das ações ou a das medições. */
+  get temGrade(): boolean {
+    return !!this.passo?.Secoes.some(s => this.gradeDaSecao(s) !== null);
+  }
+
+  /** A grade que substitui a tabela genérica da seção (null: a seção usa os componentes genéricos). */
+  gradeDaSecao(secao: PeSecaoTrilha): TipoGrade | null {
+    if (secao.Chave === SECAO_MONITORAMENTO_ACOES) return 'acoes';
+    if (secao.Chave === SECAO_MEDICOES) return 'medicoes';
+    return null;
+  }
+
+  /** A seção guarda um registro por ciclo (e só carrega com um ciclo à vista). */
+  secaoPorCiclo(secao: PeSecaoTrilha): boolean {
+    return porCicloDaSecao(secao) !== null;
+  }
+
+  /**
+   * Os ciclos existem (o PDTIC foi publicado) e o passo usa algum: a lista (ou a
+   * troca compacta) aparece. Antes da publicação, o passo aguarda (o servidor diz o
+   * motivo) e as seções por ciclo explicam por que ainda não abrem.
+   */
+  get ciclosDisponiveis(): boolean {
+    return !!this.tipoCiclo && !!this.pdtic && pdticDepoisDaPublicacao(this.pdtic.Situacao);
+  }
+
+  /** "Abrir uma avaliação": quem grava no passo, sem outra avaliação aberta. */
+  get podeAbrirAvaliacao(): boolean {
+    return this.tipoCiclo === 'avaliacao' && this.podeEditarPasso && !this.carregandoCiclos
+      && !this.ciclos.some(c => cicloAceitaDados(c));
+  }
+
+  /** O nome do ciclo anterior ao à vista, para a explicação dos valores ao lado das grades. */
+  get rotuloAnterior(): string | null {
+    return cicloAnterior(this.ciclos, this.ciclo)?.Rotulo ?? null;
+  }
+
+  /**
+   * O RA do ciclo à vista, no passo que fecha o ciclo: sempre na avaliação e no
+   * monitoramento com o resumo do ciclo (5.2); no nível sem o 5.2, depois que o
+   * fechamento gerou o relatório.
+   */
+  get mostraRa(): boolean {
+    const c = this.ciclo;
+    if (!this.passoFechaCiclo || !c || c.Situacao === 'futuro' || !this.ciclosDisponiveis) return false;
+    return this.tipoCiclo === 'avaliacao' || this.exigeResumo || !!c.Relatorio;
+  }
+
+  /** O RR, no passo das lições aprendidas, depois da publicação. */
+  get mostraRr(): boolean {
+    return this.passoRr && !!this.pdtic && pdticDepoisDaPublicacao(this.pdtic.Situacao);
+  }
+
+  /** Por que uma seção por ciclo não carrega (sem ciclo à vista). */
+  get textoSemCiclo(): string {
+    if (!this.pdtic || !pdticDepoisDaPublicacao(this.pdtic.Situacao)) {
+      return 'Esta seção se preenche a cada ciclo do acompanhamento, que começa depois da publicação do PDTIC.';
+    }
+    if (this.carregandoCiclos) return 'Carregando os ciclos...';
+    if (this.erroCiclos) return 'Sem os ciclos, esta seção não abre. Use "Tentar de novo" na lista dos ciclos.';
+    return this.tipoCiclo === 'avaliacao'
+      ? 'Esta seção se preenche numa avaliação intermediária. Abra uma avaliação quando o comitê pedir.'
+      : 'Esta seção se preenche a cada ciclo de monitoramento. Ainda não há ciclo para mostrar.';
+  }
+
+  /** Quem escolhe na lista: a troca vai para o endereço (com mudança não salva, pergunta antes). */
+  escolherCiclo(id: number): void {
+    if (id === this.ciclo?.Id) return;
+    if (this.mudancaNoCiclo && !confirm(`Há mudanças que ainda não foram salvas neste passo. Ver ${this.tipoCiclo === 'avaliacao' ? 'outra avaliação' : 'outro ciclo'} assim mesmo? Elas vão se perder.`)) {
+      return;
+    }
+    this.trocaDeCicloConfirmada = true;
+    this.sujas.clear();
+    this.documentoSujo = false;
+    this.irParaCiclo(id);
+  }
+
+  /** A avaliação nova (aberta na lista): os ciclos vêm de novo, e ela passa a ser a da tela. */
+  aoAbrirAvaliacao(ciclo: PeCiclo): void {
+    this.carregarCiclos(() => {
+      if (ciclo?.Id && this.ciclos.some(c => c.Id === ciclo.Id)) this.escolherCiclo(ciclo.Id);
+    });
+    this.aoMudarSituacao();
+  }
+
+  /** O ciclo foi fechado ou reaberto: ele entra na lista, as seções vêm de novo (o `PodeEditar` mudou) e a situação também. */
+  aoMudarCiclo(ciclo: PeCiclo): void {
+    if (ciclo && this.ciclo && ciclo.Id === this.ciclo.Id) {
+      this.ciclos = this.ciclos.map(c => (c.Id === ciclo.Id ? { ...c, ...ciclo } : c));
+      this.ciclo = this.ciclos.find(c => c.Id === ciclo.Id) ?? this.ciclo;
+      this.relatorioRa = null;
+      this.atualizarRelatorioRa();
+      this.atualizarFonte();
+    }
+    // O resumo e o relatório gerado vêm de novo com a lista
+    this.carregarCiclos();
+    this.aoMudarSituacao();
+  }
+
+  /** Uma grade foi salva: o resumo do ciclo, a situação do passo e, no primeiro dado, a do PDTIC. */
+  aoMudarGrade(secao: PeSecaoTrilha): void {
+    this.aoMudarSecao(secao);
+  }
+
+  recarregarCiclos(): void {
+    this.carregarCiclos();
+  }
+
+  /** Um PDF do RA foi gerado: o relatório do ciclo (na lista) e a situação do passo vêm de novo. */
+  aoGerarRelatorio(): void {
+    this.carregarCiclos();
+    this.aoMudarSituacao();
+  }
+
+  /** Há mudança não salva que a troca de ciclo perderia (seções, grades ou o texto do RA). */
+  private get mudancaNoCiclo(): boolean {
+    return this.sujas.size > 0 || this.documentoSujo;
   }
 
   /** Quem vê o órgão sem PDTIC e não pode abrir: o motivo. */
@@ -418,7 +638,28 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   aoMudarSecao(secao: PeSecaoTrilha): void {
     if (this.passoTemas && secao.Chave === 'temas_sem_acao') this.recargaTemas++;
     if (this.passoEnvio) this.recargaEnvio++;
+    // Rodada B: o resumo do ciclo muda com os registros dele; o primeiro dado de um ciclo (ou a aprovação do plano de
+    // acompanhamento) põe o PDTIC em acompanhamento
+    if (this.tipoCiclo && this.secaoPorCiclo(secao)) this.carregarCiclos();
+    this.conferirSituacaoDoPdtic();
     this.aoMudarSituacao();
+  }
+
+  /**
+   * O PDTIC publicado passa a "em acompanhamento" com o primeiro dado de um ciclo
+   * ou com a aprovação do plano de acompanhamento: ele vem de novo e, se mudou,
+   * entra no estado (sem passar por "carregando").
+   */
+  private conferirSituacaoDoPdtic(): void {
+    const p = this.pdtic;
+    if (!p || p.Situacao !== 'publicado') return;
+    this.pdticService.obter(p.Id).subscribe({
+      next: novo => {
+        if (novo && novo.Id === this.pdtic?.Id && novo.Situacao !== this.pdtic.Situacao) this.estadoService.aplicarPdtic(novo);
+      },
+      // Sem a resposta, a situação se atualiza na próxima carga do PDTIC
+      error: () => undefined
+    });
   }
 
   /**
@@ -581,6 +822,8 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     this.pdtic = estado.pdtic;
     this.cargaPdtic = estado.cargaPdtic;
     this.erroPdtic = estado.erroPdtic;
+    this.lerPassosDoAcompanhamento(estado.passos);
+    this.atualizarCiclos();
     this.atualizarFonte();
     this.lerSituacao();
     this.passoAcoes = this.acharPassoAcoes();
@@ -589,6 +832,160 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
 
     // Entrada direta pelo endereço: a aba nasceu com o título genérico
     this.corrigirTitulo();
+  }
+
+  // ── E7 rodada B: ciclos ───────────────────────────────────────────────────
+
+  /**
+   * O que o passo é no acompanhamento, pela trilha à vista: o tipo de ciclo, se é o
+   * primeiro do tipo (a lista completa) ou o último (o fechamento e o RA), se o
+   * nível tem o resumo do ciclo, onde está o RR e onde se cadastram as ações e os
+   * indicadores (os links das grades vazias).
+   */
+  private lerPassosDoAcompanhamento(passos: PassoNumeradoPe[]): void {
+    const passo = this.passo;
+    const tipo = tipoCicloDoPasso(passo);
+    this.tipoCiclo = tipo;
+    this.ciclosDasSecoes = new Map((passo?.Secoes ?? []).map(s => [s.Chave, porCicloDaSecao(s)] as [string, PeTipoCiclo | null]));
+    const doTipo = tipo ? passos.filter(p => tipoCicloDoPasso(p.doOrgao) === tipo) : [];
+    this.passoListaCiclos = doTipo.length > 0 && doTipo[0].doOrgao?.Chave === passo?.Chave;
+    const fecha = doTipo[doTipo.length - 1] ?? null;
+    this.passoFechaCiclo = !!fecha && fecha.doOrgao?.Chave === passo?.Chave;
+    this.numeroPassoFecha = fecha?.numero ?? null;
+    this.exigeResumo = passos.some(p => p.doOrgao?.Secoes.some(s => s.Chave === SECAO_RELATORIO_CICLO));
+
+    const comRr = passos.find(p => p.doOrgao?.Secoes.some(s => s.Chave === SECOES_DO_RR[0]))
+      ?? passos.find(p => p.doOrgao?.Secoes.some(s => SECOES_DO_RR.includes(s.Chave)));
+    this.passoRr = !!comRr && comRr.doOrgao?.Chave === passo?.Chave;
+    const etapaDoRr = comRr?.etapa ?? -1;
+    this.linkRr = comRr && !this.passoRr && this.passoAprovacao && this.numerado?.etapa === etapaDoRr
+      ? { rota: comRr.rota, numero: comRr.numero }
+      : null;
+
+    const achar = (secao: string): PassoDaGrade | null => {
+      const p = passos.find(x => x.doOrgao?.Secoes.some(s => s.Chave === secao));
+      return p ? { rota: p.rota, numero: p.numero } : null;
+    };
+    this.passoAcoesGrade = achar(SECAO_ACOES);
+    this.passoIndicadores = achar(SECAO_INDICADORES_MONITORAMENTO);
+  }
+
+  /**
+   * Os ciclos do tipo do passo: buscados quando o PDTIC ou o tipo muda (o passo
+   * seguinte do mesmo tipo reaproveita a lista); depois, o ciclo à vista sai do
+   * endereço. Antes da publicação não há ciclos.
+   */
+  private atualizarCiclos(): void {
+    const p = this.pdtic;
+    const tipo = this.tipoCiclo;
+    if (!p || !tipo || !pdticDepoisDaPublicacao(p.Situacao)) {
+      this.cargaCiclos?.unsubscribe();
+      this.chaveCiclos = '';
+      this.ciclos = [];
+      this.ciclo = null;
+      this.carregandoCiclos = false;
+      this.erroCiclos = null;
+      this.relatorioRa = null;
+      return;
+    }
+    const chave = `${p.Id}:${tipo}`;
+    if (chave !== this.chaveCiclos) {
+      this.chaveCiclos = chave;
+      this.ciclos = [];
+      this.ciclo = null;
+      this.relatorioRa = null;
+      this.carregarCiclos();
+      return;
+    }
+    this.resolverCiclo();
+  }
+
+  /** A lista dos ciclos de novo (o resumo e o relatório gerado mudam); `depois` roda com a lista nova. */
+  carregarCiclos(depois?: () => void): void {
+    const p = this.pdtic;
+    const tipo = this.tipoCiclo;
+    if (!p || !tipo || !this.chaveCiclos) return;
+    const chave = this.chaveCiclos;
+    this.cargaCiclos?.unsubscribe();
+    this.carregandoCiclos = true;
+    this.erroCiclos = null;
+    this.cargaCiclos = this.ciclosService.listar(p.Id, tipo).subscribe({
+      next: lista => {
+        if (chave !== this.chaveCiclos) return;
+        this.carregandoCiclos = false;
+        this.ciclos = ciclosEmOrdem(lista);
+        this.resolverCiclo();
+        depois?.();
+      },
+      error: erro => {
+        if (chave !== this.chaveCiclos) return;
+        this.carregandoCiclos = false;
+        // 403: o interceptor já tirou a pessoa do módulo
+        const mensagem = mensagemErroPe(erro, `Não foi possível carregar ${this.tipoCiclo === 'avaliacao' ? 'as avaliações' : 'os ciclos'}.`);
+        if (mensagem !== null) this.erroCiclos = mensagem;
+      }
+    });
+  }
+
+  /**
+   * O ciclo à vista: o do endereço (`?ciclo=`); sem ele, o escolhido antes no
+   * mesmo PDTIC e tipo (o passo anterior); senão o que pede atenção. O endereço
+   * acompanha a escolha. Endereço mudado por fora com mudança não salva pergunta
+   * antes (sem trocar, o endereço volta ao ciclo à vista).
+   */
+  private resolverCiclo(): void {
+    const p = this.pdtic;
+    const tipo = this.tipoCiclo;
+    if (!p || !tipo || !this.ciclos.length) {
+      if (!this.carregandoCiclos) this.ciclo = null;
+      return;
+    }
+    const daUrl = cicloDoEndereco(this.router.url);
+    let escolhido = daUrl !== null ? this.ciclos.find(c => c.Id === daUrl) ?? null : null;
+    if (!escolhido) {
+      const lembrado = this.ciclosService.lembrado(p.Id, tipo);
+      escolhido = (lembrado !== null ? this.ciclos.find(c => c.Id === lembrado) : undefined) ?? cicloPadrao(this.ciclos);
+    }
+    const confirmada = this.trocaDeCicloConfirmada;
+    this.trocaDeCicloConfirmada = false;
+    const atual = this.ciclo;
+    if (atual && escolhido && escolhido.Id !== atual.Id && !confirmada && this.mudancaNoCiclo
+      && this.noNavegador && !confirm('Há mudanças que ainda não foram salvas neste passo. Trocar de ciclo assim mesmo? Elas vão se perder.')) {
+      this.irParaCiclo(atual.Id);
+      return;
+    }
+    if (atual && escolhido && escolhido.Id !== atual.Id) {
+      this.sujas.clear();
+      this.documentoSujo = false;
+    }
+    this.ciclo = escolhido;
+    this.atualizarRelatorioRa();
+    if (escolhido) {
+      this.ciclosService.lembrar(p.Id, tipo, escolhido.Id);
+      if (daUrl !== escolhido.Id) this.irParaCiclo(escolhido.Id);
+    }
+    this.atualizarFonte();
+  }
+
+  /** Põe o ciclo no endereço (troca a entrada do histórico: o voltar do navegador sai do passo). */
+  private irParaCiclo(id: number): void {
+    if (!this.noNavegador) return;
+    const arvore = this.router.parseUrl(this.router.url);
+    if (arvore.queryParams['ciclo'] === String(id)) return;
+    arvore.queryParams = { ...arvore.queryParams, ciclo: String(id) };
+    this.router.navigateByUrl(arvore, { replaceUrl: true });
+  }
+
+  /** O RA do ciclo à vista (o mesmo objeto enquanto o ciclo, a situação e o relatório gerado não mudam). */
+  private atualizarRelatorioRa(): void {
+    const c = this.ciclo;
+    if (!c) {
+      this.relatorioRa = null;
+      return;
+    }
+    const antes = this.relatorioRa?.tipo === 'ra' ? this.relatorioRa.ciclo : null;
+    if (antes && antes.Id === c.Id && antes.Situacao === c.Situacao && (antes.Relatorio?.Numero ?? 0) === (c.Relatorio?.Numero ?? 0)) return;
+    this.relatorioRa = { tipo: 'ra', ciclo: c };
   }
 
   /**
@@ -609,14 +1006,32 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   /**
    * A fonte dos registros e a dos fluxos do PDTIC; a situação e o `PodeEditar`
    * entram na chave (mudou, as seções e o editor dos fluxos buscam de novo).
+   * Rodada B: nos passos com ciclo, a fonte leva o `cicloId` do ciclo à vista nas
+   * seções por ciclo do tipo do passo (o ciclo e a situação dele entram na chave:
+   * outro ciclo, ou o mesmo fechado ou reaberto, e as seções vêm de novo).
    */
   private atualizarFonte(): void {
     const p = this.pdtic;
-    const chave = p ? `${p.Id}:${p.Situacao}:${p.PodeEditar}` : '';
+    const tipo = this.tipoCiclo;
+    const ciclo = this.ciclo;
+    const chaveCiclo = tipo && ciclo ? `${tipo}:${ciclo.Id}:${ciclo.Situacao}` : '';
+    const chave = p ? `${p.Id}:${p.Situacao}:${p.PodeEditar}|${chaveCiclo}` : '';
     if (chave === this.chaveFonte) return;
+    const mesmoPdtic = this.chaveFonte.split('|')[0] === chave.split('|')[0];
     this.chaveFonte = chave;
-    this.fonte = p ? this.registrosService.fonte({ tipo: 'pdtic', id: p.Id }, `${p.Situacao}:${p.PodeEditar}`) : null;
-    this.fonteFluxos = p ? this.fluxosService.fonteDoPdtic(p) : null;
+    // Outro ciclo: as decisões lidas das seções eram do anterior
+    this.decisoes = {};
+    const ciclos: CiclosDaFonte | null = tipo && ciclo
+      ? { chave: chaveCiclo, daSecao: secao => (this.tipoDaSecao(secao) === tipo ? ciclo.Id : null) }
+      : null;
+    this.fonte = p ? this.registrosService.fonte({ tipo: 'pdtic', id: p.Id }, `${p.Situacao}:${p.PodeEditar}`, ciclos) : null;
+    // O editor dos fluxos não depende do ciclo
+    if (!mesmoPdtic || !this.fonteFluxos) this.fonteFluxos = p ? this.fluxosService.fonteDoPdtic(p) : null;
+  }
+
+  /** O tipo de ciclo de uma seção (as do passo pela trilha; as demais, pelo modelo inicial). */
+  private tipoDaSecao(secao: string): PeTipoCiclo | null {
+    return this.ciclosDasSecoes.has(secao) ? this.ciclosDasSecoes.get(secao) ?? null : SECOES_POR_CICLO[secao] ?? null;
   }
 
   /**
