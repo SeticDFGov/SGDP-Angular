@@ -227,9 +227,12 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     this.form.NumeroProcesso = digitarNumeroSei(evento.target as HTMLInputElement);
   }
 
-  /** O Nº SEI do Formulário usa a mesma máscara do número do processo. */
+  /**
+   * O Nº SEI do Formulário é o número de um documento dentro do processo SEI (como 213807905), e os
+   * formatos variam: texto livre, sem máscara (as pontas são aparadas no envio).
+   */
   aoDigitarFormulario(evento: Event): void {
-    this.form.NumeroSeiFormulario = digitarNumeroSei(evento.target as HTMLInputElement) || null;
+    this.form.NumeroSeiFormulario = (evento.target as HTMLInputElement).value || null;
   }
 
   // ── Valor estimado ────────────────────────────────────────────────────────
@@ -328,11 +331,11 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     return null;
   }
 
-  /** Opcional; preenchido, no mesmo formato do número do processo (o servidor confere igual). */
+  /** Opcional e sem formato: só o tamanho do campo (25 caracteres, como no servidor). */
   get errNumeroSeiFormulario(): string | null {
     const valor = (this.form.NumeroSeiFormulario || '').trim();
-    if (!valor || REGEX_NUMERO_SEI.test(valor)) return null;
-    return 'O Nº SEI do Formulário precisa estar no formato 00000-00000000/AAAA-DD.';
+    if (valor.length <= 25) return null;
+    return 'O Nº SEI do Formulário tem até 25 caracteres.';
   }
 
   /** Com a data do encaminhamento, a área técnica é obrigatória. */
