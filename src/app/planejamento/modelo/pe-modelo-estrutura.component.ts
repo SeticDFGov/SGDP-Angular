@@ -113,7 +113,9 @@ export const LIMITES_MODELO = {
     CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective, DialogoDirective,
     PeHistoricoComponent, PeOpcoesEditorComponent, PeConfigCampoComponent
   ],
-  templateUrl: './pe-modelo-estrutura.component.html'
+  templateUrl: './pe-modelo-estrutura.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);

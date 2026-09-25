@@ -47,7 +47,9 @@ interface ItemPendencia {
   selector: 'app-pe-ciclo-fechamento',
   standalone: true,
   imports: [CommonModule, RouterModule, DialogoDirective],
-  templateUrl: './pe-ciclo-fechamento.component.html'
+  templateUrl: './pe-ciclo-fechamento.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked {
   private readonly ciclosService = inject(PeCiclosService);

@@ -51,15 +51,14 @@
         </p>
       </div>
 
-      <!-- Outros tipos de passo: em construção -->
+      <!-- Tipo de passo que esta versão do sistema não conhece (todos os do modelo têm tela) -->
       <ng-container *ngIf="!temTela">
         <div class="mt-5 flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3">
-          <span class="material-icons text-purple-700" aria-hidden="true">construction</span>
+          <span class="material-icons text-purple-700" aria-hidden="true">help_outline</span>
           <div class="text-sm text-gray-800 leading-relaxed">
-            <p class="font-semibold text-purple-800">Esta tela está em construção.</p>
-            <p class="mt-0.5">É um passo do tipo "{{ rotuloTipo }}", que ganha tela numa próxima etapa do desenvolvimento do módulo.
-              Por enquanto, use a trilha para conhecer o caminho completo: os botões "Passo anterior" e "Próximo passo", no fim da
-              página, seguem a ordem das etapas.</p>
+            <p class="font-semibold text-purple-800">Este passo não tem tela nesta versão do sistema.</p>
+            <p class="mt-0.5">É um passo do tipo "{{ rotuloTipo }}", que o sistema ainda não sabe mostrar. Avise a equipe que administra
+              o sistema. Enquanto isso, os botões "Passo anterior" e "Próximo passo", no fim da página, seguem a ordem das etapas.</p>
           </div>
         </div>
         <a [routerLink]="base" class="inline-flex items-center gap-1.5 mt-5 text-sm font-semibold text-purple-700 hover:underline">
@@ -172,6 +171,30 @@
       </ng-container>
 
       <ng-container *ngIf="temSecoes && fonte as f">
+        <!-- E8: a planilha deste passo, com todas as seções num arquivo só (no passo por ciclo, o ciclo à vista) -->
+        <section *ngIf="p.Secoes.length > 0" class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-passo-planilha-titulo">
+          <div class="flex flex-col md:flex-row md:justify-between gap-3">
+            <div class="min-w-0">
+              <h2 id="pe-passo-planilha-titulo" class="text-base font-semibold text-gray-900">Planilha deste passo</h2>
+              <p class="text-sm text-gray-600 leading-relaxed mt-0.5">{{ textoPlanilhaPasso }}</p>
+            </div>
+            <div *ngIf="planilhaDoPassoDisponivel" class="flex flex-wrap items-start gap-2 shrink-0">
+              <button type="button" (click)="baixarPlanilhaPasso('xlsx')" [disabled]="baixandoPlanilhaPasso !== null"
+                      [attr.aria-label]="'Baixar os dados do passo ' + p.Numero + ' em planilha XLSX'"
+                      class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
+                <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixandoPlanilhaPasso === 'xlsx' ? 'Gerando...' : 'Planilha XLSX' }}
+              </button>
+              <button type="button" (click)="baixarPlanilhaPasso('csv')" [disabled]="baixandoPlanilhaPasso !== null"
+                      [attr.aria-label]="variasSecoes
+                        ? 'Baixar os dados do passo ' + p.Numero + ' em CSV, num arquivo .zip com um CSV por seção'
+                        : 'Baixar os dados do passo ' + p.Numero + ' em CSV'"
+                      class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
+                <span class="material-icons text-base" aria-hidden="true">download</span> {{ baixandoPlanilhaPasso === 'csv' ? 'Gerando...' : (variasSecoes ? 'CSV (.zip)' : 'CSV') }}
+              </button>
+            </div>
+          </div>
+        </section>
+
         <!-- Sistemas de IA: o inventário do PGIA, só para ler -->
         <app-pe-sistemas-ia-pgia *ngIf="passoIa" [pdticId]="pd.Id" [siglaOrgao]="siglaOrgao"></app-pe-sistemas-ia-pgia>
 
@@ -200,8 +223,9 @@
 
           <ng-template #secaoGenerica>
             <!-- Seção por ciclo sem ciclo à vista: não abre (a API pede o ciclo) -->
+            <!-- E8: sem os botões de planilha da seção (a planilha do passo, acima, traz todas) -->
             <app-pe-secao-registros *ngIf="!secaoPorCiclo(s) || ciclo; else semCiclo" [fonte]="f" [secaoChave]="s.Chave" [situacao]="s.Situacao"
-                                    [nomePlanilha]="nomePlanilha(s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura"
+                                    [planilha]="false" [nomePlanilha]="nomePlanilha(s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura"
                                     [acaoVazia]="ehCronograma(s) ? sugerirCronograma : null" [recarga]="recargaDe(s)"
                                     (mudou)="aoMudarSecao(s)" (alterado)="aoAlterar(s, $event)"
                                     (registros)="aoCarregarRegistros(s, $event)"></app-pe-secao-registros>

@@ -18,7 +18,9 @@ import { ehArquivoRef, ehLigacao, textoDataHora, textoDoValor, textoVinculo } fr
   selector: 'app-pe-registro-leitura',
   standalone: true,
   imports: [CommonModule, PeTextoRicoLeituraDirective],
-  templateUrl: './pe-registro-leitura.component.html'
+  templateUrl: './pe-registro-leitura.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeRegistroLeituraComponent {
   private readonly registrosService = inject(PeRegistrosService);

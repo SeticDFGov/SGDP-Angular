@@ -41,7 +41,9 @@ const MAX_DESCRICAO = 1000;
   selector: 'app-pe-niveis',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective, DialogoDirective, PeHistoricoComponent],
-  templateUrl: './pe-niveis.component.html'
+  templateUrl: './pe-niveis.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeNiveisComponent implements OnInit {
   private readonly estadoService = inject(PeTrilhaEstadoService);

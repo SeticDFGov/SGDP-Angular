@@ -23,7 +23,9 @@ import { PeTabelaRegistrosComponent } from './pe-tabela-registros.component';
   selector: 'app-pe-secao-registros',
   standalone: true,
   imports: [CommonModule, PeFormularioSecaoComponent, PeTabelaRegistrosComponent],
-  templateUrl: './pe-secao-registros.component.html'
+  templateUrl: './pe-secao-registros.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
   private readonly notificacoes = inject(NotificationService);

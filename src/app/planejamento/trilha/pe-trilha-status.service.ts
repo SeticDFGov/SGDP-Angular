@@ -6,6 +6,7 @@ import { PedidosAcessoService } from '../../core/acessos/pedidos-acesso.service'
 import { Modulos } from '../../core/modulos/modulos';
 import { PeDeliberacoesService, PePeticService } from '../services/pe-petic.service';
 import { PePdticService } from '../services/pe-pdtic.service';
+import { PeInadimplenciasService } from '../services/pe-inadimplencias.service';
 import { statusDoPassoPdtic } from '../shared/pe-pdtic-rotulos';
 import { statusDoPetic } from '../shared/pe-referenciais-rotulos';
 import { ChaveStatusPe, PerfilTrilhaPe } from './pe-trilhas';
@@ -60,7 +61,10 @@ function porPasso(andamento: PeAndamentoPdtic): Record<string, StatusPassoPe> {
  * fazer (o 403 tira a pessoa da tela):
  *
  * - Administrador do módulo (trilha do administrador: ele e o admin do SGDP): os
- *   pedidos de acesso ao módulo esperando decisão e a situação do PETIC-DF.
+ *   pedidos de acesso ao módulo esperando decisão, a situação do PETIC-DF e (E8)
+ *   as notificações com o prazo de 5 dias úteis vencido, esperando o registro.
+ * - Equipe da SGDI (trilha da SGDI: ela e o admin do SGDP): as notificações com o
+ *   prazo vencido (E8).
  * - Secretaria do CGTIC (trilha da Secretaria: ela e o admin do SGDP): o que
  *   espera a decisão do comitê.
  * - Trilha de um órgão com PDTIC aberto: a situação real de cada passo, os
@@ -75,6 +79,7 @@ export class PeTrilhaStatusService {
   private readonly peticService = inject(PePeticService);
   private readonly deliberacoesService = inject(PeDeliberacoesService);
   private readonly pdticService = inject(PePdticService);
+  private readonly inadimplenciasService = inject(PeInadimplenciasService);
 
   carregar(perfil: PerfilTrilhaPe, pdticId: number | null = null): Observable<SituacaoTrilhaPe> {
     if (perfil === 'admin') {
@@ -84,13 +89,18 @@ export class PeTrilhaStatusService {
             'Nenhum pedido de acesso aguardando')),
           catchError(() => of(null))
         ),
-        petic: this.peticService.listar().pipe(map(statusDoPetic), catchError(() => of(null)))
-      }).pipe(map(({ pedidos, petic }) => {
+        petic: this.peticService.listar().pipe(map(statusDoPetic), catchError(() => of(null))),
+        inadimplencias: this.notificacoesVencidas()
+      }).pipe(map(({ pedidos, petic, inadimplencias }) => {
         const status: SituacaoTrilhaPe['status'] = {};
         if (pedidos) status['pedidos-acesso'] = pedidos;
         if (petic) status.petic = petic;
+        if (inadimplencias) status.inadimplencias = inadimplencias;
         return { status };
       }));
+    }
+    if (perfil === 'sgdi') {
+      return this.notificacoesVencidas().pipe(map(inadimplencias => ({ status: inadimplencias ? { inadimplencias } : {} })));
     }
     if (perfil === 'cgtic') {
       return this.deliberacoesService.contarAguardando().pipe(
@@ -107,5 +117,17 @@ export class PeTrilhaStatusService {
       );
     }
     return of(VAZIA);
+  }
+
+  /**
+   * E8: as notificações em aberto com o prazo de 5 dias úteis vencido (a
+   * inadimplência já pode ser registrada). Falha deixa o passo sem situação.
+   */
+  private notificacoesVencidas(): Observable<StatusPassoPe | null> {
+    return this.inadimplenciasService.listar({ Situacao: 'notificado', Page: 1, PageSize: 100 }).pipe(
+      map(pagina => fila((pagina?.Items ?? []).filter(i => i.Vencido).length,
+        'notificação com o prazo vencido', 'notificações com o prazo vencido', 'Nenhuma notificação com o prazo vencido')),
+      catchError(() => of(null))
+    );
   }
 }

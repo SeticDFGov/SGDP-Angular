@@ -8,7 +8,7 @@ import { PeCampoRegistro, PeRegistro, PeSecaoDoDono, PeVinculo } from '../../../
 import { PeFonteRegistros } from '../../services/pe-registros.service';
 import { mensagemErroPe } from '../pe-erros';
 import { PeCampoComponent } from './pe-campo.component';
-import { EstadoRegistro, erroDoCampo, errosDoServidor, estadoInicial, montarForm } from './pe-valores';
+import { EstadoRegistro, erroDoCampo, errosDoServidor, estadoInicial, larguraNoFormulario, montarForm } from './pe-valores';
 
 interface ErroListado {
   chave: string;
@@ -17,6 +17,29 @@ interface ErroListado {
 }
 
 const SEM_VINCULOS: PeVinculo[] = [];
+
+/** A classe da célula de cada largura (as regras ficam no CSS deste componente, que vai no pacote lazy). */
+const CLASSE_CELULA = { estreita: 'pe-campo-estreita', media: 'pe-campo-media', larga: 'pe-campo-larga' } as const;
+
+/**
+ * Os campos em grade (só leiaute, sem cor: os temas não mudam). No celular, um por
+ * linha; a partir de 40rem, 6 colunas (estreito ocupa 2, médio 3, largo a linha
+ * inteira) ou, no painel lateral da tabela, 2 colunas (estreito e médio ocupam 1).
+ * A ordem do DOM é a do modelo (sem reordenar nem encaixar): o Tab e o leitor de
+ * tela seguem o modelo, e o campo que não cabe vai para a linha seguinte. Tudo
+ * alinhado no alto da célula.
+ */
+const CSS_GRADE = `
+.pe-grade-campos { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 1rem; row-gap: 1.25rem; align-items: start; }
+@media (min-width: 40rem) {
+  .pe-grade-campos { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .pe-campo-estreita { grid-column: span 2 / span 2; }
+  .pe-campo-media { grid-column: span 3 / span 3; }
+  .pe-campo-larga { grid-column: 1 / -1; }
+  .pe-grade-painel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pe-grade-painel > .pe-campo-estreita, .pe-grade-painel > .pe-campo-media { grid-column: span 1 / span 1; }
+}
+`;
 
 /**
  * Os campos de um registro para preencher e salvar: o formulário de uma seção do
@@ -31,12 +54,17 @@ const SEM_VINCULOS: PeVinculo[] = [];
  *   campo aparece no alto. No formulário, 409 no POST (alguém criou antes) pede
  *   à tela para recarregar (`conflito`).
  * - `alterado` avisa a tela quando há mudança não salva (para perguntar antes de sair).
+ * - E8: os campos em grade, pela largura de cada um (`larguraNoFormulario`: a do
+ *   modelo, senão a do tipo), com até 2 por linha no painel lateral (`emPainel`).
  */
 @Component({
   selector: 'app-pe-registro-edicao',
   standalone: true,
   imports: [CommonModule, FormsModule, PeCampoComponent],
-  templateUrl: './pe-registro-edicao.component.html'
+  templateUrl: './pe-registro-edicao.component.html',
+  styles: [CSS_GRADE],
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeRegistroEdicaoComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
@@ -49,6 +77,8 @@ export class PeRegistroEdicaoComponent implements OnChanges, AfterViewChecked, O
   @Input() prefixoId = 'pe-reg';
   @Input() rotuloSalvar = 'Salvar';
   @Input() mostrarCancelar = false;
+  /** No painel lateral da tabela: até 2 campos por linha. */
+  @Input() emPainel = false;
   @Output() readonly salvou = new EventEmitter<PeRegistro>();
   @Output() readonly cancelou = new EventEmitter<void>();
   @Output() readonly alterado = new EventEmitter<boolean>();
@@ -112,6 +142,11 @@ export class PeRegistroEdicaoComponent implements OnChanges, AfterViewChecked, O
 
   idDo(campo: PeCampoRegistro): string {
     return `${this.prefixoId}-${campo.Chave}`;
+  }
+
+  /** A célula do campo na grade, pela largura dele. */
+  celula(campo: PeCampoRegistro): string {
+    return CLASSE_CELULA[larguraNoFormulario(campo)];
   }
 
   valorDe(campo: PeCampoRegistro): unknown {

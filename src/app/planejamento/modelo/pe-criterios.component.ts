@@ -57,7 +57,9 @@ const MAX_AJUDA = 2000;
   selector: 'app-pe-criterios',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective, PeHistoricoComponent, PeOpcoesEditorComponent],
-  templateUrl: './pe-criterios.component.html'
+  templateUrl: './pe-criterios.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeCriteriosComponent implements OnInit {
   private readonly estadoService = inject(PeTrilhaEstadoService);

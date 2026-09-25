@@ -233,7 +233,7 @@
         <ng-container *ngIf="d.PodeEditar">Para gerar, use "Gerar PDF", no pé da tela.</ng-container>
       </p>
       <p *ngIf="versoes.length === 0" class="mt-3 text-sm text-gray-600">Nenhum PDF gerado ainda.</p>
-      <div *ngIf="versoes.length > 0" class="mt-3 overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: versões em PDF">
+      <div *ngIf="versoes.length > 0" class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: versões em PDF">
         <table class="w-full text-sm">
           <caption class="sr-only">Versões do documento em PDF, da mais nova para a mais antiga</caption>
           <thead>

@@ -83,7 +83,7 @@
         <p *ngIf="niveis.length === 0" class="text-sm text-amber-700 mt-1">Não há nenhum nível de maturidade. Crie os níveis antes, no
           passo "Defina os níveis de maturidade".</p>
       </div>
-      <div class="overflow-x-auto border-t border-gray-200" tabindex="0" role="region" aria-label="Tabela: etapas, passos, seções e campos da trilha do órgão">
+      <div class="relative overflow-x-auto border-t border-gray-200" tabindex="0" role="region" aria-label="Tabela: etapas, passos, seções e campos da trilha do órgão">
         <table class="w-full text-sm">
           <caption class="sr-only">Etapas, passos, seções e campos da trilha do órgão, com a situação de cada item em cada nível de maturidade</caption>
           <thead>
@@ -252,7 +252,7 @@
         Nenhuma seção fora do PDTIC. As do PETIC-DF e dos referenciais do DF entram com o conteúdo inicial do módulo: se elas não
         aparecem, avise a equipe que administra o sistema.
       </p>
-      <div *ngIf="m.SecoesForaDoPdtic.length > 0" class="overflow-x-auto border-t border-gray-200" tabindex="0" role="region" aria-label="Tabela: seções fora do PDTIC">
+      <div *ngIf="m.SecoesForaDoPdtic.length > 0" class="relative overflow-x-auto border-t border-gray-200" tabindex="0" role="region" aria-label="Tabela: seções fora do PDTIC">
         <table class="w-full text-sm">
           <caption class="sr-only">Seções fora do PDTIC e os campos delas, com a situação de cada item</caption>
           <thead>
@@ -627,8 +627,12 @@
           </div>
           <ng-container *ngIf="!e.novo">
             <div>
-              <label for="pe-ed-largura" class="block text-sm font-semibold text-gray-800 mb-1">Largura da coluna na tabela</label>
-              <select id="pe-ed-largura" [(ngModel)]="e.largura" name="pe-ed-largura" [disabled]="e.somenteLeitura"
+              <label for="pe-ed-largura" class="block text-sm font-semibold text-gray-800">Largura (na tabela e no formulário)</label>
+              <p id="pe-ed-largura-ajuda" class="text-xs text-gray-500 italic mt-0.5 mb-1">A largura da coluna na tabela e o espaço do campo no formulário: estreita
+                (um terço da linha), média (meia linha) ou larga (a linha inteira); no painel da tabela, até dois campos por linha, e no celular, um.
+                "Automática" decide pelo tipo: datas e números estreitos, listas médias, textos curtos médios até 100 caracteres, e textos
+                longos, ligações e arquivos largos.</p>
+              <select id="pe-ed-largura" [(ngModel)]="e.largura" name="pe-ed-largura" [disabled]="e.somenteLeitura" aria-describedby="pe-ed-largura-ajuda"
                       class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
                 <option value="">Automática</option>
                 <option *ngFor="let l of larguras" [value]="l.valor">{{ l.rotulo }}</option>

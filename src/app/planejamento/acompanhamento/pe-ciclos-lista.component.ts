@@ -38,7 +38,9 @@ const MAX_ROTULO = 100;
   selector: 'app-pe-ciclos-lista',
   standalone: true,
   imports: [CommonModule, FormsModule, DialogoDirective],
-  templateUrl: './pe-ciclos-lista.component.html'
+  templateUrl: './pe-ciclos-lista.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeCiclosListaComponent implements OnChanges, AfterViewChecked {
   private readonly ciclosService = inject(PeCiclosService);

@@ -38,7 +38,9 @@ interface LinksDeliberacao {
   selector: 'app-pe-passo-deliberacao',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  templateUrl: './pe-passo-deliberacao.component.html'
+  templateUrl: './pe-passo-deliberacao.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PePassoDeliberacaoComponent {
   private readonly pdticService = inject(PePdticService);

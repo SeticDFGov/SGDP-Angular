@@ -52,7 +52,9 @@ function ligadoEmAlgumNivel(item: PePassoModelo | PeSecaoModelo): boolean {
   selector: 'app-pe-consolidado',
   standalone: true,
   imports: [CommonModule, FormsModule, CitaPlanejamentoDirective],
-  templateUrl: './pe-consolidado.component.html'
+  templateUrl: './pe-consolidado.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeConsolidadoComponent implements OnInit {
   private readonly estadoService = inject(PeTrilhaEstadoService);

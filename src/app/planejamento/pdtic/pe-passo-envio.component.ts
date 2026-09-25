@@ -44,7 +44,9 @@ interface ItemPendencia {
   selector: 'app-pe-passo-envio',
   standalone: true,
   imports: [CommonModule, RouterModule, DialogoDirective],
-  templateUrl: './pe-passo-envio.component.html'
+  templateUrl: './pe-passo-envio.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PePassoEnvioComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private readonly pdticService = inject(PePdticService);

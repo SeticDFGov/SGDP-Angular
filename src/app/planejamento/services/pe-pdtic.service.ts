@@ -160,6 +160,23 @@ export class PePdticService {
     return this.http.post(`${this.apiUrl}/comentarios/${comentarioId}/resolver`, {});
   }
 
+  /**
+   * E8: os dados de um passo num arquivo só (quem lê o PDTIC baixa): o XLSX com uma
+   * aba por seção visível do passo e a aba Leia-me; o CSV simples quando o passo tem
+   * uma seção, e um .zip com um CSV por seção quando tem mais. `cicloId` é
+   * obrigatório no passo com seção por ciclo. O nome vem no `Content-Disposition`;
+   * 404 quando o passo não tem seção visível.
+   */
+  planilhaDoPasso(id: number, passoChave: string, formato: PeFormatoPlanilha, cicloId: number | null = null): Observable<HttpResponse<Blob>> {
+    let params = new HttpParams().set('formato', formato);
+    if (cicloId) params = params.set('cicloId', cicloId);
+    return this.http.get(`${this.apiUrl}/pdtic/${id}/planilha/passo/${encodeURIComponent(passoChave)}`, {
+      params,
+      responseType: 'blob',
+      observe: 'response'
+    });
+  }
+
   /** Uma seção com os registros de todos os PDTICs atuais (papéis globais e admin do SGDP). */
   consolidado(secaoChave: string, formato: PeFormatoPlanilha): Observable<HttpResponse<Blob>> {
     return this.http.get(`${this.apiUrl}/consolidado/${encodeURIComponent(secaoChave)}`, {

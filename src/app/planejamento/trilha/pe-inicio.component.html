@@ -33,8 +33,6 @@
           <li>Cada passo mostra o que fazer, a base legal e, quando há, a atividade do Guia de PDTIC do SISP (o guia do governo
             federal que o módulo segue). Passe o mouse sobre um artigo, ou chegue nele pelo teclado, para ler o texto da norma.</li>
           <li>No fim de cada tela, o botão "Próximo passo" leva adiante, sem precisar procurar em menus.</li>
-          <li>Os passos marcados como "em construção" ganham tela nas próximas etapas do desenvolvimento do módulo. Por enquanto,
-            eles mostram o que será feito ali.</li>
           <li *ngIf="e.perfil === 'orgao'">Cada passo mostra a situação: feito, pendente, com comentário aberto da SGDI, "não se
             aplica", aguardando outra coisa antes (a deliberação do CGTIC ou a publicação, por exemplo) ou feito fora do sistema,
             sempre com o motivo escrito. Um passo fica feito quando as seções obrigatórias dele estão preenchidas.</li>
@@ -262,7 +260,23 @@
             a equipe abre a revisão, numa versão nova.
           </p>
         </ng-container>
+
+        <!-- E8: a página do órgão, com tudo dele num lugar só -->
+        <p *ngIf="paginaDoOrgao as pagina" class="text-sm text-gray-700 leading-relaxed mt-4">
+          <a [routerLink]="pagina" data-sem-dica class="inline-flex items-center gap-1 font-semibold text-purple-700 underline">
+            <span class="material-icons text-base" aria-hidden="true">domain</span> Página do órgão {{ siglaOrgao }}
+          </a>: o PDTIC, o andamento, a conformidade, as aprovações, os documentos, os ciclos e as notificações da SGDI, num lugar só.
+        </p>
       </div>
+
+      <!-- E8: as notificações da SGDI ao próprio órgão (equipe e consulta do órgão), só para ler, num pacote próprio -->
+      <ng-container *ngIf="orgaoDasNotificacoes as orgaoId">
+        @defer (on idle) {
+          <app-pe-inadimplencias-orgao [orgaoId]="orgaoId" [sigla]="siglaOrgao"></app-pe-inadimplencias-orgao>
+        } @placeholder {
+          <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando as notificações da SGDI...</p>
+        }
+      </ng-container>
 
       <!-- E7: o formulário do PDTIC aprovado fora do sistema (num pacote próprio) -->
       <ng-container *ngIf="formExterno && podeRegistrarExterno">
@@ -330,6 +344,26 @@
         </ng-container>
       </ng-container>
 
+      <!-- E8: o acompanhamento de todos os órgãos (papéis globais e admin do SGDP) -->
+      <div *ngIf="atalhosAcompanhamento as lista" class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-gray-900 mb-1">Acompanhamento dos órgãos</h2>
+        <p class="text-sm text-gray-600 leading-relaxed">O painel, a conformidade, a árvore do PETIC-DF, a página de cada órgão e as
+          notificações e inadimplências (art. 9º, IV, do Decreto nº 48.899/2026).</p>
+        <ul class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          <li *ngFor="let a of lista">
+            <!-- data-sem-dica: citação dentro de link não vira chip -->
+            <a [routerLink]="a.rota" data-sem-dica
+               class="flex items-start gap-3 h-full rounded-lg border border-gray-200 px-4 py-3 hover:bg-gray-50">
+              <span class="material-icons text-purple-600" aria-hidden="true">{{ a.icone }}</span>
+              <span class="min-w-0">
+                <span class="block text-sm font-semibold text-purple-700">{{ a.titulo }}</span>
+                <span class="block text-xs text-gray-600 mt-0.5">{{ a.texto }}</span>
+              </span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
       <!-- Referenciais do DF (e as deliberações, para os papéis globais) -->
       <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-base font-semibold text-gray-900 mb-1">Referenciais do DF</h2>
@@ -384,11 +418,11 @@
                   class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center"
                   [ngClass]="classeEstado(s.estado)">{{ s.texto }}</span>
             <ng-template #semStatus>
-              <span *ngIf="p.emConstrucao"
+              <span *ngIf="p.semTela"
                     class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center bg-gray-50 text-gray-600 border-gray-200">
-                <span class="material-icons text-sm" aria-hidden="true">construction</span> Em construção
+                <span class="material-icons text-sm" aria-hidden="true">help_outline</span> Sem tela nesta versão
               </span>
-              <span *ngIf="!p.emConstrucao && (p.status || (p.doOrgao && carregandoStatus))"
+              <span *ngIf="!p.semTela && (p.status || (p.doOrgao && carregandoStatus))"
                     class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center bg-gray-50 text-gray-600 border-gray-200">
                 Conferindo...
               </span>

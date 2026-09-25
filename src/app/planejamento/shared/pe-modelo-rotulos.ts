@@ -123,7 +123,7 @@ export const TIPOS_ARQUIVO: OpcaoRotulo[] = [
   { valor: 'jpg', rotulo: 'JPG' }
 ];
 
-/** Largura da coluna do campo nas tabelas (nulo: a tabela decide). */
+/** Largura do campo: a coluna nas tabelas e a célula no formulário (nulo: a tabela e o formulário decidem pelo tipo). */
 export const LARGURAS: OpcaoRotulo[] = [
   { valor: 'estreita', rotulo: 'Estreita' },
   { valor: 'media', rotulo: 'Média' },
@@ -412,7 +412,7 @@ const CAMPOS_HISTORICO: Record<string, string> = {
   ordem: 'Posição',
   nodocumento: 'Aparece no documento',
   naplanilha: 'Aparece na planilha',
-  largura: 'Largura na tabela',
+  largura: 'Largura (na tabela e no formulário)',
   ativo: 'Ativo',
   ativa: 'Ativa',
   nome: 'Nome',

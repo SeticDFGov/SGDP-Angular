@@ -19,9 +19,10 @@ import { PeRegistrosService } from '../services/pe-registros.service';
 import { PeAcaoPdticComponent } from '../pdtic/pe-acao-pdtic.component';
 import { PeRegistroExternoComponent } from '../pdtic/pe-registro-externo.component';
 import { PePainelAcompanhamentoComponent } from '../acompanhamento/pe-painel-acompanhamento.component';
+import { PeInadimplenciasOrgaoComponent } from '../inadimplencia/pe-inadimplencias-orgao.component';
 import { EstadoTrilhaPe, PeTrilhaEstadoService } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
-import { ATALHOS_REFERENCIAIS, PassoNumeradoPe, rotuloGuia } from './pe-trilhas';
+import { ATALHOS_ACOMPANHAMENTO, ATALHOS_REFERENCIAIS, PassoNumeradoPe, rotaPaginaOrgao, rotuloGuia } from './pe-trilhas';
 import { papelPlanejamentoDeOrgao, rotuloCurtoPapelPlanejamento } from '../../core/acessos/papeis-planejamento';
 
 /** Link para um passo da trilha à vista. */
@@ -34,10 +35,15 @@ interface LinkPasso {
  * Visão geral da Governança Estratégica (primeira tela do módulo): o que o módulo
  * faz, em linguagem simples, o papel e o órgão de quem está logado (e, na trilha
  * de um órgão, o nível de maturidade dele), o próximo passo recomendado e todas
- * as etapas e passos numerados, com a situação de cada um (ou "em construção",
- * para os passos cuja tela chega nas próximas entregas). Acesso rápido aos
+ * as etapas e passos numerados, com a situação de cada um. Acesso rápido aos
  * referenciais do DF (princípios, PETIC-DF e diretrizes do ciclo), que todo papel
  * lê, e às deliberações do CGTIC, que só os papéis globais veem.
+ *
+ * E8: para os papéis globais e o admin do SGDP, o acesso rápido ao acompanhamento
+ * dos órgãos (painel, conformidade, árvore do PETIC-DF, páginas dos órgãos e
+ * inadimplências); para a equipe e a consulta do órgão, as notificações da SGDI ao
+ * próprio órgão (só leitura, num pacote próprio pelo `@defer`) e o link para a
+ * página do órgão.
  *
  * Na trilha de um órgão (E4), o bloco do PDTIC: sem PDTIC aberto, a equipe do
  * órgão vê "Começar o PDTIC" (os demais, só o aviso); aberto, a versão, a
@@ -61,9 +67,11 @@ interface LinkPasso {
   standalone: true,
   imports: [
     CommonModule, RouterModule, CitaPlanejamentoDirective, PeAcaoPdticComponent, PeRegistroExternoComponent,
-    PePainelAcompanhamentoComponent
+    PePainelAcompanhamentoComponent, PeInadimplenciasOrgaoComponent
   ],
-  templateUrl: './pe-inicio.component.html'
+  templateUrl: './pe-inicio.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeInicioComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
@@ -125,6 +133,25 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
   get atalhos(): typeof ATALHOS_REFERENCIAIS {
     const globais = this.estadoService.veDeliberacoes === true;
     return ATALHOS_REFERENCIAIS.filter(a => !a.soGlobais || globais);
+  }
+
+  /** E8: o acompanhamento de todos os órgãos, para os papéis globais e o admin do SGDP (o papel já chegou). */
+  get atalhosAcompanhamento(): typeof ATALHOS_ACOMPANHAMENTO | null {
+    return this.estadoService.veTodosOsOrgaos === true ? ATALHOS_ACOMPANHAMENTO : null;
+  }
+
+  /** E8: a equipe e a consulta do órgão, na própria trilha, veem as notificações da SGDI ao órgão (só leitura). */
+  get orgaoDasNotificacoes(): number | null {
+    const e = this.estado;
+    return e?.perfil === 'orgao' && e.orgaoVisto === null ? this.estadoService.orgaoDoPapel : null;
+  }
+
+  /** E8: a página do órgão da trilha à vista (o próprio, para o papel de órgão; o escolhido, para os papéis globais). */
+  get paginaDoOrgao(): string | null {
+    const e = this.estado;
+    if (e?.perfil !== 'orgao') return null;
+    const orgaoId = e.orgaoVisto ?? this.estadoService.orgaoDoPapel;
+    return orgaoId ? rotaPaginaOrgao(orgaoId) : null;
   }
 
   get temStatus(): boolean {

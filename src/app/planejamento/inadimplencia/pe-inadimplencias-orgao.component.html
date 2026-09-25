@@ -1,0 +1,34 @@
+<section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="'pe-inad-orgao-titulo-' + orgaoId">
+  <h2 *ngIf="nivelTitulo === 2" [id]="'pe-inad-orgao-titulo-' + orgaoId" class="text-base font-semibold text-gray-900">
+    Notificações da SGDI<ng-container *ngIf="sigla"> · {{ sigla }}</ng-container>
+  </h2>
+  <h3 *ngIf="nivelTitulo === 3" [id]="'pe-inad-orgao-titulo-' + orgaoId" class="text-base font-semibold text-gray-900">
+    Notificações da SGDI<ng-container *ngIf="sigla"> · {{ sigla }}</ng-container>
+  </h3>
+  <p class="text-sm text-gray-700 leading-relaxed mt-1">
+    Quando o órgão não comunica à SGDI o PDTIC aprovado pelo comitê interno (art. 7º, V, do Decreto nº 48.899/2026), a SGDI notifica e dá
+    5 dias úteis para regularizar ou se justificar. Sem isso, registra a inadimplência (art. 11 do Decreto nº 48.899/2026). Aqui você só lê.
+  </p>
+
+  <p *ngIf="carregando && !itens" role="status" class="text-sm text-gray-600 mt-3">Carregando as notificações...</p>
+  <div *ngIf="erro" role="alert" class="text-sm text-red-700 mt-3">
+    {{ erro }}
+    <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+  </div>
+
+  <ng-container *ngIf="itens as lista">
+    <p *ngIf="lista.length === 0" class="mt-3 flex items-center gap-2 text-sm text-green-800">
+      <span class="material-icons text-green-600" aria-hidden="true">task_alt</span>
+      Nenhuma notificação da SGDI para o órgão{{ sigla ? ' ' + sigla : '' }}.
+    </p>
+    <p *ngIf="lista.length > 0" class="text-sm text-gray-700 mt-3">
+      {{ lista.length === 1 ? '1 notificação' : lista.length + ' notificações' }}<ng-container *ngIf="emAberto > 0">,
+        {{ emAberto === 1 ? '1 em aberto' : emAberto + ' em aberto' }}</ng-container>.
+    </p>
+    <ul *ngIf="lista.length > 0" class="mt-3 space-y-4">
+      <li *ngFor="let i of lista; trackBy: porId" class="rounded-lg border border-gray-200 p-4">
+        <app-pe-inadimplencia-detalhe [item]="i"></app-pe-inadimplencia-detalhe>
+      </li>
+    </ul>
+  </ng-container>
+</section>

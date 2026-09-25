@@ -37,7 +37,9 @@ const MAX_JUSTIFICATIVA = 1000;
   selector: 'app-pe-orgaos-niveis',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective, DialogoDirective, PeOrgaoAjustesComponent],
-  templateUrl: './pe-orgaos-niveis.component.html'
+  templateUrl: './pe-orgaos-niveis.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeOrgaosNiveisComponent implements OnInit {
   private readonly estadoService = inject(PeTrilhaEstadoService);

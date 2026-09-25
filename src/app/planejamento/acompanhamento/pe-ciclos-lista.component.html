@@ -23,7 +23,7 @@
 
   <!-- A lista completa (o primeiro passo do tipo) -->
   <ng-container *ngIf="modo === 'lista' && visiveis.length > 0">
-    <div class="mt-4 overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" [attr.aria-label]="'Tabela: ' + nomeTabela">
+    <div class="mt-4 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" [attr.aria-label]="'Tabela: ' + nomeTabela">
       <table class="w-full text-sm">
         <caption class="sr-only">{{ titulo }}: o período, o prazo para fechar, a situação e o que cada um já tem registrado</caption>
         <thead>

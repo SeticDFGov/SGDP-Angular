@@ -2,9 +2,8 @@ import { CanDeactivateFn, ResolveFn, Routes } from '@angular/router';
 import { inject } from '@angular/core';
 import { PeShellComponent } from './trilha/pe-shell.component';
 import { PeInicioComponent } from './trilha/pe-inicio.component';
-import { PeEmConstrucaoComponent } from './trilha/pe-em-construcao.component';
 import { PeTrilhaEstadoService } from './trilha/pe-trilha-estado.service';
-import { PREFIXO_PASSO_ORGAO, TELAS_CENTRAIS_EM_CONSTRUCAO, TITULO_PASSO_GENERICO } from './trilha/pe-trilhas';
+import { PREFIXO_PASSO_ORGAO, TITULO_PASSO_GENERICO } from './trilha/pe-trilhas';
 
 /**
  * Título da aba num passo do órgão: o título do passo (WCAG 2.4.2), lido da
@@ -49,8 +48,11 @@ const confirmarSaida: CanDeactivateFn<ComMudancasPendentes> = tela => !tela?.pod
  *   editar (administrador do módulo e admin do SGDP) ou ler (os demais papéis).
  * - `cgtic/recebidos`, `cgtic/deliberacao` e `cgtic/historico` (mesma tela, pela
  *   `data.modo`): as deliberações do CGTIC (E3).
- * - Telas centrais ainda sem tela: uma rota por tela, todas na tela "em
- *   construção"; cada entrega troca o componente da sua rota.
+ * - `painel`, `conformidade`, `arvore-petic`, `inadimplencia`, `orgaos` e
+ *   `orgaos/:id` (E8): o acompanhamento de todos os órgãos pelos papéis globais e
+ *   pelo admin do SGDP (a página e as inadimplências do próprio órgão também para
+ *   a equipe e a consulta do órgão, só para ler). Desde a E8 nenhuma tela do
+ *   módulo fica "em construção".
  */
 export const planejamento_routes: Routes = [
   {
@@ -167,11 +169,44 @@ export const planejamento_routes: Routes = [
         title: 'Histórico das deliberações',
         data: { prerender: false, modo: 'historico' }
       },
-      ...Object.entries(TELAS_CENTRAIS_EM_CONSTRUCAO).map(([caminho, titulo]) => ({
-        path: caminho,
-        component: PeEmConstrucaoComponent,
-        title: titulo
-      })),
+      // E8: painel, conformidade, árvore do PETIC-DF, inadimplência e a página de cada órgão
+      {
+        path: 'painel',
+        loadComponent: () => import('./paineis/pe-painel.component').then(m => m.PePainelComponent),
+        title: 'Painel dos órgãos',
+        data: { prerender: false }
+      },
+      {
+        path: 'conformidade',
+        loadComponent: () => import('./paineis/pe-conformidade.component').then(m => m.PeConformidadeComponent),
+        title: 'Conformidade dos órgãos',
+        data: { prerender: false }
+      },
+      {
+        path: 'arvore-petic',
+        loadComponent: () => import('./paineis/pe-arvore-petic.component').then(m => m.PeArvorePeticComponent),
+        title: 'Árvore do PETIC-DF',
+        data: { prerender: false }
+      },
+      {
+        path: 'inadimplencia',
+        loadComponent: () => import('./inadimplencia/pe-inadimplencias.component').then(m => m.PeInadimplenciasComponent),
+        title: 'Notificações e inadimplências',
+        data: { prerender: false }
+      },
+      {
+        path: 'orgaos',
+        pathMatch: 'full',
+        loadComponent: () => import('./orgaos/pe-orgaos-lista.component').then(m => m.PeOrgaosListaComponent),
+        title: 'Página de cada órgão',
+        data: { prerender: false }
+      },
+      {
+        path: 'orgaos/:id',
+        loadComponent: () => import('./orgaos/pe-orgao-pagina.component').then(m => m.PeOrgaoPaginaComponent),
+        title: 'Página do órgão',
+        data: { prerender: false }
+      },
       // Endereço desconhecido dentro do módulo: volta para a visão geral
       { path: '**', redirectTo: '' }
     ]

@@ -17,7 +17,9 @@ import { plural } from '../shared/pe-pdtic-rotulos';
   selector: 'app-pe-temas-acoes',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  templateUrl: './pe-temas-acoes.component.html'
+  templateUrl: './pe-temas-acoes.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeTemasAcoesComponent implements OnChanges, OnDestroy {
   private readonly pdticService = inject(PePdticService);

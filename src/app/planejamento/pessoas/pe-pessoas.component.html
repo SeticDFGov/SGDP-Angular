@@ -81,7 +81,7 @@
           {{ filtrando ? 'Nenhuma pessoa com esses filtros.' : 'Ninguém tem papel no módulo ainda. Use o bloco "Dar acesso a outra pessoa", abaixo.' }}
         </p>
 
-        <div *ngIf="pagina && pagina.Items.length > 0" class="overflow-x-auto" tabindex="0" role="region" aria-label="Tabela: pessoas com papel no módulo">
+        <div *ngIf="pagina && pagina.Items.length > 0" class="relative overflow-x-auto" tabindex="0" role="region" aria-label="Tabela: pessoas com papel no módulo">
           <table class="w-full text-sm">
             <caption class="sr-only">Pessoas com papel na Governança Estratégica</caption>
             <thead>

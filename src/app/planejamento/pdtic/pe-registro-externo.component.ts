@@ -83,7 +83,9 @@ interface FormExterno {
   selector: 'app-pe-registro-externo',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './pe-registro-externo.component.html'
+  templateUrl: './pe-registro-externo.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeRegistroExternoComponent implements OnInit, AfterViewChecked {
   private readonly pdticService = inject(PePdticService);

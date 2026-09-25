@@ -37,7 +37,9 @@ const MAX_TEXTO = 2000;
   selector: 'app-pe-acao-pdtic',
   standalone: true,
   imports: [CommonModule, FormsModule, DialogoDirective],
-  templateUrl: './pe-acao-pdtic.component.html'
+  templateUrl: './pe-acao-pdtic.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeAcaoPdticComponent implements AfterViewChecked {
   private readonly pdticService = inject(PePdticService);

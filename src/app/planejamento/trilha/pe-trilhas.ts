@@ -26,9 +26,10 @@ export type PerfilCentralPe = Exclude<PerfilTrilhaPe, 'orgao'>;
 
 /**
  * Status calculado a partir dos dados (ver PeTrilhaStatusService): pedidos de
- * acesso ao módulo, situação do PETIC-DF e deliberações esperando o comitê.
+ * acesso ao módulo, situação do PETIC-DF, deliberações esperando o comitê e (E8)
+ * notificações com o prazo de 5 dias úteis vencido, esperando o registro.
  */
-export type ChaveStatusPe = 'pedidos-acesso' | 'petic' | 'deliberacoes';
+export type ChaveStatusPe = 'pedidos-acesso' | 'petic' | 'deliberacoes' | 'inadimplencias';
 
 export interface PassoTrilhaPe {
   /** Ação no imperativo. */
@@ -42,6 +43,11 @@ export interface PassoTrilhaPe {
   guia?: string;
   /** Chave do status calculado; sem ela o passo não mostra situação. */
   status?: ChaveStatusPe;
+  /**
+   * As telas abaixo da rota também são deste passo (E8: a lista dos órgãos é o
+   * passo, e a página de cada órgão, `orgaos/{id}`, continua nele).
+   */
+  subrotas?: boolean;
   /** Passo da trilha de um órgão, como o back-end resolveu (seções, campos, tipo e numeração). */
   doOrgao?: PePassoTrilha;
 }
@@ -69,11 +75,12 @@ export interface PassoNumeradoPe extends PassoTrilhaPe {
   etapa: number;
   indice: number;
   /**
-   * A tela do passo ainda não existe: tela central na "em construção"; passo do
-   * órgão de um tipo sem tela (desde a rodada B da E7, todos os tipos do modelo
-   * inicial têm tela).
+   * Passo do órgão de um tipo que esta versão do sistema não conhece (todos os
+   * tipos do modelo inicial têm tela desde a rodada B da E7, e todas as telas
+   * centrais existem desde a E8): a tela do passo explica e manda avisar a equipe
+   * que administra o sistema.
    */
-  emConstrucao: boolean;
+  semTela: boolean;
 }
 
 export const BASE_PE = '/planejamento';
@@ -84,24 +91,10 @@ export const PREFIXO_PASSO_ORGAO = `${BASE_PE}/pdtic/`;
 /** Título da aba num passo do órgão enquanto a trilha não chegou (a tela do passo troca pelo título dele). */
 export const TITULO_PASSO_GENERICO = 'Passo do PDTIC';
 
-/** Telas centrais prontas; os demais passos centrais abrem a tela "em construção". */
-export const ROTAS_PRONTAS: ReadonlySet<string> = new Set([
-  `${BASE_PE}/pessoas`,
-  `${BASE_PE}/modelo/niveis`,
-  `${BASE_PE}/modelo/estrutura`,
-  `${BASE_PE}/modelo/criterios`,
-  `${BASE_PE}/modelo/documento`,
-  `${BASE_PE}/modelo/fluxos`,
-  `${BASE_PE}/orgaos/niveis`,
-  `${BASE_PE}/referenciais/principios`,
-  `${BASE_PE}/referenciais/petic`,
-  `${BASE_PE}/referenciais/diretrizes`,
-  `${BASE_PE}/cgtic/recebidos`,
-  `${BASE_PE}/cgtic/deliberacao`,
-  `${BASE_PE}/cgtic/historico`,
-  `${BASE_PE}/comentarios`,
-  `${BASE_PE}/consolidado`
-]);
+/** Rota da página de um órgão (E8): tudo do órgão num lugar só. */
+export function rotaPaginaOrgao(orgaoId: number): string {
+  return `${BASE_PE}/orgaos/${orgaoId}`;
+}
 
 /**
  * Referenciais do DF e deliberações, para o acesso rápido da visão geral: todo
@@ -128,15 +121,32 @@ export const ATALHOS_REFERENCIAIS: { rota: string; titulo: string; texto: string
 ];
 
 /**
- * Telas centrais (administrador, SGDI e CGTIC) que ainda não existem: caminho sob
- * /planejamento e título da aba do navegador. Cada entrega troca o componente da
- * rota pela tela real.
+ * Acompanhamento dos órgãos (E8), para o acesso rápido da visão geral dos papéis
+ * globais e do admin do SGDP: a Secretaria do CGTIC vê estas telas sem tê-las na
+ * trilha dela.
  */
-export const TELAS_CENTRAIS_EM_CONSTRUCAO: Readonly<Record<string, string>> = {
-  'orgaos': 'Página do órgão',
-  'painel': 'Painel e conformidade',
-  'inadimplencia': 'Notificações e inadimplências'
-};
+export const ATALHOS_ACOMPANHAMENTO: { rota: string; titulo: string; texto: string; icone: string }[] = [
+  {
+    rota: `${BASE_PE}/painel`, titulo: 'Painel dos órgãos', icone: 'insights',
+    texto: 'Os órgãos por situação do PDTIC, por nível e por etapa, os gráficos e os alertas.'
+  },
+  {
+    rota: `${BASE_PE}/conformidade`, titulo: 'Conformidade', icone: 'fact_check',
+    texto: 'Os itens de TIC que cada órgão cumpre, com o grupo de conformidade e a planilha.'
+  },
+  {
+    rota: `${BASE_PE}/arvore-petic`, titulo: 'Árvore do PETIC-DF', icone: 'account_tree',
+    texto: 'Os objetivos do PETIC-DF vigente com as necessidades e as metas dos órgãos.'
+  },
+  {
+    rota: `${BASE_PE}/orgaos`, titulo: 'Página de cada órgão', icone: 'domain',
+    texto: 'Tudo de um órgão num lugar só: PDTIC, andamento, aprovações, documentos e ciclos.'
+  },
+  {
+    rota: `${BASE_PE}/inadimplencia`, titulo: 'Notificações e inadimplências', icone: 'report',
+    texto: 'Os órgãos notificados pela SGDI, o prazo de 5 dias úteis e as inadimplências.'
+  }
+];
 
 export const ROTULOS_PERFIL_TRILHA_PE: Record<PerfilTrilhaPe, string> = {
   admin: 'Administrador do módulo',
@@ -152,18 +162,54 @@ const tela = (caminho: string) => `${BASE_PE}/${caminho}`;
 
 // ── Administrador do módulo (pe_admin) ──────────────────────────────────────
 
+// ── Acompanhamento dos órgãos (E8): passos do administrador e da SGDI ─────────
+
 const PAINEL: PassoTrilhaPe = {
-  titulo: 'Veja o painel e a conformidade',
+  titulo: 'Veja o painel dos órgãos',
   rota: tela('painel'),
-  oQueFazer: 'Acompanhe a situação do PDTIC de cada órgão (em elaboração, enviado, aprovado, publicado ou vencido) e veja quem cumpre cada item de conformidade.',
+  oQueFazer: 'Veja quantos órgãos estão em cada situação do PDTIC, por nível e por etapa da elaboração, os gráficos das necessidades, '
+    + 'das ações e dos riscos, e os alertas: vigência vencida, revisão vencida, ciclo atrasado, inadimplência e deliberação aguardando.',
   baseLegal: 'art. 9º, IV, do Decreto nº 48.899/2026'
+};
+
+const CONFORMIDADE: PassoTrilhaPe = {
+  titulo: 'Confira a conformidade dos órgãos',
+  rota: tela('conformidade'),
+  oQueFazer: 'Veja, órgão por órgão, os itens de TIC que o PDTIC cumpre: aprovado pelo CGTIC, comunicado à SGDI, vigente, com os nove '
+    + 'conteúdos e com a revisão e o acompanhamento em dia. Os órgãos ficam em alta, média ou baixa conformidade.',
+  baseLegal: 'art. 9º, IV, do Decreto nº 48.899/2026'
+};
+
+const ARVORE_PETIC: PassoTrilhaPe = {
+  titulo: 'Veja a árvore do PETIC-DF',
+  rota: tela('arvore-petic'),
+  oQueFazer: 'Veja, para cada objetivo do PETIC-DF vigente, os indicadores dele e as necessidades e metas que cada órgão ligou ao objetivo.',
+  baseLegal: 'art. 12, § 1º'
 };
 
 const INADIMPLENCIA: PassoTrilhaPe = {
   titulo: 'Registre notificações e inadimplências',
   rota: tela('inadimplencia'),
-  oQueFazer: 'Registre a notificação do órgão que não comunicou o PDTIC aprovado. Passados 5 dias úteis sem regularização nem justificativa aceita, registre a inadimplência com o motivo.',
-  baseLegal: 'art. 11 do Decreto nº 48.899/2026'
+  oQueFazer: 'Registre a notificação do órgão que não comunicou o PDTIC aprovado. Passados 5 dias úteis sem regularização nem justificativa '
+    + 'aceita, registre a inadimplência com o motivo e a nota de motivação. Quando o órgão regularizar, registre o saneamento.',
+  baseLegal: 'art. 11 do Decreto nº 48.899/2026',
+  status: 'inadimplencias'
+};
+
+const PAGINA_ORGAO: PassoTrilhaPe = {
+  titulo: 'Abra a página do órgão',
+  rota: tela('orgaos'),
+  oQueFazer: 'Escolha o órgão e veja tudo dele num lugar só: situação e versão do PDTIC, andamento da trilha, nível, conformidade, '
+    + 'aprovações, deliberações, documentos, ciclos e inadimplências.',
+  baseLegal: 'art. 9º, IV, do Decreto nº 48.899/2026',
+  subrotas: true
+};
+
+const COMENTARIOS: PassoTrilhaPe = {
+  titulo: 'Comente os passos do órgão',
+  rota: tela('comentarios'),
+  oQueFazer: 'Escolha o órgão, abra a trilha dele e comente um passo do PDTIC. A equipe do órgão responde e marca o comentário como resolvido.',
+  baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
 };
 
 const CONSOLIDADO: PassoTrilhaPe = {
@@ -269,9 +315,9 @@ const TRILHA_ADMIN: TrilhaPe = {
     {
       rotulo: 'Acompanhamento',
       titulo: 'Acompanhe os órgãos',
-      resumo: 'Painel, conformidade, notificações e inadimplência.',
+      resumo: 'Painel, conformidade, árvore do PETIC-DF, notificações e inadimplências, a página de cada órgão e os comentários nos passos.',
       icone: 'insights',
-      passos: [PAINEL, INADIMPLENCIA]
+      passos: [PAINEL, CONFORMIDADE, ARVORE_PETIC, INADIMPLENCIA, PAGINA_ORGAO, COMENTARIOS]
     },
     {
       rotulo: 'Consolidação',
@@ -294,10 +340,12 @@ const TRILHA_SGDI: TrilhaPe = {
     {
       rotulo: 'Acompanhamento',
       titulo: 'Acompanhe',
-      resumo: 'Painel e conformidade dos órgãos e as deliberações do CGTIC.',
+      resumo: 'Painel e conformidade dos órgãos, a árvore do PETIC-DF e as deliberações do CGTIC.',
       icone: 'insights',
       passos: [
         PAINEL,
+        CONFORMIDADE,
+        ARVORE_PETIC,
         {
           titulo: 'Acompanhe as deliberações do CGTIC',
           rota: tela('cgtic/historico'),
@@ -311,20 +359,7 @@ const TRILHA_SGDI: TrilhaPe = {
       titulo: 'Analise os PDTICs',
       resumo: 'Página de cada órgão e comentários nos passos do PDTIC.',
       icone: 'fact_check',
-      passos: [
-        {
-          titulo: 'Abra a página do órgão',
-          rota: tela('orgaos'),
-          oQueFazer: 'Veja tudo do órgão num lugar só: situação e versão do PDTIC, andamento da trilha, nível, aprovações, documentos e planilhas.',
-          baseLegal: 'art. 9º, IV, do Decreto nº 48.899/2026'
-        },
-        {
-          titulo: 'Comente os passos do órgão',
-          rota: tela('comentarios'),
-          oQueFazer: 'Escolha o órgão, abra a trilha dele e comente um passo do PDTIC. A equipe do órgão responde e marca o comentário como resolvido.',
-          baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
-        }
-      ]
+      passos: [PAGINA_ORGAO, COMENTARIOS]
     },
     {
       rotulo: 'Inadimplência',
@@ -483,32 +518,24 @@ export function passosNumerados(trilha: TrilhaPe): PassoNumeradoPe[] {
         numero: doOrgao?.Numero || `${e + 1}.${p + 1}`,
         etapa: e,
         indice: passos.length,
-        emConstrucao: doOrgao ? !TIPOS_PASSO_COM_TELA.has(doOrgao.Tipo) : !ROTAS_PRONTAS.has(passo.rota)
+        semTela: !!doOrgao && !TIPOS_PASSO_COM_TELA.has(doOrgao.Tipo)
       });
     }));
   return passos;
 }
 
 /**
- * Passo da URL. Dois passos podem usar a mesma tela (painel, inadimplência): o
- * `?passo=N.M` que a trilha põe na navegação desempata; sem ele, vale o primeiro.
+ * Passo da URL. Dois passos podem usar a mesma tela: o `?passo=N.M` que a trilha
+ * põe na navegação desempata; sem ele, vale o primeiro. Sem passo com a rota
+ * exata, o passo com `subrotas` cuja rota começa o caminho (a página de um órgão
+ * fica no passo da lista dos órgãos).
  */
 export function passoDaUrl(passos: PassoNumeradoPe[], url: string): PassoNumeradoPe | null {
   const [caminho, query] = url.split('#')[0].split('?');
   const pedido = new URLSearchParams(query ?? '').get('passo');
-  const candidatos = passos.filter(p => p.rota === caminho);
+  let candidatos = passos.filter(p => p.rota === caminho);
+  if (!candidatos.length) candidatos = passos.filter(p => p.subrotas && caminho.startsWith(`${p.rota}/`));
   return candidatos.find(p => p.numero === pedido) ?? candidatos[0] ?? null;
-}
-
-/** Passo de qualquer trilha central com esta rota (para a tela "em construção" aberta fora da trilha). */
-export function passoDeQualquerTrilha(caminho: string): PassoTrilhaPe | null {
-  for (const perfil of PERFIS_CENTRAIS_PE) {
-    for (const etapa of TRILHAS[perfil].etapas) {
-      const passo = etapa.passos.find(p => p.rota === caminho);
-      if (passo) return passo;
-    }
-  }
-  return null;
 }
 
 /** "Guia de PDTIC: atividade 1.1", "atividades 2.8 a 2.11" ou o anexo como está. */

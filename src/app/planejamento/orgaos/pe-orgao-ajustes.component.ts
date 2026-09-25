@@ -39,7 +39,9 @@ const MAX_JUSTIFICATIVA = 500;
   selector: 'app-pe-orgao-ajustes',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './pe-orgao-ajustes.component.html'
+  templateUrl: './pe-orgao-ajustes.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeOrgaoAjustesComponent implements OnChanges {
   private readonly modeloService = inject(PeModeloService);

@@ -48,7 +48,9 @@ interface OpcaoVisao {
   selector: 'app-pe-shell',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective],
-  templateUrl: './pe-shell.component.html'
+  templateUrl: './pe-shell.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeShellComponent implements OnInit {
   private readonly router = inject(Router);

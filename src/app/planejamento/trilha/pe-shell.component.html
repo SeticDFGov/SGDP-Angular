@@ -133,7 +133,7 @@
 
       <!-- Etapas numeradas. Com rolagem lateral (tela estreita), cada etapa é um botão: o Tab
            chega a todas, e o navegador rola a lista até o botão com o foco -->
-      <ol class="px-3 py-3 flex gap-1 overflow-x-auto" aria-label="Etapas da trilha">
+      <ol class="px-3 py-3 flex gap-1 relative overflow-x-auto" aria-label="Etapas da trilha">
         <li *ngFor="let etapa of trilha.etapas; let i = index" class="flex-1 min-w-[8.5rem]">
           <button type="button" (click)="abrirEtapa(i)"
                   class="w-full h-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
@@ -165,7 +165,7 @@
              [attr.aria-current]="passoAtual?.numero === p.numero ? 'step' : null">
             <span class="px-1.5 py-0.5 rounded-full text-xs font-bold"
                   [ngClass]="passoAtual?.numero === p.numero ? 'bg-white/10' : 'bg-gray-100 text-gray-700'">{{ p.numero }}</span>
-            {{ p.titulo }}<span *ngIf="p.emConstrucao" class="sr-only"> (tela em construção)</span><span *ngIf="status(p) as s" class="sr-only"> ({{ textoStatus(s) }})</span>
+            {{ p.titulo }}<span *ngIf="p.semTela" class="sr-only"> (sem tela nesta versão do sistema)</span><span *ngIf="status(p) as s" class="sr-only"> ({{ textoStatus(s) }})</span>
             <span *ngIf="status(p) as s" class="material-icons text-base" aria-hidden="true"
                   [ngClass]="passoAtual?.numero === p.numero ? 'text-white' : corIconeEstado(s.estado)">{{ iconeEstado(s.estado) }}</span>
           </a>

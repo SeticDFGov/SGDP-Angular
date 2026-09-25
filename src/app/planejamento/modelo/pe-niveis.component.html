@@ -50,7 +50,7 @@
         Nenhum nível ainda. Crie o primeiro com o botão "Novo nível".
       </p>
 
-      <div *ngIf="niveis.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: níveis de maturidade">
+      <div *ngIf="niveis.length > 0" class="relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: níveis de maturidade">
         <table class="w-full text-sm">
           <caption class="sr-only">Níveis de maturidade, do mais simples ao mais completo, com o que cada um pede</caption>
           <thead>
@@ -157,7 +157,7 @@
       <label for="pe-nivel-nome" class="block text-sm font-semibold text-gray-800 mt-4 mb-1">Nome <span class="text-red-600">*</span></label>
       <input id="pe-nivel-nome" type="text" [(ngModel)]="e.nome" name="pe-nivel-nome" [maxlength]="maxNome"
              placeholder="Ex.: Intermediário" [attr.aria-invalid]="!!erroNome" [attr.aria-describedby]="erroNome ? 'pe-nivel-nome-erro' : null"
-             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             class="w-full md:w-72 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
              [ngClass]="erroNome ? 'border-red-500' : 'border-gray-300'" />
       <p *ngIf="erroNome" id="pe-nivel-nome-erro" class="text-xs text-red-600 mt-1">{{ erroNome }}</p>
 

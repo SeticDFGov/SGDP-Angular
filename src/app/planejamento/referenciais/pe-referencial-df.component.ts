@@ -40,7 +40,9 @@ const REFERENCIAIS: Record<ReferencialDf, ConfigReferencial> = {
   selector: 'app-pe-referencial-df',
   standalone: true,
   imports: [CommonModule, RouterModule, CitaPlanejamentoDirective, PeSecaoRegistrosComponent],
-  templateUrl: './pe-referencial-df.component.html'
+  templateUrl: './pe-referencial-df.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeReferencialDfComponent implements OnInit {
   private readonly rota = inject(ActivatedRoute);

@@ -36,7 +36,9 @@ interface Painel {
   selector: 'app-pe-tabela-registros',
   standalone: true,
   imports: [CommonModule, DialogoDirective, PeRegistroEdicaoComponent, PeRegistroLeituraComponent],
-  templateUrl: './pe-tabela-registros.component.html'
+  templateUrl: './pe-tabela-registros.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeTabelaRegistrosComponent implements OnChanges, AfterViewChecked {
   private readonly notificacoes = inject(NotificationService);

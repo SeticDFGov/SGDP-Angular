@@ -1,0 +1,468 @@
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Title } from '@angular/platform-browser';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
+import {
+  PeAndamentoEtapa, PeAprovacaoResumo, PeCiclo, PeComentarioAberto, PeConformidadeOrgao, PeDeliberacao, PeDocumentoResumo,
+  PeInadimplencia, PeNaoSeAplicaResumo, PePdtic, PeResumoOrgao
+} from '../../../api/planejamento/interface';
+import { NotificationService } from '../../core/services/notification.service';
+import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
+import { mensagemErroPe } from '../shared/pe-erros';
+import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
+import { baixarPdfDoPdtic } from '../shared/pe-pdf-pdtic';
+import {
+  classeSituacaoCiclo, ciclosEmOrdem, iconeSituacaoCiclo, periodoCiclo, rotuloSituacaoCiclo
+} from '../shared/pe-ciclos-rotulos';
+import {
+  classeSituacaoInadimplencia, iconeSituacaoInadimplencia, inadimplenciaVigente, rotuloSituacaoInadimplencia
+} from '../shared/pe-inadimplencia-rotulos';
+import {
+  GrupoConformidade, MarcaAtendimento, grupoConformidade, idDoParametro, itensDaLinha, marcaAtendimento, nomeDocumentoReserva,
+  rotuloDecisao, rotuloSituacaoDocumento, rotuloTipoDocumento, textoPercentualConformidade
+} from '../shared/pe-paineis-rotulos';
+import { classeSituacaoPdtic, quandoPdtic, rotuloSituacaoPdtic } from '../shared/pe-pdtic-rotulos';
+import {
+  classeSituacaoDeliberacao, rotuloSituacaoDeliberacao, textoAto, textoVigencia
+} from '../shared/pe-referenciais-rotulos';
+import { PePaineisService } from '../services/pe-paineis.service';
+import { PePdticService } from '../services/pe-pdtic.service';
+import { PeRegistrosService } from '../services/pe-registros.service';
+import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
+import { BASE_PE, PassoNumeradoPe, rotaPaginaOrgao } from '../trilha/pe-trilhas';
+import { PeInadimplenciaDetalheComponent } from '../inadimplencia/pe-inadimplencia-detalhe.component';
+
+/** O título da rota (a tela troca pelo título com a sigla quando o órgão chega). */
+const TITULO_PAGINA = 'Página do órgão';
+
+/** Um item da conformidade na página: o rótulo, a base, a marca e o detalhe. */
+interface ItemConformidadePagina {
+  chave: string;
+  rotulo: string;
+  base: string;
+  /** O que o item pede, numa frase. */
+  atende: string;
+  marca: MarcaAtendimento;
+  detalhe: string;
+}
+
+/**
+ * Página do órgão (E8; a partir da conformidade, do painel, da lista dos órgãos e
+ * da árvore do PETIC-DF): tudo do órgão num lugar só (GET orgaos/{id}/resumo).
+ *
+ * - Cabeçalho: a situação e a versão do PDTIC, o nível, a conformidade e a
+ *   notificação em aberto, e os links para o PDTIC em leitura (a trilha do órgão),
+ *   o documento (o passo do documento na trilha), a planilha completa, a árvore do
+ *   PETIC-DF e as notificações do órgão.
+ * - O PDTIC e as versões; o nível com o histórico; o andamento por etapa (com o
+ *   próximo passo); a conformidade item a item (texto e ícone, o detalhe e a base
+ *   com a dica); o "não se aplica" com as justificativas; os comentários abertos
+ *   (com o link para o passo); as aprovações; as deliberações do CGTIC (com o PDF
+ *   enviado); os documentos gerados (baixar); os ciclos; as notificações da SGDI.
+ *
+ * Os papéis globais e o admin do SGDP veem a de qualquer órgão; a equipe e a
+ * consulta do órgão, só a do próprio órgão (outro endereço mostra um aviso e a
+ * tela não consulta: o 403 tiraria a pessoa do módulo). Tudo só para ler.
+ */
+@Component({
+  selector: 'app-pe-orgao-pagina',
+  standalone: true,
+  imports: [CommonModule, RouterModule, CitaPlanejamentoDirective, PeInadimplenciaDetalheComponent],
+  templateUrl: './pe-orgao-pagina.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
+})
+export class PeOrgaoPaginaComponent implements OnInit {
+  private readonly estadoService = inject(PeTrilhaEstadoService);
+  private readonly paineisService = inject(PePaineisService);
+  private readonly pdticService = inject(PePdticService);
+  private readonly registrosService = inject(PeRegistrosService);
+  private readonly notificacoes = inject(NotificationService);
+  private readonly router = inject(Router);
+  private readonly rota = inject(ActivatedRoute);
+  private readonly titulo = inject(Title);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly base = BASE_PE;
+
+  /** O órgão do endereço (null: endereço sem um número de órgão). */
+  orgaoId: number | null = null;
+  /** Pode ver este órgão: papel global ou admin do SGDP; papel de órgão, só o próprio. */
+  podeVer: boolean | null = null;
+  /** Papel de órgão: a página é do próprio órgão (os links levam à trilha dele). */
+  ehPapelDeOrgao = false;
+  veTodos = false;
+  erroPapel = false;
+  paginaDoMeuOrgao: string | null = null;
+
+  resumo: PeResumoOrgao | null = null;
+  carregando = false;
+  erro: string | null = null;
+  naoEncontrado = false;
+  private carga?: Subscription;
+  private carregado: number | null = null;
+
+  // Partes prontas para a tela (montadas uma vez por carga)
+  itensConformidade: ItemConformidadePagina[] = [];
+  ciclos: PeCiclo[] = [];
+  inadimplencias: PeInadimplencia[] = [];
+  historicoAberto = false;
+  baixando: string | null = null;
+
+  ngOnInit(): void {
+    this.rota.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        this.orgaoId = idDoParametro(params.get('id'));
+        this.avaliar();
+      });
+    this.estadoService.estado$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.avaliar());
+  }
+
+  /** Quem vê o quê: com o papel conhecido e o órgão do endereço, carrega (uma vez por órgão). */
+  private avaliar(): void {
+    const estado = this.estadoService.atual;
+    if (!estado || estado.carga !== 'pronta') return;
+    this.erroPapel = estado.consultaPapel === 'erro';
+    this.veTodos = this.estadoService.veTodosOsOrgaos === true;
+    this.ehPapelDeOrgao = this.estadoService.ehPapelDeOrgao;
+    const meuOrgao = this.estadoService.orgaoDoPapel;
+    this.paginaDoMeuOrgao = meuOrgao ? rotaPaginaOrgao(meuOrgao) : null;
+    if (this.orgaoId === null) {
+      this.podeVer = null;
+      return;
+    }
+    if (estado.consultaPapel === 'carregando') return;
+    this.podeVer = this.veTodos || (this.ehPapelDeOrgao && meuOrgao === this.orgaoId);
+    if (this.podeVer && this.carregado !== this.orgaoId) this.carregar();
+  }
+
+  tentarPapelDeNovo(): void {
+    this.estadoService.iniciar();
+  }
+
+  carregar(): void {
+    const orgaoId = this.orgaoId;
+    if (orgaoId === null) return;
+    this.carga?.unsubscribe();
+    this.carregado = orgaoId;
+    this.carregando = true;
+    this.erro = null;
+    this.naoEncontrado = false;
+    this.carga = this.paineisService.resumoOrgao(orgaoId).subscribe({
+      next: resumo => {
+        this.carregando = false;
+        if (this.orgaoId !== orgaoId) return;
+        this.aplicar(resumo);
+      },
+      error: erro => {
+        this.carregando = false;
+        // 403: o interceptor já tirou a pessoa do módulo
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a página do órgão. Tente de novo em alguns instantes.');
+        if (mensagem === null) return;
+        this.carregado = null;
+        if ((erro as { status?: number } | null)?.status === 404) this.naoEncontrado = true;
+        else this.erro = mensagem;
+      }
+    });
+  }
+
+  private aplicar(bruto: PeResumoOrgao): void {
+    const resumo: PeResumoOrgao = {
+      ...bruto,
+      Nivel: {
+        Id: bruto?.Nivel?.Id ?? null, Nome: bruto?.Nivel?.Nome ?? null, Padrao: bruto?.Nivel?.Padrao === true,
+        Historico: bruto?.Nivel?.Historico ?? []
+      },
+      Versoes: bruto?.Versoes ?? [],
+      Andamento: bruto?.Andamento ?? [],
+      NaoSeAplica: bruto?.NaoSeAplica ?? [],
+      ComentariosAbertos: bruto?.ComentariosAbertos ?? [],
+      Aprovacoes: bruto?.Aprovacoes ?? [],
+      Deliberacoes: bruto?.Deliberacoes ?? [],
+      Documentos: bruto?.Documentos ?? [],
+      Ciclos: bruto?.Ciclos ?? [],
+      Inadimplencias: bruto?.Inadimplencias ?? []
+    };
+    this.resumo = resumo;
+    const linha = resumo.Conformidade;
+    this.itensConformidade = linha
+      ? itensDaLinha(linha.Itens).map(i => ({
+        chave: i.Chave,
+        rotulo: i.Rotulo,
+        base: i.Base,
+        atende: i.AtendeQuando,
+        marca: marcaAtendimento(linha.Itens?.[i.Chave]),
+        detalhe: linha.Itens?.[i.Chave]?.Detalhe?.trim() ?? ''
+      }))
+      : [];
+    this.ciclos = ciclosEmOrdem(resumo.Ciclos);
+    this.inadimplencias = [...resumo.Inadimplencias]
+      .sort((a, b) => Number(inadimplenciaVigente(b.Situacao)) - Number(inadimplenciaVigente(a.Situacao)));
+    this.historicoAberto = false;
+    this.aplicarTitulo(resumo.Orgao?.Sigla);
+  }
+
+  /** O título da aba com a sigla ("Página do órgão SES · Governança Estratégica · SGDP"). */
+  private aplicarTitulo(sigla: string | null | undefined): void {
+    const atual = this.titulo.getTitle();
+    if (sigla && atual.startsWith(TITULO_PAGINA) && !atual.startsWith(`${TITULO_PAGINA} ${sigla}`)) {
+      this.titulo.setTitle(`${TITULO_PAGINA} ${sigla}${atual.slice(TITULO_PAGINA.length)}`);
+    }
+  }
+
+  // ── Cabeçalho ─────────────────────────────────────────────────────────────
+
+  get sigla(): string {
+    return this.resumo?.Orgao?.Sigla ?? '';
+  }
+
+  get pdtic(): PePdtic | null {
+    return this.resumo?.Pdtic ?? null;
+  }
+
+  get conformidade(): PeConformidadeOrgao | null {
+    return this.resumo?.Conformidade ?? null;
+  }
+
+  get grupo(): GrupoConformidade | null {
+    return grupoConformidade(this.conformidade?.Grupo);
+  }
+
+  get percentual(): string {
+    const c = this.conformidade;
+    return c ? textoPercentualConformidade(c) : '-';
+  }
+
+  /** A notificação em aberto mais importante: a inadimplência registrada, senão a notificação. */
+  get vigente(): PeInadimplencia | null {
+    return this.inadimplencias.find(i => i.Situacao === 'inadimplente')
+      ?? this.inadimplencias.find(i => i.Situacao === 'notificado') ?? null;
+  }
+
+  rotuloSituacaoPdtic(s: string | null | undefined): string {
+    return s ? rotuloSituacaoPdtic(s) : 'Sem PDTIC';
+  }
+
+  classeSituacaoPdtic(s: string | null | undefined): string {
+    return classeSituacaoPdtic(s);
+  }
+
+  vigencia(p: PePdtic): string {
+    return textoVigencia(p);
+  }
+
+  quando(valor: string | null | undefined): string {
+    return quandoPdtic(valor);
+  }
+
+  rotuloInadimplencia(i: PeInadimplencia): string {
+    return rotuloSituacaoInadimplencia(i.Situacao, i.SituacaoRotulo);
+  }
+
+  classeInadimplencia(i: PeInadimplencia): string {
+    return classeSituacaoInadimplencia(i.Situacao);
+  }
+
+  iconeInadimplencia(i: PeInadimplencia): string {
+    return iconeSituacaoInadimplencia(i.Situacao);
+  }
+
+  // ── Andamento ─────────────────────────────────────────────────────────────
+
+  resolvidos(a: PeAndamentoEtapa): string {
+    return `${a.Feitos} de ${a.Total}`;
+  }
+
+  // ── Trilha, documento e planilha ──────────────────────────────────────────
+
+  /** A trilha do órgão (a do próprio órgão, para o papel de órgão; só para ler, para os demais), na visão geral. */
+  verTrilha(): void {
+    this.abrirNaTrilha(null);
+  }
+
+  /** A prévia do documento, no passo do documento da trilha do órgão. */
+  verDocumento(): void {
+    this.abrirNaTrilha(p => p.doOrgao?.Tipo === 'documento');
+  }
+
+  /** O passo do próximo passo recomendado. */
+  abrirProximoPasso(numero: string): void {
+    this.abrirNaTrilha(p => p.numero === numero);
+  }
+
+  /** O passo do comentário (pelo id do passo; senão, pelo número). */
+  abrirPassoDoComentario(c: PeComentarioAberto): void {
+    this.abrirNaTrilha(p => p.doOrgao?.Id === c.PassoId || (!!c.PassoNumero && p.numero === c.PassoNumero));
+  }
+
+  /**
+   * Abre a trilha do órgão e, com `escolher`, o passo que ele escolhe. Para os
+   * papéis globais a trilha do órgão chega depois: a moldura tira esta tela do ar
+   * enquanto carrega, então quem espera é uma assinatura que se desfaz sozinha
+   * (como o "Ver o documento" da lista dos PDTICs). Se a pessoa for para outra tela
+   * antes, fica onde está.
+   */
+  private abrirNaTrilha(escolher: ((p: PassoNumeradoPe) => boolean) | null): void {
+    const orgaoId = this.orgaoId;
+    if (orgaoId === null) return;
+    const router = this.router;
+    const atual = this.estadoService.atual;
+    const irAoPasso = (passos: PassoNumeradoPe[]) => {
+      const passo = escolher ? passos.find(escolher) : null;
+      if (passo) router.navigate([passo.rota], { queryParams: { passo: passo.numero } });
+      else router.navigate([BASE_PE]);
+    };
+    const jaEstaNaTrilha = atual?.carga === 'pronta' && atual.perfil === 'orgao'
+      && (atual.orgaoVisto === orgaoId || (this.ehPapelDeOrgao && atual.orgaoVisto === null));
+    if (jaEstaNaTrilha) {
+      irAoPasso(atual!.passos);
+      return;
+    }
+    if (this.ehPapelDeOrgao) {
+      router.navigate([BASE_PE]);
+      return;
+    }
+    const estadoService = this.estadoService;
+    estadoService.verOrgao(orgaoId);
+    router.navigate([BASE_PE]);
+    if (!escolher) return;
+    let feito = false;
+    const assinatura = estadoService.estado$.subscribe(estado => {
+      if (feito || !estado || estado.orgaoVisto !== orgaoId || (estado.carga !== 'pronta' && estado.carga !== 'erro-trilha')) return;
+      feito = true;
+      const passo = estado.carga === 'pronta' ? estado.passos.find(escolher) : null;
+      if (passo && router.url.split('?')[0] === BASE_PE) router.navigate([passo.rota], { queryParams: { passo: passo.numero } });
+      setTimeout(() => assinatura.unsubscribe());
+    });
+  }
+
+  /** O XLSX do PDTIC com uma aba por seção e a aba Leia-me. */
+  baixarPlanilha(): void {
+    const p = this.pdtic;
+    if (!p || this.baixando) return;
+    this.baixando = 'planilha';
+    this.registrosService.planilhaCompleta({ tipo: 'pdtic', id: p.Id }).subscribe({
+      next: resposta => {
+        this.baixando = null;
+        salvarResposta(resposta, `PDTIC_${p.OrgaoSigla}_completa.xlsx`);
+      },
+      error: erro => {
+        this.baixando = null;
+        mensagemErroDownload(erro, 'Não foi possível gerar a planilha completa. Tente de novo.').then(m => {
+          if (m) this.notificacoes.error(m);
+        });
+      }
+    });
+  }
+
+  // ── Deliberações e documentos ─────────────────────────────────────────────
+
+  rotuloDeliberacao(d: PeDeliberacao): string {
+    return rotuloSituacaoDeliberacao(d.Situacao);
+  }
+
+  classeDeliberacao(d: PeDeliberacao): string {
+    return classeSituacaoDeliberacao(d.Situacao);
+  }
+
+  ato(d: PeDeliberacao): string {
+    return textoAto(d) || '-';
+  }
+
+  baixarPdfEnviado(d: PeDeliberacao): void {
+    const doc = d.Documento;
+    if (!doc || this.baixando) return;
+    this.baixando = `deliberacao-${d.Id}`;
+    baixarPdfDoPdtic(this.pdticService, { pdticId: doc.PdticId || d.ObjetoId, numero: doc.Numero, sigla: this.sigla, versao: d.VersaoObjeto })
+      .then(mensagem => {
+        this.baixando = null;
+        if (mensagem) this.notificacoes.error(mensagem);
+      });
+  }
+
+  rotuloDocumento(d: PeDocumentoResumo): string {
+    return rotuloTipoDocumento(d.Tipo, d.Rotulo);
+  }
+
+  situacaoDocumento(d: PeDocumentoResumo): string {
+    return rotuloSituacaoDocumento(d.Situacao);
+  }
+
+  chaveDocumento(d: PeDocumentoResumo): string {
+    return `${d.Tipo}-${d.Numero}-${d.GeradoEm ?? ''}`;
+  }
+
+  baixarDocumento(d: PeDocumentoResumo): void {
+    if (this.baixando) return;
+    this.baixando = this.chaveDocumento(d);
+    this.paineisService.baixarDocumento(d.Url).subscribe({
+      next: resposta => {
+        this.baixando = null;
+        salvarResposta(resposta, nomeDocumentoReserva(this.sigla, d.Tipo, d.Numero));
+      },
+      error: erro => {
+        this.baixando = null;
+        mensagemErroDownload(erro, 'Não foi possível baixar o documento. Tente de novo.').then(m => {
+          if (m) this.notificacoes.error(m);
+        });
+      }
+    });
+  }
+
+  // ── Aprovações, ciclos ────────────────────────────────────────────────────
+
+  decisao(a: PeAprovacaoResumo): string {
+    return rotuloDecisao(a.Decisao);
+  }
+
+  tipoCiclo(c: PeCiclo): string {
+    return c.Tipo === 'avaliacao' ? 'Avaliação intermediária' : 'Monitoramento';
+  }
+
+  periodo(c: PeCiclo): string {
+    return periodoCiclo(c);
+  }
+
+  rotuloCiclo(c: PeCiclo): string {
+    return rotuloSituacaoCiclo(c.Situacao);
+  }
+
+  classeCiclo(c: PeCiclo): string {
+    return classeSituacaoCiclo(c.Situacao);
+  }
+
+  iconeCiclo(c: PeCiclo): string {
+    return iconeSituacaoCiclo(c.Situacao);
+  }
+
+  // ── trackBy ───────────────────────────────────────────────────────────────
+
+  porIndice(i: number): number {
+    return i;
+  }
+
+  porId(_: number, x: { Id: number }): number {
+    return x.Id;
+  }
+
+  porEtapa(_: number, a: PeAndamentoEtapa): number {
+    return a.Etapa;
+  }
+
+  porChave(_: number, x: { chave: string }): string {
+    return x.chave;
+  }
+
+  porNaoSeAplica(i: number, n: PeNaoSeAplicaResumo): string {
+    return `${n.PassoNumero ?? i}`;
+  }
+
+  porDocumento(_: number, d: PeDocumentoResumo): string {
+    return `${d.Tipo}-${d.Numero}-${d.GeradoEm ?? ''}`;
+  }
+}

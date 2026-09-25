@@ -16,7 +16,9 @@ import { classeRiscoPgia, plural } from '../shared/pe-pdtic-rotulos';
   selector: 'app-pe-sistemas-ia-pgia',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './pe-sistemas-ia-pgia.component.html'
+  templateUrl: './pe-sistemas-ia-pgia.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeSistemasIaPgiaComponent implements OnChanges, OnDestroy {
   private readonly pdticService = inject(PePdticService);

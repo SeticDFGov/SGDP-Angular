@@ -50,7 +50,9 @@ interface LinhaMatriz {
   selector: 'app-pe-painel-acompanhamento',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './pe-painel-acompanhamento.component.html'
+  templateUrl: './pe-painel-acompanhamento.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PePainelAcompanhamentoComponent implements OnChanges, OnDestroy {
   private readonly ciclosService = inject(PeCiclosService);

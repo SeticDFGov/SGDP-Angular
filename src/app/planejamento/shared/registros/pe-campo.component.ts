@@ -35,7 +35,9 @@ const PERTO_DO_LIMITE = 0.8;
   selector: 'app-pe-campo',
   standalone: true,
   imports: [CommonModule, FormsModule, PeLigacaoCampoComponent, PeEditorTextoRicoComponent],
-  templateUrl: './pe-campo.component.html'
+  templateUrl: './pe-campo.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeCampoComponent {
   private readonly registrosService = inject(PeRegistrosService);

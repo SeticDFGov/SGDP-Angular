@@ -6,7 +6,7 @@
     <p class="font-semibold">Antes de salvar, corrija:</p>
     <ul class="list-disc ml-5 mt-1 space-y-0.5">
       <li *ngFor="let e of listaErros">
-        <button type="button" (click)="focar(e.chave)" class="text-left underline">{{ e.rotulo }}: {{ e.mensagem }}</button>
+        <button type="button" (click)="focar(e.chave)" class="block text-left underline">{{ e.rotulo }}: {{ e.mensagem }}</button>
       </li>
     </ul>
   </div>
@@ -16,10 +16,13 @@
 
   <p *ngIf="temObrigatorio" class="text-xs text-gray-600">Os campos com <span class="text-red-600" aria-hidden="true">*</span><span class="sr-only">asterisco</span> são obrigatórios.</p>
 
-  <app-pe-campo *ngFor="let campo of secao.Campos; trackBy: porChave"
-                [campo]="campo" [valor]="valorDe(campo)" [escolhidos]="escolhidosDe(campo)" [fonte]="fonte"
-                [registro]="registro" [campos]="secao.Campos" [idBase]="idDo(campo)" [erro]="erroDe(campo)"
-                (valorChange)="mudarValor(campo, $event)" (escolhidosChange)="mudarEscolhidos(campo, $event)"></app-pe-campo>
+  <!-- Os campos em grade, na ordem do modelo: estreito, médio ou largo (no painel, até 2 por linha; no celular, 1) -->
+  <div *ngIf="secao.Campos.length > 0" class="pe-grade-campos" [class.pe-grade-painel]="emPainel">
+    <app-pe-campo *ngFor="let campo of secao.Campos; trackBy: porChave" [ngClass]="celula(campo)"
+                  [campo]="campo" [valor]="valorDe(campo)" [escolhidos]="escolhidosDe(campo)" [fonte]="fonte"
+                  [registro]="registro" [campos]="secao.Campos" [idBase]="idDo(campo)" [erro]="erroDe(campo)"
+                  (valorChange)="mudarValor(campo, $event)" (escolhidosChange)="mudarEscolhidos(campo, $event)"></app-pe-campo>
+  </div>
 
   <p *ngIf="secao.Campos.length === 0" class="text-sm text-gray-600">Esta seção ainda não tem campos ligados. Fale com o
     administrador do módulo.</p>

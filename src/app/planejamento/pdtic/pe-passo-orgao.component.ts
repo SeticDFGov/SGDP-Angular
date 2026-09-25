@@ -6,12 +6,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import {
-  PeCampoTrilha, PeCiclo, PeNaoSeAplica, PePassoTrilha, PePdtic, PeRegistro, PeSecaoTrilha, PeSituacaoPassoPdtic, PeTipoCiclo
+  PeCampoTrilha, PeCiclo, PeFormatoPlanilha, PeNaoSeAplica, PePassoTrilha, PePdtic, PeRegistro, PeSecaoTrilha, PeSituacaoPassoPdtic,
+  PeTipoCiclo
 } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import { NomesDoModelo, citacaoTravado, descricaoCampo, rotuloTipoPasso } from '../shared/pe-modelo-rotulos';
 import {
   GrupoPassoPdtic, SECAO_APROVACAO_AUTORIDADE, SECAO_AVALIACAO_COMITE, SECAO_CRONOGRAMA, SECAO_PUBLICACAO,
@@ -25,7 +27,7 @@ import {
   ciclosEmOrdem, porCicloDaSecao, tipoCicloDoPasso
 } from '../shared/pe-ciclos-rotulos';
 import { RelatorioDoc } from '../shared/pe-documento-rotulos';
-import { textoData } from '../shared/registros/pe-valores';
+import { hojeIso, textoData } from '../shared/registros/pe-valores';
 import { PeSecaoRegistrosComponent } from '../shared/registros/pe-secao-registros.component';
 import { CiclosDaFonte, PeFonteRegistros, PeRegistrosService } from '../services/pe-registros.service';
 import { PeFluxosService, PeFonteFluxos } from '../services/pe-fluxos.service';
@@ -64,7 +66,8 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
  *   Passo de conferência dos temas (V, VI e IX): as ações por tema antes da seção
  *   das justificativas.
  * - Sem PDTIC aberto: a prévia do que o passo pede e, para a equipe do órgão,
- *   "Começar o PDTIC". Os demais tipos de passo seguem "em construção".
+ *   "Começar o PDTIC". Um tipo de passo que esta versão não conhece diz que não
+ *   tem tela e manda avisar a equipe que administra o sistema.
  * - Passo do documento (E5): a prévia editável do documento do PDTIC, o PDF e
  *   as versões (`pe-documento-previa`, num pacote próprio que só carrega neste
  *   passo, pelo `@defer`).
@@ -95,6 +98,12 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
  *   do comitê, a revisão sai da decisão "revisar" da avaliação mais recente. Tudo
  *   isso carrega num pacote próprio, pelo `@defer`, só nesses passos.
  *
+ * - E8: a "Planilha deste passo", antes das seções: os dados de todas as seções do
+ *   passo num arquivo só (XLSX com uma aba por seção e a Leia-me; CSV, ou um .zip
+ *   com um CSV por seção quando há mais de uma), para todo mundo que lê o PDTIC; no
+ *   passo por ciclo, a do ciclo à vista. As seções do passo não têm mais os botões
+ *   de planilha delas (`[planilha]="false"`).
+ *
  * Quem não edita lê (consulta do órgão, papéis globais, PDTIC fora de elaboração):
  * quem decide é o `PodeEditar` do servidor (desde a E7, o do passo), e a tela
  * explica o porquê pela situação do PDTIC e pela etapa do passo. Nenhum botão de
@@ -110,7 +119,9 @@ import { PeTemasAcoesComponent } from './pe-temas-acoes.component';
     PeFluxoEditorComponent, PeSugerirCronogramaComponent, PePassoEnvioComponent, PePassoDeliberacaoComponent,
     PePassoPublicacaoComponent, PeAcaoPdticComponent, PeCiclosListaComponent, PeGradeCicloComponent, PeCicloFechamentoComponent
   ],
-  templateUrl: './pe-passo-orgao.component.html'
+  templateUrl: './pe-passo-orgao.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   private readonly router = inject(Router);
@@ -611,6 +622,67 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
 
   nomePlanilha(secao: PeSecaoTrilha): string {
     return `PDTIC_${this.siglaOrgao || 'orgao'}_${secao.Chave}`;
+  }
+
+  // ── E8 · Planilha do passo (todas as seções num arquivo só) ───────────────
+
+  /** O formato que está sendo gerado (os dois botões ficam desligados enquanto isso). */
+  baixandoPlanilhaPasso: PeFormatoPlanilha | null = null;
+
+  /** Mais de uma seção visível: o CSV vem num .zip, com um CSV por seção. */
+  get variasSecoes(): boolean {
+    return (this.passo?.Secoes.length ?? 0) > 1;
+  }
+
+  /** O passo tem seção por ciclo: a planilha leva o ciclo à vista (a API o exige). */
+  get planilhaPorCiclo(): boolean {
+    return !!this.passo?.Secoes.some(s => this.secaoPorCiclo(s));
+  }
+
+  /** O ciclo da planilha (só no passo com seção por ciclo, com o ciclo à vista). */
+  get cicloDaPlanilha(): PeCiclo | null {
+    return this.planilhaPorCiclo && this.ciclosDisponiveis ? this.ciclo : null;
+  }
+
+  /** Sem seção por ciclo, sempre; com ela, só com um ciclo à vista. */
+  get planilhaDoPassoDisponivel(): boolean {
+    return !this.planilhaPorCiclo || !!this.cicloDaPlanilha;
+  }
+
+  /** O que a planilha do passo traz, em linguagem simples. */
+  get textoPlanilhaPasso(): string {
+    const n = this.passo?.Secoes.length ?? 0;
+    const conteudo = n > 1
+      ? `Os dados das ${n} seções deste passo num arquivo só: no XLSX, uma aba por seção e a aba Leia-me; no CSV, um arquivo .zip com um CSV por seção.`
+      : 'Os dados da seção deste passo: no XLSX, com a aba Leia-me; ou em CSV.';
+    if (!this.planilhaPorCiclo) return conteudo;
+    const c = this.cicloDaPlanilha;
+    return c
+      ? `${conteudo} Os dados que se registram a cada ciclo saem ${this.tipoCiclo === 'avaliacao' ? 'da avaliação à vista' : 'do ciclo à vista'}: ${c.Rotulo}.`
+      : `${conteudo} Os dados deste passo se registram a cada ciclo do acompanhamento: a planilha fica disponível quando houver um ciclo à vista.`;
+  }
+
+  /** Baixa a planilha do passo (por blob, com o nome do servidor; no passo por ciclo, a do ciclo à vista). */
+  baixarPlanilhaPasso(formato: PeFormatoPlanilha): void {
+    const pd = this.pdtic;
+    const p = this.passo;
+    if (!pd || !p || this.baixandoPlanilhaPasso || !this.planilhaDoPassoDisponivel) return;
+    const cicloId = this.cicloDaPlanilha?.Id ?? null;
+    const extensao = formato === 'xlsx' ? 'xlsx' : this.variasSecoes ? 'zip' : 'csv';
+    const reserva = `PDTIC_${this.siglaOrgao || 'orgao'}_passo-${p.Numero}_${hojeIso()}.${extensao}`;
+    this.baixandoPlanilhaPasso = formato;
+    this.pdticService.planilhaDoPasso(pd.Id, p.Chave, formato, cicloId).subscribe({
+      next: resposta => {
+        this.baixandoPlanilhaPasso = null;
+        salvarResposta(resposta, reserva);
+      },
+      error: erro => {
+        this.baixandoPlanilhaPasso = null;
+        mensagemErroDownload(erro, `Não foi possível gerar a planilha do passo ${p.Numero}. Tente de novo.`).then(m => {
+          if (m) this.notificacoes.error(m);
+        });
+      }
+    });
   }
 
   rotuloItem(secao: PeSecaoTrilha): string {

@@ -27,7 +27,9 @@ const MAX_TEXTO = 2000;
   selector: 'app-pe-comentarios-passo',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './pe-comentarios-passo.component.html'
+  templateUrl: './pe-comentarios-passo.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeComentariosPassoComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private readonly pdticService = inject(PePdticService);

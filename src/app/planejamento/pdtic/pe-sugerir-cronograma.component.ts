@@ -17,7 +17,9 @@ import { mensagemErroPe } from '../shared/pe-erros';
   selector: 'app-pe-sugerir-cronograma',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  templateUrl: './pe-sugerir-cronograma.component.html'
+  templateUrl: './pe-sugerir-cronograma.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeSugerirCronogramaComponent {
   private readonly fluxosService = inject(PeFluxosService);

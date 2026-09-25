@@ -21,7 +21,9 @@ const MAX_JUSTIFICATIVA = 2000;
   selector: 'app-pe-nao-se-aplica',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './pe-nao-se-aplica.component.html'
+  templateUrl: './pe-nao-se-aplica.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeNaoSeAplicaComponent implements OnChanges, AfterViewChecked {
   private readonly pdticService = inject(PePdticService);

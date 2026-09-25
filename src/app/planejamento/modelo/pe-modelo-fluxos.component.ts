@@ -17,7 +17,9 @@ import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
   selector: 'app-pe-modelo-fluxos',
   standalone: true,
   imports: [CommonModule, CitaPlanejamentoDirective, PeFluxoEditorComponent],
-  templateUrl: './pe-modelo-fluxos.component.html'
+  templateUrl: './pe-modelo-fluxos.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeModeloFluxosComponent implements OnInit {
   private readonly estadoService = inject(PeTrilhaEstadoService);

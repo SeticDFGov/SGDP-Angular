@@ -43,7 +43,9 @@ function normalizar(texto: string): string {
   selector: 'app-pe-ligacao-campo',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './pe-ligacao-campo.component.html'
+  templateUrl: './pe-ligacao-campo.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeLigacaoCampoComponent implements OnChanges, OnDestroy {
   @Input({ required: true }) campo!: PeCampoRegistro;

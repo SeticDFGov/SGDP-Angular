@@ -84,7 +84,9 @@ const TIPOS: { valor: PeObjetoDeliberacao | ''; rotulo: string }[] = [
   selector: 'app-pe-deliberacoes',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective, DialogoDirective],
-  templateUrl: './pe-deliberacoes.component.html'
+  templateUrl: './pe-deliberacoes.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);

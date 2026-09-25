@@ -68,7 +68,9 @@ const ITEM_DA_SECAO: Record<string, string> = {
   selector: 'app-pe-petic',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective, DialogoDirective, PeSecaoRegistrosComponent],
-  templateUrl: './pe-petic.component.html'
+  templateUrl: './pe-petic.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PePeticComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);

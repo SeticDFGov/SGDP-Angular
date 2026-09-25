@@ -17,7 +17,9 @@ import { textoDataHora } from './pe-valores';
   selector: 'app-pe-formulario-secao',
   standalone: true,
   imports: [CommonModule, PeRegistroEdicaoComponent, PeRegistroLeituraComponent],
-  templateUrl: './pe-formulario-secao.component.html'
+  templateUrl: './pe-formulario-secao.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeFormularioSecaoComponent implements OnChanges {
   private readonly notificacoes = inject(NotificationService);

@@ -50,7 +50,9 @@ interface ErroListado {
   selector: 'app-pe-grade-ciclo',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
-  templateUrl: './pe-grade-ciclo.component.html'
+  templateUrl: './pe-grade-ciclo.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeGradeCicloComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private readonly ciclosService = inject(PeCiclosService);

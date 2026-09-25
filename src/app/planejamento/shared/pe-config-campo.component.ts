@@ -29,7 +29,9 @@ const TIPOS_CALCULAVEIS: ReadonlySet<string> = new Set(['numero', 'moeda', 'perc
   selector: 'app-pe-config-campo',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './pe-config-campo.component.html'
+  templateUrl: './pe-config-campo.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeConfigCampoComponent {
   @Input({ required: true }) tipo!: PeTipoCampo;

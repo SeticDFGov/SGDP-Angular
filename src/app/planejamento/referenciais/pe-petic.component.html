@@ -52,7 +52,7 @@
         {{ podeEditar ? 'Ainda não há PETIC-DF cadastrado. Crie o primeiro rascunho.' : 'Ainda não há PETIC-DF aprovado. Quando o CGTIC aprovar a primeira versão, ela aparece aqui.' }}
       </p>
 
-      <div *ngIf="versoes.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: versões do PETIC-DF">
+      <div *ngIf="versoes.length > 0" class="relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: versões do PETIC-DF">
         <table class="w-full text-sm">
           <caption class="sr-only">Versões do PETIC-DF, da mais nova para a mais antiga</caption>
           <thead>
@@ -204,7 +204,7 @@
           <p *ngIf="erroJanela('titulo') as e" id="pe-petic-titulo-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label for="pe-petic-inicio" class="block text-sm font-semibold text-gray-800 mb-1">Início da vigência</label>
             <input id="pe-petic-inicio" type="date" [(ngModel)]="j.inicio" name="pe-petic-inicio"

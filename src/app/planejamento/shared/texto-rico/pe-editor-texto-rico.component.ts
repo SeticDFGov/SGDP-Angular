@@ -97,6 +97,8 @@ type Painel = 'link' | 'imagem' | 'marcador';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './pe-editor-texto-rico.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' },
   encapsulation: ViewEncapsulation.None,
   // Só o que as classes não fazem: a imagem e as células selecionadas, com a cor do foco
   // de cada tema, e as colunas iguais da tabela enquanto se edita

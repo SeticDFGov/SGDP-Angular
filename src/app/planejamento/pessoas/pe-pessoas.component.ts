@@ -38,7 +38,9 @@ const MINIMO_BUSCA = 3;
   selector: 'app-pe-pessoas',
   standalone: true,
   imports: [CommonModule, FormsModule, CitaPlanejamentoDirective, PedidosAcessoFilaComponent],
-  templateUrl: './pe-pessoas.component.html'
+  templateUrl: './pe-pessoas.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PePessoasComponent implements OnInit {
   private readonly estadoService = inject(PeTrilhaEstadoService);

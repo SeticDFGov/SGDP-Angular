@@ -2,7 +2,7 @@
  * Governança Estratégica (módulo `planejamento`, Decreto nº 48.900/2026): espelho
  * PascalCase dos DTOs de `app/api/Planejamento` do SGDP-Service (api/planejamento).
  * Erros de regra voltam como `{ Code, Message }` (400, 403, 404 ou 409), na faixa
- * 1000 a 1159 (a E7 passou a usar 1100 a 1139).
+ * 1000 a 1159 (a E7 passou a usar 1100 a 1139, e a E8, 1140 a 1159).
  */
 
 /** GET api/planejamento/meu-papel (só quem tem o módulo chama). */
@@ -1623,4 +1623,384 @@ export interface PePainelAcompanhamento {
   Ciclo: { Id: number; Rotulo: string } | null;
   Metas: PePainelMeta[];
   Riscos: PePainelRiscos;
+}
+
+// ── E8 · Painéis da SGDI, conformidade, inadimplência e página do órgão ─────
+//
+// Leitura de todos os órgãos pelo administrador do módulo, pela equipe da SGDI,
+// pela Secretaria do CGTIC e pelo admin do SGDP: o painel com os números, a
+// conformidade (só itens de TIC), a árvore do PETIC-DF e a página de cada órgão.
+// A inadimplência do art. 11 do Decreto nº 48.899/2026 se registra pelo
+// administrador do módulo, pela SGDI e pelo admin do SGDP; a equipe e a consulta
+// do órgão só leem a página e as inadimplências do próprio órgão. Erros desta
+// entrega na faixa 1140 a 1159 (a tela mostra a `Message` do servidor).
+
+/** Chave da situação do órgão no painel (a do PDTIC atual; `sem_pdtic` quando ele ainda não tem). */
+export type PeChaveSituacaoPainel =
+  | 'sem_pdtic' | 'em_elaboracao' | 'em_aprovacao' | 'devolvido' | 'aprovado' | 'publicado'
+  | 'em_acompanhamento' | 'encerrado';
+
+export interface PePainelSituacao {
+  Chave: PeChaveSituacaoPainel;
+  Rotulo: string;
+  Quantidade: number;
+}
+
+/** PDTICs em elaboração pela etapa do próximo passo. */
+export interface PePainelEtapa {
+  Etapa: number;
+  Titulo: string;
+  Quantidade: number;
+}
+
+export interface PePainelNivel {
+  NivelId: number;
+  Nome: string;
+  Quantidade: number;
+}
+
+/** Necessidades e metas dos órgãos ligadas a um objetivo do PETIC-DF vigente. */
+export interface PePainelObjetivo {
+  RegistroId: number;
+  Codigo: string | null;
+  Texto: string | null;
+  Necessidades: number;
+  Metas: number;
+}
+
+/** Ações do plano por tema (as opções do campo tema das ações). */
+export interface PePainelTema {
+  Valor: string;
+  Rotulo: string;
+  Quantidade: number;
+}
+
+export interface PePainelRiscoNivel {
+  Nivel: 'alto' | 'medio' | 'baixo' | 'sem_nivel';
+  Rotulo: string;
+  Quantidade: number;
+}
+
+/** Situação das ações no último ciclo de monitoramento com dado de cada órgão. */
+export interface PePainelExecucao {
+  Situacao: 'nao_iniciada' | 'em_andamento' | 'concluida' | 'cancelada' | 'sem_registro';
+  Rotulo: string;
+  Quantidade: number;
+}
+
+export interface PePainelAlertas {
+  VigenciaVencida: number;
+  RevisaoVencida: number;
+  CicloAtrasado: number;
+  Inadimplentes: number;
+  DeliberacoesAguardando: number;
+}
+
+export interface PePainelFiltros {
+  Niveis: { Id: number; Nome: string }[];
+  Situacoes: { Chave: PeChaveSituacaoPainel; Rotulo: string }[];
+}
+
+/** GET api/planejamento/painel?NivelId=&Situacao= (papéis globais e admin do SGDP). */
+export interface PePainel {
+  GeradoEm: string;
+  TotalOrgaos: number;
+  PorSituacao: PePainelSituacao[];
+  EmElaboracaoPorEtapa: PePainelEtapa[];
+  PorNivel: PePainelNivel[];
+  PorObjetivoPetic: PePainelObjetivo[];
+  AcoesPorTema: PePainelTema[];
+  RiscosPorNivel: PePainelRiscoNivel[];
+  ExecucaoUltimoCiclo: PePainelExecucao[];
+  Alertas: PePainelAlertas;
+  Filtros: PePainelFiltros;
+}
+
+export interface PePainelConsulta {
+  NivelId?: number | null;
+  Situacao?: PeChaveSituacaoPainel | null;
+}
+
+/** Chaves dos itens de conformidade (só itens de TIC). */
+export type PeChaveConformidade =
+  | 'aprovado_cgtic' | 'comunicado_sgdi' | 'vigente' | 'nove_conteudos' | 'revisao_em_dia' | 'acompanhamento_em_dia';
+
+/** Um item de conformidade: o rótulo e a base legal (com a citação que a dica reconhece). */
+export interface PeItemConformidade {
+  Chave: PeChaveConformidade | string;
+  Rotulo: string;
+  Base: string;
+  /** A mais que o contrato: o que o item pede, numa frase (sem ele, vale o texto do front para a chave). */
+  AtendeQuando?: string | null;
+}
+
+/** Grupo pelo percentual: alta a partir de 70%, média de 25% a 69%, baixa abaixo de 25% (sem PDTIC: baixa, 0%). */
+export type PeGrupoConformidade = 'alta' | 'media' | 'baixa';
+
+export interface PeResumoConformidade {
+  Alta: number;
+  Media: number;
+  Baixa: number;
+}
+
+/** Um item na linha do órgão: `Atende` null é "não se aplica" (sai da conta). */
+export interface PeAtendimentoConformidade {
+  Atende: boolean | null;
+  Detalhe: string | null;
+}
+
+/** A inadimplência vigente do órgão (notificado ou inadimplente), na linha da conformidade. */
+export interface PeInadimplenciaVigente {
+  Id: number;
+  Situacao: PeSituacaoInadimplencia;
+  /** Data pura ("aaaa-mm-dd"): o fim dos 5 dias úteis. */
+  Prazo: string | null;
+}
+
+/** A linha de um órgão na conformidade (sobre o PDTIC vigente; sem vigente, sobre o atual). */
+export interface PeConformidadeOrgao {
+  OrgaoId: number;
+  Sigla: string;
+  Nome: string;
+  NivelNome: string | null;
+  PdticId: number | null;
+  PdticVersao: string | null;
+  PdticSituacao: PeSituacaoPdtic | null;
+  /** Pela chave do item (`PeItemConformidade.Chave`). */
+  Itens: Record<string, PeAtendimentoConformidade>;
+  Atendidos: number;
+  Aplicaveis: number;
+  /** De 0 a 100. */
+  Percentual: number;
+  Grupo: PeGrupoConformidade;
+  Inadimplencia: PeInadimplenciaVigente | null;
+}
+
+/** GET api/planejamento/conformidade?Grupo=&NivelId=&Filtro=. */
+export interface PeConformidade {
+  Itens: PeItemConformidade[];
+  Resumo: PeResumoConformidade;
+  Orgaos: PeConformidadeOrgao[];
+}
+
+export interface PeConformidadeConsulta {
+  Grupo?: PeGrupoConformidade | null;
+  NivelId?: number | null;
+  /** Parte da sigla ou do nome do órgão. */
+  Filtro?: string | null;
+}
+
+/**
+ * Inadimplência (arts. 7º, § 3º, e 11 do Decreto nº 48.899/2026): notificado (o
+ * prazo de 5 dias úteis correndo ou vencido) · justificado (justificativa aceita,
+ * encerra) · inadimplente (registrada depois do prazo, com o motivo e a nota de
+ * motivação) · saneado (a comunicação foi regularizada; sai do painel).
+ */
+export type PeSituacaoInadimplencia = 'notificado' | 'justificado' | 'inadimplente' | 'saneado';
+
+/** Motivo do registro (art. 11, III, do Decreto nº 48.899/2026). */
+export type PeMotivoInadimplencia = 'descumprimento_prazo' | 'omissao_reiterada' | 'recusa_injustificada';
+
+/** Uma notificação e o que aconteceu com ela (a resposta de todas as rotas da inadimplência). */
+export interface PeInadimplencia {
+  Id: number;
+  OrgaoId: number;
+  OrgaoSigla: string;
+  OrgaoNome: string;
+  /** A comunicação pendente ("Comunicar à SGDI o PDTIC aprovado pelo comitê interno (art. 7º, V)"). */
+  Obrigacao: string;
+  PrazoDescumprido: string | null;
+  /** Datas puras ("aaaa-mm-dd"). */
+  NotificadoEm: string;
+  Documento: string | null;
+  Sei: string | null;
+  /** 5 dias úteis depois da notificação. */
+  Prazo: string | null;
+  /** Dias úteis até o fim do prazo (0 no último dia; o servidor conta). */
+  DiasUteisRestantes: number | null;
+  /** O prazo terminou: a inadimplência já pode ser registrada. */
+  Vencido: boolean;
+  Situacao: PeSituacaoInadimplencia;
+  SituacaoRotulo: string | null;
+  Justificativa: string | null;
+  Motivo: PeMotivoInadimplencia | null;
+  MotivoRotulo: string | null;
+  NotaMotivacao: string | null;
+  ComunicadoControleEm: string | null;
+  RegistradoEm: string | null;
+  /** E-mail de quem registrou a inadimplência. */
+  RegistradoPor: string | null;
+  SaneadoEm: string | null;
+  Observacao: string | null;
+  CriadoEm: string;
+  CriadoPor: string | null;
+}
+
+/** GET api/planejamento/inadimplencias (vigentes primeiro). */
+export interface PeInadimplenciasConsulta {
+  Situacao?: PeSituacaoInadimplencia | null;
+  OrgaoId?: number | null;
+  Page: number;
+  PageSize: number;
+}
+
+export interface PaginaPeInadimplencias {
+  Items: PeInadimplencia[];
+  CurrentPage: number;
+  PageSize: number;
+  TotalItems: number;
+  TotalPages: number;
+  HasPreviousPage: boolean;
+  HasNextPage: boolean;
+}
+
+/** POST api/planejamento/orgaos/{id}/inadimplencias: a notificação (art. 11, I). */
+export interface PeNotificacaoForm {
+  Obrigacao: string;
+  PrazoDescumprido: string | null;
+  NotificadoEm: string;
+  Documento: string;
+  Sei: string | null;
+}
+
+/** POST api/planejamento/inadimplencias/{id}/justificar: a justificativa aceita (encerra). */
+export interface PeJustificativaForm {
+  Justificativa: string;
+}
+
+/** POST api/planejamento/inadimplencias/{id}/registrar: só depois do prazo (senão 409). */
+export interface PeRegistroInadimplenciaForm {
+  Motivo: PeMotivoInadimplencia;
+  NotaMotivacao: string;
+  ComunicadoControleEm: string | null;
+}
+
+/** POST api/planejamento/inadimplencias/{id}/sanear (art. 11, § 2º). */
+export interface PeSaneamentoForm {
+  SaneadoEm: string;
+  Observacao: string | null;
+}
+
+export interface PeArvoreIndicador {
+  Codigo: string | null;
+  Nome: string | null;
+  Meta: string | null;
+}
+
+export interface PeArvoreNecessidade {
+  Codigo: string | null;
+  Descricao: string | null;
+  Priorizada: boolean | null;
+}
+
+export interface PeArvoreMeta {
+  Codigo: string | null;
+  Descricao: string | null;
+  Indicador: string | null;
+  Valor: string | null;
+  /** Data pura ("aaaa-mm-dd"). */
+  Prazo: string | null;
+  Situacao: string | null;
+}
+
+/** As necessidades e as metas de um órgão ligadas ao objetivo (ligação `objetivo_petic`). */
+export interface PeArvoreOrgao {
+  OrgaoId: number;
+  Sigla: string;
+  PdticId: number | null;
+  Necessidades: PeArvoreNecessidade[];
+  Metas: PeArvoreMeta[];
+}
+
+export interface PeArvoreObjetivo {
+  RegistroId: number;
+  Codigo: string | null;
+  Texto: string | null;
+  Indicadores: PeArvoreIndicador[];
+  TotalNecessidades: number;
+  TotalMetas: number;
+  Orgaos: PeArvoreOrgao[];
+}
+
+/** GET api/planejamento/petic/arvore?orgaoId= (sem PETIC-DF vigente, `Petic` nulo). */
+export interface PeArvorePetic {
+  Petic: { Id: number; Versao: string; Titulo: string } | null;
+  Objetivos: PeArvoreObjetivo[];
+}
+
+export interface PeHistoricoNivelResumo {
+  NivelNome: string | null;
+  Justificativa: string | null;
+  AlteradoEm: string | null;
+  AlteradoPor: string | null;
+}
+
+/** Andamento da trilha do órgão numa etapa. */
+export interface PeAndamentoEtapa {
+  Etapa: number;
+  Titulo: string;
+  Feitos: number;
+  Total: number;
+  Atrasados: number;
+  Aguardando: number;
+}
+
+export interface PeNaoSeAplicaResumo {
+  PassoNumero: string | null;
+  PassoTitulo: string | null;
+  Justificativa: string | null;
+  MarcadoEm: string | null;
+  MarcadoPor: string | null;
+}
+
+export interface PeComentarioAberto {
+  Id: number;
+  PassoId: number;
+  PassoNumero: string | null;
+  Texto: string;
+  AutorNome: string | null;
+  CriadoEm: string;
+}
+
+/** Uma decisão registrada nos passos de aprovação (SGTIC, comitê, autoridade). */
+export interface PeAprovacaoResumo {
+  PassoNumero: string | null;
+  Rotulo: string | null;
+  Decisao: string | null;
+  /** Data pura ("aaaa-mm-dd"). */
+  Data: string | null;
+  Ato: string | null;
+  Sei: string | null;
+}
+
+/** Um PDF gerado do órgão: o documento do PDTIC, um RA ou o RR. `Url` é o caminho da API para baixar. */
+export interface PeDocumentoResumo {
+  Tipo: PeTipoDocumento;
+  Rotulo: string | null;
+  Numero: number;
+  Situacao: string | null;
+  GeradoEm: string | null;
+  Paginas: number | null;
+  Url: string | null;
+}
+
+/** GET api/planejamento/orgaos/{id}/resumo: tudo do órgão num lugar só (a página do órgão). */
+export interface PeResumoOrgao {
+  Orgao: { Id: number; Sigla: string; Nome: string };
+  /** `Padrao`, a mais que o contrato: o órgão não tem nível escolhido e vale o padrão. */
+  Nivel: { Id: number | null; Nome: string | null; Padrao?: boolean; Historico: PeHistoricoNivelResumo[] };
+  Pdtic: PePdtic | null;
+  Versoes: PePdtic[];
+  Andamento: PeAndamentoEtapa[];
+  /** "2.3", ou nulo quando nada espera. */
+  ProximoPasso: string | null;
+  /** A linha do órgão na conformidade. */
+  Conformidade: PeConformidadeOrgao | null;
+  NaoSeAplica: PeNaoSeAplicaResumo[];
+  ComentariosAbertos: PeComentarioAberto[];
+  Aprovacoes: PeAprovacaoResumo[];
+  Deliberacoes: PeDeliberacao[];
+  Documentos: PeDocumentoResumo[];
+  Ciclos: PeCiclo[];
+  Inadimplencias: PeInadimplencia[];
 }

@@ -30,7 +30,9 @@ interface ErroPublicacao {
   selector: 'app-pe-passo-publicacao',
   standalone: true,
   imports: [CommonModule, DialogoDirective],
-  templateUrl: './pe-passo-publicacao.component.html'
+  templateUrl: './pe-passo-publicacao.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PePassoPublicacaoComponent implements AfterViewChecked {
   private readonly pdticService = inject(PePdticService);

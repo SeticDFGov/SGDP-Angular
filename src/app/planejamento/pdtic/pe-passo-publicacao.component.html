@@ -18,7 +18,7 @@
       <p class="font-semibold">{{ erroGeral }}</p>
       <ul *ngIf="erros.length > 0" class="list-disc ml-5 mt-1 space-y-1">
         <li *ngFor="let e of erros">
-          <button *ngIf="e.alvo as a; else semAlvo" type="button" (click)="focar(a)" class="text-left underline">{{ e.mensagem }}</button>
+          <button *ngIf="e.alvo as a; else semAlvo" type="button" (click)="focar(a)" class="block text-left underline">{{ e.mensagem }}</button>
           <ng-template #semAlvo>{{ e.mensagem }}</ng-template>
         </li>
       </ul>

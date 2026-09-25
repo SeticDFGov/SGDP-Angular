@@ -66,7 +66,9 @@ const SECAO_DOS_BLOCOS: Readonly<Record<string, string>> = {
   selector: 'app-pe-documento-previa',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, PeDocBlocoComponent],
-  templateUrl: './pe-documento-previa.component.html'
+  templateUrl: './pe-documento-previa.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewChecked, OnDestroy {
   private readonly documentoService = inject(PeDocumentoService);

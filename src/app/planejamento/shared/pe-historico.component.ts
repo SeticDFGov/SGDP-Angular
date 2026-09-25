@@ -26,7 +26,9 @@ interface LinhaHistorico {
   selector: 'app-pe-historico',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './pe-historico.component.html'
+  templateUrl: './pe-historico.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeHistoricoComponent implements OnChanges {
   private readonly modeloService = inject(PeModeloService);

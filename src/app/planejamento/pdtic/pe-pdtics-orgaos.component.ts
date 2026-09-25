@@ -32,7 +32,9 @@ const SITUACOES: PeSituacaoPdtic[] = [
   selector: 'app-pe-pdtics-orgaos',
   standalone: true,
   imports: [CommonModule, FormsModule, CitaPlanejamentoDirective],
-  templateUrl: './pe-pdtics-orgaos.component.html'
+  templateUrl: './pe-pdtics-orgaos.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PePdticsOrgaosComponent implements OnInit {
   private readonly estadoService = inject(PeTrilhaEstadoService);

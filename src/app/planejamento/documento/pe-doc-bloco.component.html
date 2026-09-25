@@ -125,7 +125,7 @@
       </dl>
     </div>
 
-    <div *ngIf="!ehFormulario && !t.Vazia && t.Linhas.length > 0" class="overflow-x-auto" tabindex="0" role="region" [attr.aria-label]="'Tabela: ' + t.SecaoTitulo">
+    <div *ngIf="!ehFormulario && !t.Vazia && t.Linhas.length > 0" class="relative overflow-x-auto" tabindex="0" role="region" [attr.aria-label]="'Tabela: ' + t.SecaoTitulo">
       <table [ngClass]="classes.tabela">
         <caption class="text-left text-sm font-semibold text-gray-900 mb-1">{{ t.SecaoTitulo }}</caption>
         <thead>
@@ -213,7 +213,7 @@
       <p *ngIf="g.titulo" [id]="idBase + '-grupo-' + i" class="text-sm font-semibold text-gray-800">{{ g.titulo }}</p>
       <p *ngIf="g.texto" class="text-sm text-gray-800 whitespace-pre-line mt-0.5">{{ g.texto }}</p>
       <p *ngIf="g.vazio" class="text-sm text-gray-600 italic mt-0.5">{{ vazioDoGrupo }}</p>
-      <div *ngIf="g.tabela as t" class="overflow-x-auto mt-1" tabindex="0" role="region" [attr.aria-label]="'Tabela: ' + (g.titulo || t.SecaoTitulo || tituloAcompanhamento)">
+      <div *ngIf="g.tabela as t" class="relative overflow-x-auto mt-1" tabindex="0" role="region" [attr.aria-label]="'Tabela: ' + (g.titulo || t.SecaoTitulo || tituloAcompanhamento)">
         <table [ngClass]="classes.tabela">
           <caption class="sr-only">{{ g.titulo || t.SecaoTitulo || tituloAcompanhamento }}</caption>
           <thead>

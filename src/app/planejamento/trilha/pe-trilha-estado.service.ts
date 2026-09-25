@@ -190,6 +190,33 @@ export class PeTrilhaEstadoService {
       || papel.Papel === PapeisPlanejamento.Sgdi || papel.Papel === PapeisPlanejamento.Cgtic;
   }
 
+  /**
+   * E8: veem o painel, a conformidade, a árvore do PETIC-DF, as inadimplências e a
+   * página de qualquer órgão: os papéis globais e o admin do SGDP (os mesmos das
+   * deliberações). null enquanto o papel não chegou.
+   */
+  get veTodosOsOrgaos(): boolean | null {
+    return this.veDeliberacoes;
+  }
+
+  /**
+   * E8: registra notificação, justificativa aceita, inadimplência e saneamento
+   * (arts. 7º, § 3º, e 11 do Decreto nº 48.899/2026): o administrador do módulo, a
+   * equipe da SGDI e o admin do SGDP, pelo `meu-papel`. A Secretaria do CGTIC e o
+   * órgão só leem. null enquanto o papel não chegou.
+   */
+  get podeRegistrarInadimplencia(): boolean | null {
+    const e = this.estado.value;
+    if (!e || e.consultaPapel === 'carregando') return null;
+    const papel = e.meuPapel;
+    return !!papel && (papel.EhAdminGeral || papel.Papel === PapeisPlanejamento.Admin || papel.Papel === PapeisPlanejamento.Sgdi);
+  }
+
+  /** E8: o órgão da pessoa com papel de órgão (a página e as inadimplências dela são só as do próprio órgão). */
+  get orgaoDoPapel(): number | null {
+    return this.ehPapelDeOrgao ? this.estado.value?.meuPapel?.OrgaoId ?? null : null;
+  }
+
   /** Papel de órgão (equipe ou consulta), sem ser admin do SGDP: lê só o que é publicado. */
   get ehPapelDeOrgao(): boolean {
     const papel = this.estado.value?.meuPapel;

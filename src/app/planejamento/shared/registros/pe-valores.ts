@@ -263,6 +263,40 @@ export function colunasDaTabela(secao: PeSecaoDoDono): PeCampoRegistro[] {
     .filter((c): c is PeCampoRegistro => !!c);
 }
 
+/** Largura do campo no formulário: estreita (2 de 6 colunas), média (3 de 6) ou larga (a linha inteira). */
+export type LarguraNoFormulario = 'estreita' | 'media' | 'larga';
+
+/** Texto curto até este tamanho cabe em meia linha; maior (ou sem limite, que vale 200), na linha inteira. */
+const TEXTO_CURTO_MEIA_LINHA = 100;
+
+/**
+ * Largura do campo no formulário: a `Largura` do modelo (a mesma das colunas da
+ * tabela), senão a do tipo: data, número, valor em reais, percentual, sim ou não e
+ * calculado, estreita; lista e texto curto com limite pequeno, média; texto longo,
+ * texto rico, lista múltipla, ligações, arquivo e texto curto com limite grande, a
+ * linha inteira.
+ */
+export function larguraNoFormulario(campo: Pick<PeCampoRegistro, 'Largura' | 'Tipo' | 'Config'>): LarguraNoFormulario {
+  if (campo.Largura === 'estreita' || campo.Largura === 'media' || campo.Largura === 'larga') return campo.Largura;
+  switch (campo.Tipo) {
+    case 'data':
+    case 'numero':
+    case 'moeda':
+    case 'percentual':
+    case 'sim_nao':
+    case 'calculado':
+      return 'estreita';
+    case 'lista':
+      return 'media';
+    case 'texto_curto': {
+      const max = campo.Config?.max;
+      return typeof max === 'number' && max > 0 && max <= TEXTO_CURTO_MEIA_LINHA ? 'media' : 'larga';
+    }
+    default:
+      return 'larga';
+  }
+}
+
 /** Largura da coluna pela configuração do campo (classes que o projeto já usa). */
 export function classeLargura(campo: PeCampoRegistro): string {
   switch (campo.Largura) {

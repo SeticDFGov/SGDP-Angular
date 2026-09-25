@@ -13,7 +13,7 @@
   <div *ngIf="tentou && errosForm.length > 0" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
     <p class="font-semibold">Antes de registrar, corrija:</p>
     <ul class="list-disc ml-5 mt-1 space-y-1">
-      <li *ngFor="let e of errosForm"><button type="button" (click)="focar(e.campo)" class="text-left underline">{{ e.mensagem }}</button></li>
+      <li *ngFor="let e of errosForm"><button type="button" (click)="focar(e.campo)" class="block text-left underline">{{ e.mensagem }}</button></li>
     </ul>
   </div>
   <p *ngIf="erroGeral" id="pe-ext-erro-geral" tabindex="-1" role="alert"
@@ -101,7 +101,7 @@
         <p *ngIf="erro('instancia') as e" [id]="ids.instancia + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
       </fieldset>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <label [for]="ids.aprovacaoData" class="block text-sm font-semibold text-gray-800 mb-1">
             Data da aprovação<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
@@ -150,7 +150,7 @@
     <!-- Publicação -->
     <fieldset class="space-y-4">
       <legend class="text-sm font-semibold text-gray-900">Publicação</legend>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label [for]="ids.publicacaoData" class="block text-sm font-semibold text-gray-800 mb-1">
             Data da publicação<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
@@ -162,7 +162,7 @@
                  [ngClass]="erro('publicacaoData') ? 'border-red-500' : 'border-gray-300'" />
           <p *ngIf="erro('publicacaoData') as e" [id]="ids.publicacaoData + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
         </div>
-        <div>
+        <div class="md:col-span-2">
           <label [for]="ids.endereco" class="block text-sm font-semibold text-gray-800 mb-1">
             Endereço da íntegra na internet<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
           </label>

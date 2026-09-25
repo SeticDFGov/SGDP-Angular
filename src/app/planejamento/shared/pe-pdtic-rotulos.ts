@@ -262,7 +262,7 @@ export function aceitaNaoSeAplica(passo: Pick<PePassoTrilha, 'Situacao' | 'Aceit
 }
 
 /**
- * Tipos de passo do órgão que têm tela (os demais: "em construção"); o documento
+ * Tipos de passo do órgão que têm tela (um tipo fora da lista diz que não tem tela nesta versão); o documento
  * entrou na E5, o fluxo na E6, o caminho da aprovação (aprovação, envio,
  * deliberação e publicação) na rodada A da E7 e o monitoramento (os ciclos, as
  * grades e o fechamento) na rodada B.

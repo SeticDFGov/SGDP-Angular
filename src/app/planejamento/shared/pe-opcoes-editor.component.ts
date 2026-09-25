@@ -30,7 +30,9 @@ const MAX_ROTULO = 200;
   selector: 'app-pe-opcoes-editor',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './pe-opcoes-editor.component.html'
+  templateUrl: './pe-opcoes-editor.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeOpcoesEditorComponent implements OnChanges {
   private readonly modeloService = inject(PeModeloService);

@@ -137,7 +137,9 @@ interface EdicaoBloco {
     CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective, DialogoDirective, PeEditorTextoRicoComponent,
     PeTextoRicoLeituraDirective
   ],
-  templateUrl: './pe-modelo-documento.component.html'
+  templateUrl: './pe-modelo-documento.component.html',
+  // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
+  host: { class: 'block' }
 })
 export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
