@@ -21,6 +21,29 @@ export function badgeSituacao(situacao: string | null | undefined): string {
   }
 }
 
+/**
+ * Badge do STATUS da contratação na supervisão contínua: "Concluída" (contrato
+ * assinado) em verde, como a situação Concluído; "Em regime de supervisão" em azul.
+ */
+export function badgeStatusSupervisao(status: string | null | undefined): string {
+  return status === 'Concluída' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800';
+}
+
+/**
+ * A composição da soma da criticidade em uma linha, para a lista: só os critérios que
+ * somaram ou descontaram ("II +1 · III +1 · V +3"), e o VII quando decide Alta. Vazio
+ * quando nenhum critério pontuou.
+ */
+export function resumoComposicao(pontos: Record<string, number> | null | undefined,
+  respostas: Record<string, string> | null | undefined): string {
+  if (!pontos) return '';
+  const partes = Object.entries(pontos)
+    .filter(([codigo, valor]) => codigo !== 'VII' && valor !== 0)
+    .map(([codigo, valor]) => `${codigo} ${valor > 0 ? '+' : ''}${valor}`);
+  if (respostas?.['VII'] === 'Sim') partes.push('VII decide Alta');
+  return partes.join(' · ');
+}
+
 /** Badge do estágio da manifestação ao TCDF (inclui os status do Tribunal). */
 export function badgeEstagio(estagio: string | null | undefined): string {
   switch (estagio) {

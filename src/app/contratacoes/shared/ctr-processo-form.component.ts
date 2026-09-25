@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
+  AREAS_TECNICAS,
   CATEGORIAS_OBJETO,
   CtrClassificacaoRisco,
   CtrProcessoForm,
@@ -23,14 +24,18 @@ import {
 } from '../../../api/contratacoes/interface';
 import {
   CRITERIOS_CRITICIDADE,
+  PERGUNTA_ANTERIOR_II,
   RespostasCriticidade,
   calcularCriticidade,
   completarRespostas,
+  ehRespostaAnteriorII,
   pontosCriticidade,
+  respostaAnteriorII,
   respostasPadrao,
   valorNoLimite
 } from '../../../api/contratacoes/criticidade';
 import { CtrClassificacaoRiscoComponent, CtrClassificacaoRiscoEdicao } from './ctr-classificacao-risco.component';
+import { CtrComposicaoCriticidadeComponent } from './ctr-composicao-criticidade.component';
 import {
   badgeCriticidade,
   digitarCaixaAlta,
@@ -65,7 +70,7 @@ const CAMPO_ASSINATURA: CampoCheckpoint['campo'] = 'DataAssinaturaContrato';
 @Component({
   selector: 'app-ctr-processo-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, CtrClassificacaoRiscoComponent],
+  imports: [CommonModule, FormsModule, CtrClassificacaoRiscoComponent, CtrComposicaoCriticidadeComponent],
   templateUrl: './ctr-processo-form.component.html'
 })
 export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
@@ -90,9 +95,11 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   categorias = CATEGORIAS_OBJETO;
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
   hospedagens = HOSPEDAGENS_CETIC;
+  areasTecnicas = AREAS_TECNICAS;
   formatarReais = formatarReais;
   /** Os sete critérios do art. 11, § 3º, da IN, com as respostas possíveis. */
   criterios = CRITERIOS_CRITICIDADE;
+  readonly perguntaAnteriorII = PERGUNTA_ANTERIOR_II;
   badgeCriticidade = badgeCriticidade;
   readonly campoAssinatura = CAMPO_ASSINATURA;
   readonly origemTcdf = ORIGEM_TCDF;
@@ -125,16 +132,20 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
 
   static vazio(): CtrProcessoForm {
     return {
-      NumeroProcesso: '', OrgaoNome: '', OrgaoSigla: '', ComplementoArea: null,
+      NumeroProcesso: '', NumeroSeiFormulario: null, OrgaoNome: '', OrgaoSigla: '', ComplementoArea: null,
       Objeto: '', CategoriaObjeto: 'Sem objeto / Indefinido',
       ValorEstimado: null, HospedagemCetic: null, UsaGdfnet: null,
       ChegadaSgdi: null, ChegadaSubgd: null, ChegadaUgtic: null, UgticNaoSeAplica: false,
       RetornoGabSgdi: null, RetornoOrgao: null, RetornoOrgaoNaoSeAplica: false,
+      AnaliseTecnicaEncaminhadaEm: null, AnaliseTecnicaArea: null,
+      AnaliseTecnicaRetornoEm: null, AnaliseTecnicaRetornoResumo: null,
       EtapaPlanejamento: null, DataAssinaturaContrato: null, Criticidade: null,
       // Processo novo já nasce com os critérios respondidos no padrão (Baixa)
       CriteriosCriticidade: respostasPadrao(),
       Origem: ORIGEM_PADRAO,
-      EsclarecimentoSolicitadoEm: null, EsclarecimentoDescricao: null, EsclarecimentoRespondidoEm: null,
+      EsclarecimentoSolicitadoEm: null, EsclarecimentoDescricao: null, EsclarecimentoDocumentoSei: null,
+      EsclarecimentoRespondidoEm: null,
+      // A restituição não é mais pedida na tela: vai o que veio do servidor (processo novo, nada)
       Restituido: false, RestituidoEm: null, RestituidoMotivo: null, Observacao: null
     };
   }
@@ -183,8 +194,21 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     return !!this.form.CriteriosCriticidade && valorNoLimite(this.form.CriteriosCriticidade);
   }
 
+  /**
+   * A resposta marcada no critério. No II, enquanto só houver a resposta à pergunta
+   * anterior, nenhuma opção fica marcada: ela aparece à parte, como referência.
+   */
   respostaDe(codigo: string): string {
-    return completarRespostas(this.form.CriteriosCriticidade)[codigo];
+    const resposta = completarRespostas(this.form.CriteriosCriticidade)[codigo];
+    return codigo === 'II' && ehRespostaAnteriorII(resposta) ? '' : resposta;
+  }
+
+  /**
+   * Resposta à pergunta que o II fazia até 2026-09-24 (Nenhum a Alto), guardada até
+   * alguém responder à pergunta nova; conta como Desconhecido.
+   */
+  get respostaAnteriorII(): string | null {
+    return respostaAnteriorII(this.form.CriteriosCriticidade);
   }
 
   /** A primeira resposta avalia os sete critérios (os demais ficam no padrão). */
@@ -201,6 +225,11 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   /** Formata enquanto o usuário digita: 00000-00000000/AAAA-DD (ver `digitarNumeroSei`). */
   aoDigitarNumero(evento: Event): void {
     this.form.NumeroProcesso = digitarNumeroSei(evento.target as HTMLInputElement);
+  }
+
+  /** O Nº SEI do Formulário usa a mesma máscara do número do processo. */
+  aoDigitarFormulario(evento: Event): void {
+    this.form.NumeroSeiFormulario = digitarNumeroSei(evento.target as HTMLInputElement) || null;
   }
 
   // ── Valor estimado ────────────────────────────────────────────────────────
@@ -247,16 +276,29 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     this.form.EsclarecimentoSolicitadoEm = valor || null;
     if (!this.form.EsclarecimentoSolicitadoEm) {
       this.form.EsclarecimentoDescricao = null;
+      this.form.EsclarecimentoDocumentoSei = null;
       this.form.EsclarecimentoRespondidoEm = null;
     }
   }
 
-  aoMarcarRestituido(marcado: boolean): void {
-    this.form.Restituido = marcado;
-    if (!marcado) {
-      this.form.RestituidoEm = null;
-      this.form.RestituidoMotivo = null;
+  /**
+   * Análise técnica: limpar a data do encaminhamento limpa a área, o retorno e o resumo
+   * (sem encaminhamento não há para onde nem de onde voltar), como o servidor faz com a
+   * área e o resumo; o retorno sem encaminhamento ele recusaria.
+   */
+  aoTrocarEncaminhamentoTecnico(valor: string): void {
+    this.form.AnaliseTecnicaEncaminhadaEm = valor || null;
+    if (!this.form.AnaliseTecnicaEncaminhadaEm) {
+      this.form.AnaliseTecnicaArea = null;
+      this.form.AnaliseTecnicaRetornoEm = null;
+      this.form.AnaliseTecnicaRetornoResumo = null;
     }
+  }
+
+  /** O resumo acompanha a data do retorno: limpar a data limpa o resumo. */
+  aoTrocarRetornoTecnico(valor: string): void {
+    this.form.AnaliseTecnicaRetornoEm = valor || null;
+    if (!this.form.AnaliseTecnicaRetornoEm) this.form.AnaliseTecnicaRetornoResumo = null;
   }
 
   dataDoCheckpoint(campo: CampoCheckpoint['campo']): string | null {
@@ -284,6 +326,19 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     if (!valor) return 'Informe o número do processo SEI.';
     if (!REGEX_NUMERO_SEI.test(valor)) return 'O número precisa estar no formato 00000-00000000/AAAA-DD.';
     return null;
+  }
+
+  /** Opcional; preenchido, no mesmo formato do número do processo (o servidor confere igual). */
+  get errNumeroSeiFormulario(): string | null {
+    const valor = (this.form.NumeroSeiFormulario || '').trim();
+    if (!valor || REGEX_NUMERO_SEI.test(valor)) return null;
+    return 'O Nº SEI do Formulário precisa estar no formato 00000-00000000/AAAA-DD.';
+  }
+
+  /** Com a data do encaminhamento, a área técnica é obrigatória. */
+  get errAnaliseTecnicaArea(): string | null {
+    if (!this.form.AnaliseTecnicaEncaminhadaEm || this.form.AnaliseTecnicaArea) return null;
+    return 'Escolha a área técnica para onde o processo foi encaminhado: SUBSIS ou SUBINFRA.';
   }
 
   get errOrgaoNome(): string | null {
@@ -319,16 +374,6 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       : 'Descreva o que foi pedido ao órgão.';
   }
 
-  get errRestituidoEm(): string | null {
-    if (!this.form.Restituido) return null;
-    return this.form.RestituidoEm ? null : 'Informe a data da restituição.';
-  }
-
-  get errRestituidoMotivo(): string | null {
-    if (!this.form.Restituido) return null;
-    return (this.form.RestituidoMotivo || '').trim() ? null : 'Descreva o motivo da restituição.';
-  }
-
   /**
    * Cronologia e datas futuras: as mesmas regras do `ValidarProcesso` do
    * backend: cada checkpoint preenchido tem de ser maior ou igual a todos os
@@ -357,12 +402,13 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       }
     }
 
-    const restituidoEm = this.form.RestituidoEm ?? null;
+    // A restituição não é mais pedida na tela, mas a registrada antes continua valendo
+    // no servidor: a chegada na SGDI não pode passar dela
+    const restituidoEm = this.form.Restituido ? (this.form.RestituidoEm ?? null) : null;
     if (restituidoEm) {
-      if (restituidoEm > hoje) erros.push('A data da restituição está no futuro.');
       const chegada = this.form.ChegadaSgdi ?? null;
       if (chegada && restituidoEm < chegada) {
-        erros.push(`A data da restituição (${this.brasileira(restituidoEm)}) não pode ser anterior à chegada na SGDI (${this.brasileira(chegada)}).`);
+        erros.push(`A chegada na SGDI (${this.brasileira(chegada)}) não pode ser depois da restituição registrada antes (${this.brasileira(restituidoEm)}).`);
       }
     }
 
@@ -394,6 +440,19 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       }
     }
 
+    // Análise técnica: também fora da cronologia do trâmite, com as regras do servidor
+    const encaminhamento = this.form.AnaliseTecnicaEncaminhadaEm ?? null;
+    const retornoTecnico = this.form.AnaliseTecnicaRetornoEm ?? null;
+    if (encaminhamento && encaminhamento > hoje) erros.push('A data do encaminhamento para análise técnica está no futuro.');
+    if (retornoTecnico) {
+      if (retornoTecnico > hoje) erros.push('A data do retorno da área técnica está no futuro.');
+      if (!encaminhamento) {
+        erros.push('Informe a data do encaminhamento para análise técnica antes da data do retorno.');
+      } else if (retornoTecnico < encaminhamento) {
+        erros.push(`O retorno da área técnica (${this.brasileira(retornoTecnico)}) não pode ser anterior ao encaminhamento (${this.brasileira(encaminhamento)}).`);
+      }
+    }
+
     return erros;
   }
 
@@ -403,10 +462,9 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   }
 
   get formValido(): boolean {
-    return !this.errNumero && !this.errOrgaoNome && !this.errOrgaoSigla
+    return !this.errNumero && !this.errNumeroSeiFormulario && !this.errOrgaoNome && !this.errOrgaoSigla
       && !this.errObjeto && !this.errCategoria && !this.errValor
-      && !this.errEsclarecimentoDescricao
-      && !this.errRestituidoEm && !this.errRestituidoMotivo
+      && !this.errEsclarecimentoDescricao && !this.errAnaliseTecnicaArea
       && this.errDatas.length === 0;
   }
 
@@ -421,10 +479,11 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
    */
   get problemas(): string[] {
     const itens = [
-      this.errNumero, this.errCategoria, this.errOrgaoNome, this.errOrgaoSigla, this.errObjeto, this.errValor
+      this.errNumero, this.errCategoria, this.errOrgaoNome, this.errOrgaoSigla, this.errObjeto, this.errValor,
+      this.errNumeroSeiFormulario
     ].filter((e): e is string => !!e);
     itens.push(...this.risco.problemas);
-    for (const e of [this.errEsclarecimentoDescricao, this.errRestituidoEm, this.errRestituidoMotivo]) {
+    for (const e of [this.errAnaliseTecnicaArea, this.errEsclarecimentoDescricao]) {
       if (e) itens.push(e);
     }
     return itens;
@@ -478,8 +537,11 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       return;
     }
 
+    const encaminhado = !!this.form.AnaliseTecnicaEncaminhadaEm;
+    const retornou = encaminhado && !!this.form.AnaliseTecnicaRetornoEm;
     this.salvar.emit({
       NumeroProcesso: this.form.NumeroProcesso.trim(),
+      NumeroSeiFormulario: this.texto(this.form.NumeroSeiFormulario),
       OrgaoNome: this.form.OrgaoNome.trim(),
       OrgaoSigla: this.form.OrgaoSigla.trim().toUpperCase(),
       ComplementoArea: this.texto(this.form.ComplementoArea),
@@ -495,12 +557,19 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       RetornoGabSgdi: this.form.RetornoGabSgdi || null,
       RetornoOrgao: this.form.RetornoOrgaoNaoSeAplica ? null : (this.form.RetornoOrgao || null),
       RetornoOrgaoNaoSeAplica: this.form.RetornoOrgaoNaoSeAplica,
+      // Análise técnica: sem encaminhamento não vai nada; o resumo acompanha a data do retorno
+      AnaliseTecnicaEncaminhadaEm: this.form.AnaliseTecnicaEncaminhadaEm || null,
+      AnaliseTecnicaArea: encaminhado ? (this.form.AnaliseTecnicaArea || null) : null,
+      AnaliseTecnicaRetornoEm: retornou ? this.form.AnaliseTecnicaRetornoEm : null,
+      AnaliseTecnicaRetornoResumo: retornou ? this.texto(this.form.AnaliseTecnicaRetornoResumo) : null,
       // A etapa do planejamento continua registrada depois da assinatura: é
       // onde o planejamento parou. Não anular.
       EtapaPlanejamento: this.form.EtapaPlanejamento || null,
       DataAssinaturaContrato: this.form.DataAssinaturaContrato || null,
       // Com respostas, o servidor calcula a criticidade e ignora o valor; sem elas
-      // (processo anterior à regra automática) o valor gravado volta como veio.
+      // (processo anterior à regra automática) o valor gravado volta como veio. A
+      // resposta à pergunta anterior do II vai de volta como veio, até alguém responder
+      // à pergunta nova.
       Criticidade: this.form.Criticidade || null,
       CriteriosCriticidade: this.form.CriteriosCriticidade ? { ...this.form.CriteriosCriticidade } : null,
       // A origem não se escolhe na tela: vai a gravada (processo novo = órgão comunicante)
@@ -509,11 +578,15 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       EsclarecimentoSolicitadoEm: this.form.EsclarecimentoSolicitadoEm || null,
       EsclarecimentoDescricao: this.form.EsclarecimentoSolicitadoEm
         ? this.texto(this.form.EsclarecimentoDescricao) : null,
+      EsclarecimentoDocumentoSei: this.form.EsclarecimentoSolicitadoEm
+        ? this.texto(this.form.EsclarecimentoDocumentoSei) : null,
       EsclarecimentoRespondidoEm: this.form.EsclarecimentoSolicitadoEm
         ? (this.form.EsclarecimentoRespondidoEm || null) : null,
+      // A restituição não é mais pedida na tela (2026-09-24): vai de volta o que veio do
+      // servidor, para não apagar o que está gravado
       Restituido: this.form.Restituido,
       RestituidoEm: this.form.Restituido ? (this.form.RestituidoEm || null) : null,
-      RestituidoMotivo: this.form.Restituido ? this.texto(this.form.RestituidoMotivo) : null,
+      RestituidoMotivo: this.form.Restituido ? (this.form.RestituidoMotivo || null) : null,
       Observacao: this.texto(this.form.Observacao),
       // Riscos: só a lista alterada vai (vazia tira os gravados); sem mudança,
       // `ClassificacaoRisco: null` (ver `CtrClassificacaoRiscoEdicao.envio()`)

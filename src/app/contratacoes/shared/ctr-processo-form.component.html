@@ -111,6 +111,22 @@
       <p *ngIf="submetido && errValor" class="text-xs text-red-600 mt-1">{{ errValor }}</p>
       <p id="ctr-valor-ajuda" class="text-xs text-gray-500 italic mt-1">Em reais, como consta no processo. Deixe em branco se ainda não houver estimativa.</p>
     </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-numero-formulario">Nº SEI do Formulário</label>
+      <input id="ctr-numero-formulario" type="text" inputmode="numeric" [value]="form.NumeroSeiFormulario || ''"
+             (input)="aoDigitarFormulario($event)" placeholder="00000-00000000/2026-00"
+             [attr.aria-describedby]="submetido && errNumeroSeiFormulario ? 'ctr-numero-formulario-erro ctr-numero-formulario-ajuda' : 'ctr-numero-formulario-ajuda'"
+             [attr.aria-invalid]="submetido && errNumeroSeiFormulario ? 'true' : null"
+             [attr.data-erro]="submetido && errNumeroSeiFormulario ? 'sim' : null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [class.border-red-500]="submetido && errNumeroSeiFormulario"
+             [class.bg-red-50]="submetido && errNumeroSeiFormulario"
+             [class.border-gray-300]="!(submetido && errNumeroSeiFormulario)">
+      <p *ngIf="submetido && errNumeroSeiFormulario" id="ctr-numero-formulario-erro" class="text-xs text-red-600 mt-1">{{ errNumeroSeiFormulario }}</p>
+      <p id="ctr-numero-formulario-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional. Mesmo formato do número do
+      processo: digite só os números.</p>
+    </div>
   </div>
 </section>
 
@@ -195,7 +211,14 @@
         <p [id]="'ctr-criterio-pergunta-' + c.codigo" class="text-sm text-gray-800"><span class="font-semibold text-blue-900">{{ c.codigo }}.</span> {{ c.pergunta }}</p>
         <span class="text-xs text-gray-500 whitespace-nowrap">{{ c.citacao }} da IN</span>
       </div>
-      <div class="flex flex-wrap gap-3 mt-2" role="radiogroup" [attr.aria-labelledby]="'ctr-criterio-pergunta-' + c.codigo">
+      <!-- II: enquanto só houver a resposta à pergunta anterior, ela aparece como referência -->
+      <div *ngIf="c.codigo === 'II' && respostaAnteriorII" id="ctr-criterio-anterior-II"
+           class="border-l-4 border-amber-400 bg-amber-50 p-2 rounded-r-md text-xs text-amber-900 mt-2">
+        <strong>Resposta à pergunta anterior:</strong> {{ respostaAnteriorII }} (a pergunta era "{{ perguntaAnteriorII }}").
+        Enquanto a pergunta nova não for respondida, o critério conta como Desconhecido.
+      </div>
+      <div class="flex flex-wrap gap-3 mt-2" role="radiogroup" [attr.aria-labelledby]="'ctr-criterio-pergunta-' + c.codigo"
+           [attr.aria-describedby]="c.codigo === 'II' && respostaAnteriorII ? 'ctr-criterio-anterior-II' : null">
         <label *ngFor="let r of c.respostas" class="flex items-center gap-1 text-sm cursor-pointer">
           <input type="radio" [name]="'ctr-criterio-' + c.codigo" [value]="r" [checked]="respostaDe(c.codigo) === r"
                  (change)="responderCriterio(c.codigo, r)">
@@ -215,6 +238,11 @@
           [ngClass]="badgeCriticidade(criticidadeAtual)">{{ criticidadeAtual || 'Não classificada' }}</span>
     <span *ngIf="pontosAtuais !== null" class="text-xs text-gray-500">{{ pontosAtuais }} ponto(s)<ng-container
       *ngIf="valorNoLimite">, valor estimado no limite do inciso VII</ng-container></span>
+  </div>
+  <!-- Composição da soma, ao vivo: os pontos de cada critério e a regra do VII -->
+  <div *ngIf="form.CriteriosCriticidade" class="mt-3">
+    <app-ctr-composicao-criticidade [respostas]="form.CriteriosCriticidade"
+                                    titulo="Composição da criticidade (prévia)"></app-ctr-composicao-criticidade>
   </div>
   <p class="text-xs text-gray-500 italic mt-1">A manifestação do inciso I ao TCDF reporta esta criticidade e não é
   registrada sem ela.</p>
@@ -264,6 +292,64 @@
       <p class="text-xs text-gray-500 italic mt-1">{{ c.ajuda }}</p>
     </div>
   </div>
+
+  <!-- Análise técnica: encaminhamento a uma área técnica e o retorno dela (fora da cronologia) -->
+  <fieldset class="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+    <legend class="px-1 text-sm font-semibold text-blue-900">Encaminhamento para análise técnica</legend>
+    <p class="text-xs text-gray-500 italic mb-3">Quando o processo vai a uma área técnica, registre a data e a área; na
+    volta, a data do retorno e um resumo curto do que ela respondeu. Tudo é opcional e não muda a situação do trâmite.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-analise-encaminhada-em">Encaminhado para análise técnica em</label>
+        <input id="ctr-analise-encaminhada-em" type="date" [ngModel]="form.AnaliseTecnicaEncaminhadaEm" name="ctr-analise-encaminhada-em"
+               (ngModelChange)="aoTrocarEncaminhamentoTecnico($event)" aria-describedby="ctr-analise-encaminhada-ajuda"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <p id="ctr-analise-encaminhada-ajuda" class="text-xs text-gray-500 italic mt-1">Limpar esta data apaga a área, o
+        retorno e o resumo.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-analise-area">Área técnica
+          <span *ngIf="form.AnaliseTecnicaEncaminhadaEm" class="text-red-600">*</span>
+        </label>
+        <select id="ctr-analise-area" [(ngModel)]="form.AnaliseTecnicaArea" name="ctr-analise-area"
+                [disabled]="!form.AnaliseTecnicaEncaminhadaEm"
+                [attr.aria-describedby]="submetido && errAnaliseTecnicaArea ? 'ctr-analise-area-erro ctr-analise-area-ajuda' : 'ctr-analise-area-ajuda'"
+                [attr.aria-invalid]="submetido && errAnaliseTecnicaArea ? 'true' : null"
+                [attr.data-erro]="submetido && errAnaliseTecnicaArea ? 'sim' : null"
+                class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                [class.border-red-500]="submetido && errAnaliseTecnicaArea"
+                [class.border-gray-300]="!(submetido && errAnaliseTecnicaArea)">
+          <option [ngValue]="null">Escolha a área</option>
+          <option *ngFor="let a of areasTecnicas" [ngValue]="a.valor">{{ a.rotulo }}</option>
+        </select>
+        <p *ngIf="submetido && errAnaliseTecnicaArea" id="ctr-analise-area-erro" class="text-xs text-red-600 mt-1">{{ errAnaliseTecnicaArea }}</p>
+        <p id="ctr-analise-area-ajuda" class="text-xs text-gray-500 italic mt-1">Obrigatória quando há a data do
+        encaminhamento.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-analise-retorno-em">Retorno da área técnica em</label>
+        <input id="ctr-analise-retorno-em" type="date" [ngModel]="form.AnaliseTecnicaRetornoEm" name="ctr-analise-retorno-em"
+               (ngModelChange)="aoTrocarRetornoTecnico($event)" [disabled]="!form.AnaliseTecnicaEncaminhadaEm"
+               aria-describedby="ctr-analise-retorno-ajuda"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
+        <p id="ctr-analise-retorno-ajuda" class="text-xs text-gray-500 italic mt-1">Não pode ser anterior ao
+        encaminhamento.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-analise-resumo">O que a área técnica respondeu</label>
+        <textarea id="ctr-analise-resumo" rows="2" maxlength="1000" [(ngModel)]="form.AnaliseTecnicaRetornoResumo"
+                  name="ctr-analise-resumo" [disabled]="!form.AnaliseTecnicaRetornoEm"
+                  aria-describedby="ctr-analise-resumo-ajuda" placeholder="Resumo curto da resposta."
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"></textarea>
+        <p id="ctr-analise-resumo-ajuda" class="text-xs text-gray-500 italic mt-1">Até 1000 caracteres. Fica disponível
+        depois de informar a data do retorno.</p>
+      </div>
+    </div>
+  </fieldset>
 </section>
 
 <!-- ── Esclarecimentos: sinal paralelo ao trâmite, não é etapa ──────── -->
@@ -297,6 +383,16 @@
     </div>
 
     <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-documento">Nº do documento SEI do pedido</label>
+      <input id="ctr-esclarecimento-documento" type="text" maxlength="60" [(ngModel)]="form.EsclarecimentoDocumentoSei"
+             name="ctr-esclarecimento-documento" [disabled]="!form.EsclarecimentoSolicitadoEm"
+             aria-describedby="ctr-esclarecimento-documento-ajuda" placeholder="Ex.: 187654321"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
+      <p id="ctr-esclarecimento-documento-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional. O documento SEI em
+      que a SGDI pediu os esclarecimentos ou as informações complementares.</p>
+    </div>
+
+    <div>
       <label class="block text-sm font-semibold mb-1" for="ctr-esclarecimento-resposta">Resposta do órgão em</label>
       <input id="ctr-esclarecimento-resposta" type="date" [(ngModel)]="form.EsclarecimentoRespondidoEm" name="ctr-esclarecimento-resposta"
              [disabled]="!form.EsclarecimentoSolicitadoEm"
@@ -306,42 +402,8 @@
   </div>
 </section>
 
-<!-- ── Restituição ───────────────────────────────────────────────────── -->
-<section class="mt-8 pt-4 border-t border-gray-200">
-  <ng-container *ngTemplateOutlet="cabecalho; context: {
-    icone: 'assignment_return', titulo: 'Restituição ao órgão',
-    ajuda: 'Quando o processo volta ao órgão comunicante sem a análise concluída.' }"></ng-container>
-
-  <label class="flex items-center gap-2 text-sm mb-3">
-    <input type="checkbox" [ngModel]="form.Restituido" name="ctr-restituido"
-           (ngModelChange)="aoMarcarRestituido($event)"
-           class="rounded border-gray-300">
-    <span>O processo foi restituído ao órgão comunicante</span>
-  </label>
-
-  <div *ngIf="form.Restituido" class="grid grid-cols-1 md:grid-cols-2 gap-4 border-l-4 border-orange-400 bg-orange-50 p-4 rounded-r-md">
-    <div>
-      <label class="block text-sm font-semibold mb-1" for="ctr-restituido-em">Data da restituição <span class="text-red-600">*</span></label>
-      <input id="ctr-restituido-em" type="date" [(ngModel)]="form.RestituidoEm" name="ctr-restituido-em"
-             [attr.data-erro]="submetido && errRestituidoEm ? 'sim' : null"
-             class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-             [class.border-red-500]="submetido && errRestituidoEm"
-             [class.border-gray-300]="!(submetido && errRestituidoEm)">
-      <p *ngIf="submetido && errRestituidoEm" class="text-xs text-red-600 mt-1">{{ errRestituidoEm }}</p>
-    </div>
-    <div>
-      <label class="block text-sm font-semibold mb-1" for="ctr-restituido-motivo">Motivo da restituição <span class="text-red-600">*</span></label>
-      <textarea id="ctr-restituido-motivo" rows="2" [(ngModel)]="form.RestituidoMotivo" name="ctr-restituido-motivo"
-                placeholder="Por que o processo voltou ao órgão sem a análise concluída."
-                [attr.data-erro]="submetido && errRestituidoMotivo ? 'sim' : null"
-                class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                [class.border-red-500]="submetido && errRestituidoMotivo"
-                [class.border-gray-300]="!(submetido && errRestituidoMotivo)"></textarea>
-      <p *ngIf="submetido && errRestituidoMotivo" class="text-xs text-red-600 mt-1">{{ errRestituidoMotivo }}</p>
-    </div>
-  </div>
-</section>
-
+<!-- A seção "Restituição ao órgão" saiu em 2026-09-24 (a tramitação já tem a data do retorno
+     ao órgão): o formulário não pede mais a restituição e devolve ao servidor o que veio -->
 
 <!-- ── Observação ──────────────────────────────────────────────────────── -->
 <section class="mt-8 pt-4 border-t border-gray-200">

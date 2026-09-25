@@ -1,5 +1,25 @@
 import { ParamMap, Params } from '@angular/router';
-import { CtrProcessoFiltro } from '../../../api/contratacoes/interface';
+import { CtrProcessoFiltro, ORIGEM_PADRAO, ORIGEM_TCDF } from '../../../api/contratacoes/interface';
+
+/**
+ * As duas listas de processos (desde 2026-09-24), sub-abas de Processos, separadas pela
+ * origem: `lista` são os processos de supervisão contínua (vindos do órgão comunicante) e
+ * `comunicacoes-tcdf` os que nasceram de uma comunicação do TCDF.
+ */
+export const SECAO_LISTA_SUPERVISAO = 'lista';
+export const SECAO_LISTA_TCDF = 'comunicacoes-tcdf';
+
+/** A seção da lista que mostra os processos dessa origem. */
+export function secaoDaLista(origem: string | null | undefined): string {
+  return origem === ORIGEM_TCDF ? SECAO_LISTA_TCDF : SECAO_LISTA_SUPERVISAO;
+}
+
+/** A origem que a seção da lista mostra; nulo quando a seção não é uma lista. */
+export function origemDaSecao(secao: string): string | null {
+  if (secao === SECAO_LISTA_TCDF) return ORIGEM_TCDF;
+  if (secao === SECAO_LISTA_SUPERVISAO) return ORIGEM_PADRAO;
+  return null;
+}
 
 /**
  * Filtros da lista de processos na URL (`/analises/processos/lista?situacao=...`).
@@ -7,7 +27,8 @@ import { CtrProcessoFiltro } from '../../../api/contratacoes/interface';
  * A lista grava os filtros aplicados na URL, então voltar de um processo, recarregar
  * a página ou mandar o link a alguém mostra a mesma lista; o painel usa os mesmos
  * parâmetros para abrir a lista já filtrada. Nomes curtos e minúsculos, próprios da
- * tela (não são os da API).
+ * tela (não são os da API). A origem não entra: é a sub-aba que a escolhe. A restituição
+ * também saiu (2026-09-24): as telas não a pedem mais.
  */
 interface ParametroFiltro {
   campo: keyof CtrProcessoFiltro;
@@ -25,9 +46,7 @@ const PARAMETROS: ParametroFiltro[] = [
   { campo: 'Sigla', parametro: 'sigla' },
   { campo: 'Criticidade', parametro: 'criticidade' },
   { campo: 'EtapaPlanejamento', parametro: 'etapa' },
-  { campo: 'Origem', parametro: 'origem' },
   { campo: 'EsclarecimentoPendente', parametro: 'esclarecimento', booleano: true },
-  { campo: 'Restituidos', parametro: 'restituidos', booleano: true },
   { campo: 'De', parametro: 'de' },
   { campo: 'Ate', parametro: 'ate' }
 ];
