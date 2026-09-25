@@ -7,8 +7,9 @@
     </button>
   </div>
 
-  <!-- Não deu para apagar: a mensagem do servidor diz quem liga a este registro -->
-  <div *ngIf="avisoApagar" [id]="prefixoId + '-aviso-apagar'" tabindex="-1" role="alert"
+  <!-- Não deu para apagar: a mensagem do servidor diz quem liga a este registro. O quadro recebe o foco,
+       sem aviso falado à parte, que o leria duas vezes (F1, C31) -->
+  <div *ngIf="avisoApagar" [id]="prefixoId + '-aviso-apagar'" tabindex="-1"
        class="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
     <span class="material-icons text-red-600" aria-hidden="true">link</span>
     <p class="flex-1 leading-relaxed">{{ avisoApagar }}</p>
@@ -37,7 +38,9 @@
       <tbody>
         <tr *ngFor="let r of registros; let i = index; trackBy: porId" class="border-t border-gray-100 align-top">
           <th scope="row" class="px-3 py-2.5 text-left font-normal whitespace-nowrap">
-            <span class="font-mono font-semibold text-gray-900">{{ r.Codigo || (i + 1) }}</span>
+            <!-- Seção sem código (sem prefixo): "-" na tela, e o número da linha para o leitor de tela (F1, B18) -->
+            <span *ngIf="r.Codigo; else semCodigo" class="font-mono font-semibold text-gray-900">{{ r.Codigo }}</span>
+            <ng-template #semCodigo><span class="text-gray-500" aria-hidden="true">-</span><span class="sr-only">Registro {{ i + 1 }}</span></ng-template>
             <span *ngIf="r.Sistema" class="block text-xs text-purple-700">do decreto</span>
           </th>
           <td *ngFor="let c of colunas; trackBy: porChave" class="px-3 py-2.5 text-gray-800 break-words">{{ celula(c, r) }}</td>
@@ -50,18 +53,18 @@
                 {{ editavel(r) ? 'Editar' : 'Ver' }}
               </button>
               <ng-container *ngIf="podeMover">
-                <button type="button" [id]="prefixoId + '-subir-' + r.Id" (click)="mover(r, -1)" [disabled]="i === 0 || movendo"
+                <button type="button" [id]="prefixoId + '-subir-' + r.Id" (click)="mover(r, -1)" [disabled]="i === 0" [attr.aria-disabled]="movendo || null"
                         [attr.aria-label]="'Subir ' + nome(r)" title="Subir"
                         class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
                   <span class="material-icons text-base" aria-hidden="true">arrow_upward</span>
                 </button>
-                <button type="button" [id]="prefixoId + '-descer-' + r.Id" (click)="mover(r, 1)" [disabled]="i === registros.length - 1 || movendo"
+                <button type="button" [id]="prefixoId + '-descer-' + r.Id" (click)="mover(r, 1)" [disabled]="i === registros.length - 1" [attr.aria-disabled]="movendo || null"
                         [attr.aria-label]="'Descer ' + nome(r)" title="Descer"
                         class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
                   <span class="material-icons text-base" aria-hidden="true">arrow_downward</span>
                 </button>
               </ng-container>
-              <button *ngIf="editavel(r)" type="button" (click)="apagar(r)" [disabled]="apagando !== null"
+              <button *ngIf="editavel(r)" type="button" (click)="apagar(r)" [attr.aria-disabled]="apagando !== null || null"
                       [attr.aria-label]="'Apagar ' + nome(r)"
                       class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 bg-white text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50 whitespace-nowrap">
                 <span class="material-icons text-sm" aria-hidden="true">delete</span> {{ apagando === r.Id ? 'Apagando...' : 'Apagar' }}

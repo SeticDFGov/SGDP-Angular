@@ -5,7 +5,7 @@ import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 import { NotificationService } from '../../core/services/notification.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { mensagemErroPe } from '../shared/pe-erros';
-import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic } from '../shared/pe-pdf-pdtic';
+import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic, rotuloPdfDoPdtic } from '../shared/pe-pdf-pdtic';
 import { minusculaInicial, quandoPdtic } from '../shared/pe-pdtic-rotulos';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
@@ -89,6 +89,11 @@ export class PePassoPublicacaoComponent implements AfterViewChecked {
 
   quando(valor: string | null | undefined): string {
     return quandoPdtic(valor);
+  }
+
+  /** O nome do PDF pelo caminho do PDTIC (F1, I02: "PDF publicado" depois da publicação). */
+  rotuloPdf(f: PdfDoPdtic): string {
+    return rotuloPdfDoPdtic(this.pdtic, f);
   }
 
   focar(id: string): void {

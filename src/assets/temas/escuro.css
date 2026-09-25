@@ -1,5 +1,5 @@
 /* GERADO por scripts/temas/gerar-temas.mjs a partir do CSS do Tailwind: não editar à mão (npm run temas). */
-html.tema-escuro{color-scheme:dark;background-color:oklch(17% 0.012 264);color:oklch(92.8% 0.006 264.531);--foco:#60a5fa;--carregando:#60a5fa}
+html.tema-escuro{color-scheme:dark;background-color:oklch(17% 0.012 264);color:oklch(92.8% 0.006 264.531);--foco:#60a5fa;--carregando:#60a5fa;--carregando-borda:transparent}
 html.tema-escuro body{background-color:oklch(17% 0.012 264)}
 html.tema-escuro *,html.tema-escuro ::before,html.tema-escuro ::after{--tw-ring-offset-color:oklch(21.5% 0.014 264)}
 html.tema-escuro #gantt-chart-container::-webkit-scrollbar-track{background:oklch(29% 0.016 264)}

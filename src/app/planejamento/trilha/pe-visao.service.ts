@@ -17,16 +17,26 @@ export interface VisaoTrilhaPe {
 /**
  * Trilha que o admin do SGDP (todas as trilhas) ou um papel global (a dele ou a
  * de um órgão) está vendo na Governança Estratégica. Guardada no navegador para
- * não precisar escolher de novo a cada entrada; sem storage (SSR, janela privada,
+ * não precisar escolher de novo a cada entrada, **por pessoa** (F1, C35: a chave
+ * leva o id de quem está logado; antes, a escolha de uma pessoa valia para a
+ * próxima que entrasse no mesmo navegador). Sem storage (SSR, janela privada,
  * bloqueio), vale só na sessão.
  */
 @Injectable({ providedIn: 'root' })
 export class PeVisaoService {
   private readonly platformId = inject(PLATFORM_ID);
-  private visao: VisaoTrilhaPe = this.lerGuardada();
+  /** Quem está logado (o sufixo das chaves); null antes de a trilha começar. */
+  private pessoa: string | null = null;
+  private visao: VisaoTrilhaPe = { perfil: PADRAO, orgaoId: null };
 
   get atual(): VisaoTrilhaPe {
     return this.visao;
+  }
+
+  /** A pessoa que está logada (chamado ao montar a trilha): a escolha guardada passa a ser a dela. */
+  definirPessoa(pessoa: string | null): void {
+    this.pessoa = pessoa?.trim() || null;
+    this.visao = this.lerGuardada();
   }
 
   /** Trilha central (admin do SGDP): deixa de ver o órgão. */
@@ -42,19 +52,29 @@ export class PeVisaoService {
     this.guardar(CHAVE_ORGAO, orgaoId === null ? null : String(orgaoId));
   }
 
-  private guardar(chave: string, valor: string | null): void {
-    if (!isPlatformBrowser(this.platformId)) return;
+  /** A chave da pessoa ("planejamentoVisaoOrgao:<id>"); sem pessoa, nada se guarda. */
+  private chave(base: string): string | null {
+    return this.pessoa ? `${base}:${this.pessoa}` : null;
+  }
+
+  private guardar(base: string, valor: string | null): void {
+    const chave = this.chave(base);
+    if (!chave || !isPlatformBrowser(this.platformId)) return;
     try {
       if (valor === null) localStorage.removeItem(chave);
       else localStorage.setItem(chave, valor);
+      // As chaves antigas, sem a pessoa, valiam para qualquer um no navegador: saem
+      localStorage.removeItem(base);
     } catch { /* navegador sem storage: vale só na sessão */ }
   }
 
   private lerGuardada(): VisaoTrilhaPe {
-    if (!isPlatformBrowser(this.platformId)) return { perfil: PADRAO, orgaoId: null };
+    const chavePerfil = this.chave(CHAVE_PERFIL);
+    const chaveOrgao = this.chave(CHAVE_ORGAO);
+    if (!chavePerfil || !chaveOrgao || !isPlatformBrowser(this.platformId)) return { perfil: PADRAO, orgaoId: null };
     try {
-      const perfil = localStorage.getItem(CHAVE_PERFIL) as PerfilCentralPe | null;
-      const orgao = Number(localStorage.getItem(CHAVE_ORGAO));
+      const perfil = localStorage.getItem(chavePerfil) as PerfilCentralPe | null;
+      const orgao = Number(localStorage.getItem(chaveOrgao));
       return {
         // A trilha fixa do órgão da E1 ("orgao") saiu: sem órgão escolhido, volta ao padrão
         perfil: perfil && PERFIS_CENTRAIS_PE.includes(perfil) ? perfil : PADRAO,

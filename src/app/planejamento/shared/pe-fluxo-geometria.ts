@@ -180,6 +180,7 @@ export function normalizarGeometria(bruta: unknown): PeFluxoGeometria {
     Negrito: t['Negrito'] === true,
     Vertical: t['Vertical'] === true,
     Cor: textoDe(t['Cor']) || CORES_FLUXO.texto,
+    Largura: numero(t['Largura']) || undefined,
     Dono: textoDe(t['Dono'])
   }));
   return {
@@ -217,6 +218,12 @@ export interface VistaTexto {
   ancora: 'start' | 'middle';
   /** Na vertical, de baixo para cima (nomes das raias): gira em volta de (x, y). */
   vertical: boolean;
+  /**
+   * A largura que o servidor mediu com a fonte do desenho (Lato), nos textos da
+   * geometria: a tela, que desenha com a fonte que tiver, ajusta o texto a ela e
+   * nada passa da borda (F1, D13).
+   */
+  largura?: number;
 }
 
 export interface VistaRaia {
@@ -472,7 +479,7 @@ function artefatosLocais(nomes: string[], largura: number, altura: number): Vist
 function textoDaGeometria(t: PeFluxoGeometriaTexto, dx: number, dy: number): VistaTexto {
   return {
     texto: t.Texto, x: t.X - dx, y: t.Y - dy, tamanho: t.Tamanho, negrito: t.Negrito, cor: t.Cor || CORES_FLUXO.texto,
-    ancora: 'start', vertical: t.Vertical
+    ancora: 'start', vertical: t.Vertical, largura: t.Largura && t.Largura > 0 ? t.Largura : undefined
   };
 }
 

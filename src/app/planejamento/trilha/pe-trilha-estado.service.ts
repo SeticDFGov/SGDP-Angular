@@ -9,7 +9,7 @@ import { PeOrgaosService } from '../services/pe-orgaos.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
 import { mensagemErroPe } from '../shared/pe-erros';
-import { pdticAntesDaPublicacao, pdticVigente } from '../shared/pe-pdtic-rotulos';
+import { pdticAntesDaPublicacao, pdticDepoisDaPublicacao, pdticVigente } from '../shared/pe-pdtic-rotulos';
 import {
   PassoNumeradoPe, PerfilCentralPe, PerfilTrilhaPe, TrilhaPe,
   passosNumerados, perfilDoPapel, trilhaDoOrgao, trilhaDoPerfil
@@ -66,7 +66,9 @@ export interface EstadoTrilhaPe {
   erroPdtic: string | null;
   /**
    * E7: as versões do PDTIC do órgão (da mais nova para a mais antiga), buscadas
-   * só quando o PDTIC atual tem versão anterior (revisão); null nos demais casos.
+   * quando o PDTIC atual tem versão anterior (revisão) e, desde a F1 (C08), quando o
+   * órgão está sem PDTIC atual (para dizer que o anterior foi encerrado e qual
+   * versão o "Começar" abre); null nos demais casos.
    */
   versoes: PePdtic[] | null;
 }
@@ -137,6 +139,12 @@ export class PeTrilhaEstadoService {
   private cargaVersoes?: Subscription;
   /** A versão escolhida no seletor (o órgão à vista e o PDTIC), mantida quando o PDTIC vem de novo. */
   private versaoEscolhida: { orgaoId: number | null; pdticId: number } | null = null;
+  /**
+   * F1 (C04): a versão pedida pelo endereço, na entrada direta ou no F5 (`?versao=`,
+   * ou a versão com ciclos quando o endereço traz `?ciclo=`), aplicada quando as
+   * versões do órgão chegam.
+   */
+  private versaoDoEndereco: { pdticId: number | null; comCiclos: boolean } | null = null;
   private cacheVersoes: { lista: PePdtic[] | null; valor: { emRevisao: PePdtic; vigente: PePdtic } | null } = { lista: null, valor: null };
 
   get atual(): EstadoTrilhaPe | null {
@@ -313,6 +321,8 @@ export class PeTrilhaEstadoService {
     this.cargaVersoes?.unsubscribe();
     this.authService.getUser().subscribe(user => {
       this.email = user?.Email ?? null;
+      // "Ver a trilha de" é guardado por pessoa (F1, C35)
+      this.visaoService.definirPessoa(user?.Id || user?.Email || null);
       const adminGeral = user?.Perfil === Perfis.Admin;
       if (adminGeral) {
         this.abrirVisaoDoAdminGeral(null, 'carregando');
@@ -454,21 +464,59 @@ export class PeTrilhaEstadoService {
   }
 
   /**
+   * F1 (C04): a versão que o endereço pede, na entrada direta ou no F5: `?versao=`
+   * (a vigente, quando há uma revisão aberta) ou, sem ela, `?ciclo=` (os ciclos são
+   * da versão publicada: a vigente). Vale quando as versões do órgão chegarem, uma vez.
+   */
+  pedirVersaoDoEndereco(pdticId: number | null, comCiclos: boolean): void {
+    if (pdticId === null && !comCiclos) return;
+    const agora = this.estado.value;
+    const lista = agora?.versoes;
+    if (agora && agora.perfil === 'orgao' && agora.pdtic && lista) {
+      // As versões já chegaram: aplica agora
+      const alvo = this.versaoPedida(lista, agora.pdtic, { pdticId, comCiclos });
+      if (alvo) this.escolherVersao(alvo.Id);
+      return;
+    }
+    this.versaoDoEndereco = { pdticId, comCiclos };
+  }
+
+  /**
+   * A versão que o endereço pede, entre as que se escolhem (a em revisão e a
+   * vigente): a do `?versao=`, ou a vigente para um `?ciclo=` com a revisão à vista.
+   */
+  private versaoPedida(versoes: PePdtic[], atual: PePdtic, pedida: { pdticId: number | null; comCiclos: boolean }): PePdtic | null {
+    const escolhivel = (v: PePdtic) => pdticVigente(v.Situacao) || pdticAntesDaPublicacao(v.Situacao);
+    const alvo = pedida.pdticId !== null
+      ? versoes.find(v => v.Id === pedida.pdticId && escolhivel(v))
+      : pedida.comCiclos && !pdticDepoisDaPublicacao(atual.Situacao) ? versoes.find(v => pdticVigente(v.Situacao)) : undefined;
+    return alvo && alvo.Id !== atual.Id ? alvo : null;
+  }
+
+  /**
    * As versões do órgão, quando o PDTIC tem versão anterior (revisão). Se a pessoa
-   * tinha escolhido a outra versão no seletor, ela volta a ser a da trilha.
+   * tinha escolhido a outra versão no seletor (ou o endereço pede uma, F1), ela
+   * passa a ser a da trilha.
    */
   private carregarVersoes(orgaoId: number | null, pdtic: PePdtic): void {
     this.cargaVersoes?.unsubscribe();
-    if (!pdtic.Revisao && !pdtic.AnteriorId) return;
+    if (!pdtic.Revisao && !pdtic.AnteriorId) {
+      this.versaoDoEndereco = null;
+      return;
+    }
     this.cargaVersoes = this.pdticService.versoes(orgaoId).subscribe({
       next: versoes => {
         const agora = this.estado.value;
         if (!agora || agora.perfil !== 'orgao' || agora.orgaoVisto !== orgaoId || !agora.pdtic) return;
+        const pedida = this.versaoDoEndereco;
+        this.versaoDoEndereco = null;
         const escolhida = this.versaoEscolhida;
-        const volta = escolhida && escolhida.orgaoId === orgaoId && escolhida.pdticId !== agora.pdtic.Id
-          ? versoes.find(v => v.Id === escolhida.pdticId && (pdticVigente(v.Situacao) || pdticAntesDaPublicacao(v.Situacao)))
-          : null;
+        const volta = (pedida ? this.versaoPedida(versoes, agora.pdtic, pedida) : null)
+          ?? (escolhida && escolhida.orgaoId === orgaoId && escolhida.pdticId !== agora.pdtic.Id
+            ? versoes.find(v => v.Id === escolhida.pdticId && (pdticVigente(v.Situacao) || pdticAntesDaPublicacao(v.Situacao))) ?? null
+            : null);
         if (volta) {
+          this.versaoEscolhida = { orgaoId, pdticId: volta.Id };
           this.estado.next({ ...agora, versoes, pdtic: volta, situacao: null });
           this.atualizarStatus(true);
         } else {
@@ -476,6 +524,23 @@ export class PeTrilhaEstadoService {
         }
       },
       // Sem a lista, a trilha segue com o PDTIC atual (sem o seletor de versão)
+      error: () => undefined
+    });
+  }
+
+  /**
+   * F1 (C08): o órgão sem PDTIC atual pode ter versões encerradas (ou
+   * substituídas): a visão geral diz isso e a versão que o "Começar" abre.
+   */
+  private carregarVersoesAnteriores(orgaoId: number | null): void {
+    this.cargaVersoes?.unsubscribe();
+    this.cargaVersoes = this.pdticService.versoes(orgaoId).subscribe({
+      next: versoes => {
+        const agora = this.estado.value;
+        if (!agora || agora.perfil !== 'orgao' || agora.orgaoVisto !== orgaoId || agora.cargaPdtic !== 'sem-pdtic') return;
+        if (versoes.length) this.estado.next({ ...agora, versoes });
+      },
+      // Sem a lista, a visão geral fala só do órgão sem PDTIC atual
       error: () => undefined
     });
   }
@@ -511,6 +576,10 @@ export class PeTrilhaEstadoService {
           this.atualizarStatus(true);
           // Revisão em andamento: as versões (o seletor entre a vigente e a nova)
           this.carregarVersoes(orgaoId, pdtic);
+        } else {
+          // Sem PDTIC atual: as versões encerradas, se houver (F1, C08)
+          this.versaoDoEndereco = null;
+          this.carregarVersoesAnteriores(orgaoId);
         }
       },
       error: erro => {

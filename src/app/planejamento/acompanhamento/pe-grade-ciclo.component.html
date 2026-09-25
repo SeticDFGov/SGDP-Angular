@@ -20,7 +20,7 @@
   </div>
 
   <p *ngIf="avisoCiclo as a" class="mt-3 text-xs text-gray-500 italic">{{ a }}</p>
-  <p *ngIf="!podeEditar" class="mt-3 text-xs text-gray-500 italic">Você pode consultar. Quem registra é a equipe do órgão, com o ciclo aberto.</p>
+  <p *ngIf="!podeEditar && !semAvisoLeitura" class="mt-3 text-xs text-gray-500 italic">Você pode consultar. Quem registra é a equipe do órgão, com o ciclo aberto.</p>
 
   <p *ngIf="carregando && linhas.length === 0" role="status" class="mt-3 text-sm text-gray-600">Carregando a grade...</p>
   <div *ngIf="erroCarga" role="alert" class="mt-3 text-sm text-red-700">
@@ -41,8 +41,8 @@
       <p *ngIf="temAnterior">Embaixo de cada campo, em cinza, o valor do ciclo anterior<ng-container *ngIf="rotuloAnterior"> ({{ rotuloAnterior }})</ng-container>.</p>
     </div>
 
-    <!-- O que o servidor disse sem apontar uma célula -->
-    <div *ngIf="errosGerais.length > 0" [id]="idBase + '-erros-gerais'" tabindex="-1" role="alert"
+    <!-- O que o servidor disse sem apontar uma célula (recebe o foco quando não há célula com erro) -->
+    <div *ngIf="errosGerais.length > 0" [id]="idBase + '-erros-gerais'" tabindex="-1"
          class="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
       <p *ngFor="let e of errosGerais">{{ e }}</p>
     </div>
@@ -61,7 +61,7 @@
     <!-- A grade: cabeçalho de coluna (o campo) e de linha (a ação ou o indicador); rolagem lateral pelo teclado -->
     <div class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" [attr.aria-label]="'Grade: ' + titulo">
       <table class="w-full text-sm">
-        <caption class="sr-only">{{ titulo }} no ciclo {{ ciclo.Rotulo }}. Uma linha por {{ tipo === 'acoes' ? 'ação' : 'indicador' }}.</caption>
+        <caption class="sr-only">{{ legenda }}</caption>
         <thead>
           <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
             <th scope="col" class="px-3 py-2.5">{{ rotuloLinha }}</th>
@@ -140,9 +140,10 @@
       <p class="flex-1 text-sm text-gray-700">
         {{ mudadas === 0 ? 'Nenhuma mudança para salvar.' : (mudadas === 1 ? '1 linha mudada, ainda não salva.' : mudadas + ' linhas mudadas, ainda não salvas.') }}
       </p>
-      <button type="button" (click)="desfazer()" [disabled]="mudadas === 0 || salvando"
+      <button type="button" (click)="desfazer()" [disabled]="mudadas === 0" [attr.aria-disabled]="salvando || null"
               class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">Desfazer as mudanças</button>
-      <button type="button" [id]="idBase + '-salvar'" (click)="salvar()" [disabled]="salvando"
+      <!-- Enquanto salva, ocupado (aria-disabled) sem sair do Tab: desligado, o botão perdia o foco (F1, C11) -->
+      <button type="button" [id]="idBase + '-salvar'" (click)="salvar()" [attr.aria-disabled]="salvando || null"
               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
         <span class="material-icons text-base" aria-hidden="true">save</span> {{ salvando ? 'Salvando...' : 'Salvar a grade' }}
       </button>

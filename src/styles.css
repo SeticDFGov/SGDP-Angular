@@ -45,6 +45,19 @@ app-root .min-h-screen {
   outline: none;
 }
 
+/* Com uma janela modal aberta, o botão do VLibras fica por baixo do véu da janela:
+   por cima dele, cobria campos das janelas e do painel lateral no celular. O VLibras 7
+   desenha o botão dentro do #vlibras-access-wrapper (com Shadow DOM, posição fixa lá
+   dentro): a posição relativa com z-index faz dele um contexto de empilhamento abaixo
+   do véu, sem mudar o lugar do botão. As versões anteriores usavam o div[vw]. */
+body:has([aria-modal="true"]) > div[vw] {
+  z-index: 40 !important;
+}
+body:has([aria-modal="true"]) > #vlibras-access-wrapper {
+  position: relative;
+  z-index: 40;
+}
+
 /* Indicador de carregamento (core/carregamento). Enquanto a barra do topo está à
    vista, a página mostra o cursor de espera (links e botões ficam com o deles). O
    botão ou link clicado que ainda espera ganha o cursor de espera e um giro por cima,

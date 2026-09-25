@@ -96,7 +96,7 @@
         {{ estado === 'erro' ? 'O desenho não pôde ser montado agora.' : 'Montando o desenho...' }}
       </p>
       <div *ngIf="vista as v" class="pe-fxv-conteudo" [style.width.px]="larguraTela" [style.height.px]="alturaTela">
-        <svg #desenho class="pe-fxv-svg" xmlns="http://www.w3.org/2000/svg" [class.pe-fxv-animar]="animar"
+        <svg #desenho class="pe-fxv-svg" xmlns="http://www.w3.org/2000/svg" [class.pe-fxv-animar]="animar" [class.pe-fxv-svg-editavel]="podeEditar"
              [attr.width]="larguraTela" [attr.height]="alturaTela" [attr.viewBox]="'0 0 ' + v.largura + ' ' + v.altura"
              role="group" [attr.aria-label]="'Desenho do fluxo ' + nomeFluxo + ', para editar'" [attr.aria-describedby]="idAjuda">
 
@@ -109,7 +109,8 @@
             <ng-container *ngIf="v.faixa as f">
               <rect [attr.x]="f.x" [attr.y]="f.y" [attr.width]="f.largura" [attr.height]="f.altura" fill="#ECEEF2" />
               <text *ngFor="let t of f.textos; trackBy: porIndice" stroke="none" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho"
-                    font-weight="bold" [attr.fill]="t.cor" [attr.text-anchor]="t.ancora" [attr.transform]="transformaTexto(t)">{{ t.texto }}</text>
+                    font-weight="bold" [attr.fill]="t.cor" [attr.text-anchor]="t.ancora" [attr.transform]="transformaTexto(t)"
+                    [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
             </ng-container>
             <ng-container *ngFor="let r of v.raias; trackBy: porId">
               <rect [attr.x]="r.x" [attr.y]="r.y" [attr.width]="r.largura" [attr.height]="r.altura" fill="none" />
@@ -119,7 +120,8 @@
               <rect [attr.x]="r.x" [attr.y]="r.y" [attr.width]="r.larguraCabecalho" [attr.height]="r.altura"
                     [attr.fill]="raiaSelecionada(r) ? '#EDE9FE' : '#F5F6F8'" />
               <text *ngFor="let t of r.textos; trackBy: porIndice" stroke="none" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho"
-                    font-weight="bold" [attr.fill]="t.cor" [attr.text-anchor]="t.ancora" [attr.transform]="transformaTexto(t)">{{ t.texto }}</text>
+                    font-weight="bold" [attr.fill]="t.cor" [attr.text-anchor]="t.ancora" [attr.transform]="transformaTexto(t)"
+                    [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
             </ng-container>
           </g>
 
@@ -135,7 +137,7 @@
               <rect *ngIf="l.rotuloFundo as f" [attr.x]="f.x" [attr.y]="f.y" [attr.width]="f.largura" [attr.height]="f.altura" fill="#FFFFFF"
                     fill-opacity="0.9" />
               <text *ngIf="l.rotuloTexto as t" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho" [attr.fill]="t.cor"
-                    [attr.text-anchor]="t.ancora">{{ t.texto }}</text>
+                    [attr.text-anchor]="t.ancora" [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
             </g>
           </g>
 
@@ -185,14 +187,15 @@
                 <path [attr.d]="marcaPorta(b)" stroke="#7A5F0C" [attr.stroke-width]="b.tipo === 'paralelo' ? 2.8 : 2.6" fill="none" />
               </ng-container>
               <text *ngFor="let t of b.textos; trackBy: porIndice" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho"
-                    [attr.font-weight]="t.negrito ? 'bold' : null" [attr.fill]="t.cor" [attr.text-anchor]="t.ancora">{{ t.texto }}</text>
+                    [attr.font-weight]="t.negrito ? 'bold' : null" [attr.fill]="t.cor" [attr.text-anchor]="t.ancora"
+                    [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
               <g *ngFor="let a of b.artefatos; trackBy: porIndice">
                 <path [attr.d]="a.conector" fill="none" stroke="#6B7280" stroke-width="1.1" stroke-dasharray="1.2 2.6" stroke-linecap="round" />
                 <path [attr.d]="a.ponta" fill="none" stroke="#6B7280" stroke-width="1.1" />
                 <path [attr.d]="a.documento" fill="#F3F4F6" stroke="#6B7280" stroke-width="1" />
                 <path [attr.d]="a.dobra" fill="#E5E7EB" stroke="#6B7280" stroke-width="1" />
                 <text *ngFor="let t of a.textos; trackBy: porIndice" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho" [attr.fill]="t.cor"
-                      [attr.text-anchor]="t.ancora">{{ t.texto }}</text>
+                      [attr.text-anchor]="t.ancora" [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
               </g>
               <!-- O anel do foco aparece pelo CSS (:focus-visible) -->
               <rect class="pe-fxv-anel" x="-9" y="-9" [attr.width]="b.largura + 18" [attr.height]="b.altura + 18" rx="12" fill="none"

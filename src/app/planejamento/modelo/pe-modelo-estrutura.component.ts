@@ -18,9 +18,10 @@ import { PeOpcoesEditorComponent } from '../shared/pe-opcoes-editor.component';
 import { CampoParaCalculo, PeConfigCampoComponent, SecaoParaLigar } from '../shared/pe-config-campo.component';
 import {
   ESCOPOS_FORA_DO_PDTIC, EXPLICACAO_CAMPO_TRAVADO, LARGURAS, OpcaoRotulo, SITUACOES, TIPOS_CAMPO, TIPOS_SECAO,
-  citacaoTravado, configPadrao, configParaEnvio, corSituacao, descricaoCampo, rotuloEscopo,
+  citacaoTravado, configPadrao, configParaEnvio, corSituacao, descricaoCampo, errosDoConfig, errosDoConfigNoServidor, rotuloEscopo,
   rotuloSituacao, rotuloTipoCampo, rotuloTipoPasso, tipoComOpcoes
 } from '../shared/pe-modelo-rotulos';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import {
   ItemComSituacao, campoNaoDesliga, campoTravadoPorSi, modeloOrdenado, nomesDoModelo, situacaoNoNivel, todasAsSecoes
 } from '../shared/pe-modelo-arvore';
@@ -72,6 +73,10 @@ interface FormEdicao {
   config: PeConfigCampo;
   largura: string;
   tentou: boolean;
+  /** F1 (A14): os erros do 400 na configuração, pela chave do config ("max", "secao"...). */
+  errosServidor?: Record<string, string>;
+  /** F1 (A14): a mensagem do 400 que não é de um campo da configuração (fica no resumo da janela). */
+  mensagemServidor?: string | null;
 }
 
 /** Tamanhos que a tela aceita (o servidor confere de novo). */
@@ -122,6 +127,7 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
   private readonly modeloService = inject(PeModeloService);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
   private readonly rota = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
@@ -409,8 +415,11 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
   }
 
   descartarSituacoes(): void {
+    if (this.salvandoSituacoes) return;
     this.pendentes = new Map();
     this.acessibilidade.anunciar('Mudanças de situação desfeitas.');
+    // A barra sai da tela com o botão: o foco vai para a tabela (F1, A05)
+    this.focoPendente = 'pe-estrutura-tabela';
   }
 
   /** Grava as situações mudadas, uma a uma; o que falhar continua marcado. */
@@ -423,6 +432,8 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
       next: resultado => resultados.push(resultado),
       complete: () => {
         this.salvandoSituacoes = false;
+        // Tudo salvo: a barra sai da tela com o botão, e o foco vai para a tabela (F1, A05)
+        if (!this.pendentes.size) this.focoPendente = 'pe-estrutura-tabela';
         const falhas = resultados.filter(r => r.erro !== undefined);
         const certas = resultados.length - falhas.length;
         if (certas > 0) {
@@ -458,10 +469,13 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
     );
   }
 
-  /** Guarda de rota: com mudança de situação não salva, confirma antes de sair. */
+  /** Guarda de rota: com mudança de situação não salva, ela pergunta antes de sair (F1, A04). */
   podeSair(): boolean {
-    if (!this.pendentes.size) return true;
-    return confirm('Há mudanças de situação que ainda não foram salvas. Sair assim mesmo? Elas vão se perder.');
+    return !this.pendentes.size;
+  }
+
+  textoSaida(): string {
+    return 'Há mudanças de situação que ainda não foram salvas. Se sair agora, elas se perdem.';
   }
 
   // ── Ordem ─────────────────────────────────────────────────────────────────
@@ -507,15 +521,29 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
     const nome = this.nomeDe(item);
     const onde = tipo === 'campo' ? 'do formulário, das tabelas, do documento e das planilhas' : 'da trilha, do documento e das planilhas';
     const filhos = tipo === 'passo' ? ' As seções e os campos dele saem junto.' : tipo === 'secao' ? ' Os campos dela saem junto.' : '';
-    if (!confirm(`Apagar ${ROTULO_TIPO[tipo]} "${nome}"? Sai ${onde} de todos os órgãos.${filhos} Os dados que os órgãos já preencheram ficam guardados.`)) return;
+    this.confirmacao.perguntar({
+      titulo: `Apagar ${ROTULO_TIPO[tipo]} "${nome}"?`,
+      texto: `Sai ${onde} de todos os órgãos.${filhos} Os dados que os órgãos já preencheram ficam guardados.`,
+      sim: 'Apagar',
+      perigo: true
+    }).then(sim => {
+      if (sim) this.apagarSim(tipo, item, nome);
+    });
+  }
+
+  private apagarSim(tipo: TipoComSituacao, item: ItemComSituacao, nome: string): void {
     const k = this.chave(tipo, item.Id);
+    // Depois de apagar, o foco vai para o "Editar" do item de cima (o botão de apagar sai da tela; F1, A05)
+    const pai = this.pai(tipo, item);
+    const tipoPai = tipo === 'campo' ? 'secao' : tipo === 'secao' ? 'passo' : 'etapa';
+    const alvoFoco = pai ? `pe-editar-${tipoPai}-${pai.Id}` : 'pe-estrutura-tabela-fora';
     this.apagando = k;
     this.modeloService.apagar(API[tipo], item.Id).subscribe({
       next: () => {
         this.apagando = null;
         this.pendentes.delete(k);
         this.notificacoes.success(`${ROTULO_TIPO[tipo].charAt(0).toUpperCase() + ROTULO_TIPO[tipo].slice(1)} "${nome}" foi apagad${tipo === 'passo' || tipo === 'campo' ? 'o' : 'a'}. Os dados dos órgãos ficam guardados.`);
-        this.carregar();
+        this.carregar(() => this.focoPendente = alvoFoco);
       },
       error: erro => {
         this.apagando = null;
@@ -654,7 +682,9 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
     }
     if (e.tipo === 'campo') {
       if (!e.rotulo.trim()) erros.push('Escreva o rótulo do campo.');
-      if (e.tipoCampo === 'ligacao_secao' && !e.config.secao) erros.push('Escolha a seção ligada.');
+      // A faixa de cada configuração, com as mensagens do servidor, e os erros que o servidor mandou (F1, A14)
+      erros.push(...Object.values(this.errosConfig));
+      if (e.tipoCampo === 'ligacao_secao' && !e.config.secao && !this.errosConfig['secao']) erros.push('Escolha a seção ligada.');
       if (e.tipoCampo === 'arquivo' && !(e.config.tipos ?? []).length) erros.push('Marque ao menos um tipo de arquivo.');
       if (e.tipoCampo === 'calculado') {
         const n = (e.config.campos ?? []).length;
@@ -662,8 +692,24 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
         if (dois ? n !== 2 : n < 2) erros.push(dois ? 'Marque os dois campos do cálculo.' : 'Marque ao menos dois campos para o cálculo.');
       }
     }
+    if (e.mensagemServidor) erros.push(e.mensagemServidor);
     return erros;
   }
+
+  /**
+   * Os erros da configuração do campo em edição, pela chave (a conferência da tela e
+   * o 400; F1, A14). O mesmo objeto enquanto o conteúdo não muda: é a entrada do
+   * componente da configuração (objeto novo a cada verificação daria NG0100).
+   */
+  get errosConfig(): Record<string, string> {
+    const e = this.edicao;
+    const erros = !e || !e.tentou || e.tipo !== 'campo' ? {} : { ...errosDoConfig(e.tipoCampo, e.config), ...(e.errosServidor ?? {}) };
+    const chave = JSON.stringify(erros);
+    if (chave !== this.errosConfigCache.chave) this.errosConfigCache = { chave, valor: erros };
+    return this.errosConfigCache.valor;
+  }
+
+  private errosConfigCache: { chave: string; valor: Record<string, string> } = { chave: '{}', valor: {} };
 
   campoInvalido(nome: 'titulo' | 'oQueFazer' | 'rotulo' | 'prefixo'): boolean {
     const e = this.edicao;
@@ -684,6 +730,9 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
     const e = this.edicao;
     if (!e || this.salvando || e.somenteLeitura) return;
     e.tentou = true;
+    // O que o servidor disse na tentativa anterior sai: a conferência é refeita com o que está na tela
+    e.errosServidor = {};
+    e.mensagemServidor = null;
     if (this.errosEdicao.length) {
       this.focoPendente = 'pe-edicao-erros';
       return;
@@ -798,6 +847,16 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
       },
       error: erro => {
         this.salvando = false;
+        // F1 (A14): o 400 fica na janela (no resumo e no campo da configuração), com o foco no resumo
+        const falha = erro as { status?: number; error?: { Message?: string; Campos?: Record<string, string> } } | null;
+        if (falha?.status === 400 && this.edicao === e) {
+          const doConfig = errosDoConfigNoServidor(falha.error?.Campos);
+          e.errosServidor = doConfig;
+          e.mensagemServidor = Object.keys(doConfig).length ? null
+            : (falha.error?.Message || 'O servidor não aceitou os dados. Confira e tente de novo.');
+          this.focoPendente = 'pe-edicao-erros';
+          return;
+        }
         const mensagem = mensagemErroPe(erro, 'Não foi possível salvar. Confira os dados e tente de novo.');
         if (mensagem) this.notificacoes.error(mensagem);
       }

@@ -13,7 +13,8 @@
 
   <!-- Aprovado: registrar -->
   <ng-container *ngIf="aprovado">
-    <div *ngIf="erroGeral" id="pe-publicacao-erros" tabindex="-1" role="alert"
+    <!-- Recebe o foco (é assim que o leitor de tela lê; sem role="alert", para não ler duas vezes, F1, C31) -->
+    <div *ngIf="erroGeral" id="pe-publicacao-erros" tabindex="-1"
          class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
       <p class="font-semibold">{{ erroGeral }}</p>
       <ul *ngIf="erros.length > 0" class="list-disc ml-5 mt-1 space-y-1">
@@ -29,7 +30,7 @@
         <li>Preencha acima a data da publicação e o endereço da íntegra na internet, e salve a seção.</li>
         <li>Use "Registrar a publicação". O PDTIC passa a ser o vigente do órgão.</li>
       </ol>
-      <button type="button" (click)="abrirJanela()" [disabled]="publicando"
+      <button type="button" (click)="abrirJanela()" [attr.aria-disabled]="publicando || null"
               class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
         <span class="material-icons text-base" aria-hidden="true">public</span> {{ publicando ? 'Registrando...' : 'Registrar a publicação' }}
       </button>
@@ -45,10 +46,10 @@
     <div class="leading-relaxed min-w-0">
       <p><strong>Publicação registrada{{ pdtic.PublicadoEm ? ' em ' + quando(pdtic.PublicadoEm) : '' }}.</strong>
         {{ pdtic.Situacao === 'publicado' ? 'Dá para corrigir a seção acima enquanto o acompanhamento não começa.' : '' }}</p>
-      <button *ngIf="pdf as f" type="button" (click)="baixarPdf()" [disabled]="baixando"
+      <button *ngIf="pdf as f" type="button" (click)="baixarPdf()" [attr.aria-disabled]="baixando || null"
               class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
         <span class="material-icons text-base" aria-hidden="true">picture_as_pdf</span>
-        {{ baixando ? 'Baixando...' : 'Baixar o PDF do PDTIC (versão ' + f.numero + ' do documento)' }}
+        {{ baixando ? 'Baixando...' : 'Baixar o ' + rotuloPdf(f) }}
       </button>
     </div>
   </div>
@@ -70,7 +71,7 @@
               class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
         Cancelar
       </button>
-      <button type="button" (click)="publicar()" [disabled]="publicando"
+      <button type="button" (click)="publicar()" [attr.aria-disabled]="publicando || null"
               class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-60">
         <span class="material-icons text-lg" aria-hidden="true">public</span> {{ publicando ? 'Registrando...' : 'Registrar a publicação' }}
       </button>

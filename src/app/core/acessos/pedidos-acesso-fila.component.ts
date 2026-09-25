@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AfterViewChecked, Component, EventEmitter, Input, OnInit, Output, PLATFORM_ID, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PedidosAcessoService } from './pedidos-acesso.service';
 import { OPCOES_PAPEL_PGIA, rotuloCurtoPapelPgia } from './papeis-pgia';
@@ -51,7 +51,7 @@ export const TAMANHO_MOTIVO = 500;
   imports: [CommonModule, FormsModule],
   templateUrl: './pedidos-acesso-fila.component.html'
 })
-export class PedidosAcessoFilaComponent implements OnInit {
+export class PedidosAcessoFilaComponent implements OnInit, AfterViewChecked {
   /** Mostra só os pedidos deste módulo e esconde o filtro de módulo. */
   @Input() moduloFixo: string | null = null;
 
@@ -60,6 +60,9 @@ export class PedidosAcessoFilaComponent implements OnInit {
 
   private readonly pedidos = inject(PedidosAcessoService);
   private readonly notificacoes = inject(NotificationService);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
+  /** Id do campo que recebe o foco depois da próxima renderização (o que falta na decisão). */
+  private focoPendente: string | null = null;
 
   readonly filtrosSituacao = FILTROS_SITUACAO;
   readonly opcoesPapelPgia = OPCOES_PAPEL_PGIA;
@@ -84,6 +87,14 @@ export class PedidosAcessoFilaComponent implements OnInit {
 
   ngOnInit(): void {
     this.buscar();
+  }
+
+  ngAfterViewChecked(): void {
+    if (!this.focoPendente || !this.noNavegador) return;
+    const alvo = document.getElementById(this.focoPendente);
+    if (!alvo) return;
+    this.focoPendente = null;
+    alvo.focus();
   }
 
   // ── Listagem ──────────────────────────────────────────────────────────────
@@ -181,8 +192,15 @@ export class PedidosAcessoFilaComponent implements OnInit {
     if (!this.decisao || this.salvando) return;
     const decisao = this.decisao;
     decisao.tentouEnviar = true;
-    if (decisao.tipo === 'recusar' && !decisao.motivo.trim()) return;
-    if (this.papelPlanejamentoFaltando) return;
+    // O que falta recebe o foco, com o erro ligado ao campo
+    if (decisao.tipo === 'recusar' && !decisao.motivo.trim()) {
+      this.focoPendente = `motivo-${decisao.pedido.Id}`;
+      return;
+    }
+    if (this.papelPlanejamentoFaltando) {
+      this.focoPendente = `papel-pe-${decisao.pedido.Id}`;
+      return;
+    }
 
     this.salvando = true;
     const modulo = decisao.pedido.Modulo;

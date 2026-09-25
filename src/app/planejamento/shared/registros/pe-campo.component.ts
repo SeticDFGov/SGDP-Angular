@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, OnChanges, Output, PLATFORM_ID, SimpleChanges, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PeArquivoRef, PeCampoRegistro, PeOpcaoRegistro, PeRegistro, PeVinculo } from '../../../../api/planejamento/interface';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -10,8 +10,8 @@ import { descricaoCalculo } from '../pe-modelo-rotulos';
 import { PeEditorTextoRicoComponent } from '../texto-rico/pe-editor-texto-rico.component';
 import { PeLigacaoCampoComponent } from './pe-ligacao-campo.component';
 import {
-  aceitaDoArquivo, dicaDoArquivo, dicaDoCampo, ehArquivoRef, ehLigacao, ehNumerico, erroDoCampo,
-  lerNumero, numeroParaEdicao, problemaDoArquivo, textoDoValor
+  TAMANHO_SEI, aceitaDoArquivo, dataNaoFutura, dicaDoArquivo, dicaDoCampo, digitarSei, ehArquivoRef, ehLigacao, ehNumerico,
+  erroDoCampo, formatoDoCampo, hojeIso, lerNumero, numeroParaEdicao, problemaDoArquivo, textoDoValor
 } from './pe-valores';
 
 /** Aviso de tamanho perto do limite (a partir de 80% do máximo). */
@@ -39,9 +39,10 @@ const PERTO_DO_LIMITE = 0.8;
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
 })
-export class PeCampoComponent {
+export class PeCampoComponent implements OnChanges {
   private readonly registrosService = inject(PeRegistrosService);
   private readonly notificacoes = inject(NotificationService);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   @Input({ required: true }) campo!: PeCampoRegistro;
   @Input() valor: unknown = null;
@@ -100,6 +101,18 @@ export class PeCampoComponent {
     return this.campo.Tipo === 'numero' ? (this.campo.Config?.unidade?.trim() || null) : null;
   }
 
+  readonly tamanhoSei = TAMANHO_SEI;
+
+  /** F1 (C05 e C33): o texto curto é o número do SEI (com a máscara) ou um endereço de internet. */
+  get formato(): 'sei' | 'url' | null {
+    return formatoDoCampo(this.campo);
+  }
+
+  /** F1 (C05): a data de decisão não passa de hoje (o seletor do navegador não oferece o futuro). */
+  get maximoData(): string | null {
+    return dataNaoFutura(this.campo) ? hojeIso() : null;
+  }
+
   // ── Textos de apoio ───────────────────────────────────────────────────────
 
   get ajuda(): string | null {
@@ -108,7 +121,10 @@ export class PeCampoComponent {
 
   /** O jeito de responder (e o limite do arquivo). */
   get dica(): string {
-    if (this.campo.Tipo === 'arquivo') return dicaDoArquivo(this.campo);
+    if (this.campo.Tipo === 'arquivo') {
+      // A ajuda do modelo que já diz os tipos e o tamanho não ganha a dica repetida embaixo (F1, B15)
+      return this.ajuda && /\bMB\b/i.test(this.ajuda) ? '' : dicaDoArquivo(this.campo);
+    }
     return dicaDoCampo(this.campo);
   }
 
@@ -121,7 +137,27 @@ export class PeCampoComponent {
     if (this.temAjuda) ids.push(`${this.idBase}-ajuda`);
     if (this.tamanhoPerto) ids.push(`${this.idBase}-tamanho`);
     if (this.erro) ids.push(`${this.idBase}-erro`);
+    // O erro do arquivo (tipo, tamanho, falha no envio) também descreve o campo (F1, B19)
+    if (this.erroArquivo) ids.push(`${this.idBase}-erro-arquivo`);
     return ids.length ? ids.join(' ') : null;
+  }
+
+  ngOnChanges(mudancas: SimpleChanges): void {
+    // Registro salvo (ou outro registro na edição): os avisos do arquivo da edição anterior saem (F1, B19)
+    const registro = mudancas['registro'];
+    if (registro && !registro.firstChange) {
+      this.avisoArquivo = null;
+      this.erroArquivo = null;
+    }
+  }
+
+  /** Depois do envio (o campo fica desligado enquanto envia), o foco volta ao campo do arquivo (F1, B01). */
+  private devolverFocoAoArquivo(): void {
+    if (!this.noNavegador) return;
+    setTimeout(() => {
+      const ativo = document.activeElement;
+      if (!ativo || ativo === document.body) document.getElementById(this.idBase)?.focus();
+    });
   }
 
   /** "120 de 200 caracteres" quando o texto chega perto do limite. */
@@ -184,6 +220,11 @@ export class PeCampoComponent {
     this.valorChange.emit(valor);
   }
 
+  /** O texto curto mudou: no número do SEI, com a máscara aplicada no próprio campo (o cursor fica no lugar). */
+  mudarTexto(valor: unknown, input: HTMLInputElement): void {
+    this.mudar(this.formato === 'sei' ? digitarSei(input) : valor);
+  }
+
   /** Ao sair de um campo de número: escreve no jeito brasileiro ("1250" vira "1.250,00" na moeda). */
   arrumarNumero(): void {
     if (!this.numerico || typeof this.valor !== 'string') return;
@@ -237,10 +278,12 @@ export class PeCampoComponent {
         this.enviando = false;
         this.avisoArquivo = 'Arquivo enviado. Salve o registro para guardar a mudança.';
         this.mudar({ ArquivoId: enviado.Id, Nome: enviado.Nome || escolhido.name });
+        this.devolverFocoAoArquivo();
       },
       error: erro => {
         this.enviando = false;
         this.erroArquivo = mensagemErroPe(erro, 'Não foi possível enviar o arquivo. Tente de novo.');
+        this.devolverFocoAoArquivo();
       }
     });
   }

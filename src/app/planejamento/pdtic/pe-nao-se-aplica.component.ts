@@ -2,7 +2,6 @@ import { AfterViewChecked, Component, EventEmitter, Input, OnChanges, Output, PL
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PeNaoSeAplica } from '../../../api/planejamento/interface';
-import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { mensagemErroPe } from '../shared/pe-erros';
@@ -28,7 +27,6 @@ const MAX_JUSTIFICATIVA = 2000;
 export class PeNaoSeAplicaComponent implements OnChanges, AfterViewChecked {
   private readonly pdticService = inject(PePdticService);
   private readonly notificacoes = inject(NotificationService);
-  private readonly acessibilidade = inject(AcessibilidadeService);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   @Input({ required: true }) pdticId!: number;
@@ -74,7 +72,7 @@ export class PeNaoSeAplicaComponent implements OnChanges, AfterViewChecked {
   }
 
   get quando(): string {
-    return this.marcado ? quandoEQuem(this.marcado.MarcadoEm, this.marcado.MarcadoPor) : '';
+    return this.marcado ? quandoEQuem(this.marcado.MarcadoEm, this.marcado.MarcadoPor, this.marcado.MarcadoPorNome) : '';
   }
 
   abrir(): void {
@@ -115,8 +113,10 @@ export class PeNaoSeAplicaComponent implements OnChanges, AfterViewChecked {
       next: () => {
         this.gravando = false;
         this.formAberto = false;
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05). O formulário sai da tela: o foco vai para
+        // o "Desfazer", que aparece quando a situação do passo volta (F1, B01)
         this.notificacoes.success(`Passo ${this.numero} marcado como "não se aplica".`);
-        this.acessibilidade.anunciar(`Passo ${this.numero} marcado como não se aplica.`);
+        this.focoPendente = `${this.idBase}-desfazer`;
         this.mudou.emit();
       },
       error: erro => {
@@ -134,8 +134,9 @@ export class PeNaoSeAplicaComponent implements OnChanges, AfterViewChecked {
     this.pdticService.desfazerNaoSeAplica(this.pdticId, this.passoId).subscribe({
       next: () => {
         this.gravando = false;
+        // Um aviso só (F1, B05); o "Desfazer" sai da tela: o foco vai para o botão de marcar (F1, B01)
         this.notificacoes.success(`O passo ${this.numero} volta a ser preenchido normalmente.`);
-        this.acessibilidade.anunciar(`"Não se aplica" desfeito no passo ${this.numero}.`);
+        this.focoPendente = `${this.idBase}-marcar`;
         this.mudou.emit();
       },
       error: erro => {

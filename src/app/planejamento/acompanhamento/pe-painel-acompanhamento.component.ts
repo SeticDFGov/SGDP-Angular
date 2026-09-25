@@ -132,8 +132,12 @@ export class PePainelAcompanhamentoComponent implements OnChanges, OnDestroy {
     });
   }
 
+  /** F1 (C02): as ações sem meta ligada (no Básico, todas), na mesma tabela das ações das metas. */
+  acoesSemMeta: PePainelAcao[] = [];
+
   private aplicar(painel: PePainelAcompanhamento): void {
     this.painel = { ...painel, Metas: painel?.Metas ?? [] };
+    this.acoesSemMeta = painel?.AcoesSemMeta ?? [];
     if (this.escolha === null && painel?.Ciclo) this.escolha = painel.Ciclo.Id;
     const riscos = painel?.Riscos;
     this.porSituacao = SITUACOES_RISCO.map(s => ({

@@ -68,21 +68,22 @@
             <tr class="border-t border-gray-100 align-top" [class.bg-blue-50]="edicao?.usuario?.Id === u.Id">
               <td class="px-4 py-3">
                 <p class="font-semibold text-gray-900">{{ u.Nome || '(sem nome)' }}</p>
-                <p class="text-xs text-gray-500">{{ u.Email }}</p>
-                <p class="text-xs text-gray-500 mt-0.5">Unidade: {{ u.UnidadeNome || 'não definida' }}</p>
+                <!-- Cinza 600: sobre o azul da linha em edição, o 500 ficava abaixo de 4,5:1 (F1, A10) -->
+                <p class="text-xs text-gray-600">{{ u.Email }}</p>
+                <p class="text-xs text-gray-600 mt-0.5">Unidade: {{ u.UnidadeNome || 'não definida' }}</p>
               </td>
               <td *ngFor="let m of modulos" class="px-4 py-3">
                 <ng-container *ngIf="temModulo(u, m.id); else semModulo">
                   <span class="inline-flex items-center gap-1 text-green-700 font-medium">
                     <span class="material-icons text-base" aria-hidden="true">check_circle</span> Sim
                   </span>
-                  <p class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                  <p class="text-xs text-gray-600 mt-0.5 flex items-center gap-1">
                     <span *ngIf="noKeycloak(u, m.id) || noKeycloak(u, M.Administracao)" class="material-icons text-sm text-slate-500" title="Vem do Keycloak" aria-hidden="true">key</span>
                     {{ origem(u, m.id) }}
                   </p>
                 </ng-container>
                 <ng-template #semModulo>
-                  <span class="inline-flex items-center gap-1 text-gray-500">
+                  <span class="inline-flex items-center gap-1 text-gray-600">
                     <span class="material-icons text-base" aria-hidden="true">remove_circle_outline</span> Não
                   </span>
                 </ng-template>

@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { PeCampoRegistro, PeVinculo } from '../../../../api/planejamento/interface';
 import { CATALOGO_PGIA, PeFonteRegistros } from '../../services/pe-registros.service';
+import { PePeticService } from '../../services/pe-petic.service';
 import { mensagemErroPe } from '../pe-erros';
 import { rotuloCatalogo } from '../pe-modelo-rotulos';
 import { resumoDoRegistro } from './pe-valores';
@@ -59,7 +60,15 @@ export class PeLigacaoCampoComponent implements OnChanges, OnDestroy {
   @Input() ajuda: string | null = null;
   @Output() readonly escolhidosChange = new EventEmitter<PeVinculo[]>();
 
+  private readonly peticService = inject(PePeticService);
+
   opcoes: OpcaoLigacao[] = [];
+  /**
+   * F1 (B08): com a lista do PETIC-DF vazia, se há versão vigente (a versão) ou não
+   * (nulo): "o PETIC-DF vigente não tem itens" é diferente de "nenhuma versão aprovada".
+   * Indefinido enquanto não se sabe.
+   */
+  peticVigente: string | null | undefined = undefined;
   carregando = false;
   falhou = false;
   /** O que não dá para escolher agora (catálogo que chega depois, seção não definida). */
@@ -117,6 +126,11 @@ export class PeLigacaoCampoComponent implements OnChanges, OnDestroy {
   get semOpcoes(): string {
     const catalogo = this.campo.Config?.catalogo ?? '';
     if (this.campo.Tipo === 'ligacao_catalogo' && catalogo.startsWith('petic_')) {
+      if (this.peticVigente) {
+        const itens = catalogo === 'petic_eixo' ? 'eixos' : catalogo === 'petic_objetivo' ? 'objetivos estratégicos' : 'itens desta lista';
+        return `O PETIC-DF vigente (versão ${this.peticVigente}) ainda não tem ${itens} cadastrados. `
+          + 'Quem cadastra o PETIC-DF é o administrador do módulo.';
+      }
       return 'Ainda não há itens: a lista vem do PETIC-DF vigente, e nenhuma versão foi aprovada pelo CGTIC. '
         + 'Enquanto não houver versão vigente, a ligação com o PETIC-DF fica opcional.';
     }
@@ -216,6 +230,13 @@ export class PeLigacaoCampoComponent implements OnChanges, OnDestroy {
       next: itens => {
         this.carregando = false;
         this.opcoes = itens.map(i => this.opcao(i.Id, i.Codigo, i.Rotulo));
+        // Lista do PETIC-DF vazia: confere se há versão vigente, para dizer o porquê certo (F1, B08)
+        if (!itens.length && catalogo.startsWith('petic_') && this.peticVigente === undefined) {
+          this.peticService.vigente().subscribe({
+            next: v => this.peticVigente = v?.Versao ?? null,
+            error: () => this.peticVigente = null
+          });
+        }
       },
       error: erro => {
         this.carregando = false;

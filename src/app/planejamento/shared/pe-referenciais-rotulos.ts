@@ -3,7 +3,7 @@
  * cores dos selos (classes que o projeto já usa). Só funções puras.
  */
 import { PeDeliberacao, PePetic } from '../../../api/planejamento/interface';
-import { textoData, textoDataHora } from './registros/pe-valores';
+import { nomeDeQuem, textoData, textoDataHora } from './registros/pe-valores';
 
 export function rotuloSituacaoPetic(situacao: string | null | undefined): string {
   switch (situacao) {
@@ -68,10 +68,44 @@ export function resumoDeliberacao(d: PeDeliberacao | null): string {
   return d.Situacao === 'aprovado' ? `Aprovada${quando}` : `Devolvida${quando}`;
 }
 
-/** "24/09/2026 às 14:05 por fulano@df.gov.br". */
-export function quandoEQuem(quando: string | null | undefined, quem: string | null | undefined): string {
+/**
+ * "24/09/2026 às 14:05 por Tereza do Teste": com o nome (F1, C19, o campo
+ * `...PorNome` da resposta), senão o e-mail.
+ */
+export function quandoEQuem(quando: string | null | undefined, quem: string | null | undefined, nome?: string | null): string {
   const texto = textoDataHora(quando);
-  return quem ? `${texto} por ${quem}` : texto;
+  const pessoa = nomeDeQuem(nome, quem);
+  return pessoa ? `${texto} por ${pessoa}` : texto;
+}
+
+/**
+ * F1 (C40): a deliberação foi criada pelo registro de um PDTIC aprovado fora do
+ * sistema (não houve envio). Pelo campo do servidor; em resposta sem ele, pela
+ * observação que o servidor grava nesse registro.
+ */
+export function deliberacaoRegistradaFora(d: Pick<PeDeliberacao, 'ObjetoTipo' | 'Observacao' | 'RegistradaForaDoSistema'> | null | undefined): boolean {
+  if (!d || d.ObjetoTipo !== 'pdtic') return false;
+  if (typeof d.RegistradaForaDoSistema === 'boolean') return d.RegistradaForaDoSistema;
+  return /aprovado fora do sistema/i.test(d.Observacao ?? '');
+}
+
+/**
+ * "Enviado em 24/09/2026 às 14:05 por ..." ou, na deliberação do registro fora do
+ * sistema (F1, C40), "Registrado fora do sistema em ... por ...".
+ */
+export function envioDaDeliberacao(d: PeDeliberacao): string {
+  const quando = quandoEQuem(d.EnviadoEm, d.EnviadoPor, d.EnviadoPorNome);
+  return deliberacaoRegistradaFora(d) ? `Registrado fora do sistema em ${quando}` : `Enviado em ${quando}`;
+}
+
+/**
+ * Quando a decisão foi tomada: na deliberação do registro fora do sistema (F1,
+ * C40), a data do ato (a decisão foi tomada fora do sistema); nas demais, quando e
+ * por quem foi registrada.
+ */
+export function decisaoDaDeliberacao(d: PeDeliberacao): string {
+  if (deliberacaoRegistradaFora(d)) return d.AtoData ? textoData(d.AtoData) : (d.DecididoEm ? textoData(d.DecididoEm) : '-');
+  return d.DecididoEm ? quandoEQuem(d.DecididoEm, d.DecididoPor, d.DecididoPorNome) : '-';
 }
 
 /**

@@ -6,7 +6,10 @@
 /* No painel estreito: um campo por linha, e o fieldset não passa da largura (o padrão dele é a do conteúdo) */
 .pe-fx-painel fieldset { min-width: 0; }
 .pe-fx-painel .grid { grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 80rem) {
+/* Ao lado do desenho desde 64 rem, mais estreito, e escondível: com a paleta acima do
+   desenho, ele fica com quase a linha inteira (F1, D04; eram 472 px em 1366) */
+@media (min-width: 64rem) {
   .pe-fx-visual { flex-direction: row; align-items: flex-start; }
-  .pe-fx-painel { width: 20rem; flex: none; position: sticky; top: 5rem; max-height: calc(100vh - 10rem); overflow-y: auto; }
+  .pe-fx-painel { width: 18rem; flex: none; position: sticky; top: 5rem; max-height: calc(100vh - 10rem); overflow-y: auto; }
+  .pe-fx-painel-fechado .pe-fx-painel { width: auto; }
 }

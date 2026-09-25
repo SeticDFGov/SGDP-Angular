@@ -22,6 +22,9 @@ export const SECAO_MEDICOES = 'medicoes_indicadores';
 export const SECAO_RELATORIO_CICLO = 'relatorio_ciclo';
 /** A análise dos resultados da avaliação intermediária (6.2): o relatório da avaliação fica neste passo e no da avaliação do comitê. */
 export const SECAO_ANALISE_INTERMEDIARIA = 'analise_intermediaria';
+/** Os resultados intermediários das metas (6.1) e a avaliação do comitê (6.3), por avaliação. */
+export const SECAO_RESULTADOS_INTERMEDIARIOS = 'resultados_intermediarios';
+export const SECAO_AVALIACAO_DO_COMITE = 'avaliacao_comite';
 /** O relatório de resultados (RR) fica no passo das lições aprendidas (7.2), achado por uma destas seções. */
 export const SECOES_DO_RR: readonly string[] = ['avaliacao_final', 'resultados_metas'];
 /** Onde as ações e os indicadores de monitoramento se cadastram (link das grades vazias). */
@@ -159,6 +162,36 @@ export function resumoDoCiclo(ciclo: Pick<PeCiclo, 'Resumo'> | null | undefined)
   if (r.Medicoes > 0) partes.push(r.Medicoes === 1 ? '1 medição' : `${r.Medicoes} medições`);
   if (r.RiscosOcorridos > 0) partes.push(r.RiscosOcorridos === 1 ? '1 risco que ocorreu' : `${r.RiscosOcorridos} riscos que ocorreram`);
   return partes.join(' · ');
+}
+
+/**
+ * F1 (I04 e C23): o que uma avaliação intermediária já tem. Cada parte fica nula
+ * quando a seção não aparece no nível do órgão (a tela não fala dela).
+ */
+export interface ResumoAvaliacao {
+  /** Quantos resultados das metas foram registrados na avaliação. */
+  resultados: number | null;
+  /** A análise dos resultados está preenchida. */
+  analise: boolean | null;
+  /** A decisão do comitê (o rótulo, como "Seguir com o PDTIC"); vazio sem decisão registrada. */
+  decisao: string | null;
+}
+
+/** As partes do que a avaliação tem, em texto ("2 resultados das metas", "análise preenchida", ...). */
+export function partesDaAvaliacao(r: ResumoAvaliacao | null | undefined): { resultados: string | null; analise: string | null; decisao: string | null } {
+  if (!r) return { resultados: null, analise: null, decisao: null };
+  const resultados = r.resultados === null ? null
+    : r.resultados === 0 ? 'Nenhum resultado das metas registrado'
+      : r.resultados === 1 ? '1 resultado das metas registrado' : `${r.resultados} resultados das metas registrados`;
+  const analise = r.analise === null ? null : r.analise ? 'Análise preenchida' : 'Análise ainda não preenchida';
+  const decisao = r.decisao === null ? null : r.decisao ? `Decisão do comitê: ${r.decisao}` : 'Decisão do comitê ainda não registrada';
+  return { resultados, analise, decisao };
+}
+
+/** "2 resultados das metas registrados · Análise preenchida · Decisão do comitê: Seguir com o PDTIC" (vazio sem o resumo). */
+export function resumoDaAvaliacao(r: ResumoAvaliacao | null | undefined): string {
+  const p = partesDaAvaliacao(r);
+  return [p.resultados, p.analise, p.decisao].filter((t): t is string => !!t).join(' · ');
 }
 
 /** Quantas ações ainda estão sem situação no ciclo (o fechamento as exige). */

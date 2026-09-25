@@ -189,13 +189,13 @@ const PARES_CHEIOS = [
 
 const BASE = {
   escuro: `
-html.tema-escuro{color-scheme:dark;background-color:${ESCURO.pagina};color:${PALETA.gray[200]};--foco:${ESCURO.foco};--carregando:${ESCURO.carregando}}
+html.tema-escuro{color-scheme:dark;background-color:${ESCURO.pagina};color:${PALETA.gray[200]};--foco:${ESCURO.foco};--carregando:${ESCURO.carregando};--carregando-borda:transparent}
 html.tema-escuro body{background-color:${ESCURO.pagina}}
 html.tema-escuro *,html.tema-escuro ::before,html.tema-escuro ::after{--tw-ring-offset-color:${ESCURO.cartao}}
 html.tema-escuro #gantt-chart-container::-webkit-scrollbar-track{background:${ESCURO.elevado[200]}}
 html.tema-escuro #gantt-chart-container::-webkit-scrollbar-thumb{background:${PALETA.gray[500]}}`,
   'alto-contraste': `
-html.tema-alto-contraste{color-scheme:dark;background-color:#000;color:#fff;--foco:${AC.link};--carregando:${AC.link}}
+html.tema-alto-contraste{color-scheme:dark;background-color:#000;color:#fff;--foco:${AC.link};--carregando:${AC.link};--carregando-borda:transparent}
 html.tema-alto-contraste body{background-color:#000;color:#fff}
 html.tema-alto-contraste *,html.tema-alto-contraste ::before,html.tema-alto-contraste ::after{--tw-ring-offset-color:#000}
 html.tema-alto-contraste app-root a[href]{color:${AC.link};text-decoration:underline;text-underline-offset:2px}

@@ -60,10 +60,11 @@ export class PeInadimplenciaDetalheComponent {
     return quandoPdtic(valor);
   }
 
-  /** "24/09/2026 às 14:05 por fulano@df.gov.br". */
-  quandoEQuem(quando: string | null | undefined, quem: string | null | undefined): string {
+  /** "24/09/2026 às 14:05 por Fulana de Tal" (o nome da pessoa; sem ele, o e-mail: F1, C19). */
+  quandoEQuem(quando: string | null | undefined, quem: string | null | undefined, nome?: string | null): string {
     const data = quando ? quandoPdtic(quando) : '';
-    if (data && quem) return `${data} por ${quem}`;
-    return data || quem || '-';
+    const pessoa = nome?.trim() || quem?.trim() || '';
+    if (data && pessoa) return `${data} por ${pessoa}`;
+    return data || pessoa || '-';
   }
 }

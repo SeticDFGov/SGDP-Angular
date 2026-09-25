@@ -100,8 +100,8 @@
                   : aguardando(modulo) ? 'bg-amber-100 text-amber-900 border border-amber-200 cursor-default focus-visible:ring-amber-400'
                   : 'bg-gray-300 text-gray-700 hover:bg-gray-400/60 focus-visible:ring-gray-400'"
                 [attr.aria-label]="liberado(modulo) ? 'Acessar ' + modulo.nome
-                  : aguardando(modulo) ? 'Pedido de acesso a ' + modulo.nome + ' aguardando decisão'
-                  : 'Pedir acesso a ' + modulo.nome">
+                  : aguardando(modulo) ? 'Pedido de acesso ao módulo ' + modulo.nome + ' aguardando decisão'
+                  : 'Pedir acesso ao módulo ' + modulo.nome">
           <ng-container *ngIf="liberado(modulo)">
             Acessar
             <span class="material-icons text-lg" aria-hidden="true">arrow_forward</span>

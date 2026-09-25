@@ -1,28 +1,42 @@
-import { Component, DestroyRef, OnInit, ViewChild, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AfterViewChecked, Component, DestroyRef, OnInit, PLATFORM_ID, ViewChild, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Title } from '@angular/platform-browser';
+import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs/operators';
 import { PeNivel, PeOrgaoNivel, PeOrgaoNivelHistorico } from '../../../api/planejamento/interface';
 import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { nomeDeQuem } from '../shared/registros/pe-valores';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { PeModeloService } from '../services/pe-modelo.service';
 import { PeOrgaosService } from '../services/pe-orgaos.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { BASE_PE } from '../trilha/pe-trilhas';
 import { PeOrgaoAjustesComponent } from './pe-orgao-ajustes.component';
 
+/** F1 (A21): a escolha "Voltar ao nível padrão" na lista da troca (vai como `NivelId` nulo). */
+const NIVEL_PADRAO = 'padrao';
+
 interface TrocaNivel {
   orgao: PeOrgaoNivel;
-  nivelId: number | null;
+  nivelId: number | typeof NIVEL_PADRAO | null;
   justificativa: string;
   tentou: boolean;
 }
 
+type CampoTroca = 'nivel' | 'justificativa';
+
 /** Tamanho da justificativa (o servidor confere de novo). */
 const MAX_JUSTIFICATIVA = 1000;
+
+const TEXTO_SAIDA_AJUSTES = 'Há ajustes do órgão que ainda não foram salvos. Se sair agora, eles se perdem.';
+
+/** O título da rota; com os ajustes de um órgão abertos, a aba diz "Ajustes do órgão SES" no lugar (F1, A20). */
+const TITULO_TELA = 'Nível de cada órgão';
 
 /**
  * Nível de cada órgão (passo 3.2 do administrador do módulo): a lista dos órgãos
@@ -41,7 +55,7 @@ const MAX_JUSTIFICATIVA = 1000;
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
 })
-export class PeOrgaosNiveisComponent implements OnInit {
+export class PeOrgaosNiveisComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly modeloService = inject(PeModeloService);
   private readonly orgaosService = inject(PeOrgaosService);
@@ -49,10 +63,16 @@ export class PeOrgaosNiveisComponent implements OnInit {
   private readonly rota = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly confirmacao = inject(PeConfirmacaoService);
+  private readonly titulo = inject(Title);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
+  private destruida = false;
 
   @ViewChild(PeOrgaoAjustesComponent) private ajustesTela?: PeOrgaoAjustesComponent;
 
   readonly maxJustificativa = MAX_JUSTIFICATIVA;
+  readonly nivelPadrao = NIVEL_PADRAO;
+  readonly nomeDeQuem = nomeDeQuem;
 
   pode: boolean | null = null;
   erroPapel = false;
@@ -78,13 +98,24 @@ export class PeOrgaosNiveisComponent implements OnInit {
   historico: PeOrgaoNivelHistorico[] | null = null;
   erroHistorico = false;
 
+  /** Id do elemento que recebe o foco depois da próxima renderização (F1, A13). */
+  private focoPendente: string | null = null;
+
   ngOnInit(): void {
+    this.destroyRef.onDestroy(() => this.destruida = true);
     this.rota.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(params => {
         const id = Number(params.get('orgao'));
         this.orgaoPedido = Number.isInteger(id) && id > 0 ? id : null;
         this.abrirAjustesPedidos();
+      });
+    // A estratégia de títulos roda depois do NavigationEnd e, na troca só da query (?orgao=), volta
+    // ao título da rota: o dos ajustes entra depois dela (F1, A20)
+    this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.noNavegador) setTimeout(() => this.aplicarTitulo());
       });
     this.estadoService.estado$
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -98,6 +129,14 @@ export class PeOrgaosNiveisComponent implements OnInit {
           this.buscar();
         }
       });
+  }
+
+  ngAfterViewChecked(): void {
+    if (!this.focoPendente || !this.noNavegador) return;
+    const alvo = document.getElementById(this.focoPendente);
+    if (!alvo) return;
+    this.focoPendente = null;
+    alvo.focus();
   }
 
   tentarDeNovo(): void {
@@ -149,6 +188,7 @@ export class PeOrgaosNiveisComponent implements OnInit {
     const orgao = this.orgaos.find(o => o.OrgaoId === this.orgaoPedido);
     if (orgao) {
       this.orgaoAjustes = orgao;
+      this.aplicarTitulo();
     } else if (this.filtroAplicado) {
       // O órgão pedido ficou de fora do filtro: busca a lista inteira
       this.filtro = '';
@@ -165,8 +205,31 @@ export class PeOrgaosNiveisComponent implements OnInit {
 
   voltarParaLista(): void {
     // Sair dos ajustes com mudança não salva pergunta antes (a guarda de rota não vê troca de parâmetro)
-    if (this.ajustesTela && !this.ajustesTela.podeSair()) return;
-    this.router.navigate([], { relativeTo: this.rota, queryParams: { orgao: null }, queryParamsHandling: 'merge' });
+    this.confirmarDescarteDosAjustes().then(sim => {
+      if (sim) this.router.navigate([], { relativeTo: this.rota, queryParams: { orgao: null }, queryParamsHandling: 'merge' });
+    });
+  }
+
+  /**
+   * O título da aba igual ao da tela (F1, A20): com os ajustes de um órgão abertos,
+   * "Ajustes do órgão SES · Governança Estratégica · SGDP"; na lista, o da rota.
+   */
+  private aplicarTitulo(): void {
+    if (!this.noNavegador || this.destruida) return;
+    const atual = this.titulo.getTitle();
+    const o = this.orgaoAjustes;
+    const prefixoAjustes = 'Ajustes do órgão ';
+    const resto = atual.startsWith(TITULO_TELA) ? atual.slice(TITULO_TELA.length)
+      : atual.startsWith(prefixoAjustes) ? atual.slice(atual.indexOf(' · ') >= 0 ? atual.indexOf(' · ') : atual.length) : null;
+    if (resto === null) return;
+    const novo = (o ? `${prefixoAjustes}${o.Sigla}` : TITULO_TELA) + resto;
+    if (novo !== atual) this.titulo.setTitle(novo);
+  }
+
+  /** Ajustes mudados e não salvos: pergunta na janela do módulo (F1, A04). */
+  private confirmarDescarteDosAjustes(): Promise<boolean> {
+    if (!this.ajustesTela?.alterado) return Promise.resolve(true);
+    return this.confirmacao.perguntarDescarte(TEXTO_SAIDA_AJUSTES);
   }
 
   /** Esperando a lista para abrir os ajustes do órgão pedido no endereço. */
@@ -175,7 +238,32 @@ export class PeOrgaosNiveisComponent implements OnInit {
   }
 
   nivelEscolhido(t: TrocaNivel): PeNivel | null {
+    if (t.nivelId === NIVEL_PADRAO) return this.nivelPadraoAtual;
     return this.niveis.find(n => n.Id === t.nivelId) ?? null;
+  }
+
+  /** O nível que vale para quem não tem nível escolhido: o primeiro ativo da lista. */
+  get nivelPadraoAtual(): PeNivel | null {
+    return this.niveis.find(n => n.Ativo) ?? null;
+  }
+
+  /** A ajuda embaixo da lista da troca: o que o nível escolhido pede. */
+  ajudaNivel(t: TrocaNivel): string {
+    if (t.nivelId === NIVEL_PADRAO) {
+      const padrao = this.nivelPadraoAtual;
+      return 'Sem nível escolhido, vale o padrão: o primeiro nível ativo da lista' + (padrao ? ` (hoje, ${padrao.Nome})` : '')
+        + '. Se a lista dos níveis mudar, o nível do órgão acompanha.';
+    }
+    return this.nivelEscolhido(t)?.Descricao || 'O nível diz os passos e os campos que o órgão preenche.';
+  }
+
+  /**
+   * F1 (A21): o nível no histórico, com "(padrão)" quando era o padrão. Aceita o
+   * nome já com a marca, a marca à parte ou o nome nulo (antes valia o padrão).
+   */
+  rotuloNivelHistorico(nome: string | null, padrao: boolean | null | undefined): string {
+    if (!nome?.trim()) return 'Nível padrão';
+    return padrao && !nome.includes('(padrão)') ? `${nome} (padrão)` : nome;
   }
 
   /** Os ajustes foram salvos: a contagem da lista acompanha. */
@@ -186,20 +274,25 @@ export class PeOrgaosNiveisComponent implements OnInit {
     this.orgaoAjustes = this.orgaos.find(o => o.OrgaoId === orgao.OrgaoId) ?? orgao;
   }
 
-  /** Guarda de rota: ajustes mudados e não salvos perguntam antes de sair (uma vez só). */
+  /** Guarda de rota: com ajustes mudados e não salvos, ela pergunta antes de sair (uma vez só). */
   podeSair(): boolean {
-    if (this.saidaConfirmada) return true;
-    return this.ajustesTela?.podeSair() ?? true;
+    return this.saidaConfirmada || !this.ajustesTela?.alterado;
+  }
+
+  textoSaida(): string {
+    return TEXTO_SAIDA_AJUSTES;
   }
 
   // ── Ver como o órgão vê ───────────────────────────────────────────────────
 
   verComoOrgao(orgao: PeOrgaoNivel): void {
     // A pergunta vem antes de trocar a trilha; a guarda de rota não pergunta de novo
-    if (this.ajustesTela && !this.ajustesTela.podeSair()) return;
-    this.saidaConfirmada = true;
-    this.estadoService.verOrgao(orgao.OrgaoId);
-    this.router.navigate([BASE_PE]);
+    this.confirmarDescarteDosAjustes().then(sim => {
+      if (!sim) return;
+      this.saidaConfirmada = true;
+      this.estadoService.verOrgao(orgao.OrgaoId);
+      this.router.navigate([BASE_PE]);
+    });
   }
 
   // ── Trocar o nível ────────────────────────────────────────────────────────
@@ -217,30 +310,57 @@ export class PeOrgaosNiveisComponent implements OnInit {
     if (!this.salvandoNivel) this.troca = null;
   }
 
-  get errosTroca(): string[] {
+  /** O erro de um campo da troca, depois da primeira tentativa (F1, A13: ligado ao campo). */
+  erroTroca(campo: CampoTroca): string | null {
     const t = this.troca;
-    if (!t || !t.tentou) return [];
-    const erros: string[] = [];
-    if (t.nivelId === null) erros.push('Escolha o nível.');
-    else if (t.nivelId === t.orgao.NivelId && !t.orgao.NivelPadrao) erros.push('O órgão já está nesse nível: escolha outro.');
-    if (!t.justificativa.trim()) erros.push('Escreva a justificativa: ela fica no histórico e ajuda no Relatório de Maturidade.');
-    return erros;
+    if (!t || !t.tentou) return null;
+    if (campo === 'nivel') {
+      if (t.nivelId === null) return 'Escolha o nível.';
+      if (t.nivelId !== NIVEL_PADRAO && t.nivelId === t.orgao.NivelId && !t.orgao.NivelPadrao) return 'O órgão já está nesse nível: escolha outro.';
+      return null;
+    }
+    return t.justificativa.trim() ? null : 'Escreva a justificativa: ela fica no histórico e ajuda no Relatório de Maturidade.';
+  }
+
+  descritoresTroca(campo: CampoTroca, ajuda: string): string {
+    return this.erroTroca(campo) ? `${ajuda} pe-troca-${campo}-erro` : ajuda;
+  }
+
+  focarCampoTroca(campo: CampoTroca): void {
+    this.focoPendente = campo === 'nivel' ? 'pe-troca-nivel' : 'pe-troca-justificativa';
+  }
+
+  get errosTroca(): { campo: CampoTroca; mensagem: string }[] {
+    return (['nivel', 'justificativa'] as CampoTroca[])
+      .map(campo => ({ campo, mensagem: this.erroTroca(campo) ?? '' }))
+      .filter(e => !!e.mensagem);
   }
 
   salvarTroca(): void {
     const t = this.troca;
     if (!t || this.salvandoNivel) return;
     t.tentou = true;
-    if (this.errosTroca.length || t.nivelId === null) return;
+    if (this.errosTroca.length || t.nivelId === null) {
+      // F1 (A13): o resumo recebe o foco, e cada item leva ao campo
+      this.focoPendente = 'pe-troca-erros';
+      return;
+    }
+    const voltaAoPadrao = t.nivelId === NIVEL_PADRAO;
     this.salvandoNivel = true;
-    this.orgaosService.definirNivel(t.orgao.OrgaoId, { NivelId: t.nivelId, Justificativa: t.justificativa.trim() }).subscribe({
+    this.orgaosService.definirNivel(t.orgao.OrgaoId, {
+      NivelId: voltaAoPadrao ? null : (t.nivelId as number),
+      Justificativa: t.justificativa.trim()
+    }).subscribe({
       next: atualizado => {
         this.salvandoNivel = false;
         this.troca = null;
         const novo: PeOrgaoNivel = { ...t.orgao, ...atualizado };
         this.orgaos = (this.orgaos ?? []).map(o => (o.OrgaoId === novo.OrgaoId ? novo : o));
         if (this.orgaoAjustes?.OrgaoId === novo.OrgaoId) this.orgaoAjustes = novo;
-        this.notificacoes.success(`${novo.Sigla} agora está no nível ${novo.NivelNome}. A trilha do órgão já mudou.`);
+        // Sem artigo antes da sigla: o gênero muda de órgão para órgão (F1, A11)
+        this.notificacoes.success(novo.NivelPadrao
+          ? `O órgão ${novo.Sigla} voltou ao nível padrão (hoje, ${novo.NivelNome}). A trilha do órgão já mudou.`
+          : `O órgão ${novo.Sigla} agora está no nível ${novo.NivelNome}. A trilha do órgão já mudou.`);
         // O "Ver a trilha de" da moldura mostra os órgãos com o nível
         this.estadoService.carregarOrgaos();
       },

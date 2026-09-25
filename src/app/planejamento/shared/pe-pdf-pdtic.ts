@@ -26,6 +26,28 @@ export function pdfDoPdtic(pdtic: PePdtic | null | undefined): PdfDoPdtic | null
   return pdtic.RegistradoExternamente ? { pdticId: pdtic.Id, numero: 1, sigla: pdtic.OrgaoSigla, versao: pdtic.Versao } : null;
 }
 
+/**
+ * O nome do PDF do PDTIC na tela, pelo caminho em que ele está (F1, I02): "PDF do
+ * PDTIC registrado" (fora do sistema), "PDF publicado (versão N do documento)"
+ * depois da publicação, "PDF aprovado pelo CGTIC (...)" antes dela e "PDF enviado
+ * ao CGTIC (...)" enquanto o comitê não aprova.
+ */
+export function rotuloPdfDoPdtic(pdtic: Pick<PePdtic, 'Situacao' | 'RegistradoExternamente'>, pdf: Pick<PdfDoPdtic, 'numero'>): string {
+  if (pdtic.RegistradoExternamente) return 'PDF do PDTIC registrado';
+  const versao = `(versão ${pdf.numero} do documento)`;
+  switch (pdtic.Situacao) {
+    case 'publicado':
+    case 'em_acompanhamento':
+    case 'encerrado':
+    case 'substituido':
+      return `PDF publicado ${versao}`;
+    case 'aprovado':
+      return `PDF aprovado pelo CGTIC ${versao}`;
+    default:
+      return `PDF enviado ao CGTIC ${versao}`;
+  }
+}
+
 /** Nome do PDF quando o `Content-Disposition` não chega (o mesmo desenho do servidor e da prévia do documento). */
 export function nomePdfDoPdtic(pdf: Pick<PdfDoPdtic, 'sigla' | 'versao' | 'numero'>): string {
   const limpa = (pdf.sigla ?? '').trim().replace(/[^A-Za-z0-9_-]/g, '_') || 'orgao';

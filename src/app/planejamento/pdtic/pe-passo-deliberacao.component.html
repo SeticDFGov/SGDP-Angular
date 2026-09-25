@@ -41,7 +41,8 @@
       <li>Ajuste o que foi pedido nos passos da trilha. O PDTIC voltou a ficar em edição.</li>
       <li *ngIf="links.documento as d">Confira a prévia do documento no
         <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>.</li>
-      <li *ngIf="links.envio as e">Se o comitê interno precisar aprovar os ajustes, registre a nova aprovação do SGTIC. Depois, envie de novo no
+      <li *ngIf="links.envio as e">Registre de novo a aprovação do SGTIC, com a data da nova decisão: a versão ajustada volta ao comitê
+        interno antes de ir ao CGTIC. Depois, envie de novo no
         <a [routerLink]="e.rota" [queryParams]="{ passo: e.numero }" data-sem-dica class="font-semibold underline">passo {{ e.numero }}</a>.</li>
     </ol>
   </div>
@@ -52,6 +53,7 @@
     <span class="material-icons text-green-600" aria-hidden="true">verified</span>
     <div class="leading-relaxed">
       <p><strong>Aprovado pelo CGTIC em {{ dataAprovacao }}</strong><ng-container *ngIf="ato"> ({{ ato }})</ng-container>.</p>
+      <p *ngIf="registradoFora" class="text-xs mt-1">{{ registradoFora }}.</p>
       <p *ngIf="registradaEm" class="text-xs mt-1">Decisão registrada em {{ registradaEm }}.</p>
       <p *ngIf="pdtic.Situacao === 'aprovado' && links.publicacao as p" class="mt-1">Próximo passo: registre a publicação no
         <a [routerLink]="p.rota" [queryParams]="{ passo: p.numero }" data-sem-dica class="font-semibold underline">passo {{ p.numero }}</a>.</p>
@@ -63,9 +65,9 @@
     Este PDTIC foi aprovado fora do sistema e registrado já aprovado. A aprovação informada no registro está no PDF do PDTIC.
   </p>
 
-  <button *ngIf="pdf as f" type="button" (click)="baixarPdf()" [disabled]="baixando"
+  <button *ngIf="pdf as f" type="button" (click)="baixarPdf()" [attr.aria-disabled]="baixando || null"
           class="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
     <span class="material-icons text-base" aria-hidden="true">picture_as_pdf</span>
-    {{ baixando ? 'Baixando...' : (pdtic.RegistradoExternamente ? 'Baixar o PDF do PDTIC registrado' : 'Baixar o PDF enviado ao CGTIC (versão ' + f.numero + ' do documento)') }}
+    {{ baixando ? 'Baixando...' : 'Baixar o ' + rotuloPdf(f) }}
   </button>
 </section>

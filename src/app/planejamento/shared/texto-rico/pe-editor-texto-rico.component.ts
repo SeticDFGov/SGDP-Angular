@@ -10,7 +10,7 @@ import { mensagemErroPe } from '../pe-erros';
 import { PeImagensService } from './pe-imagens.service';
 import {
   ComandoTextoRico, EXTENSOES_IMAGEM, ESTADO_FORMATACAO_VAZIO, EditorTextoRico, EstadoFormatacao,
-  MAX_DESCRICAO_IMAGEM, MAX_MB_IMAGEM_TEXTO, hrefSeguro, normalizarDocumento, srcDaImagem
+  MAX_DESCRICAO_IMAGEM, MAX_MB_IMAGEM_TEXTO, hrefSeguro, normalizarDocumento, normalizarEndereco, srcDaImagem
 } from './pe-texto-rico-doc';
 
 /** Um botão da barra de ferramentas. */
@@ -375,12 +375,14 @@ export class PeEditorTextoRicoComponent implements OnChanges, AfterViewInit, Aft
   abrirLink(): void {
     if (!this.editor) return;
     this.painel = 'link';
-    this.hrefLink = this.estado.hrefLink ?? 'https://';
+    // Começa vazio (o exemplo fica no texto de apoio): com "https://" pronto, o endereço colado ficava repetido (F1, B02)
+    this.hrefLink = this.estado.hrefLink ?? '';
     this.erroLink = null;
     this.focoPendente = `${this.idBase}-link-endereco`;
   }
 
   aplicarLink(): void {
+    this.hrefLink = normalizarEndereco(this.hrefLink);
     const href = hrefSeguro(this.hrefLink);
     if (!href) {
       this.erroLink = 'Use um endereço completo, que comece com http:// ou https://. Exemplo: https://www.df.gov.br.';

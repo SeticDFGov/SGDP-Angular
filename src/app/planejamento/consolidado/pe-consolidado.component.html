@@ -41,7 +41,7 @@
           <p class="font-semibold text-gray-900">Todas as seções num arquivo</p>
           <p>Um XLSX com uma aba por seção e a aba Leia-me, com a ajuda de cada coluna.</p>
         </div>
-        <button type="button" (click)="baixarCompleta()" [disabled]="baixando !== null"
+        <button type="button" (click)="baixarCompleta()" [attr.aria-disabled]="baixando !== null || null"
                 class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap">
           <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando === 'completa' ? 'Gerando...' : 'Baixar todas (XLSX)' }}
         </button>
@@ -72,12 +72,12 @@
                 <p class="text-xs text-gray-600 mt-0.5">{{ s.passo }} · {{ s.tabela ? 'tabela' : 'formulário' }}</p>
               </div>
               <div class="flex flex-wrap gap-2 shrink-0">
-                <button type="button" (click)="baixar(s, 'xlsx')" [disabled]="baixando !== null"
+                <button type="button" (click)="baixar(s, 'xlsx')" [attr.aria-disabled]="baixando !== null || null"
                         [attr.aria-label]="'Baixar a planilha consolidada de ' + s.titulo + ' em XLSX'"
                         class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
                   <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando === s.chave + ':xlsx' ? 'Gerando...' : 'XLSX' }}
                 </button>
-                <button type="button" (click)="baixar(s, 'csv')" [disabled]="baixando !== null"
+                <button type="button" (click)="baixar(s, 'csv')" [attr.aria-disabled]="baixando !== null || null"
                         [attr.aria-label]="'Baixar a planilha consolidada de ' + s.titulo + ' em CSV'"
                         class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
                   <span class="material-icons text-base" aria-hidden="true">download</span> {{ baixando === s.chave + ':csv' ? 'Gerando...' : 'CSV' }}

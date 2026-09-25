@@ -37,7 +37,7 @@
                     [ngClass]="erroResposta ? 'border-red-500' : 'border-gray-300'"></textarea>
           <p *ngIf="erroResposta" [id]="idBase + '-resposta-erro'" class="text-xs text-red-600">{{ erroResposta }}</p>
           <div class="flex flex-wrap gap-2">
-            <button type="submit" [disabled]="enviandoResposta"
+            <button type="submit" [attr.aria-disabled]="enviandoResposta || null"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
               <span class="material-icons text-base" aria-hidden="true">reply</span> {{ enviandoResposta ? 'Enviando...' : 'Enviar a resposta' }}
             </button>
@@ -51,7 +51,7 @@
                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
             <span class="material-icons text-base" aria-hidden="true">reply</span> Responder
           </button>
-          <button *ngIf="podeResolver(c)" type="button" (click)="resolver(c)" [disabled]="resolvendo !== null"
+          <button *ngIf="podeResolver(c)" type="button" (click)="resolver(c)" [attr.aria-disabled]="resolvendo !== null || null"
                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-green-200 bg-white text-sm font-semibold text-green-800 hover:bg-green-50 disabled:opacity-50">
             <span class="material-icons text-base" aria-hidden="true">check_circle</span> {{ resolvendo === c.Id ? 'Marcando...' : 'Marcar como resolvido' }}
           </button>
@@ -90,7 +90,7 @@
                 [ngClass]="erroNovo ? 'border-red-500' : 'border-gray-300'"></textarea>
       <p *ngIf="erroNovo" [id]="idBase + '-novo-erro'" class="text-xs text-red-600">{{ erroNovo }}</p>
       <div class="flex justify-end">
-        <button type="submit" [disabled]="enviandoNovo"
+        <button type="submit" [attr.aria-disabled]="enviandoNovo || null"
                 class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
           <span class="material-icons text-base" aria-hidden="true">add_comment</span> {{ enviandoNovo ? 'Enviando...' : 'Comentar' }}
         </button>

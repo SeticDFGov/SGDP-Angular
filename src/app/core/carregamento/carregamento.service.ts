@@ -64,6 +64,8 @@ export class CarregamentoService {
    * disso, a espera longa não tem aviso falado.
    */
   anunciar: ((texto: string) => void) | null = null;
+  /** Tira o "Carregando" da região viva quando a espera acaba (quem lê a página depois não o acha; F1, D15). */
+  limparAviso: (() => void) | null = null;
 
   readonly #documento = inject(DOCUMENT);
   readonly #zona = inject(NgZone);
@@ -77,6 +79,10 @@ export class CarregamentoService {
   #ociosoDesde: number | null = null;
   #mostradaEm = 0;
   #avisado = false;
+  /** "Carregando" foi lido nesta espera (no fim, sai da região viva). */
+  #falado = false;
+  /** A primeira atividade de um clique nesta espera: quando ela acaba, o "Carregando" que ainda não saiu não sai mais. */
+  #acao: number | null = null;
   #temporizador?: ReturnType<typeof setTimeout>;
   #clique: { elemento: HTMLElement; ate: number } | null = null;
   readonly #ocupados = new Map<HTMLElement, Ocupado>();
@@ -105,7 +111,10 @@ export class CarregamentoService {
     const agora = Date.now();
     this.#atividades.add(id);
     const clique = this.#clique;
-    if (clique && agora <= clique.ate && clique.elemento.isConnected) this.#ocupar(clique.elemento, id, agora);
+    if (clique && agora <= clique.ate && clique.elemento.isConnected) {
+      this.#ocupar(clique.elemento, id, agora);
+      this.#acao ??= id;
+    }
     const causa = this.#entregando;
     for (const [elemento, ocupado] of this.#ocupados) if (causa && ocupado.ids.has(causa)) this.#ocupar(elemento, id, agora);
     this.#avaliar();
@@ -114,6 +123,9 @@ export class CarregamentoService {
 
   terminar(id: number): void {
     if (!this.#atividades.delete(id)) return;
+    // A ação do clique terminou (o "salvo" da tela sai agora): o que vier depois dela é a mesma espera, mas o
+    // "Carregando" que ainda não tinha saído não sai mais, para não ser lido depois do resultado (F1, D08)
+    if (id === this.#acao) this.#avisado = true;
     for (const [elemento, ocupado] of this.#ocupados) {
       if (ocupado.ids.delete(id) && !ocupado.ids.size) this.#liberar(elemento, ocupado);
     }
@@ -215,14 +227,16 @@ export class CarregamentoService {
       // Uma vez por espera, sem repetir a cada requisição
       const aviso = this.#inicioEspera + ESPERA_AVISO_MS;
       if (!this.#avisado && agora >= aviso) {
-        this.#avisado = true;
+        this.#avisado = this.#falado = true;
         this.anunciar?.('Carregando');
       } else if (!this.#avisado) proxima = Math.min(proxima, aviso);
     } else if (this.#inicioEspera !== null) {
       this.#ociosoDesde ??= agora;
       const fim = Math.max(this.#ociosoDesde + FOLGA_MS, this.visivel() ? this.#mostradaEm + BARRA_MINIMA_MS : 0);
       if (agora >= fim) {
-        this.#inicioEspera = this.#ociosoDesde = null;
+        this.#inicioEspera = this.#ociosoDesde = this.#acao = null;
+        if (this.#falado) this.limparAviso?.();
+        this.#falado = false;
         this.#mostrarBarra(false, agora);
       } else proxima = fim;
     }

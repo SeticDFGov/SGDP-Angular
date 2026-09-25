@@ -7,7 +7,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
-import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic } from '../shared/pe-pdf-pdtic';
+import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic, rotuloPdfDoPdtic } from '../shared/pe-pdf-pdtic';
 import {
   SECAO_AVALIACAO_COMITE, classeEstadoPasso, classeSituacaoPdtic, minusculaInicial, pdticAntesDaPublicacao, pdticDepoisDaPublicacao,
   pdticVigente, quandoPdtic, resumoAndamento, rotuloSituacaoPdtic, textoDoStatus, vigenciaTerminou
@@ -102,8 +102,12 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(estado => {
         this.estado = estado;
-        // O órgão ganhou PDTIC (ou a trilha mudou): o formulário do registro externo sai
-        if (estado?.cargaPdtic !== 'sem-pdtic') this.formExterno = false;
+        // O órgão ganhou PDTIC (ou a trilha mudou): o formulário do registro externo sai, e o foco vai ao bloco do PDTIC
+        // (o formulário tinha o foco; sem isso, ele cairia na página, F1, C11)
+        if (estado?.cargaPdtic !== 'sem-pdtic' && this.formExterno) {
+          this.formExterno = false;
+          this.focoPendente = 'pe-inicio-pdtic-titulo';
+        }
       });
     // A visão geral sempre mostra a situação atualizada
     this.estadoService.atualizarStatus(true);
@@ -258,6 +262,82 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     return texto === '-' ? 'Ainda não informada (passo 1.1)' : texto;
   }
 
+  // ── F1 · Versões encerradas, aprovação, PDF, aguardando e revisão ─────────
+
+  /**
+   * C08: sem PDTIC atual, a versão encerrada (ou substituída) mais recente do
+   * órgão, quando há uma: o texto diz que ela foi encerrada (e não que o PDTIC
+   * nunca começou).
+   */
+  get ultimaEncerrada(): PePdtic | null {
+    const e = this.estado;
+    if (e?.cargaPdtic !== 'sem-pdtic') return null;
+    return (e.versoes ?? []).find(v => v.Situacao === 'encerrado' || v.Situacao === 'substituido') ?? null;
+  }
+
+  /** As versões que o órgão já tem (o registro fora do sistema não repete uma delas, F1, C07). */
+  get versoesDoOrgao(): string[] {
+    return (this.estado?.versoes ?? []).map(v => v.Versao);
+  }
+
+  /** A versão que o "Começar" abre (e a sugerida no registro fora do sistema): 1.0 ou a do próximo ciclo (a maior mais um). */
+  get versaoNova(): string {
+    const maiores = (this.estado?.versoes ?? []).map(v => Number(v.Versao.split('.')[0])).filter(n => Number.isInteger(n) && n > 0);
+    return maiores.length ? `${Math.max(...maiores) + 1}.0` : '1.0';
+  }
+
+  /** C09: "Aprovado pelo CGTIC" só com a deliberação aprovada (o registro fora do sistema por outra instância não tem). */
+  aprovadoPeloCgtic(p: PePdtic): boolean {
+    return p.Deliberacao?.Situacao === 'aprovado';
+  }
+
+  /** I02: o nome do PDF pelo caminho do PDTIC ("PDF publicado" depois da publicação). */
+  rotuloPdf(p: PePdtic, f: PdfDoPdtic): string {
+    return rotuloPdfDoPdtic(p, f);
+  }
+
+  /** C24: "vigente" ou "vigente, em acompanhamento" (só publicada, ainda não está em acompanhamento). */
+  rotuloVigente(p: PePdtic): string {
+    return p.Situacao === 'em_acompanhamento' ? 'vigente, em acompanhamento' : 'vigente';
+  }
+
+  /**
+   * C15: o que os passos aguardam, pelo motivo deles: um motivo só, dito no texto
+   * ("3 passos aguardando: disponível depois da publicação do PDTIC"); vários, o
+   * texto neutro que manda ver o motivo de cada passo.
+   */
+  get textoAguardando(): string {
+    const passos = (this.estado?.situacao?.andamento?.Passos ?? []).filter(p => p.Situacao === 'aguardando');
+    const n = passos.length;
+    const inicio = n === 1 ? '1 passo aguardando' : `${n} passos aguardando`;
+    const motivos = new Set(passos.map(p => (p.Motivo ?? '').trim().replace(/\.$/, '')));
+    const [motivo] = [...motivos];
+    if (motivos.size === 1 && motivo) return `${inicio}: ${minusculaInicial(motivo.replace(/^aguardando\s*/i, ''))}.`;
+    return `${inicio} outra coisa antes. O motivo de cada um está na lista das etapas, abaixo.`;
+  }
+
+  /**
+   * B12: na revisão recém-aberta, o servidor recomenda o começo da etapa 2, que
+   * já vem feito da versão anterior: a caixa diz que a revisão recomeça ali.
+   */
+  get revisaoRecomeca(): boolean {
+    const e = this.estado;
+    const r = this.recomendado;
+    if (!e?.pdtic?.Revisao || !r) return false;
+    // O servidor diz por que recomenda esse passo (F1); sem o motivo (resposta antiga), pela situação do passo
+    if (e.situacao?.andamento?.ProximoPassoMotivo?.trim()) return true;
+    const s = this.status(r)?.estado;
+    return s === 'feito' || s === 'externo' || s === 'nao_se_aplica';
+  }
+
+  get textoRevisaoRecomeca(): string {
+    const doServidor = this.estado?.situacao?.andamento?.ProximoPassoMotivo?.trim();
+    if (doServidor) return doServidor;
+    const anterior = this.estado?.pdtic?.Revisao?.AnteriorVersao;
+    return `A revisão recomeça no diagnóstico: os passos vêm preenchidos com os dados da versão ${anterior ?? 'anterior'}. `
+      + 'Confira cada passo a partir deste e ajuste o que mudou; depois, siga até o envio ao CGTIC.';
+  }
+
   /** Andamento dos passos (o mesmo objeto enquanto a situação não muda: vai num *ngIf). */
   get andamento(): { feitos: number; total: number; aguardando: number } | null {
     const andamento = this.estado?.situacao?.andamento ?? null;
@@ -279,6 +359,8 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
         this.abrindo = false;
         // O toast fica numa região lida pelo leitor de tela: um aviso só
         this.notificacoes.success(`PDTIC ${pdtic.Versao} aberto. Siga os passos da trilha, a partir do primeiro.`);
+        // O botão "Começar o PDTIC" some: o foco vai ao título do bloco do PDTIC (F1, C11)
+        this.focoPendente = 'pe-inicio-pdtic-titulo';
       },
       error: erro => {
         this.abrindo = false;

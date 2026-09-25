@@ -6,7 +6,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import {
   PeFluxoDefinicao, PeFluxoElemento, PeFluxoLigacao, PeFluxoRaia, PeTipoElementoFluxo
 } from '../../../api/planejamento/interface';
@@ -15,6 +15,7 @@ import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.
 import { NotificationService } from '../../core/services/notification.service';
 import { PeFluxoAberto, PeFluxoItem, PeFonteFluxos } from '../services/pe-fluxos.service';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import {
   DescricaoFluxo, DicionarioFluxo, MAX_ARTEFATO, MAX_NOME_ELEMENTO, MAX_NOME_FLUXO, MAX_NOME_RAIA, MAX_PREFIXO,
   MAX_ROTULO_SAIDA, TIPOS_ELEMENTO_FLUXO, aceitaPassoDepois, clonarDefinicao, definicaoParaEnvio, descricaoDoFluxo,
@@ -37,6 +38,14 @@ const ESPERA_DESENHO_MS = 800;
 /** Mudanças seguidas no mesmo campo, com pausas menores que isto, viram um passo só do "Desfazer". */
 const JANELA_AGRUPAR_MS = 4000;
 const LIMITE_HISTORICO = 60;
+/**
+ * No modo visual, o aviso de uma mudança espera a geometria (que chega em 0,2 a 0,3 s)
+ * para sair junto com a contagem de problemas; se ela demorar, sai sozinho (F1, D12).
+ */
+const ESPERA_AVISO_MUDANCA_MS = 700;
+
+/** O título do painel do item selecionado, um para cada caso (F1, D06). */
+type PainelDoItem = 'vazio' | 'bloco' | 'seta' | 'raia';
 
 /**
  * O modo de edição de cada pessoa, guardado no navegador (vale para os próximos
@@ -113,6 +122,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   private readonly rota = inject(ActivatedRoute);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
@@ -120,6 +130,8 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   @Input({ required: true }) fonte!: PeFonteFluxos;
   /** Por que a pessoa só lê (a tela do passo explica: consulta, papel global, PDTIC fora de elaboração). */
   @Input() avisoLeitura: string | null = null;
+  /** A tela do passo já mostra, no alto, por que só se lê (F1, C30): o editor não repete o quadro. */
+  @Input() semAvisoLeitura = false;
   /** Há mudança não salva (a tela pergunta antes de sair). */
   @Output() readonly alterado = new EventEmitter<boolean>();
   /** Um fluxo foi salvo ou voltou ao modelo. */
@@ -191,6 +203,12 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   readonly setaEscolhida = new Map<string, string>();
   readonly tipoNaRaia = new Map<string, PeTipoElementoFluxo>();
   readonly tipoNaSeta = new Map<string, PeTipoElementoFluxo>();
+  /** A raia escolhida para o passo, que só vale no botão "Mover" (as setas do teclado não mudam o fluxo; F1, D05). */
+  readonly raiaEscolhida = new Map<string, string>();
+  /** O painel do item selecionado à vista (dá para esconder e deixar a linha inteira ao desenho; F1, D04). */
+  painelAberto = true;
+  /** O aviso da última mudança, esperando a contagem de problemas (modo visual; F1, D12). */
+  private avisoPendente: { texto: string; temporizador: ReturnType<typeof setTimeout> } | null = null;
 
   // ── Estado da tela ────────────────────────────────────────────────────────
   private readonly abertos = new Set<string>();
@@ -247,8 +265,14 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
         this.fluxoDaUrl = params.get('fluxo');
         const pedido = this.fluxoDaUrl;
         if (!pedido || pedido === this.chaveAtual || !this.lista.some(f => f.Chave === pedido)) return;
-        if (this.sujo && !confirm(this.textoTrocarComMudancas())) {
+        if (this.sujo) {
+          // O endereço mudou por fora (o voltar do navegador): volta ao fluxo à vista e pergunta na janela do módulo
           this.gravarNaUrl(this.chaveAtual);
+          this.confirmarTroca().then(sim => {
+            if (!sim || this.destruido) return;
+            this.abrirFluxo(pedido);
+            this.gravarNaUrl(pedido);
+          });
           return;
         }
         this.abrirFluxo(pedido);
@@ -264,15 +288,19 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
   ngAfterViewChecked(): void {
     if (!this.focoPendente || !this.noNavegador) return;
-    const alvo = document.getElementById(this.focoPendente);
-    if (!alvo) return;
+    const id = this.focoPendente;
+    if (!document.getElementById(id)) return;
     this.focoPendente = null;
-    alvo.focus();
+    // Logo depois do fim da renderização (F1, D06): com as animações do Angular ligadas, o elemento que sai da
+    // tela só é tirado no fim dela, e o mesmo id recriado noutro lugar (o passo que mudou de raia, o título do
+    // painel) ainda acharia o antigo, que logo sai, e o foco cairia no body
+    queueMicrotask(() => document.getElementById(id)?.focus());
   }
 
   ngOnDestroy(): void {
     this.destruido = true;
     if (this.temporizador) clearTimeout(this.temporizador);
+    if (this.avisoPendente) clearTimeout(this.avisoPendente.temporizador);
     this.pedidoDesenho?.unsubscribe();
     this.cargaLista?.unsubscribe();
     this.cargaFluxo?.unsubscribe();
@@ -319,7 +347,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
   get alteradoEm(): string {
     const item = this.lista.find(f => f.Chave === this.chaveAtual);
-    return item?.AlteradoEm ? quandoEQuem(item.AlteradoEm, item.AlteradoPor) : '';
+    return item?.AlteradoEm ? quandoEQuem(item.AlteradoEm, item.AlteradoPor, item.AlteradoPorNome) : '';
   }
 
   get textoEstadoDesenho(): string {
@@ -564,13 +592,18 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
       this.focoPendente = 'pe-fx-fluxo-titulo';
       return;
     }
-    if (this.sujo && !confirm(this.textoTrocarComMudancas())) return;
-    this.abrirFluxo(item.Chave);
-    this.gravarNaUrl(item.Chave);
+    this.confirmarTroca().then(sim => {
+      if (!sim || this.destruido) return;
+      this.abrirFluxo(item.Chave);
+      this.gravarNaUrl(item.Chave);
+    });
   }
 
-  private textoTrocarComMudancas(): string {
-    return 'Este fluxo tem mudanças que ainda não foram salvas. Trocar de fluxo assim mesmo? Elas vão se perder.';
+  /** Mudança não salva no fluxo à vista: pergunta na janela do módulo antes de trocar (F1, A04). */
+  private confirmarTroca(): Promise<boolean> {
+    if (!this.sujo) return Promise.resolve(true);
+    return this.confirmacao.perguntarDescarte(
+      'Este fluxo tem mudanças que ainda não foram salvas. Se trocar de fluxo agora, elas se perdem.', 'Trocar sem salvar', 'Trocar de fluxo sem salvar?');
   }
 
   private gravarNaUrl(chave: string | null): void {
@@ -631,6 +664,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.totalAnunciado = -1;
     this.novoDestino.clear();
     this.setaEscolhida.clear();
+    this.raiaEscolhida.clear();
     if (novo) {
       this.abertos.clear();
       this.svg = null;
@@ -659,8 +693,9 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     const { ordem, ligacoes } = ordemDoFluxo(def);
     const doServidor = numerosDoServidor(def);
     const geometria = this.numerosGeometria;
-    if (geometria && geometria.numeros.size > 0 && geometria.retrato === JSON.stringify(definicaoParaEnvio(def))) {
-      // A geometria da definição de agora já chegou (modo visual): valem os números dela, os do desenho
+    if (geometria && geometria.retrato === JSON.stringify(definicaoParaEnvio(def))) {
+      // A geometria da definição de agora já chegou (modo visual): valem os números dela, os do desenho e do PDF,
+      // inclusive nenhum (fluxo sem prefixo não tem número; F1, D03)
       this.numeros = geometria.numeros;
     } else {
       // Sem mudança pendente valem os números do servidor (os do desenho); com mudança, a mesma regra aqui
@@ -773,16 +808,22 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.errosLocais.clear();
     for (const id of [...this.abertos]) if (!this.def.Elementos.some(e => e.Id === id)) this.abertos.delete(id);
     this.depoisDeMudar();
-    this.acessibilidade.anunciar(`Desfeito: ${ultimo.descricao}.`);
+    this.avisarMudanca(`Desfeito: ${ultimo.descricao}.`);
   }
 
   descartar(): void {
     if (!this.aberto || !this.sujo) return;
-    if (!confirm('Descartar as mudanças deste fluxo? Ele volta a ser como estava salvo.')) return;
-    this.aplicarAberto(this.aberto, false);
-    const texto = 'As mudanças foram descartadas.';
-    this.notificacoes.info(texto);
-    this.acessibilidade.anunciar(texto);
+    this.confirmacao.perguntar({
+      titulo: 'Descartar as mudanças deste fluxo?',
+      texto: 'Ele volta a ser como estava salvo.',
+      sim: 'Descartar as mudanças',
+      perigo: true
+    }).then(sim => {
+      if (!sim || !this.aberto || this.destruido) return;
+      this.aplicarAberto(this.aberto, false);
+      // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
+      this.notificacoes.info('As mudanças foram descartadas.');
+    });
   }
 
   mudarNomeFluxo(valor: string): void {
@@ -805,7 +846,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     // No modo visual, o nome da raia nova abre no painel
     if (this.emModoVisual) this.selecao = { tipo: 'raia', id: nova.Id };
     this.renomear(nova, true);
-    this.acessibilidade.anunciar(this.emModoVisual
+    this.avisarMudanca(this.emModoVisual
       ? 'Raia nova incluída embaixo das outras. Escolha, no painel, um nome do dicionário ou escreva o nome dela.'
       : 'Raia nova incluída no fim da lista. Escolha um nome do dicionário ou escreva o nome dela.');
   }
@@ -838,7 +879,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.renomeando = null;
     this.erroRaia = null;
     this.focoPendente = this.idRaia(r, 'renomear');
-    this.acessibilidade.anunciar(`Raia renomeada: ${this.nomeRaia(r)}.`);
+    this.avisarMudanca(`Raia renomeada: ${this.nomeRaia(r)}.`);
   }
 
   subirOuDescer(r: PeFluxoRaia, passo: -1 | 1): void {
@@ -846,7 +887,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     const posicao = this.mudar(passo < 0 ? `subir a raia ${nome}` : `descer a raia ${nome}`, def => moverRaia(def, r.Id, passo)) ?? -1;
     if (posicao < 0) return;
     const total = this.raias.length;
-    this.acessibilidade.anunciar(`A raia ${nome} agora é a ${posicao + 1}ª de ${total}.`);
+    this.avisarMudanca(`A raia ${nome} agora é a ${posicao + 1}ª de ${total}.`);
     // O foco fica no mesmo botão (ou no outro, quando este desliga na ponta)
     const ponta = passo < 0 ? posicao === 0 : posicao === total - 1;
     this.focoPendente = this.idRaia(r, ponta ? (passo < 0 ? 'descer' : 'subir') : (passo < 0 ? 'subir' : 'descer'));
@@ -856,14 +897,18 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     if (!this.def || !this.podeEditar) return;
     const nome = this.nomeRaia(r);
     const passos = this.quantosNaRaia(r);
-    const aviso = `Remover a raia "${nome}"?`
-      + (passos ? ` ${passos === 1 ? 'O passo dela sai' : `Os ${passos} passos dela saem`} junto, com as ligações.` : '')
-      + ' Dá para desfazer com o botão "Desfazer".';
-    if (!confirm(aviso)) return;
+    const aviso = (passos ? `${passos === 1 ? 'O passo dela sai' : `Os ${passos} passos dela saem`} junto, com as ligações. ` : '')
+      + 'Dá para desfazer com o botão "Desfazer".';
+    this.confirmacao.perguntar({ titulo: `Remover a raia "${nome}"?`, texto: aviso, sim: 'Remover a raia', perigo: true }).then(sim => {
+      if (sim && this.def && !this.destruido && this.raias.some(x => x.Id === r.Id)) this.tirarRaiaSim(r, nome);
+    });
+  }
+
+  private tirarRaiaSim(r: PeFluxoRaia, nome: string): void {
     const indice = this.raias.findIndex(x => x.Id === r.Id);
     this.mudar(`remover a raia ${nome}`, def => removerRaia(def, r.Id));
     if (this.renomeando === r.Id) this.renomeando = null;
-    this.acessibilidade.anunciar(`Raia ${nome} removida.`);
+    this.avisarMudanca(`Raia ${nome} removida.`);
     const vizinha = this.raias[Math.min(indice, this.raias.length - 1)];
     if (this.emModoVisual) {
       // No desenho, o foco vai para o nome da raia vizinha (e o painel mostra a raia)
@@ -904,7 +949,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     // No modo visual, o passo novo fica selecionado e o nome dele abre no painel
     if (this.emModoVisual) this.selecao = { tipo: 'elemento', id: novo.Id };
     this.focoPendente = this.idEl(novo, 'nome');
-    this.acessibilidade.anunciar(aviso);
+    this.avisarMudanca(aviso);
   }
 
   private textoRemover(nome: string): string {
@@ -916,14 +961,24 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     const nome = this.rotulo(e);
     const religou = this.mudar(`remover ${nome}`, def => removerElemento(def, e.Id));
     this.abertos.delete(e.Id);
-    this.acessibilidade.anunciar(religou
+    this.avisarMudanca(religou
       ? `${nome} saiu. ${this.rotuloPorId(religou.de)} agora liga direto em ${this.rotuloPorId(religou.para)}.`
       : `${nome} saiu. Confira as ligações dos passos em volta.`);
   }
 
   removerPasso(e: PeFluxoElemento): void {
     if (!this.def || !this.podeEditar) return;
-    if (!confirm(this.textoRemover(this.rotulo(e)))) return;
+    this.perguntarRemover(e).then(sim => {
+      if (sim && this.def && !this.destruido && this.elementos.has(e.Id)) this.removerPassoSim(e);
+    });
+  }
+
+  /** A pergunta antes de remover um passo, na janela do módulo (F1, A04). */
+  private perguntarRemover(e: PeFluxoElemento): Promise<boolean> {
+    return this.confirmacao.perguntar({ titulo: `Remover ${this.rotulo(e)}?`, texto: this.textoRemover(this.rotulo(e)), sim: 'Remover', perigo: true });
+  }
+
+  private removerPassoSim(e: PeFluxoElemento): void {
     const raia = this.raias.find(r => r.Id === e.RaiaId) ?? null;
     const lista = this.porRaia.get(e.RaiaId) ?? [];
     const indice = lista.findIndex(x => x.Id === e.Id);
@@ -950,9 +1005,39 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.mudar(`mudar o nome de ${this.rotulo(e)}`, def => renomearElemento(def, e.Id, valor), `nome:${e.Id}`);
   }
 
-  mudarRaia(e: PeFluxoElemento, raiaId: string): void {
-    if (raiaId === e.RaiaId) return;
-    this.mudar(`mudar a raia de ${this.rotulo(e)}`, def => moverParaRaia(def, e.Id, raiaId), `raia:${e.Id}`);
+  /** A raia escolhida na lista (ainda sem mudar o fluxo: vale no botão "Mover"). */
+  raiaDaLista(e: PeFluxoElemento): string {
+    return this.raiaEscolhida.get(e.Id) ?? e.RaiaId;
+  }
+
+  escolherRaia(e: PeFluxoElemento, raiaId: string): void {
+    this.raiaEscolhida.set(e.Id, raiaId);
+    this.errosLocais.delete(`raia:${e.Id}`);
+  }
+
+  /**
+   * "Mover" (F1, D05): a escolha da raia só vale no botão, como o "Vem depois de" e o
+   * "Inserir depois de" (as setas do teclado na lista não mudam o fluxo a cada tecla), e
+   * o leitor de tela ouve o mesmo aviso do arrasto.
+   */
+  moverDeRaia(e: PeFluxoElemento): void {
+    const raiaId = this.raiaDaLista(e);
+    const chaveErro = `raia:${e.Id}`;
+    if (!this.existeRaia(raiaId)) {
+      this.errosLocais.set(chaveErro, 'Escolha a raia.');
+      this.focoPendente = this.idEl(e, 'raia');
+      return;
+    }
+    if (raiaId === e.RaiaId) {
+      this.errosLocais.set(chaveErro, 'O passo já está nesta raia: escolha outra.');
+      this.focoPendente = this.idEl(e, 'raia');
+      return;
+    }
+    const nome = this.rotulo(e);
+    if (!this.mudar(`mover ${nome} para a raia ${this.nomeRaiaPorId(raiaId)}`, def => moverParaRaia(def, e.Id, raiaId))) return;
+    this.errosLocais.delete(chaveErro);
+    this.raiaEscolhida.delete(e.Id);
+    this.avisarMudanca(`${nome} agora está na raia ${this.nomeRaiaPorId(raiaId)}. As ligações continuam.`);
     this.focoPendente = this.idEl(e, 'raia');
   }
 
@@ -979,7 +1064,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     if (!this.mudar(`incluir um passo antes de ${this.rotulo(e)}`, def => incluirLigacao(def, origem, e.Id))) return;
     this.errosLocais.delete(`antes:${e.Id}`);
     this.novoAntes.delete(e.Id);
-    this.acessibilidade.anunciar(`${this.rotulo(e)} agora vem depois de ${this.rotuloPorId(origem)}.`);
+    this.avisarMudanca(`${this.rotulo(e)} agora vem depois de ${this.rotuloPorId(origem)}.`);
     this.focoPendente = this.idEl(e, 'antes-novo');
   }
 
@@ -987,7 +1072,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     const de = this.rotuloPorId(l.De);
     const para = this.rotuloPorId(l.Para);
     this.mudar(`tirar a ligação de ${de} para ${para}`, def => removerLigacao(def, l.Id));
-    this.acessibilidade.anunciar(`Ligação tirada: ${de} não leva mais a ${para}.`);
+    this.avisarMudanca(`Ligação tirada: ${de} não leva mais a ${para}.`);
     this.focoPendente = this.idEl(e, campoDepois);
   }
 
@@ -1018,7 +1103,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     if (!this.mudar(`incluir uma saída em ${this.rotulo(e)}`, def => incluirLigacao(def, e.Id, nova.destino, rotulo))) return;
     this.errosLocais.delete(chaveErro);
     this.novaSaida.delete(e.Id);
-    this.acessibilidade.anunciar(`Saída "${rotulo}" incluída: vai para ${this.rotuloPorId(nova.destino)}.`);
+    this.avisarMudanca(`Saída "${rotulo}" incluída: vai para ${this.rotuloPorId(nova.destino)}.`);
     this.focoPendente = this.idEl(e, 'saida-nova-rotulo');
   }
 
@@ -1040,14 +1125,14 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.mudar(`incluir um documento em ${this.rotulo(e)}`, def => incluirDocumento(def, e.Id, nome));
     this.errosLocais.delete(chaveErro);
     this.novoArtefato.delete(e.Id);
-    this.acessibilidade.anunciar(`Documento incluído: ${nome}.`);
+    this.avisarMudanca(`Documento incluído: ${nome}.`);
     this.focoPendente = this.idEl(e, 'artefato-novo');
   }
 
   tirarArtefato(e: PeFluxoElemento, i: number): void {
     const nome = e.Artefatos[i];
     this.mudar(`tirar um documento de ${this.rotulo(e)}`, def => tirarDocumento(def, e.Id, i));
-    this.acessibilidade.anunciar(`Documento tirado: ${nome}.`);
+    this.avisarMudanca(`Documento tirado: ${nome}.`);
     this.focoPendente = this.idEl(e, 'artefato-novo');
   }
 
@@ -1100,13 +1185,35 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   // ── Item selecionado no desenho (modo visual) ─────────────────────────────
 
   aoSelecionarNoDesenho(pedido: PeSelecionarFluxo): void {
+    const outro = pedido.selecao?.tipo !== this.selecao?.tipo || pedido.selecao?.id !== this.selecao?.id;
     this.selecao = pedido.selecao;
-    // Outra raia ou outro item: o formulário do nome da raia fecha
+    // Outra raia ou outro item: o formulário do nome da raia fecha, e a escolha de raia pendente sai
     if (this.renomeando && !(pedido.selecao?.tipo === 'raia' && pedido.selecao.id === this.renomeando)) {
       this.renomeando = null;
       this.erroRaia = null;
     }
-    if (pedido.abrirPainel) this.focoPendente = 'pe-fx-painel-titulo';
+    if (outro) this.raiaEscolhida.clear();
+    if (pedido.abrirPainel) {
+      this.painelAberto = true;
+      this.focoPendente = this.idTituloPainel;
+    }
+  }
+
+  /**
+   * O id do título do painel à vista (F1, D06). Cada caso tem o seu: com um id só, o
+   * título do caso anterior ainda estava na página quando o foco era posto (a remoção
+   * espera o fim da renderização, por causa das animações), e o foco ia para ele, que
+   * logo saía, e caía no body.
+   */
+  get idTituloPainel(): string {
+    const caso: PainelDoItem = this.elementoSelecionado ? 'bloco' : this.ligacaoSelecionada ? 'seta' : this.raiaSelecionada ? 'raia' : 'vazio';
+    return `pe-fx-painel-titulo-${caso}`;
+  }
+
+  /** Esconde ou mostra o painel do item selecionado (escondido, o desenho fica com a linha inteira; F1, D04). */
+  alternarPainel(): void {
+    this.painelAberto = !this.painelAberto;
+    this.focoPendente = 'pe-fx-painel-alternar';
   }
 
   get elementoSelecionado(): PeFluxoElemento | null {
@@ -1173,7 +1280,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   /** "Sim" e "Não" com um clique (no painel da seta). */
   usarRotuloNaSeta(l: PeFluxoLigacao, valor: string): void {
     this.mudarRotuloDaSeta(l, valor);
-    this.acessibilidade.anunciar(`Saída "${valor}" de ${this.rotuloPorId(l.De)} para ${this.rotuloPorId(l.Para)}.`);
+    this.avisarMudanca(`Saída "${valor}" de ${this.rotuloPorId(l.De)} para ${this.rotuloPorId(l.Para)}.`);
   }
 
   sugestaoDeRotulo(l: PeFluxoLigacao): string {
@@ -1192,7 +1299,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     if (!this.mudar(`ligar ${this.rotulo(e)} a ${this.rotuloPorId(destino)}`, def => incluirLigacao(def, e.Id, destino))) return;
     this.errosLocais.delete(chaveErro);
     this.novoDestino.delete(e.Id);
-    this.acessibilidade.anunciar(`${this.rotulo(e)} agora liga em ${this.rotuloPorId(destino)}.`);
+    this.avisarMudanca(`${this.rotulo(e)} agora liga em ${this.rotuloPorId(destino)}.`);
     this.focoPendente = this.idEl(e, 'ligar-a');
   }
 
@@ -1217,7 +1324,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.errosLocais.delete(chaveErro);
     this.setaEscolhida.delete(e.Id);
     const religou = feito.religou ? ` ${this.rotuloPorId(feito.religou.de)} agora liga direto em ${this.rotuloPorId(feito.religou.para)}.` : '';
-    this.acessibilidade.anunciar(`${this.rotulo(e)} agora fica entre ${this.rotuloPorId(feito.de)} e ${this.rotuloPorId(feito.para)}.${religou}`);
+    this.avisarMudanca(`${this.rotulo(e)} agora fica entre ${this.rotuloPorId(feito.de)} e ${this.rotuloPorId(feito.para)}.${religou}`);
     this.focoPendente = this.idEl(e, 'inserir-depois');
   }
 
@@ -1247,6 +1354,11 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.focoPendente = idNaTela('e', id, 'bloco');
   }
 
+  /** "Voltar ao desenho" no painel da seta: o foco vai para a própria seta, não para o bloco de onde ela sai (F1, D10). */
+  voltarAoDesenhoDaSeta(l: PeFluxoLigacao): void {
+    this.focoPendente = idNaTela('l', l.Id, 'seta');
+  }
+
   // ── O estado de trabalho para o desenho interativo (PeFluxoTrabalho) ──────
 
   nomeRaiaPorId(id: string): string {
@@ -1254,14 +1366,20 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     return r ? this.nomeRaia(r) : 'uma raia que não existe mais';
   }
 
-  /** Delete no desenho: pergunta antes só quando o passo tem ligações (sem ligação, o "Desfazer" basta). */
-  removerPassoDoDesenho(id: string): boolean {
+  /**
+   * Delete no desenho: pergunta antes (na janela do módulo) só quando o passo tem
+   * ligações; sem ligação, o "Desfazer" basta. A promessa diz se removeu.
+   */
+  removerPassoDoDesenho(id: string): Promise<boolean> {
     const e = this.elementos.get(id);
-    if (!e || !this.def || !this.podeEditar) return false;
+    if (!e || !this.def || !this.podeEditar) return Promise.resolve(false);
     const temLigacoes = this.def.Ligacoes.some(l => l.De === id || l.Para === id);
-    if (temLigacoes && !confirm(this.textoRemover(this.rotulo(e)))) return false;
-    this.tirarPasso(e);
-    return true;
+    const pergunta = temLigacoes ? this.perguntarRemover(e) : Promise.resolve(true);
+    return pergunta.then(sim => {
+      if (!sim || !this.def || this.destruido || !this.elementos.has(id)) return false;
+      this.tirarPasso(e);
+      return true;
+    });
   }
 
   removerLigacaoDoDesenho(id: string): void {
@@ -1270,7 +1388,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     const de = this.rotuloPorId(l.De);
     const para = this.rotuloPorId(l.Para);
     this.mudar(`tirar a ligação de ${de} para ${para}`, def => removerLigacao(def, id));
-    this.acessibilidade.anunciar(`Ligação tirada: ${de} não leva mais a ${para}.`);
+    this.avisarMudanca(`Ligação tirada: ${de} não leva mais a ${para}.`);
   }
 
   /** Pelo painel da seta: depois de tirar, o foco volta ao bloco de onde a seta saía. */
@@ -1289,6 +1407,33 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.numerosGeometria = { retrato, numeros: new Map(Object.entries(numeros)) };
     this.definirProblemas(retrato, erros, null);
     this.recalcular();
+  }
+
+  /**
+   * O aviso de uma mudança (F1, D12). No modo visual, a geometria chega logo depois
+   * com a contagem de problemas: o aviso espera por ela e os dois saem juntos, sem um
+   * cortar o outro na região viva. Duas mudanças seguidas juntam os avisos. No modo em
+   * lista, o desenho só é pedido 0,8 s depois: o aviso sai na hora.
+   */
+  avisarMudanca(texto: string): void {
+    if (!this.emModoVisual) {
+      this.acessibilidade.anunciar(texto);
+      return;
+    }
+    const anterior = this.avisoPendente;
+    if (anterior) clearTimeout(anterior.temporizador);
+    this.avisoPendente = {
+      texto: anterior ? `${anterior.texto} ${texto}` : texto,
+      temporizador: setTimeout(() => this.soltarAviso(), ESPERA_AVISO_MUDANCA_MS)
+    };
+  }
+
+  private soltarAviso(contagem = ''): void {
+    const pendente = this.avisoPendente;
+    if (!pendente) return;
+    this.avisoPendente = null;
+    clearTimeout(pendente.temporizador);
+    this.acessibilidade.anunciar(contagem ? `${pendente.texto} ${contagem}` : pendente.texto);
   }
 
   // ── Desenho (prévia pela API, com espera entre as digitações) ─────────────
@@ -1326,7 +1471,33 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     // O pedido anterior, se ainda não voltou, não vale mais
     this.pedidoDesenho?.unsubscribe();
     this.estadoDesenho = 'desenhando';
-    const pedido = this.podeEditar ? this.fonte.desenhar(envio) : this.fonte.desenhoSalvo(chave);
+    if (!this.podeEditar) {
+      this.pedirDesenho(this.fonte.desenhoSalvo(chave), retrato);
+      return;
+    }
+    // Primeiro a conferência (200 com os problemas): com problema, fica o último desenho bom e a lista, sem pedir
+    // o desenho, que voltaria 400 e sujaria o console (F1, D14). Servidor sem a conferência: o desenho confere.
+    this.pedidoDesenho = this.fonte.validar(envio).subscribe({
+      next: validacao => {
+        if (validacao.Valida || !validacao.Erros.length) {
+          this.pedirDesenho(this.fonte.desenhar(envio), retrato);
+          return;
+        }
+        this.retratoDesenhado = retrato;
+        this.estadoDesenho = 'invalido';
+        this.erroDesenho = null;
+        this.definirProblemas(retrato, validacao.Erros, null);
+      },
+      error: erro => {
+        const lido = lerErroFluxo(erro);
+        if (lido.status === 403) return;
+        this.pedirDesenho(this.fonte.desenhar(envio), retrato);
+      }
+    });
+  }
+
+  private pedirDesenho(pedido: Observable<string>, retrato: string): void {
+    this.pedidoDesenho?.unsubscribe();
     this.pedidoDesenho = pedido.subscribe({
       next: svg => {
         this.svg = svg;
@@ -1358,14 +1529,20 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     this.mensagemValidacao = mensagem;
     this.retratoValidado = retrato;
     const total = this.totalProblemas;
-    if (total === this.totalAnunciado) return;
-    const primeira = this.totalAnunciado < 0;
-    this.totalAnunciado = total;
-    // Ao abrir um fluxo sem problemas, não há o que avisar
-    if (primeira && total === 0) return;
-    this.acessibilidade.anunciar(total === 0
-      ? 'O fluxo está sem problemas.'
-      : total === 1 ? 'O fluxo tem 1 problema, na lista de problemas.' : `O fluxo tem ${total} problemas, na lista de problemas.`);
+    let contagem = '';
+    if (total !== this.totalAnunciado) {
+      const primeira = this.totalAnunciado < 0;
+      this.totalAnunciado = total;
+      // Ao abrir um fluxo sem problemas, não há o que avisar
+      if (!(primeira && total === 0)) {
+        contagem = total === 0
+          ? 'O fluxo está sem problemas.'
+          : total === 1 ? 'O fluxo tem 1 problema, na lista de problemas.' : `O fluxo tem ${total} problemas, na lista de problemas.`;
+      }
+    }
+    // O aviso da mudança que esperava a geometria sai junto com a contagem: um aviso só (F1, D12)
+    if (this.avisoPendente) this.soltarAviso(contagem);
+    else if (contagem) this.acessibilidade.anunciar(contagem);
   }
 
   irParaPrevia(): void {
@@ -1377,7 +1554,7 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
   salvar(): void {
     const def = this.def;
     const aberto = this.aberto;
-    if (!def || !aberto || this.salvando || !this.podeEditar) return;
+    if (!def || !aberto || this.salvando || !this.podeEditar || !this.sujo) return;
     const nome = this.nome.trim();
     if (!nome) {
       this.erroNome = 'Escreva o nome do fluxo.';
@@ -1399,10 +1576,12 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     const aberto = this.aberto;
     if (!aberto || !this.podeEditar || this.sujo || this.salvando) return;
     const envio = definicaoParaEnvio(aberto.Definicao);
-    this.gravar(aberto.Chave, aberto.Nome.trim() || aberto.Chave, envio, JSON.stringify(envio), 'O órgão ficou com a adaptação dele neste fluxo.');
+    // O aviso "o modelo mudou" sai da tela com o botão: o foco vai para o título do fluxo (F1, B01)
+    this.gravar(aberto.Chave, aberto.Nome.trim() || aberto.Chave, envio, JSON.stringify(envio), 'O órgão ficou com a adaptação dele neste fluxo.',
+      'pe-fx-fluxo-titulo');
   }
 
-  private gravar(chave: string, nome: string, envio: PeFluxoDefinicao, retrato: string, sucesso: string): void {
+  private gravar(chave: string, nome: string, envio: PeFluxoDefinicao, retrato: string, sucesso: string, focoDepois?: string): void {
     this.salvando = true;
     // O que estava na tela ao enviar: se a pessoa mudou algo enquanto salvava, a mudança nova fica
     const naTelaAoEnviar = this.def ? retratoFluxo(this.nome, this.def) : '';
@@ -1418,8 +1597,9 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
           // O desenho da prévia é o do que foi salvo: só vem de novo se o servidor devolveu outra definição
           this.aplicarAberto(salvo, false);
         }
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
         this.notificacoes.success(sucesso);
-        this.acessibilidade.anunciar(sucesso);
+        if (focoDepois) this.focoPendente = focoDepois;
         this.salvou.emit();
         this.carregarLista(true);
       },
@@ -1447,16 +1627,26 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     if (!aberto || this.restaurando || !this.podeRestaurar) return;
     const pedido = this.fonte.restaurar(aberto.Chave);
     if (!pedido) return;
-    if (!confirm('Voltar ao modelo do guia? As adaptações do órgão neste fluxo vão se perder, inclusive as que não foram salvas.')) return;
+    this.confirmacao.perguntar({
+      titulo: 'Voltar ao modelo do guia?',
+      texto: 'As adaptações do órgão neste fluxo vão se perder, inclusive as que não foram salvas.',
+      sim: 'Voltar ao modelo do guia',
+      perigo: true
+    }).then(sim => {
+      if (sim && !this.destruido && this.chaveAtual === aberto.Chave) this.restaurarSim(aberto, pedido);
+    });
+  }
+
+  private restaurarSim(aberto: PeFluxoAberto, pedido: Observable<PeFluxoAberto>): void {
+    if (this.restaurando) return;
     this.restaurando = true;
     pedido.subscribe({
       next: modelo => {
         this.restaurando = false;
         if (this.chaveAtual !== aberto.Chave) return;
         this.aplicarAberto(modelo, false);
-        const texto = 'O fluxo voltou ao modelo do guia.';
-        this.notificacoes.success(texto);
-        this.acessibilidade.anunciar(texto);
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
+        this.notificacoes.success('O fluxo voltou ao modelo do guia.');
         this.salvou.emit();
         this.carregarLista(true);
         this.focoPendente = 'pe-fx-fluxo-titulo';

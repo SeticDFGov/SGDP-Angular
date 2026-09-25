@@ -75,7 +75,7 @@
           <span class="material-icons text-sm" aria-hidden="true">{{ comparando ? 'expand_less' : 'compare' }}</span>
           {{ comparando ? 'Fechar a comparação' : 'Comparar com o modelo do guia' }}
         </button>
-        <button *ngIf="podeRestaurar" type="button" (click)="restaurar()" [disabled]="restaurando || salvando"
+        <button *ngIf="podeRestaurar" type="button" (click)="restaurar()" [attr.aria-disabled]="(restaurando || salvando) || null"
                 class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
           <span class="material-icons text-sm" aria-hidden="true">restore</span> {{ restaurando ? 'Voltando...' : 'Voltar ao modelo do guia' }}
         </button>
@@ -109,8 +109,9 @@
         ? 'Compare os dois desenhos e escolha: manter a adaptação do órgão ou voltar ao modelo do guia.'
         : 'O órgão ainda não escolheu entre a adaptação dele e o modelo novo.' }}</p>
       <div *ngIf="podeEditar" class="flex flex-wrap items-center gap-2 mt-2">
-        <button type="button" (click)="manterAdaptacao()" [disabled]="salvando || sujo"
-                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        <button type="button" (click)="manterAdaptacao()" [attr.aria-disabled]="(salvando || sujo) || null"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                [ngClass]="sujo ? 'opacity-50' : ''">
           <span class="material-icons text-sm" aria-hidden="true">done</span> Manter a adaptação do órgão
         </button>
         <span *ngIf="sujo" class="text-xs text-gray-600">Salve ou descarte as mudanças antes.</span>
@@ -118,7 +119,7 @@
     </div>
 
     <!-- Só para ler: por quê -->
-    <div *ngIf="!podeEditar" class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+    <div *ngIf="!podeEditar && !semAvisoLeitura" class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
       <span class="material-icons text-gray-500" aria-hidden="true">visibility</span>
       <p class="leading-relaxed">{{ avisoLeitura || (doOrgao
         ? 'Você pode consultar o fluxo. Quem adapta é a equipe do órgão.'
@@ -138,13 +139,21 @@
     <!-- ── Modo visual (E9): o desenho interativo e o painel do item selecionado ── -->
     <ng-container *ngIf="emModoVisual && def as d; else modoLista">
       <ng-container *ngTemplateOutlet="dadosDoFluxo; context: { $implicit: d }"></ng-container>
-      <div class="pe-fx-visual">
+      <div class="pe-fx-visual" [class.pe-fx-painel-fechado]="!painelAberto">
         <div class="pe-fx-visual-desenho">
           <app-pe-fluxo-visual [def]="d" [versao]="versao" [chave]="chaveAtual" [nomeFluxo]="a.Nome" [selecao]="selecao"
                                (selecionar)="aoSelecionarNoDesenho($event)"></app-pe-fluxo-visual>
         </div>
-        <aside class="pe-fx-painel rounded-lg border border-gray-200 bg-white p-4 space-y-4" aria-labelledby="pe-fx-painel-titulo">
-          <ng-container *ngTemplateOutlet="painel"></ng-container>
+        <!-- O painel se esconde, para o desenho ficar com a linha inteira; Enter num item do desenho mostra de novo (F1, D04) -->
+        <aside class="pe-fx-painel rounded-lg border border-gray-200 bg-white p-4 space-y-4" aria-label="Painel do item selecionado">
+          <button type="button" id="pe-fx-painel-alternar" (click)="alternarPainel()" [attr.aria-expanded]="painelAberto" aria-controls="pe-fx-painel-corpo"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-sm" aria-hidden="true">{{ painelAberto ? 'chevron_right' : 'chevron_left' }}</span>
+            {{ painelAberto ? 'Esconder o painel' : 'Mostrar o painel' }}
+          </button>
+          <div *ngIf="painelAberto" id="pe-fx-painel-corpo" class="space-y-4">
+            <ng-container *ngTemplateOutlet="painel"></ng-container>
+          </div>
         </aside>
       </div>
       <app-pe-fluxo-descricao [descricaoPronta]="descricao" idBase="pe-fx-descricao" [nomeFluxo]="a.Nome"></app-pe-fluxo-descricao>
@@ -214,7 +223,8 @@
 
             <!-- Os passos da raia, na ordem do fluxo -->
             <p *ngIf="quantosNaRaia(r) === 0" class="mt-3 text-sm text-gray-600">Esta raia ainda não tem passos.</p>
-            <ol *ngIf="quantosNaRaia(r) > 0" class="mt-3 space-y-2" [attr.aria-label]="'Passos da raia ' + nomeRaia(r)">
+            <!-- Cartões a 1 rem um do outro, acima do mínimo de 0,75 rem (F1, A16) -->
+            <ol *ngIf="quantosNaRaia(r) > 0" class="mt-3 space-y-4" [attr.aria-label]="'Passos da raia ' + nomeRaia(r)">
               <li *ngFor="let e of passosDaRaia(r); trackBy: porId" class="rounded-lg border border-gray-200 bg-white">
                 <ng-container *ngTemplateOutlet="passo; context: { $implicit: e }"></ng-container>
               </li>
@@ -235,7 +245,7 @@
         <div *ngIf="semRaia.length > 0" class="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <h5 class="text-sm font-semibold text-amber-900">Passos sem raia</h5>
           <p class="text-xs text-amber-900 mt-0.5">A raia destes passos não existe mais. Abra cada um e escolha a raia.</p>
-          <ol class="mt-3 space-y-2">
+          <ol class="mt-3 space-y-4">
             <li *ngFor="let e of semRaia; trackBy: porId" class="rounded-lg border border-gray-200 bg-white">
               <ng-container *ngTemplateOutlet="passo; context: { $implicit: e }"></ng-container>
             </li>
@@ -284,28 +294,37 @@
   </section>
 
   <!-- Pé da tela: salvar, desfazer e descartar -->
+  <!-- Espaços menores: no celular (375 px), os botões cabem numa linha só e o pé não cobre o desenho (F1, B21) -->
   <div *ngIf="aberto && podeEditar" role="region" aria-label="Ações do fluxo"
-       class="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white px-5 py-3 shadow-lg">
+       class="sticky bottom-0 z-10 flex flex-wrap items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-3 shadow-lg">
     <span class="material-icons" [ngClass]="sujo ? 'text-amber-600' : 'text-green-600'" aria-hidden="true">{{ sujo ? 'edit_note' : 'cloud_done' }}</span>
     <p class="flex-1 text-sm text-gray-800">
-      <!-- No celular, a frase curta (o pé da tela fica menor e o desenho aparece mais) -->
-      <ng-container *ngIf="sujo"><span class="hidden md:inline">Há mudanças neste fluxo que ainda não foram salvas.</span><span
-        class="md:hidden">Mudanças não salvas.</span></ng-container>
-      <ng-container *ngIf="!sujo">O fluxo está salvo.</ng-container>
-      <ng-container *ngIf="sujo && temProblemas"> Corrija os problemas para salvar.</ng-container>
+      <!-- No celular, a barra fica numa linha só: a frase fica para o leitor de tela (o ícone mostra a situação) e o
+           Desfazer só com o ícone (F1, B21) -->
+      <span class="hidden md:inline">
+        <ng-container *ngIf="sujo">Há mudanças neste fluxo que ainda não foram salvas.</ng-container>
+        <ng-container *ngIf="!sujo">O fluxo está salvo.</ng-container>
+        <ng-container *ngIf="sujo && temProblemas"> Corrija os problemas para salvar.</ng-container>
+      </span>
+      <span class="md:hidden sr-only">{{ sujo ? 'Mudanças não salvas.' : 'O fluxo está salvo.' }}</span>
     </p>
-    <button type="button" (click)="desfazer()" [disabled]="!podeDesfazer" [attr.aria-label]="textoDesfazer" [title]="textoDesfazer"
-            class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-      <span class="material-icons text-base" aria-hidden="true">undo</span> Desfazer
+    <!-- Indisponíveis sem sair do Tab (aria-disabled): desligados, os botões perdiam o foco depois de salvar,
+         desfazer ou descartar (F1, B01) -->
+    <button type="button" (click)="desfazer()" [attr.aria-disabled]="!podeDesfazer || null" [attr.aria-label]="textoDesfazer" [title]="textoDesfazer"
+            class="inline-flex items-center gap-1 px-2.5 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50"
+            [ngClass]="podeDesfazer ? '' : 'opacity-50'">
+      <span class="material-icons text-base" aria-hidden="true">undo</span> <span class="hidden md:inline">Desfazer</span>
     </button>
-    <button type="button" (click)="descartar()" [disabled]="!sujo || salvando"
-            class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+    <button type="button" (click)="descartar()" [attr.aria-disabled]="(!sujo || salvando) || null"
+            class="inline-flex items-center gap-1 px-2.5 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50"
+            [ngClass]="!sujo || salvando ? 'opacity-50' : ''">
       <span class="material-icons text-base" aria-hidden="true">restart_alt</span>
       <!-- No celular, o rótulo curto (o pé da tela fica menor) -->
       <span>Descartar<span class="hidden md:inline"> as mudanças</span></span>
     </button>
-    <button type="button" (click)="salvar()" [disabled]="!sujo || salvando"
-            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+    <button type="button" (click)="salvar()" [attr.aria-disabled]="(!sujo || salvando) || null"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700"
+            [ngClass]="!sujo && !salvando ? 'opacity-50' : ''">
       <span class="material-icons text-base" aria-hidden="true">save</span>
       <span>{{ salvando ? 'Salvando...' : 'Salvar' }}<span *ngIf="!salvando" class="hidden md:inline"> o fluxo</span></span>
     </button>
@@ -355,12 +374,21 @@
         <p [id]="idEl(e, 'tipo-ajuda')" class="text-xs text-gray-500 italic mt-1">{{ explicacaoTipo(e.Tipo) }}</p>
       </div>
       <div>
+        <!-- A escolha vale no botão "Mover": as setas do teclado na lista não mudam o fluxo a cada tecla (F1, D05) -->
         <label [for]="idEl(e, 'raia')" class="block text-xs font-semibold text-gray-700 mb-1">{{ emModoVisual ? 'Mover para a raia' : 'Raia (quem faz)' }}</label>
-        <select [id]="idEl(e, 'raia')" [ngModel]="e.RaiaId" (ngModelChange)="mudarRaia(e, $event)"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option *ngIf="!existeRaia(e.RaiaId)" [value]="e.RaiaId">Escolha a raia</option>
-          <option *ngFor="let r of raias; trackBy: porId" [value]="r.Id">{{ nomeRaia(r) }}</option>
-        </select>
+        <div class="flex flex-wrap items-center gap-2">
+          <select [id]="idEl(e, 'raia')" [ngModel]="raiaDaLista(e)" (ngModelChange)="escolherRaia(e, $event)"
+                  [attr.aria-describedby]="erroLocal('raia:' + e.Id) ? idEl(e, 'raia-erro') : null"
+                  class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngIf="!existeRaia(e.RaiaId)" [value]="e.RaiaId">Escolha a raia</option>
+            <option *ngFor="let r of raias; trackBy: porId" [value]="r.Id">{{ nomeRaia(r) }}{{ r.Id === e.RaiaId ? ' (atual)' : '' }}</option>
+          </select>
+          <button type="button" [id]="idEl(e, 'raia-mover')" (click)="moverDeRaia(e)"
+                  class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50">
+            <span class="material-icons text-base" aria-hidden="true">swap_vert</span> Mover
+          </button>
+        </div>
+        <p *ngIf="erroLocal('raia:' + e.Id) as erro" [id]="idEl(e, 'raia-erro')" role="alert" class="text-xs text-red-700 mt-1">{{ erro }}</p>
       </div>
     </div>
 
@@ -532,7 +560,7 @@
       <input id="pe-fx-prefixo" type="text" [ngModel]="d.PrefixoNumeracao ?? ''" (ngModelChange)="mudarPrefixo($event)" [maxlength]="maxPrefixo"
              aria-describedby="pe-fx-prefixo-ajuda"
              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <p id="pe-fx-prefixo-ajuda" class="text-xs text-gray-500 italic mt-1">Com "1", as tarefas saem 1.1, 1.2, 1.3. Vazio: 1, 2, 3.</p>
+      <p id="pe-fx-prefixo-ajuda" class="text-xs text-gray-500 italic mt-1">Com "1", as tarefas saem 1.1, 1.2, 1.3. Vazio: as tarefas saem sem número, também no documento.</p>
     </div>
   </div>
 </ng-template>
@@ -577,7 +605,7 @@
 <ng-template #painel>
   <!-- Nada selecionado: como usar -->
   <ng-container *ngIf="!selecao">
-    <h4 id="pe-fx-painel-titulo" tabindex="-1" class="text-sm font-semibold text-gray-900">Painel do item selecionado</h4>
+    <h4 id="pe-fx-painel-titulo-vazio" tabindex="-1" class="text-sm font-semibold text-gray-900">Painel do item selecionado</h4>
     <p class="text-sm text-gray-700 leading-relaxed">Clique num bloco, numa seta ou no nome de uma raia para ver as opções dele aqui.</p>
     <ul class="list-disc ml-5 text-xs text-gray-600 space-y-1">
       <li>Arraste um bloco da paleta para uma raia. Solto sobre uma seta, ele entra entre os dois passos.</li>
@@ -592,7 +620,7 @@
   <ng-container *ngIf="elementoSelecionado as e">
     <div>
       <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">{{ rotuloTipo(e.Tipo) }}</p>
-      <h4 id="pe-fx-painel-titulo" tabindex="-1" class="text-base font-bold text-gray-900">{{ rotulo(e) }}</h4>
+      <h4 id="pe-fx-painel-titulo-bloco" tabindex="-1" class="text-base font-bold text-gray-900">{{ rotulo(e) }}</h4>
       <p class="text-xs text-gray-600 mt-1">{{ resumo(e) }}</p>
     </div>
     <ng-container *ngTemplateOutlet="passoCampos; context: { $implicit: e }"></ng-container>
@@ -667,7 +695,7 @@
   <ng-container *ngIf="ligacaoSelecionada as l">
     <div>
       <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Seta (ligação)</p>
-      <h4 id="pe-fx-painel-titulo" tabindex="-1" class="text-base font-bold text-gray-900">De {{ rotuloPorId(l.De) }} para {{ rotuloPorId(l.Para) }}</h4>
+      <h4 id="pe-fx-painel-titulo-seta" tabindex="-1" class="text-base font-bold text-gray-900">De {{ rotuloPorId(l.De) }} para {{ rotuloPorId(l.Para) }}</h4>
     </div>
     <div *ngIf="saiDeDecisao(l)">
       <label [for]="idLig(l, 'rotulo')" class="block text-xs font-semibold text-gray-700 mb-1">Rótulo da saída</label>
@@ -697,7 +725,7 @@
       </button>
     </div>
     <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-100">
-      <button type="button" (click)="voltarAoDesenho(l.De)"
+      <button type="button" (click)="voltarAoDesenhoDaSeta(l)"
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
         <span class="material-icons text-sm" aria-hidden="true">account_tree</span> Voltar ao desenho
       </button>
@@ -712,7 +740,7 @@
   <ng-container *ngIf="raiaSelecionada as r">
     <div>
       <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Raia {{ posicaoRaia(r) }} de {{ raias.length }}</p>
-      <h4 id="pe-fx-painel-titulo" tabindex="-1" class="text-base font-bold text-gray-900">{{ nomeRaia(r) }}</h4>
+      <h4 id="pe-fx-painel-titulo-raia" tabindex="-1" class="text-base font-bold text-gray-900">{{ nomeRaia(r) }}</h4>
       <p *ngIf="marcadorDaRaia(r) as m" class="text-xs text-gray-600 mt-1">
         Nome do dicionário: {{ descricaoMarcador(m) }}<ng-container *ngIf="raiaSemNomeNoDicionario(r)">
         (o órgão ainda não escreveu este nome: vale o nome padrão do guia)</ng-container>.

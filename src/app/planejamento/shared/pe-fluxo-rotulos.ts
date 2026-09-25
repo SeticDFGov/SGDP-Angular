@@ -290,16 +290,18 @@ export function ordemDoFluxo(def: PeFluxoDefinicao): OrdemFluxo {
 
 /**
  * Número de cada tarefa e subprocesso pela ordem do fluxo: "1.1", "1.2"... com o
- * prefixo; sem prefixo, "1", "2"...
+ * prefixo; sem prefixo, nenhum número (como o servidor e o documento).
  */
 export function numerosDoFluxo(def: PeFluxoDefinicao, ordem: PeFluxoElemento[] = ordemDoFluxo(def).ordem): Map<string, string> {
   const prefixo = (def.PrefixoNumeracao ?? '').trim();
   const numeros = new Map<string, string>();
+  // Sem prefixo, o servidor não numera (o desenho sai sem números): a descrição segue a mesma regra (F1, B17)
+  if (!prefixo) return numeros;
   let n = 0;
   for (const e of ordem) {
     if (!tipoNumerado(e.Tipo)) continue;
     n++;
-    numeros.set(e.Id, prefixo ? `${prefixo}.${n}` : String(n));
+    numeros.set(e.Id, `${prefixo}.${n}`);
   }
   return numeros;
 }

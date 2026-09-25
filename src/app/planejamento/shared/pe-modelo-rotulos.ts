@@ -349,6 +349,57 @@ export function configParaEnvio(tipo: PeTipoCampo, config: PeConfigCampo | null)
   return c;
 }
 
+/** Formatos do texto curto (F1, C05 e C33): o servidor confere e a tela põe a máscara. */
+export const FORMATOS_TEXTO: OpcaoRotulo[] = [
+  { valor: 'sei', rotulo: 'Número de processo SEI (00000-00000000/0000-00)' },
+  { valor: 'url', rotulo: 'Endereço de internet (http ou https)' }
+];
+
+/**
+ * O que está fora da faixa na configuração, pela chave do config (F1, A14), com as
+ * mesmas regras e mensagens do servidor: tamanho do texto curto de 1 a 1000 e do
+ * longo de 1 a 50000, casas de 0 a 6, menor valor até o maior, arquivo de 1 a 25 MB.
+ */
+export function errosDoConfig(tipo: PeTipoCampo, config: PeConfigCampo | null): Record<string, string> {
+  const c = config ?? {};
+  const erros: Record<string, string> = {};
+  const inteiroFora = (v: unknown, min: number, max: number) =>
+    typeof v === 'number' && Number.isFinite(v) && (!Number.isInteger(v) || v < min || v > max);
+  switch (tipo) {
+    case 'texto_curto':
+      if (inteiroFora(c.max, 1, 1000)) erros['max'] = 'O tamanho máximo do texto curto vai de 1 a 1000 caracteres.';
+      break;
+    case 'texto_longo':
+      if (inteiroFora(c.max, 1, 50000)) erros['max'] = 'O tamanho máximo do texto longo vai de 1 a 50000 caracteres.';
+      break;
+    case 'numero':
+      if (typeof c.min === 'number' && typeof c.max === 'number' && c.min > c.max) erros['min'] = 'O menor valor não pode ser maior que o maior.';
+      if (inteiroFora(c.casas, 0, 6)) erros['casas'] = 'As casas decimais vão de 0 a 6.';
+      if (typeof c.unidade === 'string' && c.unidade.trim().length > 30) erros['unidade'] = 'A unidade tem no máximo 30 caracteres.';
+      break;
+    case 'arquivo':
+      if (inteiroFora(c.maxMb, 1, 25)) erros['maxMb'] = 'O tamanho máximo do arquivo vai de 1 a 25 MB.';
+      break;
+    default:
+      break;
+  }
+  return erros;
+}
+
+/**
+ * Os erros do 400 da configuração pela chave do config (F1, A14): o servidor manda
+ * `Campos` com "Config.max", "Config.secao"...; a chave "Config" (o config
+ * inteiro) e as outras ficam de fora (a tela mostra a `Message` no resumo).
+ */
+export function errosDoConfigNoServidor(campos: Record<string, string> | null | undefined): Record<string, string> {
+  const erros: Record<string, string> = {};
+  for (const [chave, mensagem] of Object.entries(campos ?? {})) {
+    const m = /^config\.(\w+)$/i.exec(chave);
+    if (m && mensagem) erros[m[1] === 'maxmb' ? 'maxMb' : m[1]] = mensagem;
+  }
+  return erros;
+}
+
 // ── Histórico ────────────────────────────────────────────────────────────────
 
 const ENTIDADES: Record<string, string> = {

@@ -345,7 +345,10 @@ export class PeInadimplenciasComponent implements OnInit, AfterViewChecked {
 
   /** O órgão e a notificação da janela, em texto (contexto da ação). */
   prazoDoAlvo(): string {
-    return this.alvo ? textoPrazoInadimplencia(this.alvo) : '';
+    const a = this.alvo;
+    if (!a) return '';
+    // Fora do prazo correndo, o texto do prazo é só a data: no cabeçalho da janela, diz que é o prazo (F1, A18)
+    return a.Situacao !== 'notificado' && a.Prazo ? `prazo até ${textoData(a.Prazo)}` : textoPrazoInadimplencia(a);
   }
 
   dataDoAlvo(): string {

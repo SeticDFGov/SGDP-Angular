@@ -6,6 +6,7 @@ import { DialogoDirective } from '../../../core/acessibilidade/dialogo.directive
 import { NotificationService } from '../../../core/services/notification.service';
 import { PeFonteRegistros } from '../../services/pe-registros.service';
 import { mensagemErroPe } from '../pe-erros';
+import { PeConfirmacaoService } from '../pe-confirmacao.service';
 import { PeRegistroEdicaoComponent } from './pe-registro-edicao.component';
 import { PeRegistroLeituraComponent } from './pe-registro-leitura.component';
 import { classeLargura, colunasDaTabela, cortar, textoDoValor } from './pe-valores';
@@ -43,6 +44,7 @@ interface Painel {
 export class PeTabelaRegistrosComponent implements OnChanges, AfterViewChecked {
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   @Input({ required: true }) dados!: PeRegistrosDaSecao;
@@ -131,9 +133,20 @@ export class PeTabelaRegistrosComponent implements OnChanges, AfterViewChecked {
     this.painel = { registro: r, leitura: !this.editavel(r) };
   }
 
-  /** Fecha o painel (Esc, "Cancelar", "Fechar"); com mudança não salva, pergunta antes. */
+  /** Fecha o painel (Esc, "Cancelar", "Fechar"); com mudança não salva, pergunta antes (na janela do módulo, F1, A04). */
   fecharPainel(): void {
-    if (this.painelSujo && !confirm('Há mudanças que ainda não foram salvas. Fechar assim mesmo? Elas vão se perder.')) return;
+    if (!this.painelSujo) {
+      this.fecharPainelSim();
+      return;
+    }
+    const painel = this.painel;
+    this.confirmacao.perguntarDescarte('Há mudanças que ainda não foram salvas neste registro. Elas se perdem.', 'Fechar sem salvar', 'Fechar sem salvar?')
+      .then(sim => {
+        if (sim && this.painel === painel) this.fecharPainelSim();
+      });
+  }
+
+  private fecharPainelSim(): void {
     this.painel = null;
     this.aoAlterar(false);
   }
@@ -152,7 +165,8 @@ export class PeTabelaRegistrosComponent implements OnChanges, AfterViewChecked {
     this.painelSujo = false;
     this.painel = null;
     this.alterado.emit(false);
-    const nome = salvo.Codigo || this.rotuloItem;
+    // "Registro A03 incluído": neutro no gênero, que muda de item para item (F1, C16)
+    const nome = salvo.Codigo ? `Registro ${salvo.Codigo}` : 'Registro';
     this.notificacoes.success(novo ? `${nome} incluído.` : `${nome} salvo.`);
     this.mudou.emit(this.registros);
   }
@@ -163,7 +177,12 @@ export class PeTabelaRegistrosComponent implements OnChanges, AfterViewChecked {
     if (!this.editavel(r) || this.apagando !== null) return;
     const nome = this.nome(r);
     const codigo = r.Codigo ? ` O código ${r.Codigo} não volta a ser usado.` : '';
-    if (!confirm(`Apagar ${nome}? Não dá para desfazer.${codigo}`)) return;
+    this.confirmacao.perguntar({ titulo: `Apagar ${nome}?`, texto: `Não dá para desfazer.${codigo}`, sim: 'Apagar', perigo: true }).then(sim => {
+      if (sim && this.apagando === null && this.registros.some(x => x.Id === r.Id)) this.apagarSim(r, nome);
+    });
+  }
+
+  private apagarSim(r: PeRegistro, nome: string): void {
     this.apagando = r.Id;
     this.avisoApagar = null;
     this.fonte.apagar(this.dados.Secao.Chave, r.Id).subscribe({
@@ -171,8 +190,8 @@ export class PeTabelaRegistrosComponent implements OnChanges, AfterViewChecked {
         this.apagando = null;
         const indice = this.registros.findIndex(x => x.Id === r.Id);
         this.registros = this.registros.filter(x => x.Id !== r.Id);
-        this.notificacoes.success(`${nome} apagado.`);
-        this.acessibilidade.anunciar(`${nome} apagado.`);
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05); neutro no gênero (F1, C16)
+        this.notificacoes.success(r.Codigo ? `Registro ${r.Codigo} apagado.` : 'Registro apagado.');
         // O foco vai para a linha que ficou no lugar (ou para o botão de incluir)
         const vizinho = this.registros[Math.min(indice, this.registros.length - 1)];
         this.focoPendente = vizinho ? `${this.prefixoId}-abrir-${vizinho.Id}` : `${this.prefixoId}-incluir`;

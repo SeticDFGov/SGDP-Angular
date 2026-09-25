@@ -4,11 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
-import { PePetic, PeSecaoModelo } from '../../../api/planejamento/interface';
-import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
+import { PePendenciaEnvioPetic, PePetic, PeSecaoModelo } from '../../../api/planejamento/interface';
 import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import { modeloOrdenado } from '../shared/pe-modelo-arvore';
@@ -31,6 +31,14 @@ interface JanelaVersao {
   fim: string;
   copiar: boolean;
   tentou: boolean;
+}
+
+/** F1 (A06): o que falta para enviar a versão ao CGTIC, na tela até o próximo envio. */
+interface PendenciasEnvio {
+  versaoId: number;
+  itens: PePendenciaEnvioPetic[];
+  /** Mensagem sem lista (servidor sem as pendências por seção, ou o porquê de não poder enviar). */
+  mensagem: string | null;
 }
 
 /** Tamanho do título (o servidor confere de novo). */
@@ -78,7 +86,7 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
   private readonly modeloService = inject(PeModeloService);
   private readonly registrosService = inject(PeRegistrosService);
   private readonly notificacoes = inject(NotificationService);
-  private readonly acessibilidade = inject(AcessibilidadeService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
   private readonly router = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -108,6 +116,9 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
   janela: JanelaVersao | null = null;
   salvandoJanela = false;
   enviando = false;
+  /** F1 (A06): o que falta para enviar (a lista fica na tela, com o caminho para cada seção). */
+  pendencias: PendenciasEnvio | null = null;
+  conferindo = false;
   apagando = false;
   baixandoCompleta = false;
   private sujo = false;
@@ -242,13 +253,13 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
 
   enviadaEm(v: PePetic): string {
     const d = v.Deliberacao;
-    return d ? quandoEQuem(d.EnviadoEm, d.EnviadoPor) : '-';
+    return d ? quandoEQuem(d.EnviadoEm, d.EnviadoPor, d.EnviadoPorNome) : '-';
   }
 
   decididaEm(v: PePetic): string {
     const d = v.Deliberacao;
     if (!d) return v.AprovadoEm ? textoData(v.AprovadoEm) : '-';
-    return d.DecididoEm ? quandoEQuem(d.DecididoEm, d.DecididoPor) : (v.AprovadoEm ? textoData(v.AprovadoEm) : '-');
+    return d.DecididoEm ? quandoEQuem(d.DecididoEm, d.DecididoPor, d.DecididoPorNome) : (v.AprovadoEm ? textoData(v.AprovadoEm) : '-');
   }
 
   ato(v: PePetic): string {
@@ -303,33 +314,41 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
   // ── Navegação dentro da tela ──────────────────────────────────────────────
 
   irParaVersao(v: PePetic): void {
-    if (v.Id === this.selecionada?.Id || !this.podeTrocar()) return;
-    this.navegar({ versao: v.Id });
+    if (v.Id === this.selecionada?.Id) return;
+    this.podeTrocar().then(ok => {
+      if (ok) this.navegar({ versao: v.Id });
+    });
   }
 
   irParaSecao(secao: PeSecaoModelo): void {
-    if (secao.Chave === this.secaoAtual?.Chave || !this.podeTrocar()) return;
-    this.navegar({ secao: secao.Chave });
+    if (secao.Chave === this.secaoAtual?.Chave) return;
+    this.podeTrocar().then(ok => {
+      if (ok) this.navegar({ secao: secao.Chave });
+    });
   }
 
   private navegar(params: Record<string, string | number | null>, trocar = false): void {
     this.router.navigate([], { relativeTo: this.rota, queryParams: params, queryParamsHandling: 'merge', replaceUrl: trocar });
   }
 
-  private podeTrocar(): boolean {
-    if (!this.sujo) return true;
-    if (!confirm('Há mudanças que ainda não foram salvas nesta seção. Sair dela assim mesmo? Elas vão se perder.')) return false;
-    this.sujo = false;
-    return true;
+  /** Mudança não salva na seção aberta: pergunta na janela do módulo antes de trocar (F1, A04). */
+  private podeTrocar(): Promise<boolean> {
+    if (!this.sujo) return Promise.resolve(true);
+    return this.confirmacao.perguntarDescarte(
+      'Há mudanças que ainda não foram salvas nesta seção. Se sair dela agora, elas se perdem.', 'Sair sem salvar', 'Sair da seção sem salvar?'
+    ).then(sim => {
+      if (sim) this.sujo = false;
+      return sim;
+    });
   }
 
   aoAlterar(sujo: boolean): void {
     this.sujo = sujo;
   }
 
-  /** Guarda de rota: mudança não salva na seção aberta. */
+  /** Guarda de rota: com mudança não salva na seção aberta, ela pergunta antes de sair (F1, A04). */
   podeSair(): boolean {
-    return !this.sujo || confirm('Há mudanças que ainda não foram salvas. Sair assim mesmo? Elas vão se perder.');
+    return !this.sujo;
   }
 
   // ── Rascunho novo, título e vigência ─────────────────────────────────────
@@ -415,25 +434,123 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
 
   // ── Envio, exclusão e planilha completa ───────────────────────────────────
 
+  /**
+   * Enviar ao CGTIC: primeiro a prévia (F1, A06). Com pendência, a lista fica na
+   * tela, com o caminho para cada seção, e recebe o foco; sem pendência, a janela
+   * do módulo confirma e o envio sai. Sem a prévia (servidor antigo), o próprio
+   * envio confere, e o 400 traz a mesma lista.
+   */
   enviar(v: PePetic): void {
-    if (!this.editavel(v) || this.enviando) return;
+    if (!this.editavel(v) || this.enviando || this.conferindo) return;
     if (this.sujo) {
       this.notificacoes.warning('Salve (ou desfaça) as mudanças da seção aberta antes de enviar.');
       return;
     }
-    if (!confirm(`Enviar a versão ${v.Versao} do PETIC-DF ao CGTIC? Depois de enviada, ela não muda até o comitê decidir.`)) return;
+    this.conferindo = true;
+    this.peticService.previaEnvio(v.Id).subscribe({
+      next: previa => {
+        this.conferindo = false;
+        const itens = previa?.Pendencias ?? [];
+        if (previa && !previa.PodeEnviar) {
+          this.mostrarPendencias(v, itens, previa.Motivo ?? null);
+          return;
+        }
+        this.pendencias = null;
+        this.confirmarEnvio(v);
+      },
+      error: () => {
+        this.conferindo = false;
+        this.confirmarEnvio(v);
+      }
+    });
+  }
+
+  /** "Conferir de novo" no quadro do que falta: a prévia outra vez, sem enviar. */
+  conferirDeNovo(v: PePetic): void {
+    if (this.conferindo) return;
+    this.conferindo = true;
+    this.peticService.previaEnvio(v.Id).subscribe({
+      next: previa => {
+        this.conferindo = false;
+        if (previa && !previa.PodeEnviar) {
+          this.mostrarPendencias(v, previa.Pendencias ?? [], previa.Motivo ?? null);
+          return;
+        }
+        this.pendencias = null;
+        this.notificacoes.success('Nada falta: a versão já pode ser enviada ao CGTIC.');
+        this.focoPendente = 'pe-petic-enviar';
+      },
+      error: erro => {
+        this.conferindo = false;
+        const mensagem = mensagemErroPe(erro, 'Não foi possível conferir agora. Tente de novo.');
+        if (mensagem) this.notificacoes.error(mensagem);
+      }
+    });
+  }
+
+  private mostrarPendencias(v: PePetic, itens: PePendenciaEnvioPetic[], mensagem: string | null): void {
+    this.pendencias = { versaoId: v.Id, itens, mensagem: itens.length ? null : (mensagem || 'Ainda falta algo para enviar esta versão.') };
+    this.focoPendente = 'pe-petic-pendencias';
+  }
+
+  /** O caminho de uma pendência: a seção dela (com o foco no título) ou, na vigência, a janela do título e da vigência. */
+  irParaPendencia(v: PePetic, p: PePendenciaEnvioPetic): void {
+    if (!p.SecaoChave) {
+      this.abrirDados(v);
+      return;
+    }
+    const secao = this.secoes.find(s => s.Chave === p.SecaoChave);
+    if (!secao) return;
+    const idTitulo = `pe-secao-${secao.Chave}-titulo`;
+    if (secao.Chave === this.secaoAtual?.Chave) {
+      this.focoPendente = idTitulo;
+      return;
+    }
+    this.podeTrocar().then(ok => {
+      if (!ok) return;
+      this.navegar({ secao: secao.Chave });
+      this.focoPendente = idTitulo;
+    });
+  }
+
+  /** A seção da pendência ainda existe no modelo (senão, o item fica sem botão). */
+  temCaminho(p: PePendenciaEnvioPetic): boolean {
+    return !p.SecaoChave || this.secoes.some(s => s.Chave === p.SecaoChave);
+  }
+
+  private confirmarEnvio(v: PePetic): void {
+    this.confirmacao.perguntar({
+      titulo: `Enviar a versão ${v.Versao} do PETIC-DF ao CGTIC?`,
+      texto: 'Depois de enviada, a versão não muda até o comitê decidir. A Secretaria do CGTIC registra a decisão.',
+      sim: 'Enviar ao CGTIC'
+    }).then(sim => {
+      if (sim) this.confirmarEnvioSim(v);
+    });
+  }
+
+  private confirmarEnvioSim(v: PePetic): void {
     this.enviando = true;
     this.peticService.enviar(v.Id).subscribe({
       next: versao => {
         this.enviando = false;
+        this.pendencias = null;
+        // Um aviso só (o toast já é lido pelo leitor de tela; F1, B05)
         this.notificacoes.success(`Versão ${versao?.Versao ?? v.Versao} enviada ao CGTIC. A Secretaria do comitê registra a decisão.`);
-        this.acessibilidade.anunciar(`Versão ${v.Versao} enviada ao CGTIC.`);
         this.estadoService.atualizarStatus(true);
-        // A lista vem de novo para a deliberação criada aparecer inteira; a versão enviada segue aberta
-        this.carregar(() => this.navegar({ versao: v.Id }, true));
+        // A lista vem de novo para a deliberação criada aparecer inteira; a versão enviada segue aberta,
+        // com o foco no título dela (o botão de enviar sai da tela)
+        this.carregar(() => {
+          this.navegar({ versao: v.Id }, true);
+          this.focoPendente = 'pe-petic-versao-titulo';
+        });
       },
       error: erro => {
         this.enviando = false;
+        const corpo = (erro as { status?: number; error?: { Message?: string; Pendencias?: PePendenciaEnvioPetic[] } } | null);
+        if (corpo?.status === 400 && (Array.isArray(corpo.error?.Pendencias) || corpo.error?.Message)) {
+          this.mostrarPendencias(v, corpo.error?.Pendencias ?? [], corpo.error?.Message ?? null);
+          return;
+        }
         const mensagem = mensagemErroPe(erro, 'Não foi possível enviar ao CGTIC. Tente de novo.');
         if (mensagem) this.notificacoes.error(mensagem);
       }
@@ -442,15 +559,30 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
 
   apagar(v: PePetic): void {
     if (!this.apagavel(v) || this.apagando) return;
-    if (!confirm(`Apagar o rascunho da versão ${v.Versao}? Tudo o que foi preenchido nele sai junto, e não dá para desfazer.`)) return;
+    this.confirmacao.perguntar({
+      titulo: `Apagar o rascunho da versão ${v.Versao}?`,
+      texto: 'Tudo o que foi preenchido nele sai junto, e não dá para desfazer.',
+      sim: 'Apagar o rascunho',
+      perigo: true
+    }).then(sim => {
+      if (sim) this.apagarSim(v);
+    });
+  }
+
+  private apagarSim(v: PePetic): void {
     this.apagando = true;
     this.peticService.apagar(v.Id).subscribe({
       next: () => {
         this.apagando = false;
         this.sujo = false;
+        this.pendencias = null;
         this.notificacoes.success(`Rascunho da versão ${v.Versao} apagado.`);
         this.estadoService.atualizarStatus(true);
-        this.carregar(() => this.navegar({ versao: null }, true));
+        // O botão de apagar sai da tela: o foco vai para "Criar rascunho"
+        this.carregar(() => {
+          this.navegar({ versao: null }, true);
+          this.focoPendente = 'pe-petic-novo';
+        });
       },
       error: erro => {
         this.apagando = false;

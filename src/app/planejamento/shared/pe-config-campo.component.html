@@ -1,8 +1,32 @@
 <ng-container>
 
-  <!-- Textos: tamanho máximo -->
-  <div *ngIf="tipo === 'texto_curto' || tipo === 'texto_longo'">
+  <!-- Textos: tamanho máximo (e, no texto curto, o formato) -->
+  <div *ngIf="tipo === 'texto_curto' || tipo === 'texto_longo'" class="space-y-4">
     <ng-container *ngTemplateOutlet="tamanhoMaximo"></ng-container>
+    <div *ngIf="tipo === 'texto_curto'">
+      <label [for]="prefixoId + '-formato'" class="block text-sm font-semibold text-gray-800 mb-1">Formato</label>
+      <select [id]="prefixoId + '-formato'" [ngModel]="config.formato ?? null" (ngModelChange)="mudarFormato($event)" [ngModelOptions]="{ standalone: true }"
+              [disabled]="somenteLeitura" [attr.aria-invalid]="erro('formato') ? true : null" [attr.aria-describedby]="descritores('formato', 'formato-ajuda')"
+              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              [ngClass]="erro('formato') ? 'border-red-500' : 'border-gray-300'">
+        <option [ngValue]="null">Texto livre</option>
+        <option *ngFor="let f of formatos" [ngValue]="f.valor">{{ f.rotulo }}</option>
+      </select>
+      <p [id]="prefixoId + '-formato-ajuda'" class="text-xs text-gray-500 italic mt-1">Com formato, o campo confere o que o órgão digita
+        (e, no número do SEI, põe os pontos e as barras sozinho).</p>
+      <p *ngIf="erro('formato') as e" [id]="prefixoId + '-formato-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+    </div>
+  </div>
+
+  <!-- Data: pode ser depois de hoje? -->
+  <div *ngIf="tipo === 'data'">
+    <label class="inline-flex items-start gap-2 text-sm text-gray-700">
+      <input type="checkbox" class="w-4 h-4 mt-0.5" [checked]="!!config.naoFutura" (change)="mudarNaoFutura($event)" [disabled]="somenteLeitura"
+             [attr.aria-describedby]="prefixoId + '-naofutura-ajuda'" />
+      Não aceita data depois de hoje
+    </label>
+    <p [id]="prefixoId + '-naofutura-ajuda'" class="text-xs text-gray-500 italic mt-1 ml-6">Para datas do que já aconteceu, como a de uma
+      aprovação ou de uma publicação.</p>
   </div>
 
   <!-- Número: faixa, casas e unidade -->
@@ -11,23 +35,34 @@
     <div>
       <label [for]="prefixoId + '-min'" class="block text-sm font-semibold text-gray-800 mb-1">Menor valor</label>
       <input [id]="prefixoId + '-min'" type="number" [(ngModel)]="config.min" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
-             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+             [attr.aria-invalid]="erro('min') ? true : null" [attr.aria-describedby]="descritores('min')"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+             [ngClass]="erro('min') ? 'border-red-500' : 'border-gray-300'" />
+      <p *ngIf="erro('min') as e" [id]="prefixoId + '-min-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </div>
     <div>
       <label [for]="prefixoId + '-max'" class="block text-sm font-semibold text-gray-800 mb-1">Maior valor</label>
       <input [id]="prefixoId + '-max'" type="number" [(ngModel)]="config.max" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
-             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+             [attr.aria-invalid]="erro('max') ? true : null" [attr.aria-describedby]="descritores('max')"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+             [ngClass]="erro('max') ? 'border-red-500' : 'border-gray-300'" />
+      <p *ngIf="erro('max') as e" [id]="prefixoId + '-max-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </div>
     <div>
       <label [for]="prefixoId + '-casas'" class="block text-sm font-semibold text-gray-800 mb-1">Casas decimais</label>
       <input [id]="prefixoId + '-casas'" type="number" min="0" max="6" [(ngModel)]="config.casas" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
-             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+             [attr.aria-invalid]="erro('casas') ? true : null" [attr.aria-describedby]="descritores('casas')"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+             [ngClass]="erro('casas') ? 'border-red-500' : 'border-gray-300'" />
+      <p *ngIf="erro('casas') as e" [id]="prefixoId + '-casas-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </div>
     <div>
       <label [for]="prefixoId + '-unidade'" class="block text-sm font-semibold text-gray-800 mb-1">Unidade</label>
       <input [id]="prefixoId + '-unidade'" type="text" maxlength="30" [(ngModel)]="config.unidade" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
-             placeholder="Ex.: horas"
-             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+             [attr.aria-invalid]="erro('unidade') ? true : null" [attr.aria-describedby]="descritores('unidade')" placeholder="Ex.: horas"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+             [ngClass]="erro('unidade') ? 'border-red-500' : 'border-gray-300'" />
+      <p *ngIf="erro('unidade') as e" [id]="prefixoId + '-unidade-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </div>
    </div>
    <p class="text-xs text-gray-500 italic mt-1">Deixe em branco o que não tiver limite.</p>
@@ -36,13 +71,18 @@
   <!-- Ligação com outra seção -->
   <div *ngIf="tipo === 'ligacao_secao'" class="space-y-4">
     <div>
-      <label [for]="prefixoId + '-secao'" class="block text-sm font-semibold text-gray-800 mb-1">Seção ligada <span class="text-red-600">*</span></label>
+      <label [for]="prefixoId + '-secao'" class="block text-sm font-semibold text-gray-800 mb-1">
+        Seção ligada<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+      </label>
       <select [id]="prefixoId + '-secao'" [(ngModel)]="config.secao" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+              [attr.aria-invalid]="erro('secao') ? true : null" [attr.aria-describedby]="descritores('secao', 'secao-ajuda')"
+              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              [ngClass]="erro('secao') ? 'border-red-500' : 'border-gray-300'">
         <option [ngValue]="null" disabled>Escolha a seção</option>
         <option *ngFor="let s of secoes" [ngValue]="s.chave">{{ s.titulo }}</option>
       </select>
-      <p class="text-xs text-gray-500 italic mt-1">O órgão escolhe registros dessa seção do mesmo PDTIC (por exemplo, a meta ligada às necessidades).</p>
+      <p [id]="prefixoId + '-secao-ajuda'" class="text-xs text-gray-500 italic mt-1">O órgão escolhe registros dessa seção do mesmo PDTIC (por exemplo, a meta ligada às necessidades).</p>
+      <p *ngIf="erro('secao') as e" [id]="prefixoId + '-secao-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </div>
     <ng-container *ngTemplateOutlet="multipla"></ng-container>
   </div>
@@ -52,16 +92,19 @@
     <div>
       <label [for]="prefixoId + '-catalogo'" class="block text-sm font-semibold text-gray-800 mb-1">Catálogo</label>
       <select [id]="prefixoId + '-catalogo'" [(ngModel)]="config.catalogo" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+              [attr.aria-invalid]="erro('catalogo') ? true : null" [attr.aria-describedby]="descritores('catalogo')"
+              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              [ngClass]="erro('catalogo') ? 'border-red-500' : 'border-gray-300'">
         <option *ngFor="let c of catalogos" [ngValue]="c.valor">{{ c.rotulo }}</option>
       </select>
+      <p *ngIf="erro('catalogo') as e" [id]="prefixoId + '-catalogo-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </div>
     <ng-container *ngTemplateOutlet="multipla"></ng-container>
   </div>
 
   <!-- Arquivo -->
   <div *ngIf="tipo === 'arquivo'" class="space-y-4">
-    <fieldset>
+    <fieldset [attr.aria-describedby]="descritores('tipos')">
       <legend class="block text-sm font-semibold text-gray-800 mb-1">Tipos de arquivo aceitos</legend>
       <div class="flex flex-wrap gap-4">
         <label *ngFor="let t of tiposArquivo" class="inline-flex items-center gap-1.5 text-sm text-gray-700">
@@ -69,12 +112,16 @@
           {{ t.rotulo }}
         </label>
       </div>
+      <p *ngIf="erro('tipos') as e" [id]="prefixoId + '-tipos-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </fieldset>
     <div>
       <label [for]="prefixoId + '-maxmb'" class="block text-sm font-semibold text-gray-800 mb-1">Tamanho máximo (MB)</label>
       <input [id]="prefixoId + '-maxmb'" type="number" min="1" max="25" [(ngModel)]="config.maxMb" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
-             class="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
-      <p class="text-xs text-gray-500 italic mt-1">O sistema aceita até 25 MB por arquivo.</p>
+             [attr.aria-invalid]="erro('maxMb') ? true : null" [attr.aria-describedby]="descritores('maxMb', 'maxmb-ajuda')"
+             class="w-32 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+             [ngClass]="erro('maxMb') ? 'border-red-500' : 'border-gray-300'" />
+      <p [id]="prefixoId + '-maxmb-ajuda'" class="text-xs text-gray-500 italic mt-1">O sistema aceita até 25 MB por arquivo.</p>
+      <p *ngIf="erro('maxMb') as e" [id]="prefixoId + '-maxMb-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </div>
   </div>
 
@@ -83,11 +130,14 @@
     <div>
       <label [for]="prefixoId + '-calculo'" class="block text-sm font-semibold text-gray-800 mb-1">Como calcular</label>
       <select [id]="prefixoId + '-calculo'" [(ngModel)]="config.calculo" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+              [attr.aria-invalid]="erro('calculo') ? true : null" [attr.aria-describedby]="descritores('calculo')"
+              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              [ngClass]="erro('calculo') ? 'border-red-500' : 'border-gray-300'">
         <option *ngFor="let c of calculos" [ngValue]="c.valor">{{ c.rotulo }}</option>
       </select>
+      <p *ngIf="erro('calculo') as e" [id]="prefixoId + '-calculo-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </div>
-    <fieldset>
+    <fieldset [attr.aria-describedby]="descritores('campos')">
       <legend class="block text-sm font-semibold text-gray-800 mb-1">Campos que entram no cálculo</legend>
       <p *ngIf="calculaveis.length === 0" class="text-sm text-gray-600">Esta seção ainda não tem campos de número, valor, percentual ou lista para calcular.</p>
       <ul class="space-y-1.5">
@@ -106,6 +156,7 @@
         </li>
       </ul>
       <p *ngIf="avisoCalculo" class="text-xs text-amber-700 mt-1">{{ avisoCalculo }}</p>
+      <p *ngIf="erro('campos') as e" [id]="prefixoId + '-campos-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </fieldset>
   </div>
 
@@ -113,10 +164,18 @@
 </ng-container>
 
 <ng-template #tamanhoMaximo>
-  <label [for]="prefixoId + '-max'" class="block text-sm font-semibold text-gray-800 mb-1">Tamanho máximo (caracteres)</label>
-  <input [id]="prefixoId + '-max'" type="number" min="1" [(ngModel)]="config.max" [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
-         class="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
-  <p class="text-xs text-gray-500 italic mt-1">Em branco, vale o limite do sistema.</p>
+  <div>
+    <label [for]="prefixoId + '-max'" class="block text-sm font-semibold text-gray-800 mb-1">Tamanho máximo (caracteres)</label>
+    <input [id]="prefixoId + '-max'" type="number" min="1" [max]="tipo === 'texto_curto' ? 1000 : 50000" [(ngModel)]="config.max"
+           [ngModelOptions]="{ standalone: true }" [disabled]="somenteLeitura"
+           [attr.aria-invalid]="erro('max') ? true : null" [attr.aria-describedby]="descritores('max', 'max-ajuda')"
+           class="w-32 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+           [ngClass]="erro('max') ? 'border-red-500' : 'border-gray-300'" />
+    <p [id]="prefixoId + '-max-ajuda'" class="text-xs text-gray-500 italic mt-1">
+      Em branco, vale o limite do sistema. De 1 a {{ tipo === 'texto_curto' ? '1000' : '50000' }}.
+    </p>
+    <p *ngIf="erro('max') as e" [id]="prefixoId + '-max-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+  </div>
 </ng-template>
 
 <ng-template #multipla>

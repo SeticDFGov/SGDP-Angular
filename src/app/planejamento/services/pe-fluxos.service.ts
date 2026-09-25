@@ -6,7 +6,7 @@ import { SERVICE_API_URL } from '../../../api/consts';
 import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import {
   PeFluxoDefinicao, PeFluxoDesenhoForm, PeFluxoDoOrgao, PeFluxoForm, PeFluxoGeometria, PeFluxoGeometriaForm, PeFluxoModelo,
-  PeFluxoResumo, PePdtic, PeRegistro, PeRegistrosDaSecao
+  PeFluxoResumo, PeFluxoValidacao, PePdtic, PeRegistro, PeRegistrosDaSecao
 } from '../../../api/planejamento/interface';
 import {
   DicionarioFluxo, SECAO_DICIONARIO_NOMES, dicionarioDoRegistro, dicionarioPadrao, normalizarDefinicao
@@ -22,6 +22,8 @@ export interface PeFluxoItem {
   ModeloMudou: boolean;
   AlteradoEm: string | null;
   AlteradoPor: string | null;
+  /** F1 (C19): o nome de quem alterou (sem ele, o e-mail). */
+  AlteradoPorNome?: string | null;
 }
 
 /** Um fluxo aberto no editor. */
@@ -52,6 +54,8 @@ export interface PeFonteFluxos {
   restaurar(chave: string): Observable<PeFluxoAberto> | null;
   /** O desenho (SVG) de uma definição ainda não salva; valida antes (400 com os `Erros`). */
   desenhar(definicao: PeFluxoDefinicao): Observable<string>;
+  /** Confere uma definição sem gravar (200 com os `Erros`): o modo em lista só pede o desenho do que está sem problema (F1, D14). */
+  validar(definicao: PeFluxoDefinicao): Observable<PeFluxoValidacao>;
   /**
    * A geometria do desenho automático de uma definição ainda não salva (E9, o
    * editor visual), com o nome do fluxo (a faixa do fluxo à esquerda, como no
@@ -166,6 +170,23 @@ export class PeFluxosService {
   }
 
   /**
+   * Confere uma definição sem gravar (F1, D14): 200 com `Valida` e os `Erros` em
+   * linguagem simples, também para a definição com problema (o desenho, com problema,
+   * responde 400, que aparece no console do navegador).
+   */
+  validar(definicao: PeFluxoDefinicao, pdticId: number | null): Observable<PeFluxoValidacao> {
+    const corpo: PeFluxoDesenhoForm = { Definicao: definicao, PdticId: pdticId };
+    // Pedida antes de cada desenho da prévia: não acende o indicador de carregamento
+    return this.http.post<PeFluxoValidacao | null>(`${this.apiUrl}/fluxos/validacao`, corpo, { context: semCarregamento() }).pipe(
+      map(r => ({
+        Valida: !!r?.Valida,
+        Erros: Array.isArray(r?.Erros) ? r!.Erros.filter(e => typeof e === 'string' && !!e.trim()) : [],
+        Definicao: r?.Definicao ?? null
+      }))
+    );
+  }
+
+  /**
    * A geometria do desenho automático de uma definição ainda não salva (E9, o
    * editor visual, a cada mudança): com `PdticId`, os nomes das raias saem do
    * dicionário do órgão; com o `Nome` e duas raias ou mais, vem a faixa do fluxo.
@@ -224,12 +245,14 @@ export class PeFluxosService {
         Personalizado: !!f.Personalizado,
         ModeloMudou: !!f.ModeloMudou,
         AlteradoEm: f.AlteradoEm ?? null,
-        AlteradoPor: f.AlteradoPor ?? null
+        AlteradoPor: f.AlteradoPor ?? null,
+        AlteradoPorNome: f.AlteradoPorNome ?? null
       })))),
       abrir: chave => this.fluxo(id, chave).pipe(map(doOrgaoParaAberto)),
       salvar: (chave, form) => this.salvar(id, chave, form).pipe(map(doOrgaoParaAberto)),
       restaurar: chave => this.restaurar(id, chave).pipe(map(doOrgaoParaAberto)),
       desenhar: definicao => this.desenhar(definicao, id),
+      validar: definicao => this.validar(definicao, id),
       geometria: (definicao, nome) => this.geometria(definicao, id, nome),
       geometriaSalva: chave => this.geometriaDoPdtic(id, chave),
       desenhoSalvo: chave => this.svg(id, chave),
@@ -256,8 +279,10 @@ export class PeFluxosService {
         FiguraGuia: m.FiguraGuia ?? null,
         Personalizado: null,
         ModeloMudou: false,
-        AlteradoEm: null,
-        AlteradoPor: null
+        // F1 (C19): a última mudança do administrador, quando o servidor manda
+        AlteradoEm: m.AlteradoEm ?? null,
+        AlteradoPor: m.AlteradoPor ?? null,
+        AlteradoPorNome: m.AlteradoPorNome ?? null
       })))),
       abrir,
       salvar: (chave, form) => this.salvarModelo(chave, form).pipe(
@@ -265,6 +290,7 @@ export class PeFluxosService {
       ),
       restaurar: () => null,
       desenhar: definicao => this.desenhar(definicao, null),
+      validar: definicao => this.validar(definicao, null),
       geometria: (definicao, nome) => this.geometria(definicao, null, nome),
       geometriaSalva: chave => this.geometriaDoModelo(chave),
       desenhoSalvo: chave => this.svgModelo(chave),

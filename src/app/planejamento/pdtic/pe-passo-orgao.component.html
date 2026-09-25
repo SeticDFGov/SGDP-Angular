@@ -16,7 +16,8 @@
         </span>
         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
               [ngClass]="p.Situacao === 'obrigatorio' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
-          {{ p.Situacao === 'obrigatorio' ? 'Obrigatório' : 'Opcional' }} no nível {{ nomeNivel }}
+          <!-- Com ajuste para o órgão, a situação é a do ajuste, e não a do nível (F1, B15) -->
+          {{ p.Situacao === 'obrigatorio' ? 'Obrigatório' : 'Opcional' }}{{ p.AjustadoParaOrgao ? ' para o órgão' : ' no nível ' + nomeNivel }}
         </span>
         <span *ngIf="p.Travado" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap bg-purple-50 text-purple-800 border-purple-200">
           <span class="material-icons text-sm" aria-hidden="true">lock</span> Conteúdo mínimo do PDTIC
@@ -83,7 +84,7 @@
             <p class="font-semibold text-purple-800">O PDTIC do órgão {{ siglaOrgao }} ainda não foi começado.</p>
             <p *ngIf="podeAbrirPdtic" class="mt-0.5">Comece o PDTIC para preencher este passo. O sistema abre a versão 1.0, em elaboração.</p>
             <p *ngIf="!podeAbrirPdtic" class="mt-0.5">{{ quemAbre }}</p>
-            <button *ngIf="podeAbrirPdtic" type="button" (click)="abrirPdtic()" [disabled]="abrindo"
+            <button *ngIf="podeAbrirPdtic" type="button" (click)="abrirPdtic()" [attr.aria-disabled]="abrindo || null"
                     class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
               <span class="material-icons text-base" aria-hidden="true">play_arrow</span> {{ abrindo ? 'Começando...' : 'Começar o PDTIC' }}
             </button>
@@ -143,11 +144,12 @@
         <p class="leading-relaxed">{{ avisoLeitura }}</p>
       </div>
 
-      <!-- Avisos do guia (não impedem de seguir) -->
-      <div *ngIf="avisos.length > 0" class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <!-- Avisos do passo (do guia e da situação; não impedem de seguir). No passo da deliberação, a devolução
+           já aparece em destaque no bloco da deliberação: o aviso não se repete (F1, C28) -->
+      <div *ngIf="avisos.length > 0 && !passoDeliberacao" class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         <span class="material-icons text-amber-600" aria-hidden="true">tips_and_updates</span>
         <div class="leading-relaxed">
-          <p class="font-semibold">{{ avisos.length === 1 ? 'Aviso do Guia de PDTIC' : 'Avisos do Guia de PDTIC' }} (não impedem de seguir)</p>
+          <p class="font-semibold">{{ avisos.length === 1 ? 'Aviso deste passo (não impede de seguir)' : 'Avisos deste passo (não impedem de seguir)' }}</p>
           <ul class="list-disc ml-5 mt-1 space-y-1">
             <li *ngFor="let a of avisos">{{ a }}</li>
           </ul>
@@ -179,12 +181,12 @@
               <p class="text-sm text-gray-600 leading-relaxed mt-0.5">{{ textoPlanilhaPasso }}</p>
             </div>
             <div *ngIf="planilhaDoPassoDisponivel" class="flex flex-wrap items-start gap-2 shrink-0">
-              <button type="button" (click)="baixarPlanilhaPasso('xlsx')" [disabled]="baixandoPlanilhaPasso !== null"
+              <button type="button" (click)="baixarPlanilhaPasso('xlsx')" [attr.aria-disabled]="baixandoPlanilhaPasso !== null || null"
                       [attr.aria-label]="'Baixar os dados do passo ' + p.Numero + ' em planilha XLSX'"
                       class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
                 <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixandoPlanilhaPasso === 'xlsx' ? 'Gerando...' : 'Planilha XLSX' }}
               </button>
-              <button type="button" (click)="baixarPlanilhaPasso('csv')" [disabled]="baixandoPlanilhaPasso !== null"
+              <button type="button" (click)="baixarPlanilhaPasso('csv')" [attr.aria-disabled]="baixandoPlanilhaPasso !== null || null"
                       [attr.aria-label]="variasSecoes
                         ? 'Baixar os dados do passo ' + p.Numero + ' em CSV, num arquivo .zip com um CSV por seção'
                         : 'Baixar os dados do passo ' + p.Numero + ' em CSV'"
@@ -213,7 +215,7 @@
             <ng-container *ngIf="ciclo as c; else semCiclo">
               @defer (on idle) {
                 <app-pe-grade-ciclo [tipo]="tipoGrade" [ciclo]="c" [secao]="s" [podeEditar]="podeEditarPasso" [rotuloAnterior]="rotuloAnterior"
-                                    [passoOrigem]="tipoGrade === 'acoes' ? passoAcoesGrade : passoIndicadores"
+                                    [passoOrigem]="tipoGrade === 'acoes' ? passoAcoesGrade : passoIndicadores" [semAvisoLeitura]="mostraAvisoLeitura"
                                     (mudou)="aoMudarGrade(s)" (alterado)="aoAlterar(s, $event)"></app-pe-grade-ciclo>
               } @placeholder {
                 <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando a grade...</p>
@@ -224,8 +226,10 @@
           <ng-template #secaoGenerica>
             <!-- Seção por ciclo sem ciclo à vista: não abre (a API pede o ciclo) -->
             <!-- E8: sem os botões de planilha da seção (a planilha do passo, acima, traz todas) -->
+            <!-- F1 (C30): com o quadro "por que só leio" no alto do passo, a seção não repete o aviso -->
             <app-pe-secao-registros *ngIf="!secaoPorCiclo(s) || ciclo; else semCiclo" [fonte]="f" [secaoChave]="s.Chave" [situacao]="s.Situacao"
                                     [planilha]="false" [nomePlanilha]="nomePlanilha(s)" [rotuloItem]="rotuloItem(s)" [avisoLeitura]="avisoLeitura"
+                                    [semAvisoLeitura]="mostraAvisoLeitura"
                                     [acaoVazia]="ehCronograma(s) ? sugerirCronograma : null" [recarga]="recargaDe(s)"
                                     (mudou)="aoMudarSecao(s)" (alterado)="aoAlterar(s, $event)"
                                     (registros)="aoCarregarRegistros(s, $event)"></app-pe-secao-registros>
@@ -247,14 +251,26 @@
         <ng-container *ngIf="passoFechaCiclo && ciclosDisponiveis && ciclo as c">
           @defer (on idle) {
             <app-pe-ciclo-fechamento [ciclo]="c" [podeEditar]="podeEditarPasso" [mudancaPendente]="mudancaPendente"
-                                     [exigeResumo]="exigeResumo" (mudou)="aoMudarCiclo($event)"></app-pe-ciclo-fechamento>
+                                     [exigeResumo]="exigeResumo" [pdticId]="pd.Id" [passoId]="p.Id"
+                                     (mudou)="aoMudarCiclo($event)"></app-pe-ciclo-fechamento>
           } @placeholder {
             <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o resumo do ciclo...</p>
           }
         </ng-container>
 
+        <!-- F1 (C22): o comitê decidiu revisar e a revisão já está aberta: onde ela está -->
+        <div *ngIf="revisaoJaAberta as rv" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700 leading-relaxed">
+          <h2 class="text-base font-semibold text-gray-900">Revisão do PDTIC</h2>
+          <p class="mt-1">O comitê decidiu revisar o PDTIC, e a revisão já foi aberta: a versão {{ rv.Versao }} está
+            {{ situacaoEmTexto(rv.Situacao) }}. Os ajustes se fazem nela.</p>
+          <button type="button" (click)="verRevisao(rv)"
+                  class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-base" aria-hidden="true">swap_horiz</span> Ver a versão {{ rv.Versao }} (em revisão)
+          </button>
+        </div>
+
         <!-- Rodada B: na avaliação mais antiga com "revisar", a revisão se abre pela mais recente -->
-        <p *ngIf="revisaoEmOutraAvaliacao" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700 leading-relaxed">
+        <p *ngIf="revisaoEmOutraAvaliacao && !revisaoJaAberta" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700 leading-relaxed">
           Esta avaliação decidiu revisar o PDTIC, mas a revisão se abre pela avaliação mais recente. Veja a mais recente na lista das
           avaliações, acima.
         </p>
@@ -281,7 +297,8 @@
       <!-- Fluxos do órgão (E6): o editor guiado, num pacote que só carrega nos passos com fluxo -->
       <ng-container *ngIf="temFluxos && fonteFluxos as ff">
         @defer (on idle) {
-          <app-pe-fluxo-editor [fonte]="ff" [avisoLeitura]="avisoLeitura" (alterado)="aoAlterarFluxos($event)"></app-pe-fluxo-editor>
+          <app-pe-fluxo-editor [fonte]="ff" [avisoLeitura]="avisoLeitura" [semAvisoLeitura]="mostraAvisoLeitura"
+                               (alterado)="aoAlterarFluxos($event)"></app-pe-fluxo-editor>
         } @placeholder {
           <p role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando os fluxos do órgão...</p>
         }

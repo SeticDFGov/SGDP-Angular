@@ -5,19 +5,19 @@
                         [registroId]="registro?.Id ?? null" [idBase]="idBase" [erro]="erro" [ajuda]="ajuda"
                         (escolhidosChange)="escolhidosChange.emit($event)"></app-pe-ligacao-campo>
 
-  <!-- Um controle só, com o rótulo ligado -->
+  <!-- Um controle só, com o rótulo ligado. A ajuda fica embaixo do controle: assim os controles
+       da mesma linha da grade ficam alinhados, com ou sem ajuda (F1, C27) -->
   <ng-container *ngIf="simples">
     <label [for]="idBase" class="block text-sm font-semibold text-gray-800">
       {{ campo.Rotulo }}<ng-container *ngIf="campo.Obrigatorio"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
     </label>
-    <div *ngIf="temAjuda" [id]="idBase + '-ajuda'" class="mt-0.5">
-      <p *ngIf="ajuda" class="text-xs text-gray-600 leading-relaxed">{{ ajuda }}</p>
-      <p *ngIf="dica" class="text-xs text-gray-500 italic">{{ dica }}</p>
-    </div>
 
     <div class="mt-1">
-      <!-- Texto curto -->
-      <input *ngIf="campo.Tipo === 'texto_curto'" [id]="idBase" type="text" [ngModel]="valor" (ngModelChange)="mudar($event)"
+      <!-- Texto curto (com a máscara do número do SEI ou o endereço de internet, quando o modelo pede) -->
+      <input *ngIf="campo.Tipo === 'texto_curto'" #campoTexto [id]="idBase" [attr.type]="formato === 'url' ? 'url' : 'text'"
+             [attr.inputmode]="formato === 'sei' ? 'numeric' : null" [attr.maxlength]="formato === 'sei' ? tamanhoSei : null"
+             [attr.placeholder]="formato === 'sei' ? '00000-00000000/0000-00' : null" [attr.autocomplete]="formato ? 'off' : null"
+             [ngModel]="valor" (ngModelChange)="mudarTexto($event, campoTexto)"
              [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro ? true : null" [attr.aria-required]="campo.Obrigatorio || null"
              class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
              [ngClass]="erro ? 'border-red-500' : 'border-gray-300'" />
@@ -40,8 +40,8 @@
         <span *ngIf="unidade" class="text-sm text-gray-600" aria-hidden="true">{{ unidade }}</span>
       </div>
 
-      <!-- Data -->
-      <input *ngIf="campo.Tipo === 'data'" [id]="idBase" type="date" [ngModel]="valor" (ngModelChange)="mudar($event)"
+      <!-- Data (a de decisão não passa de hoje, quando o modelo pede) -->
+      <input *ngIf="campo.Tipo === 'data'" [id]="idBase" type="date" [attr.max]="maximoData" [ngModel]="valor" (ngModelChange)="mudar($event)"
              [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro ? true : null" [attr.aria-required]="campo.Obrigatorio || null"
              class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
              [ngClass]="erro ? 'border-red-500' : 'border-gray-300'" />
@@ -61,7 +61,7 @@
         <div *ngIf="arquivo as a" class="flex flex-wrap items-center gap-2 text-sm text-gray-800 mb-2">
           <span class="material-icons text-base text-gray-600" aria-hidden="true">attach_file</span>
           <span class="break-all">{{ a.Nome }}</span>
-          <button type="button" (click)="baixar(a)" [disabled]="baixando"
+          <button type="button" (click)="baixar(a)" [attr.aria-disabled]="baixando || null"
                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
             <span class="material-icons text-sm" aria-hidden="true">download</span> {{ baixando ? 'Baixando...' : 'Baixar' }}
           </button>
@@ -75,8 +75,12 @@
                class="block w-full text-sm text-gray-700 file:mr-3 file:px-4 file:py-2 file:rounded-md file:border-0 file:bg-blue-600 file:text-white file:text-sm file:font-semibold hover:file:bg-blue-700 disabled:opacity-50" />
         <p *ngIf="enviando" role="status" class="text-xs text-gray-600 mt-1">Enviando o arquivo...</p>
         <p *ngIf="avisoArquivo && !enviando" role="status" class="text-xs text-gray-600 mt-1">{{ avisoArquivo }}</p>
-        <p *ngIf="erroArquivo" role="alert" class="text-xs text-red-600 mt-1">{{ erroArquivo }}</p>
+        <p *ngIf="erroArquivo" [id]="idBase + '-erro-arquivo'" role="alert" class="text-xs text-red-600 mt-1">{{ erroArquivo }}</p>
       </ng-container>
+    </div>
+    <div *ngIf="temAjuda" [id]="idBase + '-ajuda'" class="mt-1">
+      <p *ngIf="ajuda" class="text-xs text-gray-600 leading-relaxed">{{ ajuda }}</p>
+      <p *ngIf="dica" class="text-xs text-gray-500 italic">{{ dica }}</p>
     </div>
     <p *ngIf="tamanhoPerto as t" [id]="idBase + '-tamanho'" class="text-xs text-gray-600 mt-0.5">{{ t }}</p>
   </ng-container>
@@ -86,10 +90,6 @@
     <legend class="block text-sm font-semibold text-gray-800">
       {{ campo.Rotulo }}<ng-container *ngIf="campo.Obrigatorio"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
     </legend>
-    <div *ngIf="temAjuda" [id]="idBase + '-ajuda'" class="mt-0.5">
-      <p *ngIf="ajuda" class="text-xs text-gray-600 leading-relaxed">{{ ajuda }}</p>
-      <p *ngIf="dica" class="text-xs text-gray-500 italic">{{ dica }}</p>
-    </div>
 
     <div *ngIf="campo.Tipo === 'sim_nao'" class="flex flex-wrap items-center gap-4 mt-1">
       <label class="inline-flex items-center gap-1.5 text-sm text-gray-800">
@@ -113,6 +113,10 @@
       </label>
       <p *ngIf="opcoes.length === 0 && marcadosInativos.length === 0" class="text-xs text-gray-600">Esta lista ainda não tem opções. Fale com o administrador do módulo.</p>
     </div>
+    <div *ngIf="temAjuda" [id]="idBase + '-ajuda'" class="mt-1">
+      <p *ngIf="ajuda" class="text-xs text-gray-600 leading-relaxed">{{ ajuda }}</p>
+      <p *ngIf="dica" class="text-xs text-gray-500 italic">{{ dica }}</p>
+    </div>
   </fieldset>
 
   <!-- Calculado: só leitura (o id recebe o foco quando o servidor aponta erro aqui) -->
@@ -127,14 +131,14 @@
     <p [id]="idBase + '-rotulo'" (click)="focarTexto()" class="block text-sm font-semibold text-gray-800">
       {{ campo.Rotulo }}<ng-container *ngIf="campo.Obrigatorio"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
     </p>
-    <div *ngIf="temAjuda" [id]="idBase + '-ajuda'" class="mt-0.5">
-      <p *ngIf="ajuda" class="text-xs text-gray-600 leading-relaxed">{{ ajuda }}</p>
-      <p *ngIf="dica" class="text-xs text-gray-500 italic">{{ dica }}</p>
-    </div>
     <div class="mt-1">
       <app-pe-editor-texto-rico [valor]="valor" [idBase]="idBase" [idRotulo]="idBase + '-rotulo'" [rotulo]="campo.Rotulo"
                                 [descritores]="descritores" [invalido]="!!erro" [obrigatorio]="campo.Obrigatorio"
                                 (valorChange)="mudar($event)"></app-pe-editor-texto-rico>
+    </div>
+    <div *ngIf="temAjuda" [id]="idBase + '-ajuda'" class="mt-1">
+      <p *ngIf="ajuda" class="text-xs text-gray-600 leading-relaxed">{{ ajuda }}</p>
+      <p *ngIf="dica" class="text-xs text-gray-500 italic">{{ dica }}</p>
     </div>
   </ng-container>
 

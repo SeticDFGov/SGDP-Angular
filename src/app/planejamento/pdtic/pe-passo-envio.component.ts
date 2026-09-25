@@ -180,6 +180,11 @@ export class PePassoEnvioComponent implements OnChanges, AfterViewChecked, OnDes
 
   // ── Prévia do envio ───────────────────────────────────────────────────────
 
+  /** "Conferir de novo": o botão fica ocupado sem sair do Tab (desligado, perdia o foco, F1). */
+  conferirDeNovo(): void {
+    if (!this.carregandoPrevia) this.carregarPrevia();
+  }
+
   carregarPrevia(): void {
     this.carga?.unsubscribe();
     this.carregandoPrevia = true;

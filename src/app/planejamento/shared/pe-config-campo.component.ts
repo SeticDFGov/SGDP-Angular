@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PeConfigCampo, PeTipoCampo } from '../../../api/planejamento/interface';
-import { CALCULOS, CATALOGOS, OpcaoRotulo, TIPOS_ARQUIVO, rotuloTipoCampo } from './pe-modelo-rotulos';
+import { CALCULOS, CATALOGOS, FORMATOS_TEXTO, OpcaoRotulo, TIPOS_ARQUIVO, rotuloTipoCampo } from './pe-modelo-rotulos';
 
 export interface SecaoParaLigar {
   chave: string;
@@ -23,7 +23,9 @@ const TIPOS_CALCULAVEIS: ReadonlySet<string> = new Set(['numero', 'moeda', 'perc
  * casas do número, seção ou catálogo da ligação, tipos e tamanho do arquivo e o
  * cálculo (só os previstos: produto, soma ponderada, nível de risco e subtração;
  * nada de fórmula livre). Mexe no objeto `config` recebido, que é o do
- * formulário da tela.
+ * formulário da tela. Desde a F1: o formato do texto curto (SEI ou endereço de
+ * internet), a data que não aceita dia depois de hoje e os erros por chave do
+ * config (`erros`, da conferência da tela ou do 400), cada um ligado ao campo.
  */
 @Component({
   selector: 'app-pe-config-campo',
@@ -42,14 +44,38 @@ export class PeConfigCampoComponent {
   @Input() campos: CampoParaCalculo[] = [];
   @Input() prefixoId = 'pe-config';
   @Input() somenteLeitura = false;
+  /** F1 (A14): o erro de cada chave do config ("max", "secao"...), mostrado embaixo do campo. */
+  @Input() erros: Record<string, string> = {};
 
   readonly calculos: OpcaoRotulo[] = CALCULOS;
+  readonly formatos: OpcaoRotulo[] = FORMATOS_TEXTO;
   readonly catalogos: OpcaoRotulo[] = CATALOGOS;
   readonly tiposArquivo: OpcaoRotulo[] = TIPOS_ARQUIVO;
 
-  /** Texto rico, valor em reais, percentual, data, sim ou não e listas: nada a configurar aqui. */
+  /** Texto rico, valor em reais, percentual, sim ou não e listas: nada a configurar aqui. */
   get semConfiguracao(): boolean {
-    return !['texto_curto', 'texto_longo', 'numero', 'ligacao_secao', 'ligacao_catalogo', 'arquivo', 'calculado'].includes(this.tipo);
+    return !['texto_curto', 'texto_longo', 'numero', 'ligacao_secao', 'ligacao_catalogo', 'arquivo', 'calculado', 'data'].includes(this.tipo);
+  }
+
+  erro(chave: string): string | null {
+    return this.erros?.[chave] || null;
+  }
+
+  /** A ajuda e o erro do campo, para o `aria-describedby`. */
+  descritores(chave: string, ajuda?: string): string | null {
+    const ids = [ajuda ? `${this.prefixoId}-${ajuda}` : null, this.erro(chave) ? `${this.prefixoId}-${chave}-erro` : null].filter(Boolean);
+    return ids.length ? ids.join(' ') : null;
+  }
+
+  /** Data que não aceita dia depois de hoje: só vai quando marcada (o servidor só guarda o verdadeiro). */
+  mudarNaoFutura(evento: Event): void {
+    if ((evento.target as HTMLInputElement).checked) this.config.naoFutura = true;
+    else delete this.config.naoFutura;
+  }
+
+  mudarFormato(valor: string | null): void {
+    if (valor) this.config.formato = valor;
+    else delete this.config.formato;
   }
 
   get calculaveis(): CampoParaCalculo[] {

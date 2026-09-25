@@ -25,8 +25,9 @@ import {
 } from '../shared/pe-paineis-rotulos';
 import { classeSituacaoPdtic, quandoPdtic, rotuloSituacaoPdtic } from '../shared/pe-pdtic-rotulos';
 import {
-  classeSituacaoDeliberacao, rotuloSituacaoDeliberacao, textoAto, textoVigencia
+  classeSituacaoDeliberacao, deliberacaoRegistradaFora, rotuloSituacaoDeliberacao, textoAto, textoVigencia
 } from '../shared/pe-referenciais-rotulos';
+import { nomeDeQuem, textoData } from '../shared/registros/pe-valores';
 import { PePaineisService } from '../services/pe-paineis.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { PeRegistrosService } from '../services/pe-registros.service';
@@ -258,6 +259,26 @@ export class PeOrgaoPaginaComponent implements OnInit {
 
   quando(valor: string | null | undefined): string {
     return quandoPdtic(valor);
+  }
+
+  /** O nome de quem fez (sem ele, o e-mail): F1, C19. */
+  readonly nomeDeQuem = nomeDeQuem;
+
+  /** F1 (A21): "Básico (padrão)" quando o nível era o padrão, ou o órgão voltou a ele. */
+  nivelDoHistorico(nome: string | null | undefined, padrao: boolean | null | undefined): string {
+    if (!nome?.trim()) return padrao === false ? '-' : 'Nível padrão';
+    return padrao && !nome.includes('(padrão)') ? `${nome} (padrão)` : nome;
+  }
+
+  /** F1 (C40): a deliberação nasceu do registro de um PDTIC aprovado fora do sistema (não houve envio). */
+  registradaFora(d: PeDeliberacao): boolean {
+    return deliberacaoRegistradaFora(d);
+  }
+
+  /** A decisão: na registrada fora do sistema, a data do ato (F1, C40); nas outras, quando foi registrada. */
+  decididaEm(d: PeDeliberacao): string {
+    if (this.registradaFora(d)) return d.AtoData ? textoData(d.AtoData) : this.quando(d.DecididoEm);
+    return this.quando(d.DecididoEm);
   }
 
   rotuloInadimplencia(i: PeInadimplencia): string {

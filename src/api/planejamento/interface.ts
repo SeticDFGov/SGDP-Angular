@@ -35,6 +35,8 @@ export interface PePessoa {
   ConcedidoEm: string | null;
   /** E-mail de quem deu o papel. */
   ConcedidoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  ConcedidoPorNome?: string | null;
   EhAdminGeral: boolean;
 }
 
@@ -136,6 +138,14 @@ export interface PeConfigCampo {
   campos?: string[] | null;
   /** Peso de cada campo na soma ponderada (chave do campo → peso). */
   pesos?: Record<string, number> | null;
+  /** F1 (C05): campo data que não aceita data depois de hoje (as datas de decisão das aprovações). */
+  naoFutura?: boolean | null;
+  /**
+   * F1 (C05 e C33): formato do texto curto: `sei` (número do processo SEI,
+   * 00000-00000000/0000-00, com a máscara ao digitar) ou `url` (endereço de
+   * internet, http ou https).
+   */
+  formato?: string | null;
 }
 
 export interface PeNivel {
@@ -296,6 +306,11 @@ export interface PeSecaoTrilha {
    * Opcional: sem ele, a tela usa as seções por ciclo do modelo inicial.
    */
   PorCiclo?: PeTipoCiclo | null;
+  /**
+   * F1 (I06): a seção sai nas planilhas (marcada "na planilha" no modelo). Sem o
+   * campo (resposta antiga), a tela conta a seção como na planilha.
+   */
+  NaPlanilha?: boolean;
 }
 
 export interface PePassoTrilha {
@@ -442,19 +457,29 @@ export interface PeOrgaoNivel {
   Ajustes: number;
 }
 
-/** PUT api/planejamento/orgaos/{id}/nivel (justificativa obrigatória). */
+/**
+ * PUT api/planejamento/orgaos/{id}/nivel (justificativa obrigatória). F1 (A21):
+ * `NivelId` nulo devolve o órgão ao nível padrão (a resposta volta com `NivelPadrao`).
+ */
 export interface PeOrgaoNivelForm {
-  NivelId: number;
+  NivelId: number | null;
   Justificativa: string;
 }
 
 /** GET api/planejamento/orgaos/{id}/nivel/historico. */
 export interface PeOrgaoNivelHistorico {
+  /** Nulo: antes valia o nível padrão (resposta sem o nome dele). */
   NivelAnterior: string | null;
-  NivelNovo: string;
+  NivelNovo: string | null;
   Justificativa: string | null;
   DefinidoEm: string;
   DefinidoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  DefinidoPorNome?: string | null;
+  /** F1 (A21): o nível anterior era o padrão (o órgão não tinha nível escolhido). */
+  NivelAnteriorPadrao?: boolean | null;
+  /** F1 (A21): o órgão voltou ao nível padrão nesta mudança. */
+  NivelNovoPadrao?: boolean | null;
 }
 
 export type PeAlvoAjuste = 'passo' | 'secao' | 'campo';
@@ -481,6 +506,8 @@ export interface PeModeloHistorico {
   Depois: unknown;
   AlteradoEm: string;
   AlteradoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  AlteradoPorNome?: string | null;
 }
 
 export interface PeHistoricoConsulta {
@@ -565,8 +592,12 @@ export interface PeRegistro {
   Vinculos: Record<string, PeVinculo[]>;
   CriadoEm: string;
   CriadoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  CriadoPorNome?: string | null;
   AlteradoEm: string | null;
   AlteradoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  AlteradoPorNome?: string | null;
 }
 
 /** GET {dono}/secoes/{secaoChave}/registros. */
@@ -636,9 +667,13 @@ export interface PeDeliberacao {
   OrgaoSigla: string | null;
   EnviadoEm: string;
   EnviadoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  EnviadoPorNome?: string | null;
   Situacao: PeSituacaoDeliberacao;
   DecididoEm: string | null;
   DecididoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  DecididoPorNome?: string | null;
   AtoTipo: string | null;
   AtoNumero: string | null;
   /** Data pura ("aaaa-mm-dd"). */
@@ -647,6 +682,11 @@ export interface PeDeliberacao {
   Observacao: string | null;
   /** E7: o PDF enviado (só nas deliberações de PDTIC; nulo no PETIC-DF e em resposta antiga). */
   Documento?: PeDocumentoDeliberacao | null;
+  /**
+   * F1 (C40): a deliberação foi criada pelo registro de um PDTIC aprovado fora do
+   * sistema (não houve envio pelo sistema; a data da decisão é a do ato).
+   */
+  RegistradaForaDoSistema?: boolean;
 }
 
 /** Uma versão do PETIC-DF (GET api/planejamento/petic, da mais nova para a mais antiga). */
@@ -675,6 +715,28 @@ export interface PePeticForm {
 /** POST api/planejamento/petic: rascunho novo, copiando a vigente (registros e códigos) ou vazio. */
 export interface PePeticNovoForm extends PePeticForm {
   CopiarDaVigente: boolean;
+}
+
+/**
+ * F1 (A06): uma pendência do envio do PETIC-DF ao CGTIC, com a seção e o que falta
+ * nela. Na vigência (que não é seção), `SecaoChave` vem nula e `SecaoTitulo` é
+ * "Título e vigência".
+ */
+export interface PePendenciaEnvioPetic {
+  SecaoChave: string | null;
+  SecaoTitulo: string;
+  Motivo: string;
+}
+
+/**
+ * F1 (A06): GET api/planejamento/petic/{id}/envio, a prévia do envio (a mesma lista
+ * do 400 do POST petic/{id}/enviar, que vem com `{ Code, Message, Pendencias }`).
+ * `Motivo`: por que não pode enviar agora, quando não pode.
+ */
+export interface PePreviaEnvioPetic {
+  PodeEnviar: boolean;
+  Pendencias: PePendenciaEnvioPetic[];
+  Motivo?: string | null;
 }
 
 /**
@@ -759,6 +821,8 @@ export interface PePdtic {
   PodeEditar: boolean;
   CriadoEm: string;
   CriadoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  CriadoPorNome?: string | null;
   // E7 (opcionais para aceitar a resposta antiga): as datas do caminho da aprovação
   /** Envio ao CGTIC (vale como a comunicação à SGDI, art. 7º, V, do Decreto nº 48.899/2026). */
   EnviadoEm?: string | null;
@@ -818,6 +882,8 @@ export interface PeNaoSeAplica {
   MarcadoEm: string;
   /** E-mail de quem marcou. */
   MarcadoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  MarcadoPorNome?: string | null;
 }
 
 export interface PeSituacaoPassoPdtic {
@@ -830,7 +896,11 @@ export interface PeSituacaoPassoPdtic {
   ComentariosAbertos: number;
   /** Avisos do guia em linguagem simples (não impedem de seguir). */
   Avisos: string[];
-  /** E7: o porquê de aguardando, atrasado e externo ("Disponível depois da publicação do PDTIC"). */
+  /**
+   * E7: o porquê de aguardando, atrasado e externo ("Disponível depois da publicação do PDTIC").
+   * F1: também em "não se aplica" calculado pelo servidor, sem o `NaoSeAplica` (monitoramento
+   * com a vigência terminada antes do acompanhamento, PDTIC encerrado ou substituído).
+   */
   Motivo?: string | null;
   /**
    * E7: quem está logado grava neste passo agora (a equipe do órgão, conforme a
@@ -844,6 +914,11 @@ export interface PeSituacaoPassoPdtic {
 export interface PeAndamentoPdtic {
   /** Número do passo recomendado ("2.3"): o atrasado, depois o que pede atenção, depois o primeiro pendente; nulo quando nada espera. */
   ProximoPasso: string | null;
+  /**
+   * F1 (B12): por que o próximo passo é esse, quando não é o óbvio (na revisão recém-aberta:
+   * "Revise o PDTIC a partir do diagnóstico (etapa 2): ...").
+   */
+  ProximoPassoMotivo?: string | null;
   Passos: PeSituacaoPassoPdtic[];
 }
 
@@ -971,6 +1046,8 @@ export interface PeComentario {
   CriadoEm: string;
   ResolvidoEm: string | null;
   ResolvidoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  ResolvidoPorNome?: string | null;
   Respostas: PeRespostaComentario[];
 }
 
@@ -1131,6 +1208,8 @@ export interface PeDocBloco {
   EditadoEm: string | null;
   /** E-mail de quem editou. */
   EditadoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  EditadoPorNome?: string | null;
   /** Chaves dos marcadores do texto que ainda não têm valor ("nomes.comite"): saem em branco no PDF. */
   MarcadoresSemValor: string[];
   Tabela: PeDocTabela | null;
@@ -1175,6 +1254,8 @@ export interface PeDocVersao {
   GeradoEm: string;
   /** E-mail de quem gerou. */
   GeradoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  GeradoPorNome?: string | null;
   /** Tamanho do arquivo em bytes. */
   Tamanho: number | null;
   Paginas: number | null;
@@ -1354,7 +1435,7 @@ export interface PeFluxoLigacao {
 
 /** Definição de um fluxo: a mesma forma no modelo e na cópia do órgão. */
 export interface PeFluxoDefinicao {
-  /** "1" numera 1.1, 1.2...; vazio ou nulo, 1, 2, 3... */
+  /** "1" numera 1.1, 1.2...; vazio ou nulo, sem número (o servidor não numera, e o documento sai sem número). */
   PrefixoNumeracao: string | null;
   Raias: PeFluxoRaia[];
   Elementos: PeFluxoElemento[];
@@ -1369,6 +1450,10 @@ export interface PeFluxoModelo {
   FiguraGuia: string | null;
   Ordem: number;
   Definicao: PeFluxoDefinicao;
+  /** F1 (C19): a última mudança do administrador (nulos se nunca mudou). */
+  AlteradoEm?: string | null;
+  AlteradoPor?: string | null;
+  AlteradoPorNome?: string | null;
 }
 
 /** Item de GET api/planejamento/pdtic/{id}/fluxos (a cópia do órgão, ou o modelo enquanto não há cópia). */
@@ -1383,6 +1468,8 @@ export interface PeFluxoResumo {
   AlteradoEm: string | null;
   /** E-mail de quem alterou. */
   AlteradoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  AlteradoPorNome?: string | null;
 }
 
 /**
@@ -1398,6 +1485,10 @@ export interface PeFluxoDoOrgao {
   ModeloMudou: boolean;
   /** Quem está logado edita (equipe do órgão, em elaboração ou devolvido). */
   PodeEditar: boolean;
+  /** F1 (C19): da cópia do órgão (nulos sem cópia). */
+  AlteradoEm?: string | null;
+  AlteradoPor?: string | null;
+  AlteradoPorNome?: string | null;
 }
 
 /** Corpo do PUT de um fluxo (modelo ou cópia do órgão). */
@@ -1539,6 +1630,17 @@ export interface PeFluxoGeometriaTexto {
 }
 
 /**
+ * Resposta de POST api/planejamento/fluxos/validacao (a mais que o contrato da E6): a
+ * conferência de uma definição sem gravar, com os problemas em linguagem simples e,
+ * sem problemas, a definição com os números.
+ */
+export interface PeFluxoValidacao {
+  Valida: boolean;
+  Erros: string[];
+  Definicao: PeFluxoDefinicao | null;
+}
+
+/**
  * Resposta de POST api/planejamento/fluxos/geometria e dos GET
  * `pdtic/{id}/fluxos/{chave}/geometria` e `modelo/fluxos/{chave}/geometria`.
  */
@@ -1586,6 +1688,15 @@ export interface PeResumoCiclo {
   TotalAcoes: number;
   Medicoes: number;
   RiscosOcorridos: number;
+  /**
+   * F1 (I04 e C23), só na avaliação intermediária (zero e nulos no monitoramento):
+   * os resultados das metas registrados, se a análise foi registrada e a decisão do
+   * comitê (o valor, `seguir` ou `revisar`, e o rótulo).
+   */
+  ResultadosMetas?: number;
+  AnaliseRegistrada?: boolean;
+  DecisaoComite?: string | null;
+  DecisaoComiteRotulo?: string | null;
 }
 
 /** O relatório de acompanhamento (RA) do ciclo: a versão mais recente do PDF. */
@@ -1612,8 +1723,14 @@ export interface PeCiclo {
   FechadoEm: string | null;
   /** E-mail de quem fechou. */
   FechadoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  FechadoPorNome?: string | null;
   Resumo: PeResumoCiclo | null;
   Relatorio: PeRelatorioCiclo | null;
+  /** A mais que o contrato: a última reabertura. */
+  ReabertoEm?: string | null;
+  ReabertoPor?: string | null;
+  ReabertoPorNome?: string | null;
 }
 
 /** POST api/planejamento/pdtic/{id}/ciclos: a equipe abre uma avaliação intermediária (uma aberta por vez). */
@@ -1763,6 +1880,11 @@ export interface PePainelRiscos {
 export interface PePainelAcompanhamento {
   Ciclo: { Id: number; Rotulo: string } | null;
   Metas: PePainelMeta[];
+  /**
+   * F1 (C02): as ações que não estão ligadas a nenhuma meta (no nível Básico a
+   * ligação com a meta não aparece, e todas as ações vêm aqui).
+   */
+  AcoesSemMeta?: PePainelAcao[];
   Riscos: PePainelRiscos;
 }
 
@@ -1971,10 +2093,14 @@ export interface PeInadimplencia {
   RegistradoEm: string | null;
   /** E-mail de quem registrou a inadimplência. */
   RegistradoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  RegistradoPorNome?: string | null;
   SaneadoEm: string | null;
   Observacao: string | null;
   CriadoEm: string;
   CriadoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  CriadoPorNome?: string | null;
 }
 
 /** GET api/planejamento/inadimplencias (vigentes primeiro). */
@@ -2071,9 +2197,16 @@ export interface PeArvorePetic {
 
 export interface PeHistoricoNivelResumo {
   NivelNome: string | null;
+  /** F1 (A21): o nível desta troca é o padrão (o órgão voltou ao padrão). */
+  Padrao?: boolean;
+  /** F1 (A21): o nível de antes da troca e se ele era o padrão. */
+  NivelAnterior?: string | null;
+  NivelAnteriorPadrao?: boolean;
   Justificativa: string | null;
   AlteradoEm: string | null;
   AlteradoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  AlteradoPorNome?: string | null;
 }
 
 /** Andamento da trilha do órgão numa etapa. */
@@ -2092,6 +2225,8 @@ export interface PeNaoSeAplicaResumo {
   Justificativa: string | null;
   MarcadoEm: string | null;
   MarcadoPor: string | null;
+  /** F1 (C19): o nome de quem (o e-mail quando o cadastro não tem nome); sem ele, vale o e-mail. */
+  MarcadoPorNome?: string | null;
 }
 
 export interface PeComentarioAberto {

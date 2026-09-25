@@ -1,20 +1,21 @@
 import {
-  AfterViewChecked, Component, EventEmitter, Input, OnChanges, Output, PLATFORM_ID, SimpleChanges, inject
+  AfterViewChecked, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, PLATFORM_ID, SimpleChanges, inject
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { PeCiclo, PePendenciaCiclo } from '../../../api/planejamento/interface';
 import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 import { NotificationService } from '../../core/services/notification.service';
 import { PeCiclosService } from '../services/pe-ciclos.service';
 import {
-  acoesSemSituacao, cicloAceitaDados, classeSituacaoCiclo, iconeSituacaoCiclo, oCiclo, pendenciasDoErro, periodoCiclo,
-  rotuloSituacaoCiclo
+  ResumoAvaliacao, acoesSemSituacao, cicloAceitaDados, classeSituacaoCiclo, iconeSituacaoCiclo, oCiclo, partesDaAvaliacao,
+  pendenciasDoErro, periodoCiclo, rotuloSituacaoCiclo
 } from '../shared/pe-ciclos-rotulos';
 import { rotuloSituacaoVersao } from '../shared/pe-documento-rotulos';
 import { mensagemErroPe } from '../shared/pe-erros';
 import { plural } from '../shared/pe-pdtic-rotulos';
-import { textoData, textoDataHora } from '../shared/registros/pe-valores';
+import { nomeDeQuem, textoData, textoDataHora } from '../shared/registros/pe-valores';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
 /** Uma pendência do fechamento com o link para o passo dela, já no ciclo (null quando o passo não está na trilha). */
@@ -24,6 +25,8 @@ interface ItemPendencia {
   rota: string | null;
   query: Record<string, string | number> | null;
   rotulo: string;
+  /** A pendência é deste mesmo passo: um link não sairia do lugar (F1, C13). */
+  nestePasso: boolean;
 }
 
 /**
@@ -51,7 +54,7 @@ interface ItemPendencia {
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
 })
-export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked {
+export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private readonly ciclosService = inject(PeCiclosService);
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly notificacoes = inject(NotificationService);
@@ -62,24 +65,53 @@ export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked {
   @Input() podeEditar = false;
   /** Há mudança não salva no passo: o fechamento espera. */
   @Input() mudancaPendente = false;
-  /** O nível tem o resumo do ciclo (5.2): o fechamento também o exige. */
+  /** O nível tem o resumo do ciclo (5.2): o fechamento também o exige e gera o RA (no Básico, não gera). */
   @Input() exigeResumo = false;
+  /** O PDTIC (o que a avaliação tem, lido das seções dela, F1). */
+  @Input() pdticId: number | null = null;
+  /** O passo da tela (a pendência deste mesmo passo leva à célula, não a um link que não sai do lugar). */
+  @Input() passoId: number | null = null;
   @Output() readonly mudou = new EventEmitter<PeCiclo>();
 
   janela: 'fechar' | 'reabrir' | null = null;
   gravando = false;
   itens: ItemPendencia[] = [];
   erroServidor: string | null = null;
+  /** F1 (C23): o que a avaliação tem (os resultados das metas, a análise e a decisão do comitê). */
+  partesAvaliacao: ReturnType<typeof partesDaAvaliacao> | null = null;
   private focoPendente: string | null = null;
+  private cargaAvaliacao?: Subscription;
 
   ngOnChanges(mudancas: SimpleChanges): void {
-    // Outro ciclo: as pendências eram do anterior
     const m = mudancas['ciclo'];
-    if (m && (m.previousValue as PeCiclo | undefined)?.Id !== this.ciclo.Id) {
+    const antes = m?.previousValue as PeCiclo | undefined;
+    if (m && antes?.Id !== this.ciclo.Id) {
+      // Outro ciclo: as pendências eram do anterior
       this.itens = [];
       this.erroServidor = null;
       this.janela = null;
+      this.partesAvaliacao = null;
+    } else if (m && antes && this.itens.length > 0) {
+      // O ciclo veio de novo, com o resumo de agora: algo foi salvo no passo (a grade, uma seção), e a
+      // lista das pendências era da tentativa anterior (F1, C12); a próxima tentativa diz o que ainda falta
+      this.itens = [];
     }
+    if ((m || mudancas['pdticId']) && this.avaliacao) this.carregarAvaliacao();
+  }
+
+  ngOnDestroy(): void {
+    this.cargaAvaliacao?.unsubscribe();
+  }
+
+  /** O que a avaliação tem, pelas seções dela no ciclo (vem de novo a cada vez que o ciclo vem de novo). */
+  private carregarAvaliacao(): void {
+    this.cargaAvaliacao?.unsubscribe();
+    const pdticId = this.pdticId;
+    if (pdticId === null) return;
+    const cicloId = this.ciclo.Id;
+    this.cargaAvaliacao = this.ciclosService.resumoDaAvaliacao(pdticId, cicloId, this.ciclo.Resumo).subscribe((r: ResumoAvaliacao) => {
+      if (this.ciclo.Id === cicloId) this.partesAvaliacao = partesDaAvaliacao(r);
+    });
   }
 
   ngAfterViewChecked(): void {
@@ -147,6 +179,27 @@ export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked {
 
   quando(valor: string | null): string {
     return textoDataHora(valor);
+  }
+
+  /** "24/09/2026 às 14:05 por Tereza do Teste" (o nome, F1, C19; sem ele, o e-mail). */
+  get fechadoEm(): string {
+    const quem = nomeDeQuem(this.ciclo.FechadoPorNome, this.ciclo.FechadoPor);
+    return quem ? `${textoDataHora(this.ciclo.FechadoEm)} por ${quem}` : textoDataHora(this.ciclo.FechadoEm);
+  }
+
+  /**
+   * A pendência deste mesmo passo (F1, C13): o foco vai à primeira situação vazia
+   * da grade das ações (a ação que falta); sem ela, ao título da grade ou da
+   * primeira seção do passo.
+   */
+  irParaPendencia(): void {
+    if (!this.noNavegador) return;
+    const situacoes = Array.from(document.querySelectorAll<HTMLSelectElement>('select[id^="pe-grade-acoes-"][id$="-situacao"]'));
+    const alvo: HTMLElement | null = situacoes.find(s => !s.value) ?? document.getElementById('pe-grade-acoes-titulo')
+      ?? document.querySelector<HTMLElement>('[id^="pe-secao-"][id$="-titulo"]');
+    if (!alvo) return;
+    alvo.scrollIntoView({ block: 'center' });
+    alvo.focus();
   }
 
   rotuloVersao(situacao: string): string {
@@ -241,12 +294,14 @@ export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked {
       const numero = achado?.numero ?? p.PassoNumero ?? null;
       const titulo = p.PassoTitulo ?? achado?.titulo ?? null;
       const rotulo = numero ? `Passo ${numero}${titulo ? ' · ' + titulo : ''}` : (titulo ?? '');
+      const nestePasso = this.passoId !== null && (achado?.doOrgao?.Id ?? p.PassoId ?? null) === this.passoId;
       return {
         chave: `${i}:${p.Motivo}`,
         pendencia: p,
         rota: achado?.rota ?? null,
         query: achado ? { passo: achado.numero, ciclo: this.ciclo.Id } : null,
-        rotulo
+        rotulo,
+        nestePasso
       };
     });
   }

@@ -6,7 +6,7 @@
       tarefa, com o responsável (a raia do fluxo) e a atividade que vem antes. Depois, complete o início e o término de cada uma.</p>
     <p *ngIf="passoFluxos as p" class="mt-0.5">Valem os fluxos como o órgão adaptou. Para mudar as tarefas, ajuste os fluxos antes, no
       <a [routerLink]="p.rota" [queryParams]="{ passo: p.numero }" data-sem-dica class="font-semibold text-purple-700 underline">passo {{ p.numero }}</a>.</p>
-    <button type="button" (click)="sugerir()" [disabled]="sugerindo"
+    <button type="button" (click)="sugerir()" [attr.aria-disabled]="sugerindo || null"
             class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
       <span class="material-icons text-base" aria-hidden="true">auto_awesome</span> {{ sugerindo ? 'Sugerindo...' : 'Sugerir o cronograma pelos fluxos' }}
     </button>

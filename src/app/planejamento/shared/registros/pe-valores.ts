@@ -141,10 +141,81 @@ export function textoDataHora(valor: string | null | undefined): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/**
+ * Quem fez alguma coisa, para a tela: o nome do cadastro (os campos `...PorNome`
+ * das respostas, F1), senão o e-mail; vazio sem os dois.
+ */
+export function nomeDeQuem(nome: string | null | undefined, email: string | null | undefined): string {
+  return nome?.trim() || email?.trim() || '';
+}
+
 /** Hoje no fuso de quem usa, "aaaa-mm-dd" (limite dos campos de data). */
 export function hojeIso(): string {
   const d = new Date();
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// ── Número do processo SEI e endereço de internet (F1, C05 e C33) ────────────
+
+/** O número do processo SEI completo: 00000-00000000/0000-00. */
+const FORMATO_SEI = /^\d{5}-\d{8}\/\d{4}-\d{2}$/;
+
+/** Quantos caracteres o número do SEI tem com a máscara. */
+export const TAMANHO_SEI = 22;
+
+export function seiValido(texto: string | null | undefined): boolean {
+  return FORMATO_SEI.test((texto ?? '').trim());
+}
+
+/**
+ * A máscara do SEI (00000-00000000/0000-00) sobre os dígitos digitados. O mesmo
+ * desenho da Supervisão Contínua (`contratacoes/shared/ctr-rotulos.ts`), copiado
+ * para o módulo não depender dela.
+ */
+export function mascaraSei(valor: string): string {
+  const digitos = (valor || '').replace(/\D/g, '').slice(0, 19);
+  let saida = digitos.slice(0, 5);
+  if (digitos.length > 5) saida += '-' + digitos.slice(5, 13);
+  if (digitos.length > 13) saida += '/' + digitos.slice(13, 17);
+  if (digitos.length > 17) saida += '-' + digitos.slice(17, 19);
+  return saida;
+}
+
+/**
+ * Aplica a máscara do SEI no campo enquanto a pessoa digita e devolve o texto. O
+ * cursor volta para depois do mesmo dígito (sem isso, corrigir no meio jogaria o
+ * cursor para o fim); o campo só é reescrito quando a máscara muda algo.
+ */
+export function digitarSei(input: HTMLInputElement): string {
+  const bruto = input.value || '';
+  const formatado = mascaraSei(bruto);
+  if (bruto !== formatado) {
+    const cursor = input.selectionStart ?? bruto.length;
+    const digitosAntes = bruto.slice(0, cursor).replace(/\D/g, '').length;
+    let posicao = formatado.length;
+    for (let i = 0, vistos = 0; i < formatado.length && digitosAntes > 0; i++) {
+      if (formatado[i] >= '0' && formatado[i] <= '9' && ++vistos === digitosAntes) {
+        posicao = i + 1;
+        break;
+      }
+    }
+    if (digitosAntes === 0) posicao = 0;
+    input.value = formatado;
+    input.setSelectionRange(posicao, posicao);
+  }
+  return formatado;
+}
+
+/** Endereço de internet completo (http ou https, com o domínio). */
+export function urlValida(texto: string | null | undefined): boolean {
+  const t = (texto ?? '').trim();
+  if (!/^https?:\/\/[^\s/?#]+\.[^\s/?#]+/i.test(t) || /\s/.test(t)) return false;
+  try {
+    const url = new URL(t);
+    return (url.protocol === 'http:' || url.protocol === 'https:') && !!url.hostname;
+  } catch {
+    return false;
+  }
 }
 
 /** Data pura válida ("2026-02-30" não passa). */
@@ -252,6 +323,10 @@ export function colunasDaTabela(secao: PeSecaoDoDono): PeCampoRegistro[] {
   const principal = campoPrincipal(secao);
   if (principal) colunas.push(principal);
   const cabe = (c: PeCampoRegistro) => colunas.length < MAX_COLUNAS && !colunas.includes(c);
+  // O valor calculado (a prioridade das necessidades, no 2.9) orienta a leitura da tabela: entra sempre (F1, B18)
+  for (const c of secao.Campos) {
+    if (cabe(c) && c.Tipo === 'calculado') colunas.push(c);
+  }
   for (const c of secao.Campos) {
     if (cabe(c) && c.Largura && c.Tipo !== 'texto_rico' && c.Tipo !== 'arquivo') colunas.push(c);
   }
@@ -270,13 +345,23 @@ export type LarguraNoFormulario = 'estreita' | 'media' | 'larga';
 const TEXTO_CURTO_MEIA_LINHA = 100;
 
 /**
- * Largura do campo no formulário: a `Largura` do modelo (a mesma das colunas da
- * tabela), senão a do tipo: data, número, valor em reais, percentual, sim ou não e
- * calculado, estreita; lista e texto curto com limite pequeno, média; texto longo,
- * texto rico, lista múltipla, ligações, arquivo e texto curto com limite grande, a
- * linha inteira.
+ * Tipos que ocupam sempre a linha inteira no formulário, qualquer que seja a
+ * largura do modelo (F1, C10: várias escolhas e ligações em meia largura deixavam
+ * um vão grande ao lado).
+ */
+const LINHA_INTEIRA_NO_FORMULARIO: ReadonlySet<string> = new Set([
+  'texto_longo', 'texto_rico', 'lista_multipla', 'ligacao_secao', 'ligacao_catalogo', 'arquivo'
+]);
+
+/**
+ * Largura do campo no formulário. Texto longo, texto rico, lista múltipla, ligações
+ * e arquivo: sempre a linha inteira. Os demais: a `Largura` do modelo (a mesma das
+ * colunas da tabela), senão a do tipo: data, número, valor em reais, percentual, sim
+ * ou não e calculado, estreita; lista e texto curto com limite pequeno, média; texto
+ * curto com limite grande, a linha inteira.
  */
 export function larguraNoFormulario(campo: Pick<PeCampoRegistro, 'Largura' | 'Tipo' | 'Config'>): LarguraNoFormulario {
+  if (LINHA_INTEIRA_NO_FORMULARIO.has(campo.Tipo)) return 'larga';
   if (campo.Largura === 'estreita' || campo.Largura === 'media' || campo.Largura === 'larga') return campo.Largura;
   switch (campo.Tipo) {
     case 'data':
@@ -306,7 +391,19 @@ export function classeLargura(campo: PeCampoRegistro): string {
   }
 }
 
-// ── Como o campo se responde (dica embaixo do rótulo) ────────────────────────
+/** O formato do texto curto pela configuração do campo (F1): `sei`, `url` ou null. */
+export function formatoDoCampo(campo: Pick<PeCampoRegistro, 'Tipo' | 'Config'>): 'sei' | 'url' | null {
+  if (campo.Tipo !== 'texto_curto') return null;
+  const formato = (campo.Config?.formato ?? '').trim().toLowerCase();
+  return formato === 'sei' || formato === 'url' ? formato : null;
+}
+
+/** A data do campo não pode passar de hoje (F1, C05: as datas de decisão). */
+export function dataNaoFutura(campo: Pick<PeCampoRegistro, 'Tipo' | 'Config'>): boolean {
+  return campo.Tipo === 'data' && campo.Config?.naoFutura === true;
+}
+
+// ── Como o campo se responde (dica do campo) ─────────────────────────────────
 
 /** O jeito de responder, em poucas palavras, para a dica do campo. */
 export function dicaDoCampo(campo: PeCampoRegistro): string {
@@ -315,8 +412,13 @@ export function dicaDoCampo(campo: PeCampoRegistro): string {
   const min = typeof c?.min === 'number' ? c.min : null;
   switch (campo.Tipo) {
     case 'texto_curto':
+      if (formatoDoCampo(campo) === 'sei') return 'O número do processo no SEI, como 00000-00000000/2026-00.';
+      if (formatoDoCampo(campo) === 'url') return 'O endereço completo, começando por https://.';
+      return max ? `Até ${max} caracteres.` : '';
     case 'texto_longo':
       return max ? `Até ${max} caracteres.` : '';
+    case 'data':
+      return c?.naoFutura ? 'Hoje ou antes: não pode ser uma data futura.' : '';
     case 'numero': {
       const partes: string[] = [];
       if (min !== null && max !== null) partes.push(`Um número de ${formatarNumero(min)} a ${formatarNumero(max)}`);
@@ -372,10 +474,12 @@ export function erroDoCampo(campo: PeCampoRegistro, valor: unknown, vinculos?: P
   switch (campo.Tipo) {
     case 'texto_curto':
     case 'texto_longo': {
-      const tamanho = String(valor).trim().length;
-      return typeof c?.max === 'number' && tamanho > c.max
-        ? `Escreva até ${c.max} caracteres (agora são ${tamanho}).`
-        : null;
+      const texto = String(valor).trim();
+      if (typeof c?.max === 'number' && texto.length > c.max) return `Escreva até ${c.max} caracteres (agora são ${texto.length}).`;
+      const formato = formatoDoCampo(campo);
+      if (formato === 'sei' && !seiValido(texto)) return 'Use o número do processo SEI completo, no formato 00000-00000000/0000-00.';
+      if (formato === 'url' && !urlValida(texto)) return 'Informe um endereço de internet completo, começando por http:// ou https://.';
+      return null;
     }
     case 'numero': {
       const lido = lerNumero(valor);
@@ -409,7 +513,8 @@ export function erroDoCampo(campo: PeCampoRegistro, valor: unknown, vinculos?: P
       return null;
     }
     case 'data':
-      return dataValida(String(valor)) ? null : 'Informe uma data válida (dia, mês e ano).';
+      if (!dataValida(String(valor))) return 'Informe uma data válida (dia, mês e ano).';
+      return dataNaoFutura(campo) && String(valor) > hojeIso() ? 'A data não pode ser depois de hoje.' : null;
     case 'texto_rico':
       return JSON.stringify(docParaEnvio(valor)).length > MAX_CARACTERES_DOCUMENTO
         ? 'O texto ficou grande demais para guardar. Tire uma parte dele (ou divida em mais de um registro).'

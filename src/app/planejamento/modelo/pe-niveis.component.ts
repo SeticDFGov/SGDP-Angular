@@ -1,5 +1,5 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AfterViewChecked, Component, DestroyRef, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -12,6 +12,7 @@ import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive
 import { PeHistoricoComponent } from '../shared/pe-historico.component';
 import { ResumoNivel, codigoDoNome, modeloOrdenado, resumoDoNivel } from '../shared/pe-modelo-arvore';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { PeModeloService } from '../services/pe-modelo.service';
 import { PeOrgaosService } from '../services/pe-orgaos.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
@@ -45,13 +46,25 @@ const MAX_DESCRICAO = 1000;
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
 })
-export class PeNiveisComponent implements OnInit {
+export class PeNiveisComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly modeloService = inject(PeModeloService);
   private readonly orgaosService = inject(PeOrgaosService);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
+  /** Id do elemento que recebe o foco depois da próxima renderização (F1, A05 e A13). */
+  private focoPendente: string | null = null;
+
+  ngAfterViewChecked(): void {
+    if (!this.focoPendente || !this.noNavegador) return;
+    const alvo = document.getElementById(this.focoPendente);
+    if (!alvo) return;
+    this.focoPendente = null;
+    alvo.focus();
+  }
 
   readonly maxNome = MAX_NOME;
   readonly maxDescricao = MAX_DESCRICAO;
@@ -176,6 +189,10 @@ export class PeNiveisComponent implements OnInit {
         if (this.modelo) this.modelo = { ...this.modelo, Niveis: this.niveis };
         const movido = nova[destino];
         this.acessibilidade.anunciar(`Nível ${movido.Nome} agora na posição ${destino + 1} de ${nova.length}.`);
+        // O foco fica no botão usado, na linha movida; na ponta da lista ele desliga, e o foco vai para o outro (F1, A05)
+        const naPonta = destino === 0 || destino === nova.length - 1;
+        const botao = naPonta ? (delta < 0 ? 'descer' : 'subir') : (delta < 0 ? 'subir' : 'descer');
+        this.focoPendente = nova.length > 1 ? `pe-nivel-${botao}-${movido.Id}` : null;
       },
       error: erro => {
         this.movendo = false;
@@ -213,7 +230,11 @@ export class PeNiveisComponent implements OnInit {
     const e = this.edicao;
     if (!e || this.salvando) return;
     e.tentou = true;
-    if (this.erroNome) return;
+    if (this.erroNome) {
+      // O foco vai para o campo, que tem o erro ligado (F1, A13)
+      this.focoPendente = 'pe-nivel-nome';
+      return;
+    }
 
     const nome = e.nome.trim();
     const descricao = e.descricao.trim() || null;
@@ -252,13 +273,25 @@ export class PeNiveisComponent implements OnInit {
 
   alternarAtivo(nivel: PeNivel): void {
     if (this.alterandoId !== null) return;
-    if (nivel.Ativo) {
-      const orgaos = this.orgaosNoNivel(nivel).total;
-      const aviso = orgaos > 0
-        ? ` ${orgaos === 1 ? 'O órgão que está nele continua' : `Os ${orgaos} órgãos que estão nele continuam`} nele até você trocar o nível.`
-        : '';
-      if (!confirm(`Desativar o nível "${nivel.Nome}"? Ele deixa de ser oferecido para os órgãos.${aviso}`)) return;
+    if (!nivel.Ativo) {
+      this.alternarAtivoSim(nivel);
+      return;
     }
+    const orgaos = this.orgaosNoNivel(nivel).total;
+    const aviso = orgaos > 0
+      ? ` ${orgaos === 1 ? 'O órgão que está nele continua' : `Os ${orgaos} órgãos que estão nele continuam`} nele até você trocar o nível.`
+      : '';
+    this.confirmacao.perguntar({
+      titulo: `Desativar o nível "${nivel.Nome}"?`,
+      texto: `Ele deixa de ser oferecido para os órgãos.${aviso}`,
+      sim: 'Desativar o nível',
+      perigo: true
+    }).then(sim => {
+      if (sim && this.alterandoId === null) this.alternarAtivoSim(nivel);
+    });
+  }
+
+  private alternarAtivoSim(nivel: PeNivel): void {
     this.alterandoId = nivel.Id;
     this.modeloService.atualizarNivel(nivel.Id, { Nome: nivel.Nome, Descricao: nivel.Descricao, Ativo: !nivel.Ativo }).subscribe({
       next: atualizado => {

@@ -208,6 +208,12 @@ export class CtrProcessosComponent implements OnInit {
   private gravarFiltrosNaUrl(): void {
     const queryParams = parametrosDaLista(this.filtroAplicado);
     this.processoService.filtrosDaLista = queryParams;
+    // A URL já tem estes filtros (a primeira abertura, sem filtro ou pelo link do painel): nada a gravar. Navegar
+    // aqui, no meio da navegação que abriu a tela, cancelava a dela, e a aba ficava com o título da tela anterior
+    // ("Início · SGDP" entrando pelo card da tela inicial)
+    const atuais = this.route.snapshot.queryParamMap;
+    const chaves = Object.keys(queryParams);
+    if (atuais.keys.length === chaves.length && chaves.every(chave => atuais.get(chave) === queryParams[chave])) return;
     this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl: true });
   }
 

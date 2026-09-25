@@ -5,7 +5,6 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { PeComentario } from '../../../api/planejamento/interface';
-import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { mensagemErroPe } from '../shared/pe-erros';
@@ -34,7 +33,6 @@ const MAX_TEXTO = 2000;
 export class PeComentariosPassoComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private readonly pdticService = inject(PePdticService);
   private readonly notificacoes = inject(NotificationService);
-  private readonly acessibilidade = inject(AcessibilidadeService);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   @Input({ required: true }) pdticId!: number;
@@ -121,7 +119,7 @@ export class PeComentariosPassoComponent implements OnChanges, AfterViewChecked,
   }
 
   resolvidoEm(c: PeComentario): string {
-    return quandoEQuem(c.ResolvidoEm, c.ResolvidoPor);
+    return quandoEQuem(c.ResolvidoEm, c.ResolvidoPor, c.ResolvidoPorNome);
   }
 
   /** A equipe do órgão resolve; quem escreveu o comentário também. */
@@ -170,8 +168,8 @@ export class PeComentariosPassoComponent implements OnChanges, AfterViewChecked,
       next: () => {
         this.enviandoNovo = false;
         this.novo = '';
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
         this.notificacoes.success('Comentário enviado. A equipe do órgão vê o aviso na trilha.');
-        this.acessibilidade.anunciar('Comentário enviado.');
         this.carregar();
         this.mudou.emit();
       },
@@ -209,7 +207,8 @@ export class PeComentariosPassoComponent implements OnChanges, AfterViewChecked,
         this.respondendo = null;
         this.resposta = '';
         this.notificacoes.success('Resposta enviada.');
-        this.acessibilidade.anunciar('Resposta enviada.');
+        // O formulário da resposta sai da tela: o foco volta ao "Responder" do comentário (F1, B01)
+        this.focoPendente = `${this.idBase}-responder-${c.Id}`;
         this.carregar();
         this.mudou.emit();
       },
@@ -228,7 +227,6 @@ export class PeComentariosPassoComponent implements OnChanges, AfterViewChecked,
       next: () => {
         this.resolvendo = null;
         this.notificacoes.success('Comentário marcado como resolvido.');
-        this.acessibilidade.anunciar('Comentário marcado como resolvido.');
         this.focoPendente = `${this.idBase}-titulo`;
         this.carregar();
         this.mudou.emit();

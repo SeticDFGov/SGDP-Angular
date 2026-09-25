@@ -1,12 +1,16 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { SERVICE_API_URL } from '../../../api/consts';
 import {
   PeAcaoCiclo, PeAcaoCicloForm, PeAcoesCicloForm, PeCiclo, PeCicloNovoForm, PeMedicaoCiclo, PeMedicaoCicloForm,
-  PeMedicoesCicloForm, PePainelAcompanhamento, PeTipoCiclo
+  PeMedicoesCicloForm, PePainelAcompanhamento, PeRegistrosDaSecao, PeResumoCiclo, PeTipoCiclo
 } from '../../../api/planejamento/interface';
+import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
+import {
+  ResumoAvaliacao, SECAO_ANALISE_INTERMEDIARIA, SECAO_AVALIACAO_DO_COMITE, SECAO_RESULTADOS_INTERMEDIARIOS
+} from '../shared/pe-ciclos-rotulos';
 
 /**
  * Acompanhamento do PDTIC (E7 rodada B): os ciclos de monitoramento (que o
@@ -23,6 +27,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class PeCiclosService {
   private readonly http = inject(HttpClient);
+  private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly apiUrl = `${SERVICE_API_URL}/api/planejamento`;
   /** O ciclo escolhido em cada PDTIC e tipo: o passo seguinte (5.1 e 5.2) mostra o mesmo ciclo. */
   private readonly escolhas = new Map<string, number>();
@@ -73,6 +78,54 @@ export class PeCiclosService {
   painel(pdticId: number, cicloId: number | null): Observable<PePainelAcompanhamento> {
     const params = cicloId ? new HttpParams().set('cicloId', cicloId) : undefined;
     return this.http.get<PePainelAcompanhamento>(`${this.apiUrl}/pdtic/${pdticId}/painel-acompanhamento`, { params });
+  }
+
+  /**
+   * F1 (I04 e C23): o que uma avaliação intermediária já tem, pelas seções dela no
+   * ciclo: quantos resultados das metas, se a análise está preenchida e a decisão
+   * do comitê. Seção que o nível do órgão não liga (404) ou que falhou fica nula
+   * (a tela não fala dela).
+   */
+  resumoDaAvaliacao(pdticId: number, cicloId: number, resumo?: PeResumoCiclo | null): Observable<ResumoAvaliacao> {
+    // O servidor já manda o resumo da avaliação junto com o ciclo (F1): sem consulta. A seção que o nível
+    // do órgão não liga (fora da trilha à vista) fica nula, como no caminho pelas seções
+    if (resumo && resumo.ResultadosMetas !== undefined) {
+      const naTrilha = this.secoesNaTrilha();
+      const tem = (chave: string) => !naTrilha || naTrilha.has(chave);
+      const decisao = resumo.DecisaoComiteRotulo?.trim() || resumo.DecisaoComite?.trim() || '';
+      return of({
+        resultados: tem(SECAO_RESULTADOS_INTERMEDIARIOS) ? resumo.ResultadosMetas ?? 0 : null,
+        analise: tem(SECAO_ANALISE_INTERMEDIARIA) ? !!resumo.AnaliseRegistrada : null,
+        decisao: tem(SECAO_AVALIACAO_DO_COMITE) ? decisao : null
+      });
+    }
+    const params = new HttpParams().set('cicloId', cicloId);
+    const secao = (chave: string): Observable<PeRegistrosDaSecao | null> =>
+      this.http.get<PeRegistrosDaSecao>(`${this.apiUrl}/pdtic/${pdticId}/secoes/${chave}/registros`, { params })
+        .pipe(catchError(() => of(null)));
+    return forkJoin({
+      resultados: secao(SECAO_RESULTADOS_INTERMEDIARIOS),
+      analise: secao(SECAO_ANALISE_INTERMEDIARIA),
+      comite: secao(SECAO_AVALIACAO_DO_COMITE)
+    }).pipe(map(({ resultados, analise, comite }) => {
+      const decisao = comite?.Registros?.[0] ?? null;
+      const rotulo = decisao?.Rotulos?.['decisao'];
+      const valor = decisao?.Dados?.['decisao'];
+      return {
+        resultados: resultados ? resultados.Registros?.length ?? 0 : null,
+        analise: analise ? (analise.Registros?.length ?? 0) > 0 : null,
+        decisao: comite
+          ? (typeof rotulo === 'string' && rotulo.trim() ? rotulo.trim() : typeof valor === 'string' && valor ? valor : '')
+          : null
+      };
+    }));
+  }
+
+  /** As seções dos passos da trilha à vista (a do órgão); nulo sem trilha de órgão. */
+  private secoesNaTrilha(): Set<string> | null {
+    const passos = this.estadoService.atual?.passos ?? [];
+    const chaves = passos.flatMap(p => (p.doOrgao?.Secoes ?? []).map(s => s.Chave));
+    return chaves.length ? new Set(chaves) : null;
   }
 
   /** Guarda o ciclo escolhido (o passo seguinte do mesmo tipo começa por ele). */

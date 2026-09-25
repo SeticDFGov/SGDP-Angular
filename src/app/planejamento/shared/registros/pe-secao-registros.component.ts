@@ -40,6 +40,8 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
   @Input() rotuloItem = 'registro';
   /** Explica por que a pessoa só lê (ex.: "Só o rascunho muda."). Sem ele, um texto padrão. */
   @Input() avisoLeitura: string | null = null;
+  /** A tela já explica, no alto, por que só se lê (F1, C30): a seção não repete o aviso. */
+  @Input() semAvisoLeitura = false;
   /** Esconde o título (a tela já mostra o nome da seção). */
   @Input() semTitulo = false;
   /** Situação da seção para o dono (PDTIC: pelo nível do órgão): selo ao lado do título. */

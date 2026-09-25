@@ -13,13 +13,14 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PapeisPlanejamento } from '../../core/acessos/papeis-planejamento';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import { NomesDoModelo, citacaoTravado, descricaoCampo, rotuloTipoPasso } from '../shared/pe-modelo-rotulos';
 import {
   GrupoPassoPdtic, SECAO_APROVACAO_AUTORIDADE, SECAO_AVALIACAO_COMITE, SECAO_CRONOGRAMA, SECAO_PUBLICACAO,
   TIPOS_PASSO_COM_SECOES, TIPOS_PASSO_COM_TELA, aceitaNaoSeAplica, classeEstadoPasso, ehPassoSistemasIa, grupoDoPasso,
-  iconeEstadoPasso, itemDaSecaoPdtic, motivoLeituraDoPasso, passoTemFluxos, pdticAntesDaPublicacao, pdticDepoisDaPublicacao, pdticVigente,
-  statusDoPassoPdtic, textoDoStatus
+  iconeEstadoPasso, itemDaSecaoPdtic, minusculaInicial, motivoLeituraDoPasso, passoTemFluxos, pdticAntesDaPublicacao,
+  pdticDepoisDaPublicacao, pdticVigente, rotuloSituacaoPdtic, statusDoPassoPdtic, textoDoStatus
 } from '../shared/pe-pdtic-rotulos';
 import {
   PassoDaGrade, SECAO_ACOES, SECAO_INDICADORES_MONITORAMENTO, SECAO_MEDICOES, SECAO_MONITORAMENTO_ACOES, SECAO_RELATORIO_CICLO,
@@ -133,6 +134,7 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   private readonly ciclosService = inject(PeCiclosService);
   private readonly pdticService = inject(PePdticService);
   private readonly notificacoes = inject(NotificationService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly base = BASE_PE;
@@ -338,6 +340,28 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
       && !!this.ciclo && !this.avaliacaoMaisRecenteAVista && !!this.pdtic && pdticVigente(this.pdtic.Situacao);
   }
 
+  /**
+   * F1 (C22): o comitê decidiu revisar, e a revisão já foi aberta: a versão em
+   * revisão (o botão de abrir some, e a tela diz onde ela está).
+   */
+  get revisaoJaAberta(): PePdtic | null {
+    const p = this.pdtic;
+    if (!p || !this.passoAprovacao || this.decisoes[SECAO_AVALIACAO_COMITE] !== 'revisar' || !pdticVigente(p.Situacao)) return null;
+    return (this.estadoService.atual?.versoes ?? []).find(v => v.Id !== p.Id && pdticAntesDaPublicacao(v.Situacao)) ?? null;
+  }
+
+  /** "em elaboração", "devolvido pelo CGTIC" (no meio da frase). */
+  situacaoEmTexto(situacao: string): string {
+    return minusculaInicial(rotuloSituacaoPdtic(situacao));
+  }
+
+  /** Vai para a versão em revisão (a troca de versão acontece na visão geral, como no seletor do alto da trilha). */
+  verRevisao(v: PePdtic): void {
+    this.router.navigate([BASE_PE]).then(saiu => {
+      if (saiu) this.estadoService.escolherVersao(v.Id);
+    });
+  }
+
   /** "Encerrar o PDTIC": na aprovação da autoridade máxima (7.4) com a decisão "aprovado", para a equipe do órgão. */
   get mostraEncerrar(): boolean {
     const p = this.pdtic;
@@ -415,6 +439,12 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
         + 'asterisco são obrigatórios.';
     }
     if (this.passoEnvio) {
+      // D3: depois da devolução do CGTIC, a versão ajustada volta ao comitê interno: a aprovação do SGTIC se registra de novo
+      if (this.pdtic?.Situacao === 'devolvido') {
+        return 'O CGTIC devolveu o PDTIC. Depois de ajustar o que foi pedido, registre de novo a aprovação do SGTIC abaixo, com a data '
+          + 'da nova decisão (a versão ajustada volta ao comitê interno), e salve. Depois, envie de novo ao CGTIC no bloco "Envio ao CGTIC". '
+          + 'Os campos com asterisco são obrigatórios.';
+      }
       return 'Registre a aprovação do SGTIC abaixo e salve. Depois, envie ao CGTIC no bloco "Envio ao CGTIC", logo depois dela: o '
         + 'passo fica feito com o envio. Os campos com asterisco são obrigatórios.';
     }
@@ -558,16 +588,24 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
       : 'Esta seção se preenche a cada ciclo de monitoramento. Ainda não há ciclo para mostrar.';
   }
 
-  /** Quem escolhe na lista: a troca vai para o endereço (com mudança não salva, pergunta antes). */
+  /** Quem escolhe na lista: a troca vai para o endereço (com mudança não salva, pergunta antes na janela do módulo). */
   escolherCiclo(id: number): void {
     if (id === this.ciclo?.Id) return;
-    if (this.mudancaNoCiclo && !confirm(`Há mudanças que ainda não foram salvas neste passo. Ver ${this.tipoCiclo === 'avaliacao' ? 'outra avaliação' : 'outro ciclo'} assim mesmo? Elas vão se perder.`)) {
-      return;
-    }
-    this.trocaDeCicloConfirmada = true;
-    this.sujas.clear();
-    this.documentoSujo = false;
-    this.irParaCiclo(id);
+    this.confirmarTrocaDeCiclo().then(sim => {
+      if (!sim) return;
+      this.trocaDeCicloConfirmada = true;
+      this.sujas.clear();
+      this.documentoSujo = false;
+      this.irParaCiclo(id);
+    });
+  }
+
+  /** Mudança não salva no ciclo à vista: pergunta antes de trocar (F1, A04). */
+  private confirmarTrocaDeCiclo(): Promise<boolean> {
+    if (!this.mudancaNoCiclo) return Promise.resolve(true);
+    const outro = this.tipoCiclo === 'avaliacao' ? 'outra avaliação' : 'outro ciclo';
+    return this.confirmacao.perguntarDescarte(
+      `Há mudanças que ainda não foram salvas neste passo. Se abrir ${outro} agora, elas se perdem.`, 'Trocar sem salvar', `Ver ${outro} sem salvar?`);
   }
 
   /** A avaliação nova (aberta na lista): os ciclos vêm de novo, e ela passa a ser a da tela. */
@@ -629,9 +667,17 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
   /** O formato que está sendo gerado (os dois botões ficam desligados enquanto isso). */
   baixandoPlanilhaPasso: PeFormatoPlanilha | null = null;
 
-  /** Mais de uma seção visível: o CSV vem num .zip, com um CSV por seção. */
+  /**
+   * As seções do passo que saem na planilha (F1, I06: o `NaPlanilha` de cada seção
+   * da trilha; resposta antiga, sem o campo, conta todas).
+   */
+  get secoesNaPlanilha(): number {
+    return this.passo?.Secoes.filter(s => s.NaPlanilha !== false).length ?? 0;
+  }
+
+  /** Mais de uma seção na planilha: o CSV vem num .zip, com um CSV por seção. */
   get variasSecoes(): boolean {
-    return (this.passo?.Secoes.length ?? 0) > 1;
+    return this.secoesNaPlanilha > 1;
   }
 
   /** O passo tem seção por ciclo: a planilha leva o ciclo à vista (a API o exige). */
@@ -644,17 +690,20 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     return this.planilhaPorCiclo && this.ciclosDisponiveis ? this.ciclo : null;
   }
 
-  /** Sem seção por ciclo, sempre; com ela, só com um ciclo à vista. */
+  /** Com alguma seção na planilha; sem seção por ciclo, sempre; com ela, só com um ciclo à vista. */
   get planilhaDoPassoDisponivel(): boolean {
-    return !this.planilhaPorCiclo || !!this.cicloDaPlanilha;
+    return this.secoesNaPlanilha > 0 && (!this.planilhaPorCiclo || !!this.cicloDaPlanilha);
   }
 
-  /** O que a planilha do passo traz, em linguagem simples. */
+  /** O que a planilha do passo traz, em linguagem simples (contando só as seções que saem na planilha). */
   get textoPlanilhaPasso(): string {
-    const n = this.passo?.Secoes.length ?? 0;
-    const conteudo = n > 1
+    const n = this.secoesNaPlanilha;
+    if (n === 0) return 'Nenhuma seção deste passo sai nas planilhas: o administrador do módulo tirou as seções dele das planilhas.';
+    const fora = (this.passo?.Secoes.length ?? 0) - n;
+    const conteudo = (n > 1
       ? `Os dados das ${n} seções deste passo num arquivo só: no XLSX, uma aba por seção e a aba Leia-me; no CSV, um arquivo .zip com um CSV por seção.`
-      : 'Os dados da seção deste passo: no XLSX, com a aba Leia-me; ou em CSV.';
+      : 'Os dados da seção deste passo: no XLSX, com a aba Leia-me; ou em CSV, num arquivo só.')
+      + (fora === 1 ? ' Uma seção do passo não sai na planilha.' : fora > 1 ? ` ${fora} seções do passo não saem na planilha.` : '');
     if (!this.planilhaPorCiclo) return conteudo;
     const c = this.cicloDaPlanilha;
     return c
@@ -781,16 +830,21 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     this.fluxosSujos = sujo;
   }
 
-  /** Guarda de rota: mudança não salva numa seção do passo, num texto do documento ou num fluxo. */
+  /**
+   * Guarda de rota: com mudança não salva numa seção do passo, num texto do
+   * documento ou num fluxo, ela pergunta antes de sair (na janela do módulo, F1, A04).
+   */
   podeSair(): boolean {
-    if (this.sujas.size === 0 && !this.documentoSujo && !this.fluxosSujos) return true;
-    const sair = confirm('Há mudanças que ainda não foram salvas neste passo. Sair assim mesmo? Elas vão se perder.');
-    if (sair) {
-      this.sujas.clear();
-      this.documentoSujo = false;
-      this.fluxosSujos = false;
-    }
-    return sair;
+    return this.sujas.size === 0 && !this.documentoSujo && !this.fluxosSujos;
+  }
+
+  /** Recarregar a página (F1, D07): o texto do documento se salva sozinho e fica de fora da pergunta do navegador. */
+  perdeAoRecarregar(): boolean {
+    return this.sujas.size > 0 || this.fluxosSujos;
+  }
+
+  textoSaida(): string {
+    return 'Há mudanças que ainda não foram salvas neste passo. Se sair agora, elas se perdem.';
   }
 
   // ── Cronograma sugerido pelos fluxos (E6) ─────────────────────────────────
@@ -835,6 +889,8 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
         this.abrindo = false;
         // O toast fica numa região lida pelo leitor de tela: um aviso só
         this.notificacoes.success(`PDTIC ${pdtic.Versao} aberto. Já dá para preencher este passo.`);
+        // O botão "Começar o PDTIC" some: o foco vai ao título do passo (F1, C11)
+        this.focoPendente = 'pe-passo-titulo';
       },
       error: erro => {
         this.abrindo = false;
@@ -1021,9 +1077,17 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     const confirmada = this.trocaDeCicloConfirmada;
     this.trocaDeCicloConfirmada = false;
     const atual = this.ciclo;
-    if (atual && escolhido && escolhido.Id !== atual.Id && !confirmada && this.mudancaNoCiclo
-      && this.noNavegador && !confirm('Há mudanças que ainda não foram salvas neste passo. Trocar de ciclo assim mesmo? Elas vão se perder.')) {
+    if (atual && escolhido && escolhido.Id !== atual.Id && !confirmada && this.mudancaNoCiclo && this.noNavegador) {
+      // O endereço mudou por fora (o voltar do navegador): volta ao ciclo à vista e pergunta na janela do módulo
+      const pedido = escolhido.Id;
       this.irParaCiclo(atual.Id);
+      this.confirmarTrocaDeCiclo().then(sim => {
+        if (!sim) return;
+        this.trocaDeCicloConfirmada = true;
+        this.sujas.clear();
+        this.documentoSujo = false;
+        this.irParaCiclo(pedido);
+      });
       return;
     }
     if (atual && escolhido && escolhido.Id !== atual.Id) {
@@ -1121,8 +1185,11 @@ export class PePassoOrgaoComponent implements OnInit, AfterViewChecked {
     if (this.esperandoSituacao && andamento) {
       this.esperandoSituacao = false;
       if (this.status?.estado === 'feito' && antes?.estado !== 'feito') {
-        // O toast fica numa região lida pelo leitor de tela: um aviso só
-        this.notificacoes.success(`Passo ${passo.Numero} feito: as seções obrigatórias estão preenchidas.`);
+        // O toast fica numa região lida pelo leitor de tela: um aviso só. Passo sem seções (o documento, feito pelo
+        // PDF gerado; os fluxos) não fala de seções (F1, B15)
+        this.notificacoes.success(passo.Secoes.length > 0
+          ? `Passo ${passo.Numero} feito: as seções obrigatórias estão preenchidas.`
+          : `Passo ${passo.Numero} feito.`);
       }
     }
   }

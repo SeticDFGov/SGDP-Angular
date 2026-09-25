@@ -5,7 +5,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PeRegistrosService } from '../../services/pe-registros.service';
 import { mensagemErroDownload, salvarResposta } from '../pe-download';
 import { PeTextoRicoLeituraDirective } from '../texto-rico/pe-texto-rico-leitura.directive';
-import { ehArquivoRef, ehLigacao, textoDataHora, textoDoValor, textoVinculo } from './pe-valores';
+import { ehArquivoRef, ehLigacao, nomeDeQuem, textoDataHora, textoDoValor, textoVinculo } from './pe-valores';
 
 /**
  * Um registro só para ler: cada campo visível com o rótulo e o valor pronto
@@ -59,8 +59,11 @@ export class PeRegistroLeituraComponent {
 
   get auditoria(): string {
     const r = this.registro;
-    const partes = [`Incluído em ${textoDataHora(r.CriadoEm)}${r.CriadoPor ? ' por ' + r.CriadoPor : ''}`];
-    if (r.AlteradoEm) partes.push(`alterado em ${textoDataHora(r.AlteradoEm)}${r.AlteradoPor ? ' por ' + r.AlteradoPor : ''}`);
+    // O nome de quem incluiu e de quem alterou; sem ele, o e-mail (F1, C19)
+    const criou = nomeDeQuem(r.CriadoPorNome, r.CriadoPor);
+    const alterou = nomeDeQuem(r.AlteradoPorNome, r.AlteradoPor);
+    const partes = [`Incluído em ${textoDataHora(r.CriadoEm)}${criou ? ' por ' + criou : ''}`];
+    if (r.AlteradoEm) partes.push(`alterado em ${textoDataHora(r.AlteradoEm)}${alterou ? ' por ' + alterou : ''}`);
     return `${partes.join('; ')}.`;
   }
 

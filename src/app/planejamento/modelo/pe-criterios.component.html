@@ -215,7 +215,7 @@
             <textarea id="pe-crit-novo-ajuda" rows="2" [(ngModel)]="novaAjuda" name="pe-crit-novo-ajuda" [maxlength]="maxAjuda"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
             <div class="flex flex-wrap gap-2 mt-3">
-              <button type="button" (click)="criarCriterio()" [disabled]="criando"
+              <button type="button" (click)="criarCriterio()" [attr.aria-disabled]="criando || null"
                       class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
                 <span class="material-icons text-base" aria-hidden="true">add</span> {{ criando ? 'Criando...' : 'Criar critério' }}
               </button>
@@ -232,11 +232,11 @@
             <ul class="list-disc ml-5 mt-1 space-y-0.5"><li *ngFor="let erro of erros">{{ erro }}</li></ul>
           </div>
           <div class="mt-5 flex items-center gap-3 flex-wrap sticky bottom-0 z-10 py-3 bg-white border-t border-gray-200">
-            <button type="submit" [disabled]="salvando"
+            <button type="submit" [attr.aria-disabled]="salvando || null"
                     class="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
               <span class="material-icons text-lg" aria-hidden="true">save</span> {{ salvando ? 'Salvando...' : 'Salvar os critérios' }}
             </button>
-            <button type="button" (click)="desfazer()" [disabled]="salvando || !alterado"
+            <button type="button" (click)="desfazer()" [disabled]="!alterado" [attr.aria-disabled]="salvando || null"
                     class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
               Desfazer
             </button>

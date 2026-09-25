@@ -44,7 +44,7 @@
 
     <!-- Pessoas com papel -->
     <div class="bg-white rounded-lg shadow p-6">
-      <h2 class="text-base font-semibold text-gray-900 mb-3">Quem tem papel no módulo</h2>
+      <h2 id="pe-pessoas-titulo" tabindex="-1" class="text-base font-semibold text-gray-900 mb-3">Quem tem papel no módulo</h2>
 
       <form (ngSubmit)="buscar()" class="mb-4">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
@@ -63,11 +63,11 @@
           </div>
         </div>
         <div class="flex flex-wrap gap-2 mt-3">
-          <button type="submit" [disabled]="carregando"
+          <button type="submit" [attr.aria-disabled]="carregando || null"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
             <span class="material-icons text-base" aria-hidden="true">search</span> Buscar
           </button>
-          <button *ngIf="filtrando" type="button" (click)="limparFiltros()" [disabled]="carregando"
+          <button *ngIf="filtrando" type="button" (click)="limparFiltros()" [attr.aria-disabled]="carregando || null"
                   class="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
             Limpar os filtros
           </button>
@@ -126,21 +126,22 @@
                     Sem órgão: a unidade da pessoa não está ligada a um órgão, e o papel de órgão só vale com órgão.
                   </p>
                   <div *ngIf="mudou(p)" class="flex flex-wrap gap-2 mt-2">
-                    <button type="button" (click)="salvarLinha(p)" [disabled]="salvandoUserId !== null"
-                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+                    <!-- Ocupado sem sair do Tab (aria-disabled): desligado, o botão perdia o foco (F1, A05) -->
+                    <button type="button" (click)="salvarLinha(p)" [attr.aria-disabled]="salvandoUserId !== null || null"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold text-white"
                             [ngClass]="escolhas[p.UserId] === tirarAcesso ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'">
                       <span class="material-icons text-base" aria-hidden="true">{{ escolhas[p.UserId] === tirarAcesso ? 'block' : 'save' }}</span>
                       {{ salvandoUserId === p.UserId ? 'Salvando...' : (escolhas[p.UserId] === tirarAcesso ? 'Tirar acesso' : 'Salvar') }}
                     </button>
-                    <button type="button" (click)="desfazer(p)" [disabled]="salvandoUserId === p.UserId"
-                            class="px-3 py-1.5 rounded-md border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                    <button type="button" (click)="desfazer(p)" [attr.aria-disabled]="salvandoUserId === p.UserId || null"
+                            class="px-3 py-1.5 rounded-md border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50">
                       Desfazer
                     </button>
                   </div>
                 </td>
                 <td class="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                   {{ p.ConcedidoEm ? (p.ConcedidoEm | date:'dd/MM/yyyy HH:mm') : '-' }}
-                  <span *ngIf="p.ConcedidoPor" class="block text-gray-500">por {{ p.ConcedidoPor }}</span>
+                  <span *ngIf="nomeDeQuem(p.ConcedidoPorNome, p.ConcedidoPor) as quem" class="block text-gray-500">por {{ quem }}</span>
                 </td>
               </tr>
             </tbody>
@@ -151,9 +152,9 @@
         <div *ngIf="pagina && pagina.TotalItems > 0" class="flex items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 text-sm text-gray-600">
           <span>Mostrando {{ inicioPagina }} a {{ fimPagina }} de {{ pagina.TotalItems }}</span>
           <div *ngIf="pagina.TotalPages > 1" class="flex gap-2">
-            <button type="button" (click)="buscar(page - 1)" [disabled]="carregando || !pagina.HasPreviousPage"
+            <button type="button" (click)="buscar(page - 1)" [disabled]="!pagina.HasPreviousPage" [attr.aria-disabled]="carregando || null"
                     class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-40">Anterior</button>
-            <button type="button" (click)="buscar(page + 1)" [disabled]="carregando || !pagina.HasNextPage"
+            <button type="button" (click)="buscar(page + 1)" [disabled]="!pagina.HasNextPage" [attr.aria-disabled]="carregando || null"
                     class="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-40">Próxima</button>
           </div>
         </div>
@@ -173,7 +174,7 @@
                  placeholder="Digite ao menos 3 letras" aria-describedby="pe-candidata-ajuda"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
-        <button type="submit" [disabled]="buscandoCandidatas"
+        <button type="submit" [attr.aria-disabled]="buscandoCandidatas || null"
                 class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
           <span class="material-icons text-base" aria-hidden="true">person_search</span>
           {{ buscandoCandidatas ? 'Buscando...' : 'Buscar pessoa' }}
@@ -212,10 +213,10 @@
         <p class="text-sm text-gray-700">Pessoa escolhida: <strong class="text-gray-900">{{ c.Nome || c.Email }}</strong>
           <span class="text-gray-500"> · {{ c.Email }}</span></p>
         <label for="pe-papel-novo" class="block text-sm font-semibold text-gray-900 mt-3 mb-1">
-          Papel de {{ c.Nome || c.Email }} no módulo <span class="text-red-600">*</span>
+          Papel de {{ c.Nome || c.Email }} no módulo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
         </label>
-        <select id="pe-papel-novo" [(ngModel)]="papelNovo" name="pe-papel-novo"
-                [attr.aria-invalid]="papelNovoFaltando" aria-describedby="pe-papel-novo-ajuda"
+        <select id="pe-papel-novo" [(ngModel)]="papelNovo" name="pe-papel-novo" aria-required="true"
+                [attr.aria-invalid]="papelNovoFaltando || null" aria-describedby="pe-papel-novo-ajuda"
                 class="w-full md:w-[32rem] px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 [ngClass]="papelNovoFaltando ? 'border-red-500' : 'border-gray-300'">
           <option [ngValue]="null" disabled>Escolha o papel</option>
@@ -229,8 +230,8 @@
           só vale depois que a Administração do SGDP ligar a unidade a um órgão.
         </p>
         <div class="flex flex-wrap items-center gap-2 mt-4">
-          <button type="button" (click)="darAcesso()" [disabled]="dandoAcesso"
-                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-green-700 text-white text-sm font-semibold hover:bg-green-800 disabled:opacity-50">
+          <button type="button" (click)="darAcesso()" [attr.aria-disabled]="dandoAcesso || null"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-green-700 text-white text-sm font-semibold hover:bg-green-800">
             <span class="material-icons text-base" aria-hidden="true">lock_open</span>
             {{ dandoAcesso ? 'Liberando...' : 'Dar acesso' }}
           </button>

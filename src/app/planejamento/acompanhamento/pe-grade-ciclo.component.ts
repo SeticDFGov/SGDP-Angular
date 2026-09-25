@@ -70,6 +70,8 @@ export class PeGradeCicloComponent implements OnChanges, AfterViewChecked, OnDes
   @Input() rotuloAnterior: string | null = null;
   /** O passo onde as ações (ou os indicadores de monitoramento) se cadastram. */
   @Input() passoOrigem: PassoDaGrade | null = null;
+  /** A tela do passo já explica por que só se lê (F1, C30): a grade não repete o aviso. */
+  @Input() semAvisoLeitura = false;
   /** A grade foi salva (o resumo do ciclo e a situação do passo mudam). */
   @Output() readonly mudou = new EventEmitter<void>();
   /** Há mudança não salva na grade. */
@@ -136,6 +138,15 @@ export class PeGradeCicloComponent implements OnChanges, AfterViewChecked, OnDes
 
   get rotuloLinha(): string {
     return this.tipo === 'acoes' ? 'Ação' : 'Indicador';
+  }
+
+  /**
+   * A legenda da tabela, lida pelo leitor de tela: "Situação das ações no ciclo
+   * 2026 · 3º trimestre" (o título da seção já termina em "no ciclo": sem repetir, F1, C14).
+   */
+  get legenda(): string {
+    const base = this.titulo.replace(/\s+no ciclo\s*$/i, '');
+    return `${base} no ciclo ${this.ciclo.Rotulo}. Uma linha por ${this.tipo === 'acoes' ? 'ação' : 'indicador'}.`;
   }
 
   get periodo(): string {
@@ -284,6 +295,7 @@ export class PeGradeCicloComponent implements OnChanges, AfterViewChecked, OnDes
   }
 
   desfazer(): void {
+    if (this.salvando) return;
     for (const l of this.linhas) {
       l.valores = { ...l.originais };
       l.erros = {};
@@ -292,6 +304,8 @@ export class PeGradeCicloComponent implements OnChanges, AfterViewChecked, OnDes
     this.errosGerais = [];
     this.recontar();
     this.acessibilidade.anunciar('As mudanças da grade foram desfeitas.');
+    // Sem mudança, o botão desliga e perderia o foco para a página (F1, C11): o foco vai ao título da grade
+    this.focoPendente = `${this.idBase}-titulo`;
   }
 
   focar(id: string): void {

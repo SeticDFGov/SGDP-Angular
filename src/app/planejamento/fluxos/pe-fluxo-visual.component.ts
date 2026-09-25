@@ -27,6 +27,18 @@ const LIMIAR_ARRASTO_TOQUE_PX = 10;
 /** Distância da seta, na tela, que ainda conta como "sobre a seta". */
 const TOLERANCIA_SETA_PX = 10;
 const ZOOMS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+/**
+ * Rolagem na borda durante o arrasto (F1, D04 e D09): a faixa perto da borda da área
+ * do desenho, a velocidade máxima por passo e o intervalo entre os passos. A rolagem
+ * continua com o ponteiro parado perto da borda, mas só depois de o ponteiro estar
+ * dentro da área por um tempo: quem entra vindo da paleta não empurra o desenho.
+ */
+const BORDA_ROLAGEM_PX = 40;
+const VELOCIDADE_BORDA_PX = 16;
+const PASSO_BORDA_MS = 30;
+const ESPERA_BORDA_MS = 300;
+/** Folga em volta do bloco (e do campo do nome) ao rolar até ele. */
+const FOLGA_VISTA_PX = 24;
 
 /** A paleta, na ordem da especificação. */
 const TIPOS_PALETA: readonly PeTipoElementoFluxo[] = ['tarefa', 'subprocesso', 'decisao', 'paralelo', 'inicio', 'fim', 'ligacao'];
@@ -155,6 +167,10 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
   linha: { x1: number; y1: number } | null = null;
   private pararDeEscutar: (() => void) | null = null;
   private ignorarCliqueAte = 0;
+  /** O último ponto do ponteiro no arrasto, desde quando ele está dentro da área, e o temporizador da rolagem na borda. */
+  private ultimoPonteiro: { x: number; y: number } | null = null;
+  private dentroDesde: number | null = null;
+  private rolagemBorda: ReturnType<typeof setInterval> | null = null;
   private acumuladoRoda = 0;
   private tirarRoda: (() => void) | null = null;
 
@@ -217,8 +233,9 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     }
     if (this.visivelPendente) {
       // O bloco foi para o lugar da geometria (às vezes fora da área à vista): rola o mínimo para mostrá-lo
-      document.getElementById(this.idBloco(this.visivelPendente))?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const id = this.visivelPendente;
       this.visivelPendente = null;
+      this.mostrarNaArea(id);
     }
     if (this.focoPendente) {
       const alvo = document.getElementById(this.focoPendente);
@@ -232,6 +249,7 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
   ngOnDestroy(): void {
     if (this.temporizador) clearTimeout(this.temporizador);
     if (this.temporizadorAnimar) clearTimeout(this.temporizadorAnimar);
+    this.pararRolagemNaBorda();
     this.pedido?.unsubscribe();
     this.pararDeEscutar?.();
     this.tirarRoda?.();
@@ -369,6 +387,40 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
       l.id,
       `Seta de ${this.curto(l.de)} para ${this.curto(l.para)}${l.rotulo ? `, saída "${l.rotulo}"` : ''}${l.retorno ? ', volta a um passo anterior' : ''}`
     ]));
+  }
+
+  /**
+   * Rola a área do desenho até o bloco pela posição que a geometria deu (F1, D02): o
+   * bloco pode estar ainda no meio da transição, no lugar antigo, e rolar até o
+   * elemento não mostraria o lugar novo. Com o campo do nome aberto nele, o campo
+   * inteiro fica à vista, também na página (no celular, fora do pé preso da tela).
+   */
+  private mostrarNaArea(id: string): void {
+    const rolagem = this.rolagem?.nativeElement;
+    const b = this.blocoPorId(id);
+    if (!rolagem || !b || !this.noNavegador) return;
+    const z = this.zoom;
+    const esquerda = b.x * z;
+    let direita = (b.x + b.largura) * z;
+    let topo = b.y * z;
+    let baixo = (b.y + b.altura) * z;
+    const comNome = this.edicaoNome?.id === id;
+    if (comNome) {
+      // O campo: a partir da esquerda do bloco, com 200 px ou mais, na altura do meio dele (como no molde)
+      const topoCampo = (b.y + b.altura / 2) * z - 18;
+      direita = Math.max(direita, esquerda + Math.max(b.largura * z, 200));
+      topo = Math.min(topo, topoCampo);
+      baixo = Math.max(baixo, topoCampo + 40);
+    }
+    let left = rolagem.scrollLeft;
+    let top = rolagem.scrollTop;
+    if (direita + FOLGA_VISTA_PX > left + rolagem.clientWidth) left = direita + FOLGA_VISTA_PX - rolagem.clientWidth;
+    if (esquerda - FOLGA_VISTA_PX < left) left = Math.max(0, esquerda - FOLGA_VISTA_PX);
+    if (baixo + FOLGA_VISTA_PX > top + rolagem.clientHeight) top = baixo + FOLGA_VISTA_PX - rolagem.clientHeight;
+    if (topo - FOLGA_VISTA_PX < top) top = Math.max(0, topo - FOLGA_VISTA_PX);
+    rolagem.scrollLeft = left;
+    rolagem.scrollTop = top;
+    if (comNome) document.getElementById('pe-fxv-nome')?.closest('form')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
   // ── Consultas do modelo ───────────────────────────────────────────────────
@@ -639,7 +691,7 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
         if (!this.trabalho.mudar(`mover ${ref} para a raia ${raia}`, def => moverParaRaia(def, soltura.elementoId, soltura.raiaId))) return;
         if (ponto) this.provisorios.set(soltura.elementoId, ponto);
         this.focarDepois(soltura.elementoId);
-        this.acessibilidade.anunciar(`${ref} agora está na raia ${raia}. As ligações continuam.`);
+        this.trabalho.avisarMudanca(`${ref} agora está na raia ${raia}. As ligações continuam.`);
         return;
       }
       case 'mover-seta': {
@@ -652,7 +704,7 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
         if (ponto) this.provisorios.set(soltura.elementoId, ponto);
         const religou = feito.religou ? ` ${this.curto(feito.religou.de)} agora liga direto em ${this.curto(feito.religou.para)}.` : '';
         this.focarDepois(soltura.elementoId);
-        this.acessibilidade.anunciar(`${this.trabalho.rotuloPorId(soltura.elementoId)} agora fica entre ${this.entreDepois(soltura.elementoId)}.${religou}`);
+        this.trabalho.avisarMudanca(`${this.trabalho.rotuloPorId(soltura.elementoId)} agora fica entre ${this.entreDepois(soltura.elementoId)}.${religou}`);
         this.pedirRotuloSeDecisao(soltura.elementoId);
         return;
       }
@@ -674,16 +726,19 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     if (!nova || !origem) return;
     if (origem.Tipo === 'decisao') {
       this.abrirRotulo(nova.Id, true);
-      this.acessibilidade.anunciar(`Saída nova de ${this.trabalho.rotuloPorId(de)} para ${this.curto(para)}. Escreva o rótulo, como Sim ou Não.`);
+      this.trabalho.avisarMudanca(`Saída nova de ${this.trabalho.rotuloPorId(de)} para ${this.curto(para)}. Escreva o rótulo, como Sim ou Não.`);
       return;
     }
     this.focarDepois(de);
-    this.acessibilidade.anunciar(`${this.trabalho.rotuloPorId(de)} agora liga em ${this.trabalho.rotuloPorId(para)}.`);
+    this.trabalho.avisarMudanca(`${this.trabalho.rotuloPorId(de)} agora liga em ${this.trabalho.rotuloPorId(para)}.`);
   }
 
   /** Depois de incluir: seleciona, e abre o nome ali mesmo quando o tipo pede nome. */
   private depoisDeIncluir(novo: PeFluxoElemento, aviso: string): void {
     this.acompanhar = novo.Id;
+    // Já no lugar provisório (o bloco incluído por clique vai para o fim da raia, às vezes fora da vista), e de
+    // novo quando a geometria chegar: o bloco e o campo do nome ficam à vista (F1, D02)
+    this.visivelPendente = novo.Id;
     this.selecionar.emit({ selecao: { tipo: 'elemento', id: novo.Id }, abrirPainel: false });
     this.focoBloco = novo.Id;
     // A decisão que entrou no meio de um caminho tem uma saída sem rótulo: pede depois do nome
@@ -692,11 +747,11 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     if (tipoPedeNome(novo.Tipo)) {
       this.edicaoNome = { id: novo.Id, valor: '' };
       this.focoPendente = 'pe-fxv-nome';
-      this.acessibilidade.anunciar(`${aviso} Escreva o nome ${FEMININOS.has(novo.Tipo) ? 'dela' : 'dele'} e aperte Enter.`);
+      this.trabalho.avisarMudanca(`${aviso} Escreva o nome ${FEMININOS.has(novo.Tipo) ? 'dela' : 'dele'} e aperte Enter.`);
       return;
     }
     this.focarDepois(novo.Id);
-    this.acessibilidade.anunciar(aviso);
+    this.trabalho.avisarMudanca(aviso);
   }
 
   private pedirRotuloSeDecisao(id: string): void {
@@ -762,7 +817,7 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     if (valor !== e.Nome) {
       const antes = this.trabalho.rotuloPorId(e.Id);
       this.trabalho.mudar(`mudar o nome de ${antes}`, def => renomearElemento(def, e.Id, valor));
-      this.acessibilidade.anunciar(`Nome mudado: ${this.trabalho.rotuloPorId(e.Id)}.`);
+      this.trabalho.avisarMudanca(`Nome mudado: ${this.trabalho.rotuloPorId(e.Id)}.`);
     }
     const pendente = this.rotuloDepoisDoNome;
     this.rotuloDepoisDoNome = null;
@@ -812,7 +867,7 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     if ((l.Rotulo ?? '') !== valor) {
       this.trabalho.mudar(`mudar o rótulo de uma saída de ${this.trabalho.rotuloPorId(l.De)}`, def => mudarRotuloLigacao(def, l.Id, valor || null));
     }
-    this.acessibilidade.anunciar(valor
+    this.trabalho.avisarMudanca(valor
       ? `Saída "${valor}" de ${this.trabalho.rotuloPorId(l.De)} para ${this.curto(l.Para)}.`
       : 'A saída ficou sem rótulo. A decisão precisa de rótulo em cada saída.');
     if (devolverFoco) this.focoPendente = this.idBloco(l.De);
@@ -933,14 +988,18 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
   }
 
   private removerBloco(id: string): void {
-    const i = this.ordem.indexOf(id);
-    if (!this.trabalho.removerPassoDoDesenho(id)) return;
-    const restantes = this.def.Elementos.map(e => e.Id);
-    const vizinho = this.ordem.filter(x => x !== id && restantes.includes(x))[Math.max(0, Math.min(i, this.ordem.length - 2))];
-    if (vizinho) {
-      this.focoBloco = vizinho;
-      this.focoPendente = this.idBloco(vizinho);
-    }
+    const ordem = [...this.ordem];
+    const i = ordem.indexOf(id);
+    // A pergunta (quando o passo tem ligações) vem na janela do módulo (F1, A04)
+    this.trabalho.removerPassoDoDesenho(id).then(removeu => {
+      if (!removeu) return;
+      const restantes = this.def.Elementos.map(e => e.Id);
+      const vizinho = ordem.filter(x => x !== id && restantes.includes(x))[Math.max(0, Math.min(i, ordem.length - 2))];
+      if (vizinho) {
+        this.focoBloco = vizinho;
+        this.focoPendente = this.idBloco(vizinho);
+      }
+    });
   }
 
   teclaSeta(evento: KeyboardEvent, l: VistaLigacao): void {
@@ -1052,24 +1111,37 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     this.acessibilidade.anunciar(`O desenho cabe na tela: ${this.textoZoom}.`);
   }
 
-  /** Arrastar o fundo com o mouse move o desenho (no toque, a própria rolagem faz isso). */
+  /**
+   * Arrastar o fundo move o desenho, com o mouse, o dedo ou a caneta. No toque, o
+   * svg de quem edita não deixa o navegador rolar (os blocos arrastam pelo toque;
+   * F1, D01): o desenho anda por aqui e, quando chega ao fim dele, a página segue
+   * rolando, para dar para passar do desenho no celular.
+   */
   comecarMover(evento: PointerEvent): void {
     const rolagem = this.rolagem?.nativeElement;
-    if (!rolagem || evento.pointerType !== 'mouse' || evento.button !== 0 || this.arrasto || !this.noNavegador) return;
-    const inicio = { x: evento.clientX, y: evento.clientY, left: rolagem.scrollLeft, top: rolagem.scrollTop };
+    const toque = evento.pointerType !== 'mouse';
+    if (!rolagem || !evento.isPrimary || evento.button !== 0 || this.arrasto || this.pararDeEscutar || !this.noNavegador) return;
+    const inicio = { x: evento.clientX, y: evento.clientY };
+    let anterior = { x: evento.clientX, y: evento.clientY };
     let moveu = false;
     this.zone.runOutsideAngular(() => {
       const mover = (e: PointerEvent) => {
         if (e.pointerId !== evento.pointerId) return;
-        const dx = e.clientX - inicio.x;
-        const dy = e.clientY - inicio.y;
-        if (!moveu && Math.hypot(dx, dy) < 3) return;
+        if (!moveu && Math.hypot(e.clientX - inicio.x, e.clientY - inicio.y) < (toque ? LIMIAR_ARRASTO_TOQUE_PX : 3)) return;
         if (!moveu) {
           moveu = true;
           this.zone.run(() => this.movendo = true);
         }
-        rolagem.scrollLeft = inicio.left - dx;
-        rolagem.scrollTop = inicio.top - dy;
+        const dx = anterior.x - e.clientX;
+        const dy = anterior.y - e.clientY;
+        anterior = { x: e.clientX, y: e.clientY };
+        const antes = { left: rolagem.scrollLeft, top: rolagem.scrollTop };
+        rolagem.scrollLeft += dx;
+        rolagem.scrollTop += dy;
+        // O que o desenho não andou (chegou ao fim dele), a página anda: no toque, dá para passar do desenho
+        const sobraX = dx - (rolagem.scrollLeft - antes.left);
+        const sobraY = dy - (rolagem.scrollTop - antes.top);
+        if (toque && (Math.abs(sobraX) > 0.5 || Math.abs(sobraY) > 0.5)) window.scrollBy(sobraX, sobraY);
       };
       const soltar = (e: PointerEvent) => {
         if (e.pointerId !== evento.pointerId) return;
@@ -1167,8 +1239,17 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     }
     if (e.cancelable) e.preventDefault();
     this.posicionarFantasma(e.clientX, e.clientY, a.toque);
-    this.rolarNaBorda(e.clientX, e.clientY);
-    const p = this.pontoNoDesenho(e.clientX, e.clientY);
+    this.ultimoPonteiro = { x: e.clientX, y: e.clientY };
+    const area = this.rolagem?.nativeElement.getBoundingClientRect();
+    const dentro = !!area && e.clientX >= area.left && e.clientX <= area.right && e.clientY >= area.top && e.clientY <= area.bottom;
+    this.dentroDesde = dentro ? this.dentroDesde ?? Date.now() : null;
+    if (dentro) this.comecarRolagemNaBorda();
+    this.atualizarAlvo(a, e.clientX, e.clientY);
+  }
+
+  /** O ponto no desenho, a linha da alça e o destino, para o ponteiro em (x, y). */
+  private atualizarAlvo(a: EstadoArrasto, x: number, y: number): void {
+    const p = this.pontoNoDesenho(x, y);
     a.ponto = p;
     if (a.tipo.origem === 'alca' && p && this.linhaLigar) {
       this.linhaLigar.nativeElement.setAttribute('x2', String(p.x));
@@ -1212,17 +1293,48 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
     fantasma.style.transform = `translate(${Math.round(esquerda)}px, ${Math.round(topo)}px)`;
   }
 
-  private rolarNaBorda(x: number, y: number): void {
+  /**
+   * Rolagem na borda (F1, D04 e D09): um temporizador anda o desenho enquanto o
+   * ponteiro fica perto da borda da área, mesmo parado, mais rápido quanto mais perto;
+   * só depois de o ponteiro estar dentro da área por 300 ms (quem chega da paleta
+   * cruza a borda sem empurrar o desenho). Fora da zona do Angular: a tela só muda
+   * quando o destino muda.
+   */
+  private comecarRolagemNaBorda(): void {
+    if (this.rolagemBorda || !this.noNavegador) return;
+    this.zone.runOutsideAngular(() => this.rolagemBorda = setInterval(() => this.passoNaBorda(), PASSO_BORDA_MS));
+  }
+
+  private pararRolagemNaBorda(): void {
+    if (this.rolagemBorda) clearInterval(this.rolagemBorda);
+    this.rolagemBorda = null;
+    this.ultimoPonteiro = null;
+    this.dentroDesde = null;
+  }
+
+  private passoNaBorda(): void {
     const rolagem = this.rolagem?.nativeElement;
-    if (!rolagem) return;
+    const p = this.ultimoPonteiro;
+    const a = this.arrasto;
+    if (!rolagem || !p || !a?.ativo) {
+      this.pararRolagemNaBorda();
+      return;
+    }
+    if (this.dentroDesde === null || Date.now() - this.dentroDesde < ESPERA_BORDA_MS) return;
     const r = rolagem.getBoundingClientRect();
-    if (x < r.left || x > r.right || y < r.top || y > r.bottom) return;
-    const borda = 32;
-    const passo = 14;
-    if (x - r.left < borda) rolagem.scrollLeft -= passo;
-    else if (r.right - x < borda) rolagem.scrollLeft += passo;
-    if (y - r.top < borda) rolagem.scrollTop -= passo;
-    else if (r.bottom - y < borda) rolagem.scrollTop += passo;
+    const velocidade = (perto: number, longe: number): number => {
+      if (perto < BORDA_ROLAGEM_PX) return -Math.ceil((BORDA_ROLAGEM_PX - Math.max(perto, 0)) / BORDA_ROLAGEM_PX * VELOCIDADE_BORDA_PX);
+      if (longe < BORDA_ROLAGEM_PX) return Math.ceil((BORDA_ROLAGEM_PX - Math.max(longe, 0)) / BORDA_ROLAGEM_PX * VELOCIDADE_BORDA_PX);
+      return 0;
+    };
+    const dx = velocidade(p.x - r.left, r.right - p.x);
+    const dy = velocidade(p.y - r.top, r.bottom - p.y);
+    if (!dx && !dy) return;
+    const antes = { left: rolagem.scrollLeft, top: rolagem.scrollTop };
+    rolagem.scrollLeft += dx;
+    rolagem.scrollTop += dy;
+    // O desenho andou: o que está sob o ponteiro mudou, e o destino também
+    if (rolagem.scrollLeft !== antes.left || rolagem.scrollTop !== antes.top) this.atualizarAlvo(a, p.x, p.y);
   }
 
   /** O ponto do ponteiro no desenho (unidades do SVG), ou null fora da área do desenho. */
@@ -1255,6 +1367,7 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
   }
 
   private limparArrasto(): void {
+    this.pararRolagemNaBorda();
     this.arrasto = null;
     this.alvo = null;
     this.linha = null;

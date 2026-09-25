@@ -26,7 +26,7 @@
         <h1 class="text-base font-semibold">A sua unidade não está ligada a um órgão</h1>
         <p class="mt-1">O seu papel é de órgão, e a trilha do PDTIC depende do órgão: é o nível de maturidade dele que diz os passos
           e os campos que você preenche. Enquanto a unidade não estiver ligada a um órgão, não há trilha para mostrar.</p>
-        <p class="mt-1 font-semibold">Fale com o administrador do módulo para conferir a sua unidade.</p>
+        <p class="mt-1 font-semibold">Peça à Administração do SGDP que ligue a sua unidade a um órgão.</p>
       </div>
     </div>
 
@@ -84,7 +84,8 @@
       <div class="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100">
         <div class="min-w-0">
           <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Sua trilha na Governança Estratégica · Decreto nº 48.900/2026</p>
-          <h1 class="text-lg font-bold text-gray-900 truncate">
+          <!-- Espaço acima do título: o contorno do foco (a barra de acessibilidade leva o foco a ele) não cobre a linha de cima (F1, B23) -->
+          <h1 class="text-lg font-bold text-gray-900 truncate mt-2">
             {{ trilha.nome }}<span *ngIf="siglaOrgao" class="text-gray-500 font-medium"> · {{ siglaOrgao }}</span>
           </h1>
           <p *ngIf="rotuloNivel" class="text-xs text-gray-600">{{ rotuloNivel }}<ng-container *ngIf="rotuloPdtic as r"> · {{ r }}</ng-container></p>
@@ -99,7 +100,7 @@
             <button type="button" (click)="escolherVersao(v.vigente)" [attr.aria-pressed]="versaoAberta(v.vigente)"
                     class="px-2 py-0.5 rounded-full border text-xs font-semibold"
                     [ngClass]="versaoAberta(v.vigente) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
-              {{ v.vigente.Versao }} · vigente, em acompanhamento
+              {{ v.vigente.Versao }} · {{ rotuloVigente(v.vigente) }}
             </button>
           </div>
         </div>
@@ -178,8 +179,9 @@
           </p>
           <span *ngIf="passoAtual.baseLegal" class="text-xs text-gray-600">Base legal: {{ passoAtual.baseLegal }}</span>
           <span *ngIf="passoAtual.guia" class="text-xs text-gray-600">{{ guia(passoAtual) }}</span>
+          <!-- O selo quebra a linha quando o texto é longo (sem isso, no celular, ele saía da tela, F1, A02) -->
           <span *ngIf="status(passoAtual) as s"
-                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold"
                 [ngClass]="classeEstado(s.estado)">
             <span class="material-icons text-sm" aria-hidden="true">{{ iconeEstado(s.estado) }}</span>{{ s.texto }}
           </span>
@@ -192,7 +194,7 @@
 
   <!-- Tela do passo (ou a visão geral): só com a trilha montada -->
   <ng-container *ngIf="estado?.carga === 'pronta'">
-    <router-outlet></router-outlet>
+    <router-outlet (activate)="aoAtivarTela($event)" (deactivate)="aoDesativarTela()"></router-outlet>
 
     <!-- Anterior / próximo passo, na ordem da trilha -->
     <nav *ngIf="passoAtual" class="max-w-5xl mx-auto mt-6 mb-2 flex flex-col sm:flex-row gap-3 justify-between" aria-label="Navegação entre os passos">
@@ -215,4 +217,7 @@
       </ng-template>
     </nav>
   </ng-container>
+
+  <!-- As confirmações de todas as telas do módulo (F1, A04 e B03: nada de confirm do navegador) -->
+  <app-pe-confirmacao></app-pe-confirmacao>
 </div>

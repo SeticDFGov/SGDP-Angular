@@ -1,11 +1,12 @@
-import { Component, EventEmitter, Input, OnChanges, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AfterViewChecked, Component, EventEmitter, Input, OnChanges, Output, PLATFORM_ID, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PeCampoModelo, PeOpcaoModelo } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PeModeloService } from '../services/pe-modelo.service';
 import { CORES_OPCAO, EXPLICACAO_OPCAO_TRAVADA, OpcaoRotulo, classeCorOpcao } from './pe-modelo-rotulos';
 import { mensagemErroPe } from './pe-erros';
+import { PeConfirmacaoService } from './pe-confirmacao.service';
 
 interface LinhaOpcao {
   opcao: PeOpcaoModelo;
@@ -34,9 +35,21 @@ const MAX_ROTULO = 200;
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
 })
-export class PeOpcoesEditorComponent implements OnChanges {
+export class PeOpcoesEditorComponent implements OnChanges, AfterViewChecked {
   private readonly modeloService = inject(PeModeloService);
   private readonly notificacoes = inject(NotificationService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
+  /** Id do elemento que recebe o foco depois da próxima renderização (F1, B01). */
+  private focoPendente: string | null = null;
+
+  ngAfterViewChecked(): void {
+    if (!this.focoPendente || !this.noNavegador) return;
+    const alvo = document.getElementById(this.focoPendente);
+    if (!alvo) return;
+    this.focoPendente = null;
+    alvo.focus();
+  }
 
   @Input({ required: true }) campo!: PeCampoModelo;
   @Input() somenteLeitura = false;
@@ -75,6 +88,7 @@ export class PeOpcoesEditorComponent implements OnChanges {
   }
 
   desfazer(l: LinhaOpcao): void {
+    if (l.salvando) return;
     Object.assign(l, this.linha(l.opcao));
   }
 
@@ -105,8 +119,19 @@ export class PeOpcoesEditorComponent implements OnChanges {
   }
 
   apagar(l: LinhaOpcao): void {
-    if (l.opcao.Sistema || this.travada(l)) return;
-    if (!confirm(`Apagar a opção "${l.opcao.Rotulo}"? Se algum órgão já escolheu essa opção, ela só é desativada: o que foi gravado continua guardado.`)) return;
+    if (l.opcao.Sistema || this.travada(l) || l.salvando) return;
+    // A pergunta vem na janela do módulo, por cima da janela do campo (F1, A04)
+    this.confirmacao.perguntar({
+      titulo: `Apagar a opção "${l.opcao.Rotulo}"?`,
+      texto: 'Se algum órgão já escolheu essa opção, ela só é desativada: o que foi gravado continua guardado.',
+      sim: 'Apagar a opção',
+      perigo: true
+    }).then(sim => {
+      if (sim && !l.salvando) this.apagarSim(l);
+    });
+  }
+
+  private apagarSim(l: LinhaOpcao): void {
     l.salvando = true;
     this.modeloService.apagarOpcao(l.opcao.Id).subscribe({
       next: resposta => {
@@ -114,7 +139,11 @@ export class PeOpcoesEditorComponent implements OnChanges {
         // Opção em uso volta desativada (com o item); a apagada não volta nada
         const devolvida = resposta && typeof resposta === 'object' && 'Id' in resposta ? resposta as PeOpcaoModelo : null;
         if (devolvida) Object.assign(l, this.linha({ ...l.opcao, ...devolvida }));
-        else this.linhas = this.linhas.filter(x => x !== l);
+        else {
+          this.linhas = this.linhas.filter(x => x !== l);
+          // A linha sai da tela com o botão: o foco vai para o campo da opção nova (F1, B01)
+          this.focoPendente = `${this.prefixoId}-nova`;
+        }
         this.notificacoes.success(devolvida ? 'A opção já foi usada e ficou desativada.' : 'Opção apagada.');
         this.avisar();
       },

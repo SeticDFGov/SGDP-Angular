@@ -4,7 +4,7 @@
   <div class="bg-white rounded-lg shadow p-6">
     <div class="flex flex-col md:flex-row items-start gap-4">
       <div class="flex-1">
-        <h2 class="text-base font-semibold text-gray-900">Ajustes do {{ orgao.Sigla }}</h2>
+        <h2 class="text-base font-semibold text-gray-900">Ajustes do órgão {{ orgao.Sigla }}</h2>
         <p class="text-sm text-gray-600">{{ orgao.Nome }} · nível {{ orgao.NivelNome }}<ng-container *ngIf="orgao.NivelPadrao"> (o padrão)</ng-container></p>
         <p class="text-sm text-gray-700 leading-relaxed mt-2">O ajuste muda a situação de um passo, de uma seção ou de um campo só para
           este órgão, por cima do nível. Por exemplo: pedir a análise SWOT a um órgão do nível Básico, ou dispensar um campo que não
@@ -110,7 +110,8 @@
 
   <!-- Salvar -->
   <div *ngIf="modelo" class="sticky bottom-0 z-10 rounded-lg border border-gray-200 bg-white px-5 py-3 shadow-lg">
-    <div *ngIf="erros.length > 0" role="alert" class="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+    <!-- O foco vai para a primeira justificativa que falta, que é descrita por este quadro (F1, C39) -->
+    <div *ngIf="erros.length > 0" id="pe-ajustes-erros" class="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
       <p *ngFor="let erro of erros">{{ erro }}</p>
     </div>
     <div class="flex flex-wrap items-center gap-3">
@@ -118,12 +119,15 @@
         {{ quantosAjustes === 0 ? 'Nenhum ajuste: o órgão segue o nível.' : (quantosAjustes === 1 ? '1 ajuste para o órgão.' : quantosAjustes + ' ajustes para o órgão.') }}
         <strong *ngIf="alterado" class="text-amber-700"> Há mudanças não salvas.</strong>
       </p>
-      <button type="button" (click)="desfazer()" [disabled]="salvando || !alterado"
-              class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+      <!-- Indisponíveis sem sair do Tab (aria-disabled): desligados, os botões perdiam o foco depois de salvar ou desfazer (F1, C11) -->
+      <button type="button" (click)="desfazer()" [attr.aria-disabled]="(salvando || !alterado) || null"
+              class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50"
+              [ngClass]="salvando || !alterado ? 'opacity-50' : ''">
         Desfazer
       </button>
-      <button type="button" (click)="salvar()" [disabled]="salvando || !alterado"
-              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+      <button type="button" (click)="salvar()" [attr.aria-disabled]="(salvando || !alterado) || null"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+              [ngClass]="!salvando && !alterado ? 'opacity-50' : ''">
         <span class="material-icons text-base" aria-hidden="true">save</span> {{ salvando ? 'Salvando...' : 'Salvar os ajustes' }}
       </button>
     </div>
@@ -147,9 +151,11 @@
     </select>
   </td>
   <td class="px-2 py-2">
-    <input *ngIf="ajuste(tipo, item.Id) as a" type="text" [ngModel]="a.justificativa" (ngModelChange)="mudarJustificativa(tipo, item.Id, $event)"
-           [maxlength]="maxJustificativa" [disabled]="salvando" [attr.aria-label]="'Justificativa do ajuste de ' + nomeDe(item)"
-           [attr.aria-invalid]="justificativaFaltando(tipo, item.Id)" placeholder="Por que o órgão foge do nível"
+    <input *ngIf="ajuste(tipo, item.Id) as a" type="text" [id]="idJustificativa(tipo, item.Id)" [ngModel]="a.justificativa"
+           (ngModelChange)="mudarJustificativa(tipo, item.Id, $event)"
+           [maxlength]="maxJustificativa" [readonly]="salvando" [attr.aria-label]="'Justificativa do ajuste de ' + nomeDe(item)"
+           [attr.aria-invalid]="justificativaFaltando(tipo, item.Id) || null"
+           [attr.aria-describedby]="justificativaFaltando(tipo, item.Id) ? 'pe-ajustes-erros' : null" placeholder="Por que o órgão foge do nível"
            class="w-full min-w-[12rem] px-2 py-1 border rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
            [ngClass]="justificativaFaltando(tipo, item.Id) ? 'border-red-500' : 'border-gray-300'" />
   </td>

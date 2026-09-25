@@ -1,5 +1,6 @@
-import { CanDeactivateFn, ResolveFn, Routes } from '@angular/router';
+import { CanDeactivateFn, ResolveFn, Router, Routes } from '@angular/router';
 import { inject } from '@angular/core';
+import { PeConfirmacaoService } from './shared/pe-confirmacao.service';
 import { PeShellComponent } from './trilha/pe-shell.component';
 import { PeInicioComponent } from './trilha/pe-inicio.component';
 import { PeTrilhaEstadoService } from './trilha/pe-trilha-estado.service';
@@ -18,10 +19,36 @@ const tituloDoPassoDoOrgao: ResolveFn<string> = rota => {
 
 /** Tela que guarda mudanças antes de gravar: pergunta antes de sair com algo pendente. */
 export interface ComMudancasPendentes {
+  /** Nada pendente: pode sair sem perguntar (a pergunta é da guarda). */
   podeSair(): boolean;
+  /** O que se perde, para a pergunta; sem ele, o texto padrão. */
+  textoSaida?(): string;
+  /**
+   * Recarregar ou fechar a aba agora perderia alguma coisa (a moldura pede ao
+   * navegador para perguntar; F1, D07). Sem ele, vale o contrário do `podeSair`.
+   */
+  perdeAoRecarregar?(): boolean;
 }
 
-const confirmarSaida: CanDeactivateFn<ComMudancasPendentes> = tela => !tela?.podeSair || tela.podeSair();
+const TEXTO_SAIDA = 'Há mudanças nesta tela que ainda não foram salvas. Se sair agora, elas se perdem.';
+
+/**
+ * Guarda de saída (F1, A04 e B03): com mudança pendente, cancela a navegação e
+ * pergunta na janela do módulo; se a pessoa confirmar, navega de novo para o mesmo
+ * endereço, liberado uma vez. Cancelar logo, em vez de segurar a navegação até a
+ * resposta, evita que a espera conte como carregamento (barra e aviso falado).
+ */
+const confirmarSaida: CanDeactivateFn<ComMudancasPendentes> = (tela, _rota, _estado, proximo) => {
+  const confirmacao = inject(PeConfirmacaoService);
+  if (confirmacao.saidaLiberada(proximo.url) || !tela?.podeSair || tela.podeSair()) return true;
+  const router = inject(Router);
+  confirmacao.registrarSaida(confirmacao.perguntarDescarte(tela.textoSaida?.() ?? TEXTO_SAIDA).then(sim => {
+    if (!sim) return false;
+    confirmacao.liberarSaida(proximo.url);
+    return router.navigateByUrl(proximo.url);
+  }));
+  return false;
+};
 
 /**
  * Rotas da Governança Estratégica (lazy, filhas do MainLayout em app.routes.ts,
@@ -90,7 +117,7 @@ export const planejamento_routes: Routes = [
       {
         path: 'modelo/documento',
         loadComponent: () => import('./modelo/pe-modelo-documento.component').then(m => m.PeModeloDocumentoComponent),
-        title: 'Modelo do documento',
+        title: 'Modelos dos documentos',
         canDeactivate: [confirmarSaida],
         data: { prerender: false }
       },
@@ -160,7 +187,7 @@ export const planejamento_routes: Routes = [
       {
         path: 'cgtic/deliberacao',
         loadComponent: () => import('./cgtic/pe-deliberacoes.component').then(m => m.PeDeliberacoesComponent),
-        title: 'Deliberação do comitê',
+        title: 'Registre a deliberação do comitê',
         data: { prerender: false, modo: 'decisao' }
       },
       {

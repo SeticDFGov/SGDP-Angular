@@ -63,8 +63,8 @@ export class PeReferencialDfComponent implements OnInit {
     this.sujo = sujo;
   }
 
-  /** Guarda de rota: mudança não salva no formulário ou no painel aberto. */
+  /** Guarda de rota: com mudança não salva no formulário ou no painel aberto, ela pergunta antes de sair (F1, A04). */
   podeSair(): boolean {
-    return !this.sujo || confirm('Há mudanças que ainda não foram salvas. Sair assim mesmo? Elas vão se perder.');
+    return !this.sujo;
   }
 }

@@ -93,7 +93,7 @@
     <ng-container *ngIf="selecionada as v">
       <div class="bg-white rounded-lg shadow p-6">
         <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">PETIC-DF · versão {{ v.Versao }}</p>
-        <h2 class="text-xl font-bold text-gray-900 mt-0.5">{{ v.Titulo }}</h2>
+        <h2 id="pe-petic-versao-titulo" tabindex="-1" class="text-xl font-bold text-gray-900 mt-0.5">{{ v.Titulo }}</h2>
         <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-700">
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="classeSituacao(v)">{{ rotuloSituacao(v) }}</span>
           <span>Vigência: {{ vigencia(v) }}</span>
@@ -126,24 +126,48 @@
 
         <!-- Ações -->
         <div class="flex flex-wrap gap-2 mt-4">
-          <button *ngIf="editavel(v)" type="button" (click)="enviar(v)" [disabled]="enviando"
-                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
-            <span class="material-icons text-base" aria-hidden="true">send</span> {{ enviando ? 'Enviando...' : 'Enviar ao CGTIC' }}
+          <!-- Ocupado sem sair do Tab (aria-disabled): desligado, o botão perdia o foco (F1, C11) -->
+          <button *ngIf="editavel(v)" id="pe-petic-enviar" type="button" (click)="enviar(v)" [attr.aria-disabled]="(enviando || conferindo) || null"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700">
+            <span class="material-icons text-base" aria-hidden="true">send</span>
+            {{ enviando ? 'Enviando...' : (conferindo ? 'Conferindo...' : 'Enviar ao CGTIC') }}
           </button>
           <button *ngIf="editavel(v)" type="button" (click)="abrirDados(v)"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
             <span class="material-icons text-base" aria-hidden="true">edit</span> Editar título e vigência
           </button>
-          <button type="button" (click)="baixarCompleta(v)" [disabled]="baixandoCompleta"
+          <button type="button" (click)="baixarCompleta(v)" [attr.aria-disabled]="baixandoCompleta || null"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
             <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixandoCompleta ? 'Gerando...' : 'Planilha completa (XLSX)' }}
           </button>
-          <button *ngIf="apagavel(v)" type="button" (click)="apagar(v)" [disabled]="apagando"
+          <button *ngIf="apagavel(v)" type="button" (click)="apagar(v)" [attr.aria-disabled]="apagando || null"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-200 bg-white text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
             <span class="material-icons text-base" aria-hidden="true">delete</span> {{ apagando ? 'Apagando...' : 'Apagar o rascunho' }}
           </button>
         </div>
         <p class="text-xs text-gray-500 italic mt-2">A planilha completa tem uma aba por seção e a aba Leia-me, com a ajuda de cada coluna.</p>
+
+        <!-- F1 (A06): o que falta para enviar, na tela e com o caminho para cada seção (o quadro recebe o foco) -->
+        <div *ngIf="pendencias && pendencias.versaoId === v.Id" id="pe-petic-pendencias" tabindex="-1"
+             class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          <p class="font-semibold">Antes de enviar ao CGTIC, falta:</p>
+          <ul *ngIf="pendencias.itens.length > 0" class="list-disc ml-5 mt-1 space-y-1">
+            <li *ngFor="let p of pendencias.itens">
+              <button *ngIf="temCaminho(p); else semCaminho" type="button" (click)="irParaPendencia(v, p)" class="block text-left">
+                <span class="font-semibold underline">{{ p.SecaoTitulo }}</span>: {{ p.Motivo }}
+              </button>
+              <ng-template #semCaminho><span class="font-semibold">{{ p.SecaoTitulo }}</span>: {{ p.Motivo }}</ng-template>
+            </li>
+          </ul>
+          <p *ngIf="pendencias.mensagem" class="mt-1">{{ pendencias.mensagem }}</p>
+          <div class="flex flex-wrap items-center gap-3 mt-3">
+            <button type="button" (click)="conferirDeNovo(v)" [attr.aria-disabled]="conferindo || null"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+              <span class="material-icons text-base" aria-hidden="true">refresh</span> {{ conferindo ? 'Conferindo...' : 'Conferir de novo' }}
+            </button>
+            <p class="text-xs text-red-900">Cada item leva à seção. Depois de preencher, confira de novo ou envie.</p>
+          </div>
+        </div>
       </div>
 
       <!-- Seções da versão aberta -->
@@ -184,7 +208,8 @@
       </div>
 
       <div class="px-6 py-4 space-y-4">
-        <div *ngIf="errosJanela.length > 0" id="pe-petic-janela-erros" tabindex="-1" role="alert"
+        <!-- O resumo recebe o foco; sem aviso falado à parte, que o leria duas vezes (F1, C31) -->
+        <div *ngIf="errosJanela.length > 0" id="pe-petic-janela-erros" tabindex="-1"
              class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <p class="font-semibold">Antes de salvar, corrija:</p>
           <ul class="list-disc ml-5 mt-1 space-y-0.5">
@@ -243,7 +268,7 @@
                 class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
           Cancelar
         </button>
-        <button type="submit" [disabled]="salvandoJanela"
+        <button type="submit" [attr.aria-disabled]="salvandoJanela || null"
                 class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
           <span class="material-icons text-lg" aria-hidden="true">{{ j.modo === 'novo' ? 'add' : 'save' }}</span>
           {{ salvandoJanela ? 'Salvando...' : (j.modo === 'novo' ? 'Criar rascunho' : 'Salvar') }}

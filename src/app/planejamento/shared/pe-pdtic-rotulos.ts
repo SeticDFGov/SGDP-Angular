@@ -87,7 +87,9 @@ export function statusDoPassoPdtic(s: PeSituacaoPassoPdtic): { estado: EstadoPas
       texto: s.ComentariosAbertos > 0 ? plural(s.ComentariosAbertos, 'comentário aberto', 'comentários abertos') : `Pede atenção${avisos}`,
       motivo
     };
-    case 'nao_se_aplica': return { estado: 'nao_se_aplica', texto: 'Não se aplica', motivo: null };
+    // Marcado pelo órgão: a justificativa aparece no bloco do passo. Calculado pelo servidor (sem a marcação),
+    // o porquê vem no motivo (F1)
+    case 'nao_se_aplica': return { estado: 'nao_se_aplica', texto: 'Não se aplica', motivo: s.NaoSeAplica ? null : motivo };
     case 'aguardando': return { estado: 'aguardando', texto: 'Aguardando', motivo };
     case 'atrasado': return { estado: 'atrasado', texto: `Atrasado${avisos}`, motivo };
     case 'externo': return {
@@ -327,7 +329,16 @@ const ITEM_DA_SECAO_PDTIC: Record<string, string> = {
   capacitacoes: 'capacitação',
   orcamento_acoes: 'linha do orçamento',
   fatores_criticos: 'fator crítico',
-  riscos: 'risco'
+  riscos: 'risco',
+  // F1 (C16): as seções do acompanhamento e do fechamento também têm o nome do item ("Incluir resultado")
+  projetos: 'projeto',
+  indicadores_monitoramento: 'indicador',
+  indicadores_avaliacao: 'indicador',
+  comunicacao: 'ação de comunicação',
+  riscos_ocorridos: 'risco que ocorreu',
+  resultados_intermediarios: 'resultado',
+  indicadores_finais: 'valor final',
+  resultados_metas: 'resultado'
 };
 
 export function itemDaSecaoPdtic(chave: string): string {

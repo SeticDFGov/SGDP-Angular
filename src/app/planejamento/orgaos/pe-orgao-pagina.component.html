@@ -88,7 +88,7 @@
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
             <span class="material-icons text-base" aria-hidden="true">description</span> Ver o documento
           </button>
-          <button *ngIf="r.Pdtic" type="button" (click)="baixarPlanilha()" [disabled]="!!baixando"
+          <button *ngIf="r.Pdtic" type="button" (click)="baixarPlanilha()" [attr.aria-disabled]="!!baixando || null"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
             <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando === 'planilha' ? 'Gerando...' : 'Planilha completa do PDTIC (XLSX)' }}
           </button>
@@ -174,7 +174,13 @@
         </button>
         <ul *ngIf="historicoAberto" id="pe-org-historico-nivel" class="mt-2 space-y-2 text-sm">
           <li *ngFor="let h of r.Nivel.Historico; trackBy: porIndice" class="rounded-md border border-gray-200 px-3 py-2">
-            <p class="text-gray-900"><strong>{{ h.NivelNome || '-' }}</strong> · {{ quando(h.AlteradoEm) }}<ng-container *ngIf="h.AlteradoPor"> por {{ h.AlteradoPor }}</ng-container></p>
+            <!-- F1 (A21): o nível de antes e o de depois, com "(padrão)"; F1 (C19): o nome de quem trocou -->
+            <p class="text-gray-900">
+              <ng-container *ngIf="h.NivelAnterior !== undefined">{{ nivelDoHistorico(h.NivelAnterior, h.NivelAnteriorPadrao) }}
+                <span aria-hidden="true">→</span><span class="sr-only">, passou a</span></ng-container>
+              <strong>{{ nivelDoHistorico(h.NivelNome, h.Padrao) }}</strong> · {{ quando(h.AlteradoEm) }}<ng-container
+                *ngIf="nomeDeQuem(h.AlteradoPorNome, h.AlteradoPor) as quem"> por {{ quem }}</ng-container>
+            </p>
             <p *ngIf="h.Justificativa" class="text-gray-700 mt-0.5 whitespace-pre-line break-words">{{ h.Justificativa }}</p>
           </li>
         </ul>
@@ -256,7 +262,7 @@
           <li *ngFor="let n of r.NaoSeAplica; trackBy: porNaoSeAplica" class="rounded-md border border-gray-200 px-4 py-3 text-sm">
             <p class="font-semibold text-gray-900">Passo {{ n.PassoNumero || '-' }}<ng-container *ngIf="n.PassoTitulo"> · {{ n.PassoTitulo }}</ng-container></p>
             <p class="text-gray-800 mt-1 whitespace-pre-line break-words"><span class="font-semibold">Justificativa:</span> {{ n.Justificativa || '-' }}</p>
-            <p class="text-xs text-gray-500 mt-1">Marcado em {{ quando(n.MarcadoEm) }}<ng-container *ngIf="n.MarcadoPor"> por {{ n.MarcadoPor }}</ng-container></p>
+            <p class="text-xs text-gray-500 mt-1">Marcado em {{ quando(n.MarcadoEm) }}<ng-container *ngIf="nomeDeQuem(n.MarcadoPorNome, n.MarcadoPor) as quem"> por {{ quem }}</ng-container></p>
           </li>
         </ul>
       </section>
@@ -334,15 +340,19 @@
             <tbody>
               <tr *ngFor="let d of r.Deliberacoes; trackBy: porId" class="border-t border-gray-100 align-top">
                 <th scope="row" class="px-3 py-2 text-left font-mono font-normal text-gray-900">{{ d.VersaoObjeto }}</th>
-                <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ quando(d.EnviadoEm) }}</td>
+                <!-- F1 (C40): a deliberação do registro fora do sistema não foi enviada: diz quando foi registrada e usa a data do ato -->
+                <td class="px-3 py-2 text-gray-800 whitespace-nowrap">
+                  <ng-container *ngIf="registradaFora(d); else enviada">Registrado fora do sistema em {{ quando(d.EnviadoEm) }}</ng-container>
+                  <ng-template #enviada>{{ quando(d.EnviadoEm) }}</ng-template>
+                </td>
                 <td class="px-3 py-2">
                   <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeDeliberacao(d)">{{ rotuloDeliberacao(d) }}</span>
-                  <span *ngIf="d.DecididoEm" class="block text-xs text-gray-600 mt-1">em {{ quando(d.DecididoEm) }}</span>
+                  <span *ngIf="d.DecididoEm" class="block text-xs text-gray-600 mt-1">em {{ decididaEm(d) }}</span>
                 </td>
                 <td class="px-3 py-2 text-gray-800 break-words">{{ ato(d) }}</td>
                 <td class="px-3 py-2 text-gray-800 whitespace-pre-line break-words min-w-[12rem]">{{ d.Situacao === 'devolvido' ? (d.Observacao || '-') : '-' }}</td>
                 <td class="px-3 py-2 text-right">
-                  <button *ngIf="d.Documento" type="button" (click)="baixarPdfEnviado(d)" [disabled]="!!baixando"
+                  <button *ngIf="d.Documento" type="button" (click)="baixarPdfEnviado(d)" [attr.aria-disabled]="!!baixando || null"
                           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap disabled:opacity-50"
                           [attr.aria-label]="'Baixar o PDF enviado da versão ' + d.VersaoObjeto">
                     <span class="material-icons text-sm" aria-hidden="true">picture_as_pdf</span> {{ baixando === 'deliberacao-' + d.Id ? 'Baixando...' : 'PDF enviado' }}
@@ -380,7 +390,7 @@
                 <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ quando(d.GeradoEm) }}</td>
                 <td class="px-3 py-2 text-right text-gray-800 tabular-nums">{{ d.Paginas ?? '-' }}</td>
                 <td class="px-3 py-2 text-right">
-                  <button *ngIf="d.Url" type="button" (click)="baixarDocumento(d)" [disabled]="!!baixando"
+                  <button *ngIf="d.Url" type="button" (click)="baixarDocumento(d)" [attr.aria-disabled]="!!baixando || null"
                           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap disabled:opacity-50"
                           [attr.aria-label]="'Baixar ' + rotuloDocumento(d) + ', versão ' + d.Numero">
                     <span class="material-icons text-sm" aria-hidden="true">download</span> {{ baixando === chaveDocumento(d) ? 'Baixando...' : 'Baixar' }}
@@ -418,7 +428,10 @@
                   <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap" [ngClass]="classeCiclo(c)">
                     <span class="material-icons text-sm" aria-hidden="true">{{ iconeCiclo(c) }}</span>{{ rotuloCiclo(c) }}
                   </span>
-                  <span *ngIf="c.FechadoEm" class="block text-xs text-gray-600 mt-1">fechado em {{ quando(c.FechadoEm) }}</span>
+                  <span *ngIf="c.FechadoEm" class="block text-xs text-gray-600 mt-1">fechado em {{ quando(c.FechadoEm) }}<ng-container
+                    *ngIf="nomeDeQuem(c.FechadoPorNome, c.FechadoPor) as quem"> por {{ quem }}</ng-container></span>
+                  <span *ngIf="c.ReabertoEm && !c.FechadoEm" class="block text-xs text-gray-600 mt-1">reaberto em {{ quando(c.ReabertoEm) }}<ng-container
+                    *ngIf="nomeDeQuem(c.ReabertoPorNome, c.ReabertoPor) as quem"> por {{ quem }}</ng-container></span>
                 </td>
               </tr>
             </tbody>

@@ -105,6 +105,15 @@ export function marcadoresPadraoDo(tipo: PeTipoDocumento): readonly PeDocMarcado
   return tipo === 'ra' ? [...MARCADORES_PADRAO, ...MARCADORES_DO_CICLO] : MARCADORES_PADRAO;
 }
 
+/**
+ * F1 (B07): os marcadores que valem no documento. Os do ciclo ({ciclo.rotulo},
+ * {ciclo.inicio}, {ciclo.fim}) só existem no RA: no PDTIC e no RR ficariam sempre
+ * sem valor, e saem da lista mesmo que o servidor os mande.
+ */
+export function marcadoresDoTipo(tipo: PeTipoDocumento, lista: readonly PeDocMarcador[]): PeDocMarcador[] {
+  return tipo === 'ra' ? [...lista] : lista.filter(m => !m.Chave.startsWith('ciclo.'));
+}
+
 /** Como o marcador aparece no texto: "{orgao.nome}". */
 export function textoMarcador(chave: string): string {
   return `{${chave}}`;
@@ -197,6 +206,11 @@ export interface PassoLinkDoc {
   titulo: string;
   /** E7 rodada B: os parâmetros do link dos dados (o passo e, no RA, o ciclo do relatório). */
   query?: Record<string, string | number>;
+  /**
+   * F1 (C32 e B15): quem está logado grava no passo agora (o `PodeEditar` da situação
+   * do passo). Sem a situação, vale o do documento.
+   */
+  editavel?: boolean;
 }
 
 /**

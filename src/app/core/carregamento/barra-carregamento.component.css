@@ -12,12 +12,17 @@
   height: 3px;
   pointer-events: none;
   background-color: var(--carregando, #155dfc);
+  /* Uma linha clara embaixo: sob o véu escuro de uma janela, a barra do tema claro
+     tinha só 2,28:1 com o fundo (F1, D17); com a linha, 5,2:1. Os temas escuro e de
+     alto contraste, que já passavam, tiram a linha */
+  box-shadow: 0 1px 0 var(--carregando-borda, #fff);
   animation: correr 1.2s ease-in-out infinite;
 }
 
+/* O recorte desce 1px, para a linha clara acompanhar a faixa que corre */
 @keyframes correr {
-  from { clip-path: inset(0 100% 0 -40%); }
-  to { clip-path: inset(0 -40% 0 100%); }
+  from { clip-path: inset(0 100% -1px -40%); }
+  to { clip-path: inset(0 -40% -1px 100%); }
 }
 
 @media print {

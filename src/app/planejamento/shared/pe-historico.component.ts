@@ -98,7 +98,8 @@ export class PeHistoricoComponent implements OnChanges {
     }
     return {
       quando: h.AlteradoEm,
-      quem: h.AlteradoPor,
+      // O nome de quem mudou; sem ele, o e-mail (F1, C19)
+      quem: h.AlteradoPorNome?.trim() || h.AlteradoPor,
       acao: rotuloAcao(h.Acao),
       alvo,
       mudancas: mudancasHistorico(h.Antes, h.Depois, this.niveis)

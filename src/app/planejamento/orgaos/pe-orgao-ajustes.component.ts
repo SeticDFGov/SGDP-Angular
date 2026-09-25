@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AfterViewChecked, Component, EventEmitter, Input, OnChanges, Output, PLATFORM_ID, SimpleChanges, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import {
@@ -30,7 +30,8 @@ const MAX_JUSTIFICATIVA = 500;
  * ou desligado), a justificativa e como o item fica para o órgão (o campo só
  * aparece com a seção, e a seção, com o passo). O que é travado não desliga.
  * Tudo fica na tela até "Salvar os ajustes", que manda a lista inteira (ajuste
- * retirado vai com a situação nula).
+ * retirado vai com a situação nula). A tela dos órgãos lê `alterado` para a guarda
+ * de saída e para perguntar antes de voltar à lista (F1, A04).
  *
  * Mora dentro da tela dos órgãos, que tem o `citaPlanejamento` no raiz (por isso
  * este componente não tem o dele: dois no mesmo texto duplicariam os chips).
@@ -43,10 +44,12 @@ const MAX_JUSTIFICATIVA = 500;
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
 })
-export class PeOrgaoAjustesComponent implements OnChanges {
+export class PeOrgaoAjustesComponent implements OnChanges, AfterViewChecked {
   private readonly modeloService = inject(PeModeloService);
   private readonly orgaosService = inject(PeOrgaosService);
   private readonly notificacoes = inject(NotificationService);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
+  private focoPendente: string | null = null;
 
   @Input({ required: true }) orgao!: PeOrgaoNivel;
   @Output() readonly verComoOrgao = new EventEmitter<void>();
@@ -294,18 +297,42 @@ export class PeOrgaoAjustesComponent implements OnChanges {
   }
 
   desfazer(): void {
+    if (this.salvando || !this.alterado) return;
     this.aplicarAjustes([...this.originais.values()]);
   }
 
-  /** Guarda de saída: ajuste mudado e não salvo pergunta antes. */
-  podeSair(): boolean {
-    return !this.alterado || confirm('Há ajustes que ainda não foram salvos. Sair assim mesmo? Eles vão se perder.');
+  /** Id do campo da justificativa de um item (o foco vai para o primeiro que falta). */
+  idJustificativa(tipo: PeAlvoAjuste, id: number): string {
+    return `pe-ajuste-justificativa-${tipo}-${id}`;
+  }
+
+  /** Leva o foco ao campo da primeira justificativa que falta, abrindo o passo dele se preciso (F1, C39). */
+  private focarPrimeiraFaltando(): void {
+    for (const [k, a] of this.ajustes) {
+      const [tipo, id] = k.split(':');
+      if (!a.situacao || !this.mudou(tipo as PeAlvoAjuste, Number(id)) || a.justificativa.trim()) continue;
+      const passo = this.parentes.get(k)?.passo;
+      if (passo) this.abertos.add(passo.Id);
+      this.focoPendente = this.idJustificativa(tipo as PeAlvoAjuste, Number(id));
+      return;
+    }
+  }
+
+  ngAfterViewChecked(): void {
+    if (!this.focoPendente || !this.noNavegador) return;
+    const alvo = document.getElementById(this.focoPendente);
+    if (!alvo) return;
+    this.focoPendente = null;
+    alvo.focus();
   }
 
   salvar(): void {
-    if (this.salvando) return;
+    if (this.salvando || !this.alterado) return;
     this.tentou = true;
-    if (this.erros.length) return;
+    if (this.erros.length) {
+      this.focarPrimeiraFaltando();
+      return;
+    }
 
     // A lista inteira: os ajustes da tela e, com a situação nula, os que foram retirados
     const lista: PeAjusteOrgao[] = [];
@@ -324,7 +351,8 @@ export class PeOrgaoAjustesComponent implements OnChanges {
         // Sem lista na resposta, vale o que foi mandado
         const gravados = Array.isArray(resposta) ? resposta : lista.filter(a => a.Situacao);
         this.aplicarAjustes(gravados);
-        this.notificacoes.success(`Ajustes do ${this.orgao.Sigla} salvos. A trilha do órgão já mudou.`);
+        // Sem artigo antes da sigla: o gênero muda de órgão para órgão (F1, A11)
+        this.notificacoes.success(`Ajustes do órgão ${this.orgao.Sigla} salvos. A trilha do órgão já mudou.`);
         this.salvou.emit(this.ajustes.size);
       },
       error: erro => {

@@ -14,6 +14,7 @@ import { PeFluxoDesenhoComponent } from '../fluxos/pe-fluxo-desenho.component';
 import { PeDocumentoService } from '../services/pe-documento.service';
 import { PeFluxosService } from '../services/pe-fluxos.service';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { DicionarioFluxo, dicionarioPadrao, normalizarDefinicao, numerosDoServidor } from '../shared/pe-fluxo-rotulos';
 import {
   AlvoDocumento, MARCADORES_PADRAO, PassoLinkDoc, TIPOS_BLOCO_ACOMPANHAMENTO, descricaoMarcador, rotuloTipoBloco, secaoDoMarcador,
@@ -106,6 +107,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   private readonly fluxosService = inject(PeFluxosService);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   @Input({ required: true }) bloco!: PeDocBloco;
@@ -207,7 +209,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   }
 
   get editadoEm(): string {
-    return quandoEQuem(this.bloco.EditadoEm, this.bloco.EditadoPor);
+    return quandoEQuem(this.bloco.EditadoEm, this.bloco.EditadoPor, this.bloco.EditadoPorNome);
   }
 
   get textoLinkDados(): string {
@@ -215,11 +217,16 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     if (!p) return '';
     // O inventário de IA vem do PGIA: no passo ele só se lê
     if (this.bloco.Tabela?.SecaoChave === 'pgia_sistemas') return `Ver no passo ${p.numero} (o inventário vem do PGIA)`;
-    return this.podeEditar ? `Editar os dados no passo ${p.numero}` : `Ver os dados no passo ${p.numero}`;
+    return this.passoEditavel ? `Editar os dados no passo ${p.numero}` : `Ver os dados no passo ${p.numero}`;
+  }
+
+  /** O passo dos dados se edita agora (a situação dele); sem a situação, vale o documento (F1, C32 e B15). */
+  private get passoEditavel(): boolean {
+    return this.passoDados?.editavel ?? this.podeEditar;
   }
 
   get iconeLinkDados(): string {
-    return this.podeEditar && this.bloco.Tabela?.SecaoChave !== 'pgia_sistemas' ? 'edit_note' : 'visibility';
+    return this.passoEditavel && this.bloco.Tabela?.SecaoChave !== 'pgia_sistemas' ? 'edit_note' : 'visibility';
   }
 
   /** O texto da situação, à vista no editor ("Salvo às 14:32"). */
@@ -399,7 +406,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   get textoLinkFluxo(): string {
     const p = this.passoDados;
     if (!p) return '';
-    return this.podeEditar ? `Ajustar o fluxo no passo ${p.numero}` : `Ver o fluxo no passo ${p.numero}`;
+    return this.passoEditavel ? `Ajustar o fluxo no passo ${p.numero}` : `Ver o fluxo no passo ${p.numero}`;
   }
 
   /**
@@ -606,13 +613,21 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
 
   // ── Texto do modelo ───────────────────────────────────────────────────────
 
-  /** Apaga o texto do órgão: o bloco volta a seguir o modelo. */
+  /** Apaga o texto do órgão: o bloco volta a seguir o modelo (a pergunta vem na janela do módulo, F1, A04). */
   voltarAoModelo(): void {
     if (this.voltando || this.salvando || !this.podeEditar) return;
-    const aviso = this.bloco.ModeloMudou
-      ? 'Usar o texto do modelo? O texto que o órgão escreveu neste bloco vai se perder.'
-      : 'Voltar ao texto do modelo? O texto que o órgão escreveu neste bloco vai se perder.';
-    if (!confirm(aviso)) return;
+    this.confirmacao.perguntar({
+      titulo: this.bloco.ModeloMudou ? 'Usar o texto do modelo?' : 'Voltar ao texto do modelo?',
+      texto: 'O texto que o órgão escreveu neste bloco vai se perder.',
+      sim: this.bloco.ModeloMudou ? 'Usar o texto do modelo' : 'Voltar ao texto do modelo',
+      perigo: true
+    }).then(sim => {
+      if (sim && !this.destruido) this.voltarAoModeloSim();
+    });
+  }
+
+  private voltarAoModeloSim(): void {
+    if (this.voltando || this.salvando) return;
     if (this.temporizador) clearTimeout(this.temporizador);
     this.temporizador = null;
     this.voltando = true;
@@ -625,12 +640,14 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
         this.comparando = false;
         this.avisarPendente();
         this.atualizado.emit(novo);
-        const texto = 'O bloco voltou ao texto do modelo.';
-        this.notificacoes.success(texto);
-        this.acessibilidade.anunciar(texto);
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
+        this.notificacoes.success('O bloco voltou ao texto do modelo.');
         if (this.aberto) {
           this.devolverFoco = true;
           this.fechar.emit();
+        } else {
+          // O botão usado sai da tela: o foco vai para "Editar o texto" do bloco (F1, B01)
+          this.focoPendente = this.idBotaoEditar;
         }
       },
       error: erro => {
@@ -644,16 +661,16 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   /** "O modelo mudou": o órgão fica com o texto dele (gravar de novo tira o aviso). */
   manterTextoDoOrgao(): void {
     const texto = docParaEnvio(this.bloco.TextoBruto);
-    if (this.mantendo || !texto || !this.podeEditar) return;
+    if (this.mantendo || this.voltando || !texto || !this.podeEditar) return;
     this.mantendo = true;
     this.documentoService.salvarBloco(this.alvoDoTexto, this.bloco.Id, texto).subscribe({
       next: novo => {
         this.mantendo = false;
         this.comparando = false;
         this.atualizado.emit(novo);
-        const mensagem = 'O órgão ficou com o texto dele neste bloco.';
-        this.notificacoes.success(mensagem);
-        this.acessibilidade.anunciar(mensagem);
+        this.notificacoes.success('O órgão ficou com o texto dele neste bloco.');
+        // O aviso "o modelo mudou" sai da tela com o botão: o foco vai para "Editar o texto" (F1, B01)
+        this.focoPendente = this.idBotaoEditar;
       },
       error: erro => {
         this.mantendo = false;

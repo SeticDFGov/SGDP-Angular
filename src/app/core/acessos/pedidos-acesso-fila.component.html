@@ -2,7 +2,8 @@
 
   <!-- Filtros -->
   <div class="flex flex-col xl:flex-row xl:items-center gap-3">
-    <div class="inline-flex self-start rounded-lg border border-gray-300 bg-white p-0.5" role="group" aria-label="Situação dos pedidos">
+    <!-- Quebra em duas linhas no celular, em vez de passar da largura da tela (F1, A03) -->
+    <div class="inline-flex flex-wrap self-start rounded-lg border border-gray-300 bg-white p-0.5" role="group" aria-label="Situação dos pedidos">
       <button *ngFor="let f of filtrosSituacao" type="button" (click)="trocarSituacao(f.valor)"
               class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
               [ngClass]="situacao === f.valor ? 'bg-slate-800 text-white' : 'text-gray-600 hover:bg-gray-100'"
@@ -123,7 +124,7 @@
                 Papel de {{ p.Nome }} na Governança Estratégica <span class="text-red-600">*</span>
               </label>
               <select [id]="'papel-pe-' + p.Id" [(ngModel)]="decisao.papelPlanejamento" [name]="'papel-pe-' + p.Id"
-                      [attr.aria-invalid]="papelPlanejamentoFaltando" [attr.aria-describedby]="'papel-pe-ajuda-' + p.Id"
+                      aria-required="true" [attr.aria-invalid]="papelPlanejamentoFaltando || null" [attr.aria-describedby]="'papel-pe-ajuda-' + p.Id"
                       class="w-full md:w-[32rem] px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
                       [ngClass]="papelPlanejamentoFaltando ? 'border-red-500' : 'border-gray-300'">
                 <option [ngValue]="null" disabled>Escolha o papel</option>
@@ -166,11 +167,12 @@
             Motivo da recusa <span class="text-red-600">*</span>
           </label>
           <textarea [id]="'motivo-' + p.Id" [(ngModel)]="decisao.motivo" [name]="'motivo-' + p.Id" rows="3" [maxlength]="tamanhoMotivo"
+                    aria-required="true" [attr.aria-invalid]="motivoFaltando || null" [attr.aria-describedby]="'motivo-ajuda-' + p.Id"
                     placeholder="Ex.: o PGIA é liberado pelo Responsável de IA do seu órgão. Fale com ele."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                     [ngClass]="motivoFaltando ? 'border-red-500 bg-red-50' : 'border-gray-300'"></textarea>
           <div class="flex justify-between gap-3 text-xs mt-1">
-            <span [ngClass]="motivoFaltando ? 'text-red-600' : 'text-gray-500'">
+            <span [id]="'motivo-ajuda-' + p.Id" [ngClass]="motivoFaltando ? 'text-red-600' : 'text-gray-500'">
               {{ motivoFaltando ? 'Escreva o motivo: a pessoa vai ler no card do módulo.' : 'A pessoa vai ler o motivo no card do módulo.' }}
             </span>
             <span class="text-gray-500 whitespace-nowrap">{{ decisao.motivo.length }}/{{ tamanhoMotivo }}</span>

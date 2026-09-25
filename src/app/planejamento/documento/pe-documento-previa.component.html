@@ -14,13 +14,13 @@
       <h3 id="pe-doc-apresentacao" class="text-base font-semibold text-gray-900">{{ tituloPrevia }}</h3>
       <p *ngIf="tipoDoc === 'pdtic'" class="text-sm text-gray-700 leading-relaxed mt-1">
         O documento sai do modelo da SGDI, com os dados que o órgão preencheu nos passos. As tabelas, as listas de ações e a matriz
-        SWOT vêm dos passos: para mudar uma delas, use o link embaixo dela e edite os dados no passo.
+        SWOT vêm dos passos{{ d.PodeEditar ? ': para mudar uma delas, use o link embaixo dela e edite os dados no passo.' : ': o link embaixo de cada uma leva ao passo de onde ela vem.' }}
       </p>
       <ng-container *ngIf="cicloDoRelatorio as c">
         <p class="text-sm text-gray-700 leading-relaxed mt-1">
           O relatório de acompanhamento de "{{ c.Rotulo }}" sai do modelo da SGDI, com os dados do ciclo: a situação das ações, as
           medições e os riscos que ocorreram{{ c.Tipo === 'avaliacao' ? ', os resultados intermediários das metas e a análise da equipe' : '' }}.
-          As tabelas vêm dos passos: para mudar uma delas, use o link embaixo dela.
+          As tabelas vêm dos passos{{ d.PodeEditar ? ': para mudar uma delas, use o link embaixo dela.' : ': o link embaixo de cada uma leva ao passo de onde ela vem.' }}
         </p>
         <p *ngIf="raDeMonitoramento" class="text-sm text-gray-700 leading-relaxed mt-1">
           Num ciclo de monitoramento, os capítulos da avaliação intermediária das metas, da execução orçamentária e do plano de gestão de
@@ -92,12 +92,15 @@
               </p>
               <h3 id="pe-doc-capa-titulo" class="text-2xl font-bold text-gray-900 leading-tight">{{ d.Titulo }}</h3>
               <p class="text-lg font-semibold text-purple-800">{{ siglaDoc }} · {{ d.OrgaoSigla }}</p>
-              <!-- RA: o ciclo do relatório -->
-              <p *ngIf="cicloDoRelatorio as c" class="text-base font-semibold text-gray-800">
-                {{ c.Rotulo }}<ng-container *ngIf="periodoDoCiclo"> ({{ periodoDoCiclo }})</ng-container>
-              </p>
+              <!-- RA: o ciclo do relatório, como na capa do PDF (F1, B09 e C25) -->
+              <p *ngIf="linhaCicloCapa as l" class="text-base font-semibold text-gray-800">{{ l }}</p>
+            </div>
+
+            <!-- Como no PDF: um traço e, embaixo, o texto da capa (F1, B09 e C25) -->
+            <hr class="border-gray-300" />
+            <div *ngIf="pagina.itens.length === 0" class="flex flex-col items-center text-center gap-2">
               <!-- Sem texto no capítulo da capa: a vigência e a versão saem daqui (com texto, é ele que diz) -->
-              <p *ngIf="pagina.itens.length === 0" class="text-sm text-gray-700">
+              <p class="text-sm text-gray-700">
                 Vigência:
                 <ng-container *ngIf="vigencia !== '-'; else semVigencia">{{ vigencia }}</ng-container>
                 <ng-template #semVigencia>
@@ -107,7 +110,7 @@
                   </ng-container>
                 </ng-template>
               </p>
-              <p *ngIf="pagina.itens.length === 0" class="text-sm text-gray-700">{{ tipoDoc === 'pdtic' ? 'Versão' : 'PDTIC versão' }} {{ d.Versao }}</p>
+              <p class="text-sm text-gray-700">{{ tipoDoc === 'pdtic' ? 'Versão' : 'PDTIC versão' }} {{ d.Versao }}</p>
             </div>
           </ng-container>
 
@@ -139,8 +142,11 @@
                      class="flex flex-wrap items-center gap-3 rounded-md border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600">
                   <span class="material-icons text-base text-gray-500" aria-hidden="true">visibility_off</span>
                   <p class="flex-1"><strong>Capítulo escondido:</strong> {{ c.Titulo }}. Ele não sai no PDF.</p>
-                  <button *ngIf="d.PodeEditar" type="button" [id]="'pe-doc-mostrar-' + c.Id" (click)="mostrar(c)" [disabled]="salvandoCapitulo !== null"
-                          class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                  <!-- Com o foco, fica abaixo do cabeçalho preso da página (F1, B04); ocupado sem sair do Tab (F1, B01) -->
+                  <button *ngIf="d.PodeEditar" type="button" [id]="'pe-doc-mostrar-' + c.Id" (click)="mostrar(c)"
+                          [attr.aria-label]="'Mostrar de novo o capítulo ' + c.Titulo"
+                          [attr.aria-disabled]="salvandoCapitulo !== null || null" style="scroll-margin-top: 6rem;"
+                          class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
                     <span class="material-icons text-base" aria-hidden="true">visibility</span>
                     {{ salvandoCapitulo === c.Id ? 'Mostrando...' : 'Mostrar de novo' }}
                   </button>
@@ -158,9 +164,9 @@
                               class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-purple-700 hover:bg-gray-100">
                         <span class="material-icons text-sm" aria-hidden="true">drive_file_rename_outline</span> Renomear
                       </button>
-                      <button *ngIf="escondivel(c)" type="button" (click)="esconder(c)" [disabled]="salvandoCapitulo !== null"
+                      <button *ngIf="escondivel(c)" type="button" (click)="esconder(c)" [attr.aria-disabled]="salvandoCapitulo !== null || null"
                               [attr.aria-label]="'Esconder o capítulo ' + titulo(c)"
-                              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50">
+                              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-gray-700 hover:bg-gray-100">
                         <span class="material-icons text-sm" aria-hidden="true">visibility_off</span> {{ salvandoCapitulo === c.Id ? 'Escondendo...' : 'Esconder' }}
                       </button>
                     </ng-container>
@@ -177,7 +183,7 @@
                         class="rounded-md border border-purple-200 bg-purple-50 p-3 space-y-2">
                     <label [for]="'pe-doc-renomear-' + c.Id" class="block text-sm font-semibold text-gray-800">Título do capítulo no documento do órgão</label>
                     <input [id]="'pe-doc-renomear-' + c.Id" type="text" [(ngModel)]="tituloEditado" name="pe-doc-renomear" [maxlength]="maxTitulo"
-                           [attr.aria-invalid]="erroTitulo ? true : null"
+                           style="scroll-margin-top: 8rem;" [attr.aria-invalid]="erroTitulo ? true : null"
                            [attr.aria-describedby]="erroTitulo ? 'pe-doc-renomear-ajuda-' + c.Id + ' pe-doc-renomear-erro-' + c.Id : 'pe-doc-renomear-ajuda-' + c.Id"
                            class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                            [ngClass]="erroTitulo ? 'border-red-500' : 'border-gray-300'" />
@@ -186,12 +192,12 @@
                     </p>
                     <p *ngIf="erroTitulo" [id]="'pe-doc-renomear-erro-' + c.Id" class="text-xs text-red-600">{{ erroTitulo }}</p>
                     <div class="flex flex-wrap gap-2">
-                      <button type="submit" [disabled]="salvandoCapitulo === c.Id"
-                              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+                      <button type="submit" [attr.aria-disabled]="salvandoCapitulo === c.Id || null"
+                              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                         <span class="material-icons text-base" aria-hidden="true">save</span> {{ salvandoCapitulo === c.Id ? 'Salvando...' : 'Salvar o título' }}
                       </button>
-                      <button *ngIf="c.TituloProprio" type="button" (click)="voltarTituloDoModelo(c)" [disabled]="salvandoCapitulo === c.Id"
-                              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                      <button *ngIf="c.TituloProprio" type="button" (click)="voltarTituloDoModelo(c)" [attr.aria-disabled]="salvandoCapitulo === c.Id || null"
+                              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
                         <span class="material-icons text-base" aria-hidden="true">restore</span> Voltar ao título do modelo
                       </button>
                       <button type="button" (click)="cancelarRenomear(c)"
@@ -212,6 +218,9 @@
                               (pendente)="aoPendente(b, $event)"></app-pe-doc-bloco>
           </ng-container>
         </div>
+
+        <!-- O pé da capa, como no PDF (F1, B09) -->
+        <p *ngIf="pagina.especial === 'capa'" class="mt-6 text-center text-sm font-semibold text-gray-800">Brasília, {{ anoCapa }}</p>
 
         <!-- Rodapé da página, como no PDF (o leitor de tela não precisa dele a cada página) -->
         <p class="mt-6 pt-2 border-t border-gray-100 flex flex-wrap justify-between gap-2 text-xs text-gray-500" aria-hidden="true">
@@ -254,11 +263,11 @@
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeVersao(v)">{{ rotuloVersao(v) }}</span>
               </td>
               <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ quandoVersao(v) }}</td>
-              <td class="px-3 py-2.5 text-gray-800">{{ v.GeradoPor || '-' }}</td>
+              <td class="px-3 py-2.5 text-gray-800">{{ v.GeradoPorNome || v.GeradoPor || '-' }}</td>
               <td class="px-3 py-2.5 text-gray-800">{{ v.Paginas ?? '-' }}</td>
               <td class="px-3 py-2.5 text-gray-800 whitespace-nowrap">{{ tamanho(v) }}</td>
               <td class="px-3 py-2.5 text-right">
-                <button type="button" (click)="baixar(v)" [disabled]="baixando !== null" [attr.aria-label]="'Baixar a versão ' + v.Numero + ' em PDF'"
+                <button type="button" (click)="baixar(v)" [attr.aria-disabled]="baixando !== null || null" [attr.aria-label]="'Baixar a versão ' + v.Numero + ' em PDF'"
                         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap disabled:opacity-50">
                   <span class="material-icons text-sm" aria-hidden="true">download</span> {{ baixando === v.Numero ? 'Baixando...' : 'Baixar' }}
                 </button>
@@ -275,21 +284,26 @@
       <span class="material-icons" [ngClass]="pendentes.size > 0 ? 'text-amber-600' : 'text-green-600'" aria-hidden="true">
         {{ pendentes.size > 0 ? 'sync' : (d.PodeEditar ? 'cloud_done' : 'visibility') }}
       </span>
+      <!-- No celular, a barra fica numa linha só: a frase some (o ícone e o leitor de tela dizem) e Sumário e Versões
+           ficam só com o ícone, com o nome no botão (F1, B21) -->
       <p class="flex-1 text-sm text-gray-800">
-        {{ d.PodeEditar
+        <span class="hidden md:inline">{{ d.PodeEditar
           ? (pendentes.size > 0 ? 'Salvando o texto...' : 'Todas as mudanças do texto estão salvas.')
-          : 'Documento só para ler.' }}
+          : 'Documento só para ler.' }}</span>
+        <span class="md:hidden sr-only">{{ d.PodeEditar ? (pendentes.size > 0 ? 'Salvando o texto...' : 'Texto salvo.') : 'Só para ler.' }}</span>
       </p>
-      <button type="button" (click)="irParaSumario()"
+      <button type="button" (click)="irParaSumario()" aria-label="Sumário"
               class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
-        <span class="material-icons text-base" aria-hidden="true">toc</span> Sumário
+        <span class="material-icons text-base" aria-hidden="true">toc</span> <span class="hidden md:inline">Sumário</span>
       </button>
-      <button type="button" (click)="irParaVersoes()"
+      <button type="button" (click)="irParaVersoes()" [attr.aria-label]="'Versões (' + versoes.length + ')'"
               class="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
-        <span class="material-icons text-base" aria-hidden="true">history</span> Versões ({{ versoes.length }})
+        <span class="material-icons text-base" aria-hidden="true">history</span> <span class="hidden md:inline">Versões ({{ versoes.length }})</span>
       </button>
-      <button *ngIf="d.PodeEditar" type="button" (click)="gerarPdf()" [disabled]="gerando || pendentes.size > 0"
-              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+      <!-- Ocupado sem sair do Tab (aria-disabled): desligado, o botão perdia o foco ao gerar (F1, B01) -->
+      <button *ngIf="d.PodeEditar" type="button" (click)="gerarPdf()" [attr.aria-disabled]="(gerando || pendentes.size > 0) || null"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700"
+              [ngClass]="pendentes.size > 0 && !gerando ? 'opacity-50' : ''">
         <span class="material-icons text-base" aria-hidden="true">picture_as_pdf</span> {{ gerando ? 'Gerando o PDF...' : 'Gerar PDF' }}
       </button>
     </div>

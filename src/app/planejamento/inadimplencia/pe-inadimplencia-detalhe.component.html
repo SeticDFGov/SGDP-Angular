@@ -5,8 +5,10 @@
          [attr.aria-label]="'Página do órgão ' + item.OrgaoSigla">{{ item.OrgaoSigla }}</a>
       <span class="text-gray-700"> · {{ item.OrgaoNome }}</span>
     </p>
+    <!-- O que a pessoa digitou não vira dica de norma: "(art. 7º, V)" sem o nome do decreto abriria o artigo de
+         outra norma (a padrão da tela). As dicas ficam nos textos fixos, que dizem a norma (F1, A08) -->
     <p class="text-sm text-gray-800 leading-relaxed break-words" [class.mt-1]="mostrarOrgao">
-      <span class="font-semibold text-gray-900">Comunicação pendente:</span> {{ item.Obrigacao }}
+      <span class="font-semibold text-gray-900">Comunicação pendente:</span> <span data-sem-dica>{{ item.Obrigacao }}</span>
     </p>
   </div>
   <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start"
@@ -18,12 +20,12 @@
 <dl class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-sm">
   <div>
     <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Prazo descumprido</dt>
-    <dd class="text-gray-900 mt-0.5 break-words">{{ item.PrazoDescumprido || '-' }}</dd>
+    <dd data-sem-dica class="text-gray-900 mt-0.5 break-words">{{ item.PrazoDescumprido || '-' }}</dd>
   </div>
   <div>
     <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Notificação</dt>
     <dd class="text-gray-900 mt-0.5 break-words">
-      {{ quando(item.NotificadoEm) }}<ng-container *ngIf="item.Documento"> · {{ item.Documento }}</ng-container>
+      {{ quando(item.NotificadoEm) }}<ng-container *ngIf="item.Documento"> · <span data-sem-dica>{{ item.Documento }}</span></ng-container>
       <span *ngIf="item.Sei" class="block text-xs text-gray-600">Processo SEI {{ item.Sei }}</span>
     </dd>
   </div>
@@ -36,16 +38,16 @@
 <!-- Justificativa aceita -->
 <div *ngIf="item.Justificativa" class="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-gray-800">
   <p class="font-semibold text-blue-900">Justificativa aceita</p>
-  <p class="mt-0.5 whitespace-pre-line break-words leading-relaxed">{{ item.Justificativa }}</p>
+  <p data-sem-dica class="mt-0.5 whitespace-pre-line break-words leading-relaxed">{{ item.Justificativa }}</p>
 </div>
 
 <!-- Inadimplência registrada -->
 <div *ngIf="item.Motivo || item.NotaMotivacao || item.RegistradoEm" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-gray-800">
-  <p class="font-semibold text-red-800">Inadimplência registrada<ng-container *ngIf="item.RegistradoEm"> em {{ quandoEQuem(item.RegistradoEm, item.RegistradoPor) }}</ng-container></p>
+  <p class="font-semibold text-red-800">Inadimplência registrada<ng-container *ngIf="item.RegistradoEm"> em {{ quandoEQuem(item.RegistradoEm, item.RegistradoPor, item.RegistradoPorNome) }}</ng-container></p>
   <p *ngIf="item.Motivo" class="mt-1"><span class="font-semibold">Motivo:</span> {{ motivo }}</p>
   <div *ngIf="item.NotaMotivacao as nota" class="mt-1">
     <p class="font-semibold">Nota de motivação</p>
-    <p class="whitespace-pre-line break-words leading-relaxed">{{ nota }}</p>
+    <p data-sem-dica class="whitespace-pre-line break-words leading-relaxed">{{ nota }}</p>
   </div>
   <p class="mt-1">
     <span class="font-semibold">Comunicação ao controle interno:</span>
@@ -56,7 +58,7 @@
 <!-- Saneamento -->
 <div *ngIf="item.SaneadoEm" class="mt-3 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-gray-800">
   <p class="font-semibold text-green-800">Saneado em {{ quando(item.SaneadoEm) }}</p>
-  <p *ngIf="item.Observacao as obs" class="mt-0.5 whitespace-pre-line break-words leading-relaxed">{{ obs }}</p>
+  <p *ngIf="item.Observacao as obs" data-sem-dica class="mt-0.5 whitespace-pre-line break-words leading-relaxed">{{ obs }}</p>
 </div>
 
-<p class="text-xs text-gray-500 mt-3">Notificação registrada em {{ quandoEQuem(item.CriadoEm, item.CriadoPor) }}.</p>
+<p class="text-xs text-gray-500 mt-3">Notificação registrada em {{ quandoEQuem(item.CriadoEm, item.CriadoPor, item.CriadoPorNome) }}.</p>

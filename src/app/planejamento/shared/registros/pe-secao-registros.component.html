@@ -19,12 +19,12 @@
         <p *ngIf="d.Secao.Ajuda" class="text-sm text-gray-600 leading-relaxed mt-0.5">{{ d.Secao.Ajuda }}</p>
       </div>
       <div *ngIf="planilha" class="flex flex-wrap items-start gap-2 shrink-0">
-        <button type="button" (click)="baixarPlanilha('xlsx')" [disabled]="baixando !== null"
+        <button type="button" (click)="baixarPlanilha('xlsx')" [attr.aria-disabled]="baixando !== null || null"
                 [attr.aria-label]="'Baixar a planilha de ' + d.Secao.Titulo + ' em XLSX'"
                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
           <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando === 'xlsx' ? 'Gerando...' : 'Planilha XLSX' }}
         </button>
-        <button type="button" (click)="baixarPlanilha('csv')" [disabled]="baixando !== null"
+        <button type="button" (click)="baixarPlanilha('csv')" [attr.aria-disabled]="baixando !== null || null"
                 [attr.aria-label]="'Baixar a planilha de ' + d.Secao.Titulo + ' em CSV'"
                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
           <span class="material-icons text-base" aria-hidden="true">download</span> {{ baixando === 'csv' ? 'Gerando...' : 'CSV' }}
@@ -32,7 +32,7 @@
       </div>
     </div>
 
-    <p *ngIf="!d.PodeEditar" class="mb-4 text-xs text-gray-500 italic">
+    <p *ngIf="!d.PodeEditar && !semAvisoLeitura" class="mb-4 text-xs text-gray-500 italic">
       {{ avisoLeitura || 'Você pode consultar e baixar a planilha. Quem cadastra é o administrador do módulo.' }}
     </p>
 

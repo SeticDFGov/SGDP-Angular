@@ -54,8 +54,8 @@
             <li>os ciclos de monitoramento e de avaliação, com os registros de cada um;</li>
             <li>os comentários da SGDI, as deliberações do CGTIC e os PDFs já gerados.</li>
           </ul>
-          <p class="mt-3">A versão {{ pdtic.Versao }} continua valendo e em acompanhamento até o CGTIC aprovar a {{ versaoNova }}. Depois disso,
-            ela fica como substituída.</p>
+          <p class="mt-3">A versão {{ pdtic.Versao }} continua valendo{{ pdtic.Situacao === 'em_acompanhamento' ? ', e o acompanhamento dela segue,' : '' }}
+            até o CGTIC aprovar a {{ versaoNova }}. Depois disso, ela fica como substituída.</p>
         </ng-template>
 
         <div *ngIf="pedeTexto" class="mt-4">
@@ -70,7 +70,7 @@
           <p *ngIf="erroTexto as e" [id]="idBase + '-texto-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
         </div>
 
-        <p *ngIf="erroServidor" [id]="idBase + '-erro-servidor'" tabindex="-1" role="alert"
+        <p *ngIf="erroServidor" [id]="idBase + '-erro-servidor'" tabindex="-1"
            class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erroServidor }}</p>
       </div>
 
@@ -79,7 +79,7 @@
                 class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
           Cancelar
         </button>
-        <button type="submit" [disabled]="gravando"
+        <button type="submit" [attr.aria-disabled]="gravando || null"
                 class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-60"
                 [ngClass]="encerrar ? 'bg-red-600 hover:bg-red-700' : 'bg-purple-600 hover:bg-purple-700'">
           <span class="material-icons text-lg" aria-hidden="true">{{ encerrar ? 'lock' : 'restart_alt' }}</span>

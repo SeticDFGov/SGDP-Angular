@@ -50,11 +50,12 @@ export class PeModeloFluxosComponent implements OnInit {
     this.sujo = sujo;
   }
 
-  /** Guarda de rota: fluxo com mudança não salva. */
+  /** Guarda de rota: com o fluxo mudado e não salvo, ela pergunta antes de sair (F1, A04). */
   podeSair(): boolean {
-    if (!this.sujo) return true;
-    const sair = confirm('Há mudanças no fluxo-modelo que ainda não foram salvas. Sair assim mesmo? Elas vão se perder.');
-    if (sair) this.sujo = false;
-    return sair;
+    return !this.sujo;
+  }
+
+  textoSaida(): string {
+    return 'Há mudanças no fluxo-modelo que ainda não foram salvas. Se sair agora, elas se perdem.';
   }
 }

@@ -224,12 +224,17 @@ export class PeCriteriosComponent implements OnInit {
   }
 
   desfazer(): void {
+    if (this.salvando) return;
     this.montarFormulario();
   }
 
-  /** Guarda de rota: mudança não salva pergunta antes de sair. */
+  /** Guarda de rota: com mudança não salva, ela pergunta antes de sair (na janela do módulo, F1, A04). */
   podeSair(): boolean {
-    return !this.alterado || confirm('Há mudanças nos critérios que ainda não foram salvas. Sair assim mesmo? Elas vão se perder.');
+    return !this.alterado;
+  }
+
+  textoSaida(): string {
+    return 'Há mudanças nos critérios que ainda não foram salvas. Se sair agora, elas se perdem.';
   }
 
   // ── Leitura ───────────────────────────────────────────────────────────────

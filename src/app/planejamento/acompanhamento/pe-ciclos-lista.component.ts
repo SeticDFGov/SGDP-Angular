@@ -1,19 +1,22 @@
 import {
-  AfterViewChecked, Component, EventEmitter, Input, OnChanges, Output, PLATFORM_ID, SimpleChanges, inject
+  AfterViewChecked, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, PLATFORM_ID, SimpleChanges, inject
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription, forkJoin } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { PeCiclo, PeTipoCiclo } from '../../../api/planejamento/interface';
 import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
 import { NotificationService } from '../../core/services/notification.service';
 import { PeCiclosService } from '../services/pe-ciclos.service';
 import {
-  ciclosEmOrdem, classeSituacaoCiclo, iconeSituacaoCiclo, periodoCiclo, resumoDoCiclo, rotuloAvaliacaoNova, rotuloSituacaoCiclo
+  ciclosEmOrdem, classeSituacaoCiclo, iconeSituacaoCiclo, periodoCiclo, resumoDaAvaliacao, resumoDoCiclo, rotuloAvaliacaoNova,
+  rotuloSituacaoCiclo
 } from '../shared/pe-ciclos-rotulos';
 import { rotuloSituacaoVersao } from '../shared/pe-documento-rotulos';
 import { mensagemErroPe } from '../shared/pe-erros';
-import { textoData, textoDataHora } from '../shared/registros/pe-valores';
+import { nomeDeQuem, textoData, textoDataHora } from '../shared/registros/pe-valores';
 
 /** Tamanho do nome da avaliação (o servidor confere de novo). */
 const MAX_ROTULO = 100;
@@ -42,7 +45,7 @@ const MAX_ROTULO = 100;
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
 })
-export class PeCiclosListaComponent implements OnChanges, AfterViewChecked {
+export class PeCiclosListaComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private readonly ciclosService = inject(PeCiclosService);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
@@ -79,15 +82,59 @@ export class PeCiclosListaComponent implements OnChanges, AfterViewChecked {
   erroServidor: string | null = null;
   private focoPendente: string | null = null;
 
+  /**
+   * F1 (I04): na lista das avaliações, o que cada uma tem (os resultados das metas,
+   * a análise e a decisão do comitê), pelo Id; o resumo do monitoramento (ações com
+   * situação) não diz nada de uma avaliação.
+   */
+  resumosAvaliacao = new Map<number, string>();
+  private cargaResumos?: Subscription;
+
+  ngOnDestroy(): void {
+    this.cargaResumos?.unsubscribe();
+  }
+
+  /** O que cada avaliação tem, buscado quando a lista chega (as avaliações são poucas). */
+  private carregarResumos(): void {
+    this.cargaResumos?.unsubscribe();
+    const pdticId = this.pdticId;
+    const lista = this.ciclos;
+    if (this.tipo !== 'avaliacao' || this.modo !== 'lista' || pdticId === null || !lista.length) return;
+    this.cargaResumos = forkJoin(lista.map(c => this.ciclosService.resumoDaAvaliacao(pdticId, c.Id, c.Resumo)
+      .pipe(map(r => [c.Id, resumoDaAvaliacao(r)] as [number, string]))))
+      .subscribe(pares => this.resumosAvaliacao = new Map(pares));
+  }
+
+  /** O que o ciclo tem, na coluna da lista: na avaliação, o resumo dela (F1, I04). */
+  registradoNo(c: PeCiclo): string {
+    if (this.tipo === 'avaliacao') return this.resumosAvaliacao.get(c.Id) || '-';
+    return this.resumo(c) || '-';
+  }
+
   ngOnChanges(mudancas: SimpleChanges): void {
-    this.montar();
-    // Outro ciclo à vista depois de uma escolha: o foco fica no botão, e o leitor de tela ouve a troca
+    if (mudancas['ciclos'] || mudancas['pdticId']) this.carregarResumos();
     const m = mudancas['escolhido'];
     const antes = (m?.previousValue as PeCiclo | null | undefined)?.Id ?? null;
     const agora = this.escolhido;
+    const trocou = !!m && (agora?.Id ?? null) !== antes;
+    // Outro ciclo à vista: a lista de escolha da forma compacta passa a mostrar ele (F1, C20)
+    if (trocou) this.escolhaCompacta = agora?.Id ?? null;
+    this.montar();
+    // Outro ciclo à vista depois de uma escolha: o foco fica no botão, e o leitor de tela ouve a troca.
+    // Depois de abrir uma avaliação, não: o aviso da abertura já diz que ela está à vista (um aviso só, F1, C21)
     if (m && !m.firstChange && antes !== null && agora && agora.Id !== antes) {
-      this.acessibilidade.anunciar(`${this.rotuloCiclo} ${agora.Rotulo} à vista.`);
+      if (this.silenciarTroca === agora.Id) this.silenciarTroca = null;
+      else this.acessibilidade.anunciar(`${this.nomeDoCiclo(agora)} à vista.`);
     }
+  }
+
+  /** A avaliação que acabou de ser aberta: a troca para ela não é anunciada de novo. */
+  private silenciarTroca: number | null = null;
+
+  /** "Ciclo 2027 · 1º trimestre" ou só o nome da avaliação, quando ele já diz que é uma avaliação (sem "Avaliação Avaliação"). */
+  private nomeDoCiclo(c: PeCiclo): string {
+    const rotulo = c.Rotulo.trim();
+    return rotulo.toLowerCase().startsWith(this.rotuloCiclo.toLowerCase()) ? rotulo : `${this.rotuloCiclo} ${rotulo}`;
   }
 
   ngAfterViewChecked(): void {
@@ -174,6 +221,12 @@ export class PeCiclosListaComponent implements OnChanges, AfterViewChecked {
     return textoDataHora(valor);
   }
 
+  /** "24/09/2026 às 14:05 por Tereza do Teste" (o nome, F1; sem ele, o e-mail). */
+  fechadoEm(c: PeCiclo): string {
+    const quem = nomeDeQuem(c.FechadoPorNome, c.FechadoPor);
+    return quem ? `${textoDataHora(c.FechadoEm)} por ${quem}` : textoDataHora(c.FechadoEm);
+  }
+
   resumo(c: PeCiclo): string {
     return resumoDoCiclo(c);
   }
@@ -248,7 +301,11 @@ export class PeCiclosListaComponent implements OnChanges, AfterViewChecked {
       next: ciclo => {
         this.abrindo = false;
         this.janela = false;
-        this.notificacoes.success(`Avaliação "${ciclo?.Rotulo ?? this.rotulo.trim()}" aberta. Preencha os resultados intermediários nos passos da avaliação.`);
+        // Um aviso só (F1, C21): a troca para a avaliação nova não é anunciada de novo, e o nome não repete "Avaliação"
+        this.silenciarTroca = ciclo?.Id ?? null;
+        this.notificacoes.success(`"${ciclo?.Rotulo ?? this.rotulo.trim()}" foi aberta e está à vista. Preencha os resultados intermediários nos passos da avaliação.`);
+        // O botão "Abrir uma avaliação" some com a avaliação aberta: o foco vai ao título da lista (F1, C11)
+        this.focoPendente = `${this.idBase}-titulo`;
         this.abriu.emit(ciclo);
       },
       error: erro => {

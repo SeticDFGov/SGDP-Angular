@@ -1,24 +1,36 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, DestroyRef, HostListener, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
 import { PeOrgaoNivel, PePdtic } from '../../../api/planejamento/interface';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
+import { PeConfirmacaoComponent } from '../shared/pe-confirmacao.component';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import {
-  classeEstadoPasso, corIconeEstadoPasso, iconeEstadoPasso, rotuloSituacaoPdtic, textoDoStatus
+  classeEstadoPasso, corIconeEstadoPasso, iconeEstadoPasso, minusculaInicial, rotuloSituacaoPdtic, textoDoStatus
 } from '../shared/pe-pdtic-rotulos';
 import { EstadoTrilhaPe, PeTrilhaEstadoService, valorVisaoOrgao } from './pe-trilha-estado.service';
 import { EstadoPassoPe, StatusPassoPe } from './pe-trilha-status.service';
 import {
-  BASE_PE, EtapaTrilhaPe, PERFIS_CENTRAIS_PE, PassoNumeradoPe, ROTULOS_PERFIL_TRILHA_PE,
+  BASE_PE, EtapaTrilhaPe, PERFIS_CENTRAIS_PE, PREFIXO_PASSO_ORGAO, PassoNumeradoPe, ROTULOS_PERFIL_TRILHA_PE,
   passoDaUrl, rotuloGuia
 } from './pe-trilhas';
 
 interface OpcaoVisao {
   valor: string;
   rotulo: string;
+}
+
+/**
+ * A tela aberta no outlet. As que guardam mudanças antes de gravar têm a guarda de
+ * saída (`ComMudancasPendentes`, nas rotas) e dizem se recarregar a página perderia
+ * alguma coisa (F1, D07).
+ */
+interface TelaComMudancas {
+  podeSair?(): boolean;
+  perdeAoRecarregar?(): boolean;
 }
 
 /**
@@ -47,7 +59,7 @@ interface OpcaoVisao {
 @Component({
   selector: 'app-pe-shell',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective],
+  imports: [CommonModule, FormsModule, RouterModule, CitaPlanejamentoDirective, PeConfirmacaoComponent],
   templateUrl: './pe-shell.component.html',
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
@@ -56,6 +68,8 @@ export class PeShellComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly estadoService = inject(PeTrilhaEstadoService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly base = BASE_PE;
 
@@ -76,6 +90,32 @@ export class PeShellComponent implements OnInit {
   visaoEscolhida = '';
   private visaoMostrada = '';
   private orgaos: PeOrgaoNivel[] | null = null;
+  private telaAtiva: TelaComMudancas | null = null;
+
+  aoAtivarTela(tela: unknown): void {
+    this.telaAtiva = tela && typeof tela === 'object' ? tela as TelaComMudancas : null;
+  }
+
+  aoDesativarTela(): void {
+    this.telaAtiva = null;
+  }
+
+  /**
+   * Recarregar ou fechar a aba com mudança não salva (F1, D07): o navegador pergunta
+   * antes (a guarda de rota só vê a navegação dentro do SGDP). Vale para as telas com
+   * a guarda de saída, pelo que ela já sabe; o texto do documento, que se salva
+   * sozinho, não conta.
+   */
+  @HostListener('window:beforeunload', ['$event'])
+  aoSairDaPagina(evento: BeforeUnloadEvent): void {
+    const tela = this.telaAtiva;
+    if (!tela) return;
+    const perde = tela.perdeAoRecarregar ? tela.perdeAoRecarregar() : !!tela.podeSair && !tela.podeSair();
+    if (!perde) return;
+    evento.preventDefault();
+    // Navegadores mais antigos só perguntam com o returnValue preenchido
+    evento.returnValue = 'Há mudanças que ainda não foram salvas.';
+  }
 
   ngOnInit(): void {
     this.estadoService.estado$
@@ -92,6 +132,11 @@ export class PeShellComponent implements OnInit {
           this.visaoEscolhida = visao;
         }
         this.montarOpcoes();
+        if (estado?.carga === 'pronta' && this.conferirVisaoNaCarga) {
+          this.conferirVisaoNaCarga = false;
+          this.conferirVisaoDoOrgao(this.rotaAtual);
+        }
+        this.sincronizarVersaoNoEndereco();
       });
     this.estadoService.orgaos$
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -100,14 +145,64 @@ export class PeShellComponent implements OnInit {
         this.montarOpcoes();
       });
     this.estadoService.iniciar();
+    // F1 (C04): a versão à vista vem do endereço na entrada direta e no F5 (`?versao=`; sem ela, o `?ciclo=` pede a
+    // versão que tem os ciclos, a vigente)
+    const query = this.router.parseUrl(this.router.url).queryParams;
+    const versao = Number(query['versao']);
+    this.estadoService.pedirVersaoDoEndereco(Number.isInteger(versao) && versao > 0 ? versao : null, !!query['ciclo']);
 
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd), takeUntilDestroyed(this.destroyRef))
       .subscribe(e => {
         const anterior = this.passoAtual?.numero;
-        this.lerUrl((e as NavigationEnd).urlAfterRedirects);
+        const caminhoAntes = this.rotaAtual;
+        const url = (e as NavigationEnd).urlAfterRedirects;
+        this.lerUrl(url);
         if (this.passoAtual?.numero !== anterior) this.estadoService.atualizarStatus();
+        // Outra tela do módulo (não só outra query nem um trecho da página): começa do alto, onde está o título
+        // que recebe o foco (F1, C29; antes, a página nova abria rolada e o foco ficava fora da área visível)
+        if (this.noNavegador && caminhoAntes && this.rotaAtual !== caminhoAntes && !url.includes('#')) window.scrollTo(0, 0);
+        if (this.estado?.carga === 'pronta') this.conferirVisaoDoOrgao(this.rotaAtual);
+        this.sincronizarVersaoNoEndereco();
       });
+  }
+
+  /** Na primeira carga da trilha, a tela central aberta pelo endereço também confere a visão de órgão (A09). */
+  private conferirVisaoNaCarga = true;
+
+  /**
+   * F1 (A09): a trilha de um órgão, escolhida em "Ver a trilha de", vale na visão
+   * geral e nos passos do órgão; numa tela central (configuração, painéis, fila),
+   * a moldura volta à trilha da pessoa (a faixa "é só para ler" contradizia a tela,
+   * que continua editável).
+   */
+  private conferirVisaoDoOrgao(caminho: string): void {
+    const e = this.estado;
+    if (!e || e.orgaoVisto === null || !this.podeTrocarVisao) return;
+    if (caminho === BASE_PE || caminho.startsWith(PREFIXO_PASSO_ORGAO)) return;
+    this.estadoService.verMinhaTrilha();
+  }
+
+  /**
+   * F1 (C04): com uma revisão aberta, a versão vigente à vista fica no endereço
+   * (`?versao=`), para o F5, o link copiado e a outra aba mostrarem a mesma versão;
+   * a em revisão (a padrão) sai do endereço. Troca a entrada do histórico.
+   */
+  private sincronizarVersaoNoEndereco(): void {
+    const e = this.estado;
+    if (!this.noNavegador || !e || e.carga !== 'pronta' || e.perfil !== 'orgao' || e.cargaPdtic !== 'ok' || !e.pdtic) return;
+    // As versões ainda vão chegar (revisão aberta): o endereço fica como está até elas
+    if ((e.pdtic.Revisao || e.pdtic.AnteriorId) && e.versoes === null) return;
+    const v = this.versoes;
+    const deveSer = v && e.pdtic.Id === v.vigente.Id ? String(v.vigente.Id) : null;
+    const arvore = this.router.parseUrl(this.router.url);
+    const noEndereco = arvore.queryParams['versao'] ?? null;
+    if (noEndereco === deveSer) return;
+    const query: Record<string, string> = { ...arvore.queryParams };
+    if (deveSer === null) delete query['versao'];
+    else query['versao'] = deveSer;
+    arvore.queryParams = query;
+    this.router.navigateByUrl(arvore, { replaceUrl: true });
   }
 
   // ── Leitura da posição ────────────────────────────────────────────────────
@@ -165,6 +260,11 @@ export class PeShellComponent implements OnInit {
     return this.estado?.pdtic?.Id === p.Id;
   }
 
+  /** "vigente" ou "vigente, em acompanhamento": só publicada, ainda não está em acompanhamento (F1, C24). */
+  rotuloVigente(p: PePdtic): string {
+    return p.Situacao === 'em_acompanhamento' ? 'vigente, em acompanhamento' : 'vigente';
+  }
+
   /**
    * Troca a versão à vista. Fora da visão geral, vai para ela antes (como o "Ver a
    * trilha de"): outra versão, outros dados, e a guarda de saída do passo pergunta
@@ -176,9 +276,12 @@ export class PeShellComponent implements OnInit {
       this.estadoService.escolherVersao(p.Id);
       return;
     }
-    this.router.navigate([BASE_PE]).then(saiu => {
-      if (saiu) this.estadoService.escolherVersao(p.Id);
-    });
+    // Com mudança não salva, a guarda cancela, pergunta e refaz a navegação: a troca espera a resposta (F1, A04)
+    this.router.navigate([BASE_PE])
+      .then(saiu => saiu || this.confirmacao.saidaPerguntada())
+      .then(saiu => {
+        if (saiu) this.estadoService.escolherVersao(p.Id);
+      });
   }
 
   guia(passo: PassoNumeradoPe): string {
@@ -285,11 +388,27 @@ export class PeShellComponent implements OnInit {
       case 'atrasado': return 'tem passo atrasado';
       case 'atencao': return 'tem passo pedindo atenção';
       case 'pendente': return 'tem passo pendente';
-      case 'aguardando': return 'aguardando uma etapa anterior';
+      case 'aguardando': return this.textoAguardando(indice);
       case 'feito': return this.estado?.perfil === 'orgao' ? 'passos resolvidos' : 'nada esperando';
       case 'nao_se_aplica': return 'não se aplica';
       default: return '';
     }
+  }
+
+  /**
+   * F1 (I01): a etapa que aguarda diz o que aguarda, pelo motivo dos passos dela
+   * ("aguardando a deliberação do CGTIC desde 24/09/2026"); com motivos diferentes
+   * (ou sem motivo), um texto neutro. Antes dizia sempre "uma etapa anterior",
+   * mesmo quando quem era aguardado era a deliberação do CGTIC ou o primeiro ciclo.
+   */
+  private textoAguardando(indice: number): string {
+    const motivos = new Set(this.passosDaEtapa(indice)
+      .map(p => this.status(p))
+      .filter((s): s is StatusPassoPe => s?.estado === 'aguardando')
+      .map(s => (s.motivo ?? '').trim().replace(/\.$/, '')));
+    const [motivo] = [...motivos];
+    if (motivos.size !== 1 || !motivo) return 'aguardando';
+    return /^aguardando\b/i.test(motivo) ? minusculaInicial(motivo) : `aguardando: ${minusculaInicial(motivo)}`;
   }
 
   corBolinha(indice: number): string {

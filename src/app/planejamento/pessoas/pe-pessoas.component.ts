@@ -1,9 +1,11 @@
-import { Component, DestroyRef, OnInit, ViewChild, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AfterViewChecked, Component, DestroyRef, OnInit, PLATFORM_ID, ViewChild, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
+import { nomeDeQuem } from '../shared/registros/pe-valores';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { PePessoasService } from '../services/pe-pessoas.service';
 import { AuthService } from '../../auth/services/auth';
@@ -42,13 +44,19 @@ const MINIMO_BUSCA = 3;
   // Elemento de bloco: o espaço vertical da pilha em volta vale para ele (em linha, o padrão, não vale)
   host: { class: 'block' }
 })
-export class PePessoasComponent implements OnInit {
+export class PePessoasComponent implements OnInit, AfterViewChecked {
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly pessoasService = inject(PePessoasService);
   private readonly authService = inject(AuthService);
   private readonly notificacoes = inject(NotificationService);
   private readonly pedidosAcesso = inject(PedidosAcessoService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
+  /** Id do elemento que recebe o foco depois da próxima renderização (F1, A05 e A13). */
+  private focoPendente: string | null = null;
+
+  readonly nomeDeQuem = nomeDeQuem;
 
   @ViewChild(PedidosAcessoFilaComponent) private fila?: PedidosAcessoFilaComponent;
 
@@ -104,6 +112,14 @@ export class PePessoasComponent implements OnInit {
       });
   }
 
+  ngAfterViewChecked(): void {
+    if (!this.focoPendente || !this.noNavegador) return;
+    const alvo = document.getElementById(this.focoPendente);
+    if (!alvo) return;
+    this.focoPendente = null;
+    alvo.focus();
+  }
+
   /** Consulta o papel de novo (a lista abre sozinha quando ele chegar). */
   tentarDeNovo(): void {
     this.estadoService.iniciar();
@@ -127,7 +143,8 @@ export class PePessoasComponent implements OnInit {
 
   // ── Lista ─────────────────────────────────────────────────────────────────
 
-  buscar(page = 1): void {
+  /** `depois`: roda com a página nova aplicada (ex.: o foco num elemento dela). */
+  buscar(page = 1, depois?: () => void): void {
     this.page = page;
     this.carregando = true;
     this.erroCarga = false;
@@ -140,12 +157,13 @@ export class PePessoasComponent implements OnInit {
       next: pagina => {
         // A última pessoa de uma página perdeu o papel: volta uma página
         if (pagina.Items.length === 0 && this.page > 1) {
-          this.buscar(this.page - 1);
+          this.buscar(this.page - 1, depois);
           return;
         }
         this.pagina = pagina;
         this.escolhas = Object.fromEntries(pagina.Items.map(p => [p.UserId, p.Papel]));
         this.carregando = false;
+        depois?.();
       },
       error: () => {
         this.carregando = false;
@@ -178,6 +196,8 @@ export class PePessoasComponent implements OnInit {
 
   desfazer(p: PePessoa): void {
     this.escolhas = { ...this.escolhas, [p.UserId]: p.Papel };
+    // Os botões da linha saem da tela: o foco volta ao papel da pessoa (F1, A05)
+    this.focoPendente = `pe-papel-${p.UserId}`;
   }
 
   /** Papel de órgão escolhido na linha para quem não tem órgão. */
@@ -191,11 +211,23 @@ export class PePessoasComponent implements OnInit {
     if (escolha === p.Papel) return;
 
     const tirar = escolha === TIRAR_ACESSO;
-    if (tirar) {
-      const ok = confirm(`Tirar o acesso de ${p.Nome} à Governança Estratégica? A pessoa perde o papel "${this.rotuloPapel(p.Papel)}" e deixa de entrar no módulo.`);
-      if (!ok) return;
+    if (!tirar) {
+      this.salvarLinhaSim(p, escolha);
+      return;
     }
+    // A pergunta vem na janela do módulo (F1, A04)
+    this.confirmacao.perguntar({
+      titulo: `Tirar o acesso de ${p.Nome || p.Email} à Governança Estratégica?`,
+      texto: `A pessoa perde o papel "${this.rotuloPapel(p.Papel)}" e deixa de entrar no módulo.`,
+      sim: 'Tirar o acesso',
+      perigo: true
+    }).then(sim => {
+      if (sim && !this.salvandoUserId) this.salvarLinhaSim(p, escolha);
+    });
+  }
 
+  private salvarLinhaSim(p: PePessoa, escolha: string | null): void {
+    const tirar = escolha === TIRAR_ACESSO;
     this.salvandoUserId = p.UserId;
     this.pessoasService.definirPapel(p.UserId, tirar ? null : escolha).subscribe({
       next: resposta => {
@@ -206,7 +238,10 @@ export class PePessoasComponent implements OnInit {
           this.notificacoes.success(`Papel de ${p.Nome} trocado para "${this.rotuloPapel(escolha)}". Vale no próximo clique da pessoa.`);
           this.avisarSeSemOrgao(resposta, p.Nome, escolha);
         }
-        this.depoisDeMudarAcesso();
+        // O foco: no papel da pessoa, que continua na lista; sem ela (acesso tirado), no título da lista (F1, A05)
+        this.depoisDeMudarAcesso(() => {
+          this.focoPendente = !tirar && this.pagina?.Items.some(x => x.UserId === p.UserId) ? `pe-papel-${p.UserId}` : 'pe-pessoas-titulo';
+        });
       },
       error: (err: HttpErrorResponse) => {
         this.salvandoUserId = null;
@@ -244,12 +279,16 @@ export class PePessoasComponent implements OnInit {
     this.escolhida = c;
     this.papelNovo = null;
     this.tentouDarAcesso = false;
+    // A lista sai da tela: o foco vai para o papel da pessoa escolhida (F1, A05)
+    this.focoPendente = 'pe-papel-novo';
   }
 
-  cancelarEscolha(): void {
+  cancelarEscolha(focar = true): void {
     this.escolhida = null;
     this.papelNovo = null;
     this.tentouDarAcesso = false;
+    // O bloco da pessoa escolhida sai da tela: o foco volta à busca (F1, A05)
+    if (focar) this.focoPendente = 'pe-candidata';
   }
 
   get papelNovoFaltando(): boolean {
@@ -264,7 +303,11 @@ export class PePessoasComponent implements OnInit {
   darAcesso(): void {
     if (!this.escolhida || this.dandoAcesso) return;
     this.tentouDarAcesso = true;
-    if (!this.papelNovo) return;
+    if (!this.papelNovo) {
+      // O foco vai para o papel, com o erro ligado a ele (F1, A13)
+      this.focoPendente = 'pe-papel-novo';
+      return;
+    }
 
     const pessoa = this.escolhida;
     const papel = this.papelNovo;
@@ -297,8 +340,8 @@ export class PePessoasComponent implements OnInit {
    * Papel dado ou tirado: a lista muda e o pedido pendente da pessoa, se havia, se
    * encerra no servidor (a fila e o contador da trilha precisam ver isso).
    */
-  private depoisDeMudarAcesso(): void {
-    this.buscar(this.page);
+  private depoisDeMudarAcesso(depois?: () => void): void {
+    this.buscar(this.page, depois);
     this.fila?.buscar(this.fila.page);
     this.estadoService.atualizarStatus(true);
     this.pedidosAcesso.atualizarPendentes();

@@ -6,7 +6,9 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { PeRegistrosService } from '../services/pe-registros.service';
 import { mensagemErroPe } from '../shared/pe-erros';
-import { MAX_MB_ARQUIVO, dataValida, hojeIso, tamanhoLegivel } from '../shared/registros/pe-valores';
+import {
+  MAX_MB_ARQUIVO, TAMANHO_SEI, dataValida, digitarSei, hojeIso, seiValido, tamanhoLegivel, urlValida
+} from '../shared/registros/pe-valores';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
 type CampoExterno =
@@ -53,6 +55,9 @@ export const TIPOS_ATO_EXTERNO = ['Resolução', 'Ata de reunião', 'Deliberaç�
 
 const LIMITES = { versao: 10, atoNumero: 50, sei: 50, endereco: 500 } as const;
 
+/** 409 do registro com uma versão que o órgão já tem (`PeVersaoPdticDuplicada`): o erro é do campo Versão. */
+const ERRO_VERSAO_DUPLICADA = 1107;
+
 interface FormExterno {
   versao: string;
   inicio: string;
@@ -97,6 +102,10 @@ export class PeRegistroExternoComponent implements OnInit, AfterViewChecked {
   /** Órgão do PDTIC: null é o de quem registra (equipe do órgão); o admin do SGDP informa o órgão à vista. */
   @Input() orgaoId: number | null = null;
   @Input() siglaOrgao = '';
+  /** A versão que o campo sugere: 1.0 ou a do próximo ciclo, depois de versões encerradas (F1, C07). */
+  @Input() versaoSugerida = '1.0';
+  /** As versões que o órgão já tem: a repetida é recusada no próprio campo, antes do envio (F1, C07). */
+  @Input() versoesDoOrgao: string[] = [];
   @Output() readonly registrou = new EventEmitter<PePdtic>();
   @Output() readonly cancelar = new EventEmitter<void>();
 
@@ -105,6 +114,7 @@ export class PeRegistroExternoComponent implements OnInit, AfterViewChecked {
   readonly tiposAto = TIPOS_ATO_EXTERNO;
   readonly hoje = hojeIso();
   readonly maxMb = MAX_MB_ARQUIVO;
+  readonly tamanhoSei = TAMANHO_SEI;
 
   form: FormExterno = {
     versao: '1.0', inicio: '', fim: '', instancia: '', aprovacaoData: '', atoTipo: TIPOS_ATO_EXTERNO[0], atoNumero: '',
@@ -121,6 +131,7 @@ export class PeRegistroExternoComponent implements OnInit, AfterViewChecked {
   private focoPendente: string | null = null;
 
   ngOnInit(): void {
+    this.form.versao = this.versaoSugerida || '1.0';
     this.focoPendente = 'pe-ext-titulo';
   }
 
@@ -143,7 +154,10 @@ export class PeRegistroExternoComponent implements OnInit, AfterViewChecked {
     switch (campo) {
       case 'versao':
         if (!f.versao.trim()) return 'Informe a versão do PDTIC.';
-        return /^\d{1,3}\.\d{1,3}$/.test(f.versao.trim()) ? null : 'Use números separados por ponto, como 1.0 ou 2.1.';
+        if (!/^\d{1,3}\.\d{1,3}$/.test(f.versao.trim())) return 'Use números separados por ponto, como 1.0 ou 2.1.';
+        return this.versoesDoOrgao.includes(f.versao.trim())
+          ? `O órgão já tem um PDTIC na versão ${f.versao.trim()}. Informe outra versão, como ${this.versaoSugerida}.`
+          : null;
       case 'inicio':
         return this.erroData(f.inicio, 'Informe o início da vigência.');
       case 'fim': {
@@ -163,6 +177,9 @@ export class PeRegistroExternoComponent implements OnInit, AfterViewChecked {
       }
       case 'atoNumero':
         return f.instancia === 'cgtic' && !f.atoNumero.trim() ? 'Informe o número do ato do CGTIC que aprovou.' : null;
+      case 'sei':
+        // F1 (C05): o SEI, quando informado, no formato do SEI (o servidor confere de novo)
+        return f.sei.trim() && !seiValido(f.sei) ? 'Use o número do processo SEI completo, no formato 00000-00000000/0000-00.' : null;
       case 'publicacaoData': {
         const base = this.erroData(f.publicacaoData, 'Informe a data da publicação.');
         if (base) return base;
@@ -170,7 +187,9 @@ export class PeRegistroExternoComponent implements OnInit, AfterViewChecked {
         return dataValida(f.aprovacaoData) && f.publicacaoData < f.aprovacaoData ? 'A publicação vem depois da aprovação.' : null;
       }
       case 'endereco':
-        return f.endereco.trim() ? null : 'Informe o endereço onde a íntegra do PDTIC está publicada.';
+        if (!f.endereco.trim()) return 'Informe o endereço onde a íntegra do PDTIC está publicada.';
+        // F1 (C33): um endereço de internet de verdade (http ou https, com o domínio)
+        return urlValida(f.endereco) ? null : 'Informe o endereço completo da página, começando por http:// ou https://.';
       default:
         return null;
     }
@@ -253,13 +272,20 @@ export class PeRegistroExternoComponent implements OnInit, AfterViewChecked {
 
   // ── Registro ──────────────────────────────────────────────────────────────
 
+  /** O número do SEI com a máscara, enquanto a pessoa digita (F1, C05). */
+  digitarSeiExt(input: HTMLInputElement): void {
+    this.form.sei = digitarSei(input);
+    this.mudou('sei');
+  }
+
   registrar(): void {
     if (this.registrando) return;
     this.tentou = true;
     this.erroGeral = null;
     const erros = this.errosForm;
     if (erros.length) {
-      this.focoPendente = IDS[erros[0].campo];
+      // Um padrão só no módulo (F1, C39): o foco vai ao resumo "Antes de registrar, corrija", e cada item leva ao campo
+      this.focoPendente = 'pe-ext-erros';
       return;
     }
     const f = this.form;
@@ -290,16 +316,23 @@ export class PeRegistroExternoComponent implements OnInit, AfterViewChecked {
         const mensagem = mensagemErroPe(erro, 'Não foi possível registrar o PDTIC. Confira os dados e tente de novo.');
         if (mensagem === null) return;
         const status = (erro as { status?: number } | null)?.status;
+        const codigo = (erro as { error?: { Code?: number } } | null)?.error?.Code;
+        if (status === 409 && codigo === ERRO_VERSAO_DUPLICADA) {
+          // F1 (C07): a versão já existe no órgão: o erro vai para o campo Versão, e nada do que foi preenchido se perde
+          this.errosServidor = { ...this.errosServidor, versao: mensagem };
+          this.focoPendente = 'pe-ext-erros';
+          return;
+        }
         if (status === 409) {
-          // O órgão já tem PDTIC (alguém registrou ou começou antes): o PDTIC dele vem de novo
+          // O órgão já tem PDTIC (alguém registrou ou começou antes): o PDTIC dele vem de novo (a visão geral fecha o
+          // formulário e leva o foco ao bloco do PDTIC)
           this.notificacoes.error(mensagem);
           this.estadoService.recarregarPdtic();
           return;
         }
         this.errosServidor = this.errosDoServidor(erro);
-        const primeiro = ORDEM.find(c => !!this.errosServidor[c]);
-        if (primeiro) {
-          this.focoPendente = IDS[primeiro];
+        if (ORDEM.some(c => !!this.errosServidor[c])) {
+          this.focoPendente = 'pe-ext-erros';
         } else {
           this.erroGeral = mensagem;
           this.focoPendente = 'pe-ext-erro-geral';

@@ -4,9 +4,9 @@ import { RouterModule } from '@angular/router';
 import { PeDeliberacao, PePdtic } from '../../../api/planejamento/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { PePdticService } from '../services/pe-pdtic.service';
-import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic } from '../shared/pe-pdf-pdtic';
+import { PdfDoPdtic, baixarPdfDoPdtic, pdfDoPdtic, rotuloPdfDoPdtic } from '../shared/pe-pdf-pdtic';
 import { quandoPdtic } from '../shared/pe-pdtic-rotulos';
-import { quandoEQuem, textoAto } from '../shared/pe-referenciais-rotulos';
+import { deliberacaoRegistradaFora, quandoEQuem, textoAto } from '../shared/pe-referenciais-rotulos';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
 /** Link para um passo da trilha à vista. */
@@ -113,10 +113,22 @@ export class PePassoDeliberacaoComponent {
     return this.deliberacao ? textoAto(this.deliberacao) : '';
   }
 
-  /** Quando e por quem a decisão foi registrada. */
+  /** Quando e por quem a decisão foi registrada (o nome, F1; na deliberação do registro fora do sistema, nada: ver `registradoFora`). */
   get registradaEm(): string {
     const d = this.deliberacao;
-    return d?.DecididoEm ? quandoEQuem(d.DecididoEm, d.DecididoPor) : '';
+    if (!d?.DecididoEm || deliberacaoRegistradaFora(d)) return '';
+    return quandoEQuem(d.DecididoEm, d.DecididoPor, d.DecididoPorNome);
+  }
+
+  /** F1 (C40): a aprovação foi registrada fora do sistema (quando e por quem registrou), sem envio pelo sistema. */
+  get registradoFora(): string {
+    const d = this.deliberacao;
+    return d && deliberacaoRegistradaFora(d) ? `Aprovação registrada fora do sistema em ${quandoEQuem(d.EnviadoEm, d.EnviadoPor, d.EnviadoPorNome)}` : '';
+  }
+
+  /** O nome do PDF pelo caminho do PDTIC (F1, I02). */
+  rotuloPdf(f: PdfDoPdtic): string {
+    return rotuloPdfDoPdtic(this.pdtic, f);
   }
 
   /** A data da aprovação: a do ato (data pura) ou, sem ela, a gravada no PDTIC. */

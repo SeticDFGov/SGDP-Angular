@@ -46,10 +46,22 @@ export function hrefSeguro(href: unknown): string | null {
   if (!/^https?:\/\/[^\s/?#]+[^\s]*$/i.test(texto)) return null;
   try {
     const url = new URL(texto);
-    return url.protocol === 'http:' || url.protocol === 'https:' ? texto : null;
+    // Um endereço de verdade tem domínio com ponto: "https://https://..." (o prefixo repetido) não passa (F1, B02)
+    return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname.includes('.') ? texto : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * O endereço como a pessoa digitou ou colou, arrumado antes da conferência (F1,
+ * B02): o prefixo repetido ("https://https://www.df.gov.br") fica um só, e o
+ * endereço sem o começo ("www.df.gov.br") ganha "https://".
+ */
+export function normalizarEndereco(texto: string): string {
+  let t = texto.trim().replace(/^(?:https?:\/\/)+(?=https?:\/\/)/i, '');
+  if (t && !/^[a-z][a-z0-9+.-]*:/i.test(t)) t = `https://${t}`;
+  return t;
 }
 
 // ── Classes (as mesmas no editor e na leitura; todas já usadas no projeto) ──

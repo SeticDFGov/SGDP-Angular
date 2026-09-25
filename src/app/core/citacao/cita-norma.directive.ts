@@ -198,11 +198,21 @@ export function analisarCitacao(citacao: string): ReferenciaArtigo[] {
   return referencias;
 }
 
+/** O texto anuncia uma lista ("... no mínimo:", "... os seguintes princípios:"). */
+function anunciaLista(texto: string): boolean {
+  return /:\s*$/.test(texto);
+}
+
 /**
  * Resolve o texto de uma citação nos dispositivos a exibir. Função pura,
  * separada da diretiva de propósito, para conferir à mão o que cada forma
  * de citação devolve. Inciso citado logo depois de um parágrafo que tem os
  * seus próprios incisos ("art. 11, § 3º, VII") é procurado dentro do parágrafo.
+ *
+ * Desde 2026-09-25: a citação do artigo inteiro (ou do parágrafo inteiro, sem
+ * inciso depois dele) cujo texto termina em dois-pontos mostra também os
+ * incisos que ele anuncia ("art. 4º" com os princípios; "art. 12, § 2º" com os
+ * conteúdos mínimos). Sem isso o painel parava no "no mínimo:".
  */
 export function resolverCitacaoNorma(norma: NormaCitavel, citacao: string): DispositivoExibido[] {
   const exibidos: DispositivoExibido[] = [];
@@ -212,8 +222,13 @@ export function resolverCitacaoNorma(norma: NormaCitavel, citacao: string): Disp
     if (!dispositivo) continue;
 
     const itens: { rotulo: string; texto: string }[] = [];
+    // O artigo inteiro: os incisos que o caput anuncia
+    if (referencia.partes.length === 0 && anunciaLista(dispositivo.caput)) {
+      for (const inciso of dispositivo.incisos ?? []) itens.push({ rotulo: inciso.rotulo, texto: inciso.texto });
+    }
     let paragrafoAtual: ParagrafoNorma | undefined;
-    for (const parte of referencia.partes) {
+    for (let k = 0; k < referencia.partes.length; k++) {
+      const parte = referencia.partes[k];
       if (parte.tipo === 'inciso') {
         const dentroDoParagrafo = paragrafoAtual?.incisos
           ?.find(i => normalizar(i.rotulo) === normalizar(parte.valor));
@@ -229,6 +244,12 @@ export function resolverCitacaoNorma(norma: NormaCitavel, citacao: string): Disp
           .find(p => normalizar(p.rotulo) === normalizar(parte.valor));
         if (paragrafo) itens.push({ rotulo: paragrafo.rotulo, texto: paragrafo.texto });
         paragrafoAtual = paragrafo;
+        // O parágrafo inteiro (sem inciso citado depois dele): os incisos que ele anuncia
+        if (paragrafo && referencia.partes[k + 1]?.tipo !== 'inciso' && anunciaLista(paragrafo.texto)) {
+          for (const inciso of paragrafo.incisos ?? []) {
+            itens.push({ rotulo: `${paragrafo.rotulo}, ${inciso.rotulo}`, texto: inciso.texto });
+          }
+        }
       }
       // Alínea: as normas transcritas não separam alíneas: o texto do inciso
       // ou do parágrafo já as contém.
@@ -238,6 +259,19 @@ export function resolverCitacaoNorma(norma: NormaCitavel, citacao: string): Disp
   }
 
   return exibidos;
+}
+
+/**
+ * O nome do chip para o leitor de tela: a própria citação, com o inciso e o
+ * parágrafo ("art. 9º, X, do Decreto nº 48.899/2026. Abra para ler o texto.").
+ * Até 2026-09-25 era só o artigo ("Art. 9º do Decreto..."), e quem ouvia não
+ * sabia qual inciso o texto citava.
+ */
+export function rotuloDoChip(citacao: string, norma: NormaCitavel): string {
+  const texto = citacao.replace(/\s+/g, ' ').trim();
+  // "da IN SGDI nº 1/2026", "do Decreto nº 48.901/2026"
+  const contracao = /^(IN|Instrução|Lei|Portaria|Resolução)\b/.test(norma.titulo) ? 'da' : 'do';
+  return `${texto}${texto.includes(',') ? ',' : ''} ${contracao} ${norma.titulo}. Abra para ler o texto.`;
 }
 
 // ── Painel flutuante (um só para a página inteira) ──────────────────────────
@@ -574,8 +608,7 @@ export abstract class CitaNormaDirective implements AfterViewInit, OnDestroy {
     chip.className = CLASSES_CHIP;
     chip.setAttribute(MARCA_CHIP, '');
     chip.setAttribute('tabindex', '0');
-    chip.setAttribute('aria-label',
-      `${dispositivos.map(d => d.rotulo).join(', ')} do ${norma.titulo}. Abra para ler o texto.`);
+    chip.setAttribute('aria-label', rotuloDoChip(citacao, norma));
     chip.textContent = citacao;
 
     const abrir = () => PainelCitacao.obter().mostrar(chip, dispositivos, norma.rodape);

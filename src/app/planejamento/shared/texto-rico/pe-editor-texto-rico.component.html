@@ -41,7 +41,7 @@
       <p [id]="idBase + '-link-titulo'" class="text-sm font-semibold text-gray-800">{{ estado.link ? 'Mudar o link' : 'Incluir link' }}</p>
       <div>
         <label [for]="idBase + '-link-endereco'" class="block text-xs font-semibold text-gray-700">Endereço do link</label>
-        <input [id]="idBase + '-link-endereco'" type="url" [ngModel]="hrefLink" (ngModelChange)="hrefLink = $event"
+        <input [id]="idBase + '-link-endereco'" type="url" [ngModel]="hrefLink" (ngModelChange)="hrefLink = $event" placeholder="https://www.df.gov.br"
                (keydown.enter)="$event.preventDefault(); aplicarLink()"
                [attr.aria-invalid]="erroLink ? true : null"
                [attr.aria-describedby]="erroLink ? idBase + '-link-ajuda ' + idBase + '-link-erro' : idBase + '-link-ajuda'"
@@ -49,7 +49,7 @@
                [ngClass]="erroLink ? 'border-red-500' : 'border-gray-300'" />
         <p [id]="idBase + '-link-ajuda'" class="text-xs text-gray-500 italic mt-0.5">
           {{ estado.temSelecao || estado.link ? 'O link vai no texto selecionado.' : 'Sem texto selecionado, o próprio endereço entra no texto.' }}
-          Só endereços que começam com http:// ou https://.
+          Cole ou digite o endereço completo, como https://www.df.gov.br.
         </p>
         <p *ngIf="erroLink" [id]="idBase + '-link-erro'" class="text-xs text-red-600 mt-1">{{ erroLink }}</p>
       </div>
@@ -100,7 +100,7 @@
       <p *ngIf="enviandoImagem" role="status" class="text-xs text-gray-600">Enviando a imagem...</p>
       <p *ngIf="erroEnvioImagem" role="alert" class="text-xs text-red-600">{{ erroEnvioImagem }}</p>
       <div class="flex flex-wrap gap-2">
-        <button type="button" (click)="inserirImagem()" [disabled]="enviandoImagem"
+        <button type="button" (click)="inserirImagem()" [attr.aria-disabled]="enviandoImagem || null"
                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
           <span class="material-icons text-base" aria-hidden="true">image</span> {{ enviandoImagem ? 'Enviando...' : 'Inserir a imagem' }}
         </button>

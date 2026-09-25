@@ -8,16 +8,15 @@ import { Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import {
-  PeCiclo, PeDocBloco, PeDocCapitulo, PeDocMarcador, PeDocVersao, PeDocumento, PePdtic, PeTipoDocumento
+  PeAndamentoPdtic, PeCiclo, PeDocBloco, PeDocCapitulo, PeDocMarcador, PeDocVersao, PeDocumento, PePdtic, PeTipoDocumento
 } from '../../../api/planejamento/interface';
-import { AcessibilidadeService } from '../../core/acessibilidade/acessibilidade.service';
 import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import { NotificationService } from '../../core/services/notification.service';
 import { PeDocumentoService } from '../services/pe-documento.service';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import {
   AlvoDocumento, ItemPaginaDoc, PaginaDoc, PassoLinkDoc, RelatorioDoc, capituloEscondivel, capitulosDoSumario, chaveDoAlvo,
-  classeSituacaoVersao, marcadoresPadraoDo, montarPaginas, nomeArquivoVersao, rotuloSituacaoVersao, textoCapituloVazio,
+  classeSituacaoVersao, marcadoresDoTipo, marcadoresPadraoDo, montarPaginas, nomeArquivoVersao, rotuloSituacaoVersao, textoCapituloVazio,
   tituloComNumero, versoesEmOrdem
 } from '../shared/pe-documento-rotulos';
 import { mensagemErroPe } from '../shared/pe-erros';
@@ -77,7 +76,6 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   private readonly estadoService = inject(PeTrilhaEstadoService);
   private readonly router = inject(Router);
   private readonly notificacoes = inject(NotificationService);
-  private readonly acessibilidade = inject(AcessibilidadeService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
@@ -132,6 +130,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   /** O passo onde o órgão adapta os fluxos (link dos blocos de fluxo, E6). */
   private passoFluxos: PassoLinkDoc | null = null;
   private passosVistos: PassoNumeradoPe[] | null = null;
+  private andamentoVisto: PeAndamentoPdtic | null = null;
   /** Os links que levam ao passo já no ciclo do relatório (o mesmo objeto para o mesmo passo e ciclo). */
   private linksDoCiclo = new Map<string, PassoLinkDoc>();
 
@@ -146,9 +145,11 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(estado => {
         const passos = estado?.passos ?? [];
-        if (passos === this.passosVistos) return;
+        const andamento = estado?.situacao?.andamento ?? null;
+        if (passos === this.passosVistos && andamento === this.andamentoVisto) return;
         this.passosVistos = passos;
-        this.montarLinks(passos);
+        this.andamentoVisto = andamento;
+        this.montarLinks(passos, andamento);
       });
   }
 
@@ -201,7 +202,8 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
 
   // ── Carga ─────────────────────────────────────────────────────────────────
 
-  carregar(): void {
+  /** `depois`: roda com o documento novo aplicado (ex.: o foco num elemento que só existe nele). */
+  carregar(depois?: () => void): void {
     const alvo = this.alvo;
     this.carga?.unsubscribe();
     this.carregando = true;
@@ -212,6 +214,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
         this.carregando = false;
         this.aplicarDocumento(doc);
         this.carregarLogo();
+        depois?.();
       },
       error: erro => {
         this.carregando = false;
@@ -242,14 +245,16 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
   }
 
   /** Links para os passos: a seção de cada passo da trilha à vista e o passo de cada capítulo. */
-  private montarLinks(passos: PassoNumeradoPe[]): void {
+  private montarLinks(passos: PassoNumeradoPe[], andamento: PeAndamentoPdtic | null): void {
     const porSecao = new Map<string, PassoLinkDoc>();
     const porChave = new Map<string, PassoLinkDoc>();
     let fluxos: PassoLinkDoc | null = null;
     for (const p of passos) {
       const doOrgao = p.doOrgao;
       if (!doOrgao) continue;
-      const link: PassoLinkDoc = { rota: p.rota, numero: p.numero, titulo: p.titulo, query: { passo: p.numero } };
+      // Se o passo se edita agora: o link diz "Editar" ou "Ver" pelo passo, e não pelo documento (F1, C32 e B15)
+      const editavel = andamento?.Passos?.find(s => s.Chave === doOrgao.Chave)?.PodeEditar;
+      const link: PassoLinkDoc = { rota: p.rota, numero: p.numero, titulo: p.titulo, query: { passo: p.numero }, editavel };
       porChave.set(doOrgao.Chave, link);
       for (const s of doOrgao.Secoes) if (!porSecao.has(s.Chave)) porSecao.set(s.Chave, link);
       if (!fluxos && passoTemFluxos(doOrgao)) fluxos = link;
@@ -339,6 +344,22 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     if (!c?.Inicio || !c.Fim) return '';
     return `${textoData(c.Inicio)} a ${textoData(c.Fim)}`;
   }
+
+  /**
+   * A linha do ciclo na capa do RA, como no PDF (F1, B09 e C25): "Ciclo 2027 · 1º
+   * trimestre (01/01/2027 a 31/03/2027)" no monitoramento; na avaliação, o nome dela
+   * (sem "Ciclo"), com o período ou "desde".
+   */
+  get linhaCicloCapa(): string | null {
+    const c = this.cicloDoRelatorio;
+    if (!c) return null;
+    const nome = c.Tipo === 'avaliacao' || /^ciclo\b/i.test(c.Rotulo) ? c.Rotulo : `Ciclo ${c.Rotulo}`;
+    const periodo = c.Inicio && c.Fim ? `${textoData(c.Inicio)} a ${textoData(c.Fim)}` : c.Inicio ? `desde ${textoData(c.Inicio)}` : '';
+    return periodo ? `${nome} (${periodo})` : nome;
+  }
+
+  /** O ano no pé da capa ("Brasília, 2026"), como no PDF. */
+  readonly anoCapa = new Date().getFullYear();
 
   get passoNomes(): PassoLinkDoc | null {
     return this.passosPorSecao.get('nomes') ?? null;
@@ -453,7 +474,7 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     // Segundo plano: o editor já abre com a lista da especificação
     this.documentoService.modelo(tipo, semCarregamento()).subscribe({
       next: modelo => {
-        if (modelo.Marcadores?.length && this.tipoDoc === tipo) this.marcadores = modelo.Marcadores;
+        if (modelo.Marcadores?.length && this.tipoDoc === tipo) this.marcadores = marcadoresDoTipo(tipo, modelo.Marcadores);
       },
       error: () => {
         if (this.marcadoresPedidos === tipo) this.marcadoresPedidos = null;
@@ -542,12 +563,13 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
       next: novo => {
         this.salvandoCapitulo = null;
         this.renomeando = null;
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
         this.notificacoes.success(sucesso);
-        this.acessibilidade.anunciar(sucesso);
         if (mudouOculto) {
-          // Esconder e mostrar mudam a numeração: o documento vem de novo
-          this.focoPendente = form.Oculto ? `pe-doc-mostrar-${c.Id}` : `pe-doc-titulo-${c.Id}`;
-          this.carregar();
+          // Esconder e mostrar mudam a numeração: o documento vem de novo, e o foco vai depois dele. Antes, o
+          // título do capítulo escondido (com o mesmo id) recebia o foco e sumia na recarga (F1, B01)
+          const alvoFoco = form.Oculto ? `pe-doc-mostrar-${c.Id}` : `pe-doc-titulo-${c.Id}`;
+          this.carregar(() => this.focoPendente = alvoFoco);
           return;
         }
         this.substituirCapitulo(c, novo);
@@ -624,9 +646,9 @@ export class PeDocumentoPreviaComponent implements OnInit, OnChanges, AfterViewC
     this.documentoService.gerarPdf(this.alvo).subscribe({
       next: versao => {
         this.versoes = versoesEmOrdem([versao, ...this.versoes.filter(v => v.Numero !== versao.Numero)]);
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
         const texto = `PDF gerado: versão ${versao.Numero} (${rotuloSituacaoVersao(versao.Situacao).toLowerCase()}). O download começa em seguida.`;
         this.notificacoes.success(texto);
-        this.acessibilidade.anunciar(texto);
         this.mudou.emit();
         this.baixar(versao, () => {
           this.gerando = false;

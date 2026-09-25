@@ -36,16 +36,16 @@
 
       <div *ngIf="!somenteLeitura" class="flex flex-wrap gap-2 mt-2">
         <ng-container *ngIf="mudouLinha(l)">
-          <button type="button" (click)="salvar(l)" [disabled]="l.salvando"
+          <button type="button" (click)="salvar(l)" [attr.aria-disabled]="l.salvando || null"
                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
             <span class="material-icons text-sm" aria-hidden="true">save</span> {{ l.salvando ? 'Salvando...' : 'Salvar a opção ' + (i + 1) }}
           </button>
-          <button type="button" (click)="desfazer(l)" [disabled]="l.salvando"
+          <button type="button" (click)="desfazer(l)" [attr.aria-disabled]="l.salvando || null"
                   class="px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50">
             Desfazer
           </button>
         </ng-container>
-        <button *ngIf="!l.opcao.Sistema && !travada(l)" type="button" (click)="apagar(l)" [disabled]="l.salvando"
+        <button *ngIf="!l.opcao.Sistema && !travada(l)" type="button" (click)="apagar(l)" [attr.aria-disabled]="l.salvando || null"
                 [attr.aria-label]="'Apagar a opção ' + l.opcao.Rotulo"
                 class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 bg-white text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
           <span class="material-icons text-sm" aria-hidden="true">delete</span> Apagar
@@ -73,7 +73,7 @@
           <option *ngFor="let c of cores" [value]="c.valor">{{ c.rotulo }}</option>
         </select>
       </div>
-      <button type="button" (click)="incluir()" [disabled]="criando"
+      <button type="button" (click)="incluir()" [attr.aria-disabled]="criando || null"
               class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
         <span class="material-icons text-base" aria-hidden="true">add</span> {{ criando ? 'Incluindo...' : 'Incluir opção' }}
       </button>

@@ -12,9 +12,9 @@ import { mensagemErroPe } from '../shared/pe-erros';
 import { mensagemErroDownload, salvarResposta } from '../shared/pe-download';
 import { baixarPdfDoPdtic } from '../shared/pe-pdf-pdtic';
 import {
-  classeSituacaoDeliberacao, quandoEQuem, rotuloSituacaoDeliberacao, textoAto
+  classeSituacaoDeliberacao, decisaoDaDeliberacao, envioDaDeliberacao, quandoEQuem, rotuloSituacaoDeliberacao, textoAto
 } from '../shared/pe-referenciais-rotulos';
-import { dataValida, hojeIso } from '../shared/registros/pe-valores';
+import { TAMANHO_SEI, dataValida, digitarSei, hojeIso, seiValido } from '../shared/registros/pe-valores';
 import { PeDeliberacoesService } from '../services/pe-petic.service';
 import { PePdticService } from '../services/pe-pdtic.service';
 import { PeRegistrosService } from '../services/pe-registros.service';
@@ -36,7 +36,7 @@ interface FormDecisao {
   tentou: boolean;
 }
 
-type CampoDecisao = 'decisao' | 'atoNumero' | 'atoData' | 'observacao';
+type CampoDecisao = 'decisao' | 'atoNumero' | 'atoData' | 'sei' | 'observacao';
 
 /** Tipos de ato do comitê (texto livre no servidor). */
 export const TIPOS_ATO = ['Resolução', 'Ata de reunião', 'Deliberação', 'Outro ato'];
@@ -191,12 +191,19 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
     return classeSituacaoDeliberacao(d.Situacao);
   }
 
+  /** Quando e por quem foi enviado (o nome, F1; sem ele, o e-mail). */
   enviado(d: PeDeliberacao): string {
-    return quandoEQuem(d.EnviadoEm, d.EnviadoPor);
+    return quandoEQuem(d.EnviadoEm, d.EnviadoPor, d.EnviadoPorNome);
   }
 
+  /** "Enviado em ..." ou, na deliberação do PDTIC registrado fora do sistema (F1, C40), "Registrado fora do sistema em ...". */
+  envio(d: PeDeliberacao): string {
+    return envioDaDeliberacao(d);
+  }
+
+  /** Quando e por quem a decisão foi registrada; no registro fora do sistema, a data do ato. */
   decidido(d: PeDeliberacao): string {
-    return d.DecididoEm ? quandoEQuem(d.DecididoEm, d.DecididoPor) : '-';
+    return decisaoDaDeliberacao(d);
   }
 
   ato(d: PeDeliberacao): string {
@@ -328,20 +335,33 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
         if (!f.atoData) return this.aprovar ? 'Informe a data do ato.' : null;
         if (!dataValida(f.atoData)) return 'Informe uma data válida (dia, mês e ano).';
         return f.atoData > this.hoje ? 'A data do ato não pode ser depois de hoje.' : null;
+      case 'sei':
+        // F1 (C05): o SEI, quando informado, no formato do SEI (o servidor confere de novo)
+        return f.sei.trim() && !seiValido(f.sei) ? 'Use o número do processo SEI completo, no formato 00000-00000000/0000-00.' : null;
       case 'observacao':
         return this.devolver && !f.observacao.trim() ? 'Diga o que precisa ser ajustado.' : null;
     }
   }
 
   get errosForm(): { campo: CampoDecisao; mensagem: string }[] {
-    return (['decisao', 'atoNumero', 'atoData', 'observacao'] as CampoDecisao[])
+    return (['decisao', 'atoNumero', 'atoData', 'sei', 'observacao'] as CampoDecisao[])
       .map(campo => ({ campo, mensagem: this.erroDe(campo) ?? '' }))
       .filter(e => !!e.mensagem);
   }
 
   focarCampo(campo: CampoDecisao): void {
-    this.focoPendente = campo === 'decisao' ? 'pe-dec-decisao' : `pe-dec-${campo === 'atoNumero' ? 'numero' : campo === 'atoData' ? 'data' : 'observacao'}`;
+    const ids: Record<CampoDecisao, string> = {
+      decisao: 'pe-dec-decisao', atoNumero: 'pe-dec-numero', atoData: 'pe-dec-data', sei: 'pe-dec-sei', observacao: 'pe-dec-observacao'
+    };
+    this.focoPendente = ids[campo];
   }
+
+  /** O número do SEI com a máscara, enquanto a pessoa digita (F1, C05). */
+  digitarSeiDecisao(input: HTMLInputElement): void {
+    this.form.sei = digitarSei(input);
+  }
+
+  readonly tamanhoSei = TAMANHO_SEI;
 
   descritores(campo: CampoDecisao, ajuda?: string): string | null {
     const ids = [ajuda, this.erroDe(campo) ? `pe-dec-${campo}-erro` : null].filter(Boolean);

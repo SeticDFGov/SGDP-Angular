@@ -70,11 +70,11 @@
           </select>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button type="button" (click)="baixar('xlsx')" [disabled]="!!baixando"
+          <button type="button" (click)="baixar('xlsx')" [attr.aria-disabled]="!!baixando || null"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
             <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando === 'xlsx' ? 'Gerando...' : 'Planilha (XLSX)' }}
           </button>
-          <button type="button" (click)="baixar('csv')" [disabled]="!!baixando"
+          <button type="button" (click)="baixar('csv')" [attr.aria-disabled]="!!baixando || null"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
             <span class="material-icons text-base" aria-hidden="true">download</span> {{ baixando === 'csv' ? 'Gerando...' : 'Planilha (CSV)' }}
           </button>

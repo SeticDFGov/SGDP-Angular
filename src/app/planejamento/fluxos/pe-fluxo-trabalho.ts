@@ -48,16 +48,23 @@ export abstract class PeFluxoTrabalho {
   abstract mudar<T>(descricao: string, mudanca: (def: PeFluxoDefinicao) => T, agrupar?: string | null): T | null;
 
   /**
-   * Remove o passo com a regra de religar da E6. Pergunta antes quando o passo tem
-   * ligações. Devolve se removeu.
+   * Remove o passo com a regra de religar da E6. Pergunta antes (na janela do
+   * módulo) quando o passo tem ligações. A promessa diz se removeu.
    */
-  abstract removerPassoDoDesenho(id: string): boolean;
+  abstract removerPassoDoDesenho(id: string): Promise<boolean>;
 
   /** Tira uma seta (ligação). */
   abstract removerLigacaoDoDesenho(id: string): void;
 
   /** Inclui uma raia nova no fim e abre, no painel, o nome dela. */
   abstract incluirRaiaNoDesenho(): void;
+
+  /**
+   * O aviso de uma mudança no fluxo, para o leitor de tela. No modo visual ele sai
+   * junto com a contagem de problemas que a geometria traz (um aviso só, sem um
+   * cortar o outro; F1, D12); se a geometria demorar, sai sozinho.
+   */
+  abstract avisarMudanca(texto: string): void;
 
   /**
    * A geometria da definição de trabalho chegou (`retrato`: a definição que foi

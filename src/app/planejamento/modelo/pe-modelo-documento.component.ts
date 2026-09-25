@@ -15,10 +15,11 @@ import { NotificationService } from '../../core/services/notification.service';
 import { CitaPlanejamentoDirective } from '../shared/cita-planejamento.directive';
 import {
   NomesDoDocumento, TIPOS_BLOCO_ACOMPANHAMENTO, TIPOS_DOCUMENTO, blocosEmOrdem, capitulosDoModelo, chaveNovaDeCapitulo,
-  explicacaoTipoBloco, marcadoresPadraoDo, numerosDoModelo, resumoBlocoModelo, rotuloTipoBloco, textoFiltroTabela, textoMarcador,
+  explicacaoTipoBloco, marcadoresDoTipo, marcadoresPadraoDo, numerosDoModelo, resumoBlocoModelo, rotuloTipoBloco, textoFiltroTabela, textoMarcador,
   tipoDocumentoValido, tiposBlocoDoModelo
 } from '../shared/pe-documento-rotulos';
 import { mensagemErroPe } from '../shared/pe-erros';
+import { PeConfirmacaoService } from '../shared/pe-confirmacao.service';
 import { modeloOrdenado } from '../shared/pe-modelo-arvore';
 import { OpcaoRotulo, citacaoTravado } from '../shared/pe-modelo-rotulos';
 import { PeEditorTextoRicoComponent } from '../shared/texto-rico/pe-editor-texto-rico.component';
@@ -148,6 +149,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   private readonly fluxosService = inject(PeFluxosService);
   private readonly notificacoes = inject(NotificationService);
   private readonly acessibilidade = inject(AcessibilidadeService);
+  private readonly confirmacao = inject(PeConfirmacaoService);
   private readonly router = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -241,12 +243,21 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
     return this.tipo === tipo;
   }
 
-  /** O seletor dos modelos: com mudança não salva, pergunta antes; o tipo vai para o endereço. */
+  /** O seletor dos modelos: com mudança não salva, pergunta antes (na janela do módulo); o tipo vai para o endereço. */
   escolherTipo(tipo: PeTipoDocumento): void {
     if (tipo === this.tipo) return;
-    if (this.temMudanca() && !confirm('Há mudanças no modelo que ainda não foram salvas. Trocar de modelo assim mesmo? Elas vão se perder.')) return;
-    this.trocaConfirmada = true;
-    this.router.navigate([], { relativeTo: this.rota, queryParams: { tipo, capitulo: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    this.confirmarTrocaDeModelo().then(sim => {
+      if (!sim) return;
+      this.trocaConfirmada = true;
+      this.router.navigate([], { relativeTo: this.rota, queryParams: { tipo, capitulo: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    });
+  }
+
+  /** Mudança não salva no capítulo ou no bloco: pergunta antes de trocar de modelo (F1, A04). */
+  private confirmarTrocaDeModelo(): Promise<boolean> {
+    if (!this.temMudanca()) return Promise.resolve(true);
+    return this.confirmacao.perguntarDescarte(
+      'Há mudanças no modelo que ainda não foram salvas. Se trocar de modelo agora, elas se perdem.', 'Trocar sem salvar', 'Trocar de modelo sem salvar?');
   }
 
   /** O tipo que se pede já foi confirmado no seletor (a troca pelo endereço, por fora, pergunta aqui). */
@@ -260,9 +271,14 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   private aplicarTipo(tipo: PeTipoDocumento): boolean {
     const confirmada = this.trocaConfirmada;
     this.trocaConfirmada = false;
-    if (!confirmada && this.temMudanca()
-      && !confirm('Há mudanças no modelo que ainda não foram salvas. Trocar de modelo assim mesmo? Elas vão se perder.')) {
+    if (!confirmada && this.temMudanca()) {
+      // O endereço volta ao modelo à vista e a pergunta vem na janela do módulo; com o sim, a troca sai de novo
       this.router.navigate([], { relativeTo: this.rota, queryParams: { tipo: this.tipo }, queryParamsHandling: 'merge', replaceUrl: true });
+      this.confirmarTrocaDeModelo().then(sim => {
+        if (!sim) return;
+        this.trocaConfirmada = true;
+        this.router.navigate([], { relativeTo: this.rota, queryParams: { tipo, capitulo: null }, queryParamsHandling: 'merge', replaceUrl: true });
+      });
       return false;
     }
     this.tipo = tipo;
@@ -294,10 +310,13 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
     this.estadoService.iniciar();
   }
 
-  /** Guarda de rota: capítulo ou bloco com mudança não salva. */
+  /** Guarda de rota: com capítulo ou bloco mudado e não salvo, ela pergunta antes de sair (F1, A04). */
   podeSair(): boolean {
-    if (!this.temMudanca()) return true;
-    return confirm('Há mudanças no modelo do documento que ainda não foram salvas. Sair assim mesmo? Elas vão se perder.');
+    return !this.temMudanca();
+  }
+
+  textoSaida(): string {
+    return 'Há mudanças no modelo do documento que ainda não foram salvas. Se sair agora, elas se perdem.';
   }
 
   // ── Carga ─────────────────────────────────────────────────────────────────
@@ -336,7 +355,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
     this.arvore = capitulosDoModelo(capitulos, null).map(c => ({ capitulo: c, filhos: capitulosDoModelo(capitulos, c.Id) }));
     this.numeros = numerosDoModelo(capitulos);
     this.marcadoresDoServidor = !!modelo.Marcadores?.length;
-    this.marcadores = this.marcadoresDoServidor ? modelo.Marcadores : marcadoresPadraoDo(this.tipo);
+    this.marcadores = this.marcadoresDoServidor ? marcadoresDoTipo(this.tipo, modelo.Marcadores) : marcadoresPadraoDo(this.tipo);
     this.garantirSelecao();
   }
 
@@ -389,9 +408,13 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
     this.temas = temas;
   }
 
-  /** O capítulo à vista existe; sem ele (ou sem escolha), o primeiro. */
+  /**
+   * O capítulo à vista existe; sem ele (ou sem escolha), o primeiro. Sem o modelo
+   * ainda, nada muda: o capítulo pedido no endereço espera a carga (F1, A15).
+   */
   private garantirSelecao(): void {
-    const capitulos = this.modelo?.Capitulos ?? [];
+    if (!this.modelo) return;
+    const capitulos = this.modelo.Capitulos ?? [];
     if (!capitulos.length) {
       this.selecionadoId = null;
       return;
@@ -508,9 +531,19 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
       this.focoPendente = 'pe-md-capitulo-titulo';
       return;
     }
-    if (this.edicaoBloco && this.blocoMudou() && !confirm('O bloco em edição tem mudanças que ainda não foram salvas. Trocar de capítulo assim mesmo? Elas vão se perder.')) {
-      return;
-    }
+    this.confirmarDescarteDoBloco('Trocar de capítulo sem salvar?').then(sim => {
+      if (sim) this.selecionarSim(c);
+    });
+  }
+
+  /** Bloco em edição com mudança não salva: pergunta na janela do módulo (F1, A04). */
+  private confirmarDescarteDoBloco(titulo = 'Descartar as mudanças do bloco?'): Promise<boolean> {
+    if (!this.edicaoBloco || !this.blocoMudou()) return Promise.resolve(true);
+    return this.confirmacao.perguntarDescarte(
+      'O bloco em edição tem mudanças que ainda não foram salvas. Elas se perdem.', 'Descartar as mudanças', titulo);
+  }
+
+  private selecionarSim(c: PeDocModeloCapitulo): void {
     this.edicaoBloco = null;
     this.errosBloco = [];
     this.selecionadoId = c.Id;
@@ -546,7 +579,16 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
 
   fecharCapitulo(): void {
     if (this.salvandoCapitulo) return;
-    if (this.capituloMudou() && !confirm('Fechar sem salvar? As mudanças no capítulo vão se perder.')) return;
+    if (!this.capituloMudou()) {
+      this.fecharCapituloSim();
+      return;
+    }
+    this.confirmacao.perguntarDescarte('As mudanças no capítulo se perdem.', 'Fechar sem salvar', 'Fechar sem salvar?').then(sim => {
+      if (sim) this.fecharCapituloSim();
+    });
+  }
+
+  private fecharCapituloSim(): void {
     this.edicaoCapitulo = null;
     this.errosCapitulo = [];
   }
@@ -580,9 +622,9 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
       next: salvo => {
         this.salvandoCapitulo = false;
         this.edicaoCapitulo = null;
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
         const texto = e.novo ? `Capítulo "${titulo}" criado.` : `Capítulo "${titulo}" salvo.`;
         this.notificacoes.success(texto);
-        this.acessibilidade.anunciar(texto);
         const id = salvo?.Id ?? e.id;
         this.carregar(() => {
           if (id) this.selecionadoId = id;
@@ -652,17 +694,20 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   apagarCapitulo(c: PeDocModeloCapitulo): void {
     if (this.apagando || !this.podeApagar(c)) return;
     const filhos = capitulosDoModelo(this.modelo?.Capitulos ?? [], c.Id).length;
-    const aviso = `Apagar o capítulo "${c.Titulo}"? Ele sai do documento de todos os órgãos`
-      + (filhos ? `, com os ${filhos === 1 ? 'um subcapítulo' : filhos + ' subcapítulos'} dele` : '')
+    const aviso = 'Ele sai do documento de todos os órgãos'
+      + (filhos ? `, com ${filhos === 1 ? 'o subcapítulo' : 'os ' + filhos + ' subcapítulos'} dele` : '')
       + '. A mudança vale na hora e fica no histórico do modelo.';
-    if (!confirm(aviso)) return;
+    this.confirmacao.perguntar({ titulo: `Apagar o capítulo "${c.Titulo}"?`, texto: aviso, sim: 'Apagar o capítulo', perigo: true }).then(sim => {
+      if (sim) this.apagarCapituloSim(c);
+    });
+  }
+
+  private apagarCapituloSim(c: PeDocModeloCapitulo): void {
     this.apagando = true;
     this.documentoService.apagarCapitulo(c.Id).subscribe({
       next: () => {
         this.apagando = false;
-        const texto = `Capítulo "${c.Titulo}" apagado.`;
-        this.notificacoes.success(texto);
-        this.acessibilidade.anunciar(texto);
+        this.notificacoes.success(`Capítulo "${c.Titulo}" apagado.`);
         this.selecionadoId = c.PaiId;
         this.edicaoBloco = null;
         this.carregar(() => {
@@ -681,7 +726,12 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   // ── Blocos ────────────────────────────────────────────────────────────────
 
   novoBloco(c: PeDocModeloCapitulo): void {
-    if (this.edicaoBloco && this.blocoMudou() && !confirm('O bloco em edição tem mudanças que ainda não foram salvas. Descartar?')) return;
+    this.confirmarDescarteDoBloco().then(sim => {
+      if (sim) this.novoBlocoSim(c);
+    });
+  }
+
+  private novoBlocoSim(c: PeDocModeloCapitulo): void {
     const tipo = this.tipoNovo;
     this.errosBloco = [];
     this.edicaoBloco = this.edicaoDe(c.Id, null, tipo, {});
@@ -690,10 +740,12 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
 
   editarBloco(c: PeDocModeloCapitulo, b: PeDocModeloBloco): void {
     if (this.edicaoBloco?.id === b.Id) return;
-    if (this.edicaoBloco && this.blocoMudou() && !confirm('O bloco em edição tem mudanças que ainda não foram salvas. Descartar?')) return;
-    this.errosBloco = [];
-    this.edicaoBloco = this.edicaoDe(c.Id, b.Id, b.Tipo, b.Config ?? {});
-    this.focoPendente = this.primeiroCampo(b.Tipo);
+    this.confirmarDescarteDoBloco().then(sim => {
+      if (!sim) return;
+      this.errosBloco = [];
+      this.edicaoBloco = this.edicaoDe(c.Id, b.Id, b.Tipo, b.Config ?? {});
+      this.focoPendente = this.primeiroCampo(b.Tipo);
+    });
   }
 
   /** O primeiro campo do formulário do bloco (no texto, o editor põe o cursor sozinho). */
@@ -734,10 +786,12 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   cancelarBloco(): void {
     const e = this.edicaoBloco;
     if (!e || this.salvandoBloco) return;
-    if (this.blocoMudou() && !confirm('Descartar as mudanças do bloco?')) return;
-    this.edicaoBloco = null;
-    this.errosBloco = [];
-    this.focoPendente = e.id ? `pe-md-bloco-editar-${e.id}` : 'pe-md-novo-tipo';
+    this.confirmarDescarteDoBloco().then(sim => {
+      if (!sim || this.edicaoBloco !== e) return;
+      this.edicaoBloco = null;
+      this.errosBloco = [];
+      this.focoPendente = e.id ? `pe-md-bloco-editar-${e.id}` : 'pe-md-novo-tipo';
+    });
   }
 
   aoMudarTextoPadrao(doc: PeDocTextoRico | null): void {
@@ -829,9 +883,9 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
         this.salvandoBloco = false;
         this.edicaoBloco = null;
         this.errosBloco = [];
+        // Um aviso só: o toast já é lido pelo leitor de tela (F1, B05)
         const texto = e.novo ? `Bloco "${rotuloTipoBloco(e.tipo)}" incluído.` : `Bloco "${rotuloTipoBloco(e.tipo)}" salvo.`;
         this.notificacoes.success(texto);
-        this.acessibilidade.anunciar(texto);
         const id = salvo?.Id ?? e.id;
         this.carregar(() => {
           this.focoPendente = id ? `pe-md-bloco-editar-${id}` : 'pe-md-capitulo-titulo';
@@ -875,16 +929,24 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   apagarBloco(b: PeDocModeloBloco): void {
     if (this.apagando || this.edicaoBloco) return;
     const aviso = b.Tipo === 'texto'
-      ? 'Apagar este bloco de texto? Ele sai do documento de todos os órgãos, inclusive dos que editaram a cópia deles.'
-      : `Apagar o bloco "${rotuloTipoBloco(b.Tipo)}"? Ele sai do documento de todos os órgãos (os dados continuam nos passos).`;
-    if (!confirm(`${aviso} A mudança vale na hora e fica no histórico do modelo.`)) return;
+      ? 'Ele sai do documento de todos os órgãos, inclusive dos que editaram a cópia deles.'
+      : 'Ele sai do documento de todos os órgãos (os dados continuam nos passos).';
+    this.confirmacao.perguntar({
+      titulo: b.Tipo === 'texto' ? 'Apagar este bloco de texto?' : `Apagar o bloco "${rotuloTipoBloco(b.Tipo)}"?`,
+      texto: `${aviso} A mudança vale na hora e fica no histórico do modelo.`,
+      sim: 'Apagar o bloco',
+      perigo: true
+    }).then(sim => {
+      if (sim) this.apagarBlocoSim(b);
+    });
+  }
+
+  private apagarBlocoSim(b: PeDocModeloBloco): void {
     this.apagando = true;
     this.documentoService.apagarBloco(b.Id).subscribe({
       next: () => {
         this.apagando = false;
-        const texto = 'Bloco apagado.';
-        this.notificacoes.success(texto);
-        this.acessibilidade.anunciar(texto);
+        this.notificacoes.success('Bloco apagado.');
         this.carregar(() => {
           this.focoPendente = 'pe-md-capitulo-titulo';
         });

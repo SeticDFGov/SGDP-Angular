@@ -11,7 +11,8 @@ import {
   PeDeliberacoesConsulta,
   PePetic,
   PePeticForm,
-  PePeticNovoForm
+  PePeticNovoForm,
+  PePreviaEnvioPetic
 } from '../../../api/planejamento/interface';
 
 /**
@@ -48,7 +49,18 @@ export class PePeticService {
     return this.http.put<PePetic>(`${this.apiUrl}/${id}`, form);
   }
 
-  /** Envia o rascunho ao CGTIC: cria a deliberação e a versão passa a `em_deliberacao`. */
+  /**
+   * F1 (A06): a prévia do envio ao CGTIC, com o que falta em cada seção (a mesma
+   * lista do 400 do envio). Lê quem lê o PETIC-DF.
+   */
+  previaEnvio(id: number): Observable<PePreviaEnvioPetic> {
+    return this.http.get<PePreviaEnvioPetic>(`${this.apiUrl}/${id}/envio`);
+  }
+
+  /**
+   * Envia o rascunho ao CGTIC: cria a deliberação e a versão passa a `em_deliberacao`.
+   * Com pendência, 400 com `{ Code, Message, Pendencias }` (F1, A06).
+   */
   enviar(id: number): Observable<PePetic> {
     return this.http.post<PePetic>(`${this.apiUrl}/${id}/enviar`, {});
   }

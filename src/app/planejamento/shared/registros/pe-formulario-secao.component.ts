@@ -5,7 +5,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PeFonteRegistros } from '../../services/pe-registros.service';
 import { PeRegistroEdicaoComponent } from './pe-registro-edicao.component';
 import { PeRegistroLeituraComponent } from './pe-registro-leitura.component';
-import { textoDataHora } from './pe-valores';
+import { nomeDeQuem, textoDataHora } from './pe-valores';
 
 /**
  * Seção do tipo formulário: um registro só. Quem pode editar preenche e salva ali
@@ -42,7 +42,8 @@ export class PeFormularioSecaoComponent implements OnChanges {
     const r = this.registro;
     if (!r) return null;
     const quando = r.AlteradoEm ?? r.CriadoEm;
-    const quem = r.AlteradoEm ? r.AlteradoPor : r.CriadoPor;
+    // O nome de quem salvou; sem ele, o e-mail (F1, C19)
+    const quem = r.AlteradoEm ? nomeDeQuem(r.AlteradoPorNome, r.AlteradoPor) : nomeDeQuem(r.CriadoPorNome, r.CriadoPor);
     return `Salvo em ${textoDataHora(quando)}${quem ? ' por ' + quem : ''}.`;
   }
 
