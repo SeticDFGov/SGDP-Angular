@@ -114,8 +114,8 @@
 
     <div>
       <label class="block text-sm font-semibold mb-1" for="ctr-numero-formulario">Nº SEI do Formulário</label>
-      <input id="ctr-numero-formulario" type="text" inputmode="numeric" [value]="form.NumeroSeiFormulario || ''"
-             (input)="aoDigitarFormulario($event)" placeholder="00000-00000000/2026-00"
+      <input id="ctr-numero-formulario" type="text" maxlength="25" [value]="form.NumeroSeiFormulario || ''"
+             (input)="aoDigitarFormulario($event)" placeholder="213807905"
              [attr.aria-describedby]="submetido && errNumeroSeiFormulario ? 'ctr-numero-formulario-erro ctr-numero-formulario-ajuda' : 'ctr-numero-formulario-ajuda'"
              [attr.aria-invalid]="submetido && errNumeroSeiFormulario ? 'true' : null"
              [attr.data-erro]="submetido && errNumeroSeiFormulario ? 'sim' : null"
@@ -124,8 +124,8 @@
              [class.bg-red-50]="submetido && errNumeroSeiFormulario"
              [class.border-gray-300]="!(submetido && errNumeroSeiFormulario)">
       <p *ngIf="submetido && errNumeroSeiFormulario" id="ctr-numero-formulario-erro" class="text-xs text-red-600 mt-1">{{ errNumeroSeiFormulario }}</p>
-      <p id="ctr-numero-formulario-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional. Mesmo formato do número do
-      processo: digite só os números.</p>
+      <p id="ctr-numero-formulario-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional. O número do documento do
+      formulário no processo SEI, como 213807905, do jeito que estiver no SEI (até 25 caracteres).</p>
     </div>
   </div>
 </section>

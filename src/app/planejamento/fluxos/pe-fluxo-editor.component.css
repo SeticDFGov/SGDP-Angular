@@ -1,0 +1,17 @@
+/* Modo visual (E9): o desenho e, ao lado (telas largas) ou embaixo, o painel do
+   item selecionado. No pacote do editor, sem classe nova do Tailwind. */
+.pe-fx-visual { display: flex; flex-direction: column; gap: 1rem; }
+.pe-fx-visual-desenho { min-width: 0; flex: 1 1 auto; }
+.pe-fx-painel { position: relative; }
+/* No painel estreito: um campo por linha, e o fieldset não passa da largura (o padrão dele é a do conteúdo) */
+.pe-fx-painel fieldset { min-width: 0; }
+.pe-fx-painel .grid { grid-template-columns: minmax(0, 1fr); }
+/* Ao lado do desenho desde 64 rem, mais estreito, e escondível: com a paleta acima do
+   desenho, ele fica com quase a linha inteira (F1, D04; eram 472 px em 1366) */
+@media (min-width: 64rem) {
+  .pe-fx-visual { flex-direction: row; align-items: flex-start; }
+  .pe-fx-painel { width: 18rem; flex: none; position: sticky; top: 5rem; max-height: calc(100vh - 10rem); overflow-y: auto; }
+  /* Escondido: só o botão com o ícone, fino, e o desenho fica com a largura (F2; eram 174 px de coluna) */
+  .pe-fx-painel-fechado .pe-fx-painel { width: auto; padding: 0.25rem; }
+  .pe-fx-painel-fechado .pe-fx-painel-texto { display: none; }
+}

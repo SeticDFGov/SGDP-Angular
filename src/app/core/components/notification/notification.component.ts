@@ -5,9 +5,10 @@ import { animate, style, transition, trigger } from '@angular/animations';
 
 /**
  * Componente de notificações toast
- * Exibe notificações no canto superior direito da tela. A região é `aria-live`:
- * o leitor de tela lê cada aviso que aparece. A animação de entrada sai quando o
- * sistema ou a página de acessibilidade pedem menos movimento.
+ * Exibe notificações no canto superior direito da tela, logo abaixo da barra de
+ * acessibilidade quando ela está à vista (sem cobrir os botões de tema e de texto).
+ * A região é `aria-live`: o leitor de tela lê cada aviso que aparece. A animação de
+ * entrada sai quando o sistema ou a página de acessibilidade pedem menos movimento.
  */
 @Component({
   selector: 'app-notifications',
@@ -15,7 +16,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
   imports: [CommonModule],
   template: `
     <div class="fixed top-4 right-4 z-50 space-y-2 max-w-md" role="region" aria-label="Avisos" aria-live="polite"
-         [@.disabled]="semAnimacao">
+         [style.top]="topo" [@.disabled]="semAnimacao">
       @for (notification of notifications$ | async; track notification.id) {
         <div
           [@slideIn]
@@ -86,6 +87,23 @@ export class NotificationComponent {
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
   notifications$ = this.notificationService.notifications$;
+
+  /**
+   * Distância do topo, medida quando chega um aviso: logo abaixo da barra de
+   * acessibilidade quando ela está à vista; com a página rolada, a de sempre (1rem).
+   */
+  topo: string | null = null;
+
+  constructor() {
+    // O componente vive o tempo todo do app: a assinatura não precisa ser desfeita
+    if (this.noNavegador) this.notifications$.subscribe(lista => { if (lista.length) this.topo = this.medirTopo(); });
+  }
+
+  private medirTopo(): string | null {
+    const barra = document.querySelector('app-barra-acessibilidade > div');
+    const fim = barra ? barra.getBoundingClientRect().bottom : 0;
+    return fim > 8 ? `${Math.round(fim) + 8}px` : null;
+  }
 
   getClasses(type: string): string {
     const baseClasses = 'border-l-4';

@@ -1,0 +1,58 @@
+<section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-ia-pgia-titulo">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 id="pe-ia-pgia-titulo" class="text-base font-semibold text-gray-900">Sistemas de IA em uso (do PGIA)</h2>
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap bg-gray-50 text-gray-600 border-gray-200">
+      <span class="material-icons text-sm" aria-hidden="true">lock</span> Só leitura
+    </span>
+  </div>
+  <p class="text-sm text-gray-600 leading-relaxed mt-0.5">
+    Estes sistemas vêm do inventário do órgão no módulo Governança de IA (PGIA), com a classificação de risco do Decreto nº
+    48.901/2026. Aqui eles só aparecem: para incluir ou mudar um sistema, use o PGIA. As aquisições de IA que o órgão planeja
+    ficam na seção "Aquisições de IA planejadas", abaixo.
+  </p>
+
+  <p *ngIf="carregando && !carregado" role="status" class="text-sm text-gray-600 mt-3">Lendo o inventário do PGIA...</p>
+  <div *ngIf="erro" role="alert" class="text-sm text-red-700 mt-3">
+    {{ erro }}
+    <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+  </div>
+
+  <ng-container *ngIf="carregado && !erro">
+    <p *ngIf="sistemas.length === 0" class="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+      O órgão ainda não tem sistemas de IA no inventário do PGIA.
+    </p>
+
+    <ng-container *ngIf="sistemas.length > 0">
+      <p class="text-sm text-gray-600 mt-3">{{ contagem }}</p>
+      <!-- Região com rolagem lateral: alcançável e rolável pelo teclado -->
+      <div class="mt-2 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region"
+           aria-label="Tabela: sistemas de IA do órgão no PGIA">
+        <table class="w-full text-sm">
+          <caption class="sr-only">Sistemas de IA do órgão no inventário do PGIA, com a classificação de risco</caption>
+          <thead>
+            <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+              <th scope="col" class="px-3 py-2.5">Sistema</th>
+              <th scope="col" class="px-3 py-2.5">Finalidade</th>
+              <th scope="col" class="px-3 py-2.5">Classificação de risco</th>
+              <th scope="col" class="px-3 py-2.5">Base</th>
+              <th scope="col" class="px-3 py-2.5">Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of sistemas; trackBy: porId" class="border-t border-gray-100 align-top">
+              <th scope="row" class="px-3 py-2.5 text-left font-semibold text-gray-900">{{ s.Nome }}</th>
+              <td class="px-3 py-2.5 text-gray-800 break-words">{{ s.Finalidade || '-' }}</td>
+              <td class="px-3 py-2.5">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeRisco(s.Classificacao)">
+                  {{ s.Classificacao || 'Não classificado' }}
+                </span>
+              </td>
+              <td class="px-3 py-2.5 text-gray-800">{{ s.Base || '-' }}</td>
+              <td class="px-3 py-2.5 text-gray-800">{{ s.Situacao || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+  </ng-container>
+</section>

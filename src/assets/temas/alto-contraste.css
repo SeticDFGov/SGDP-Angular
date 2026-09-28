@@ -1,5 +1,5 @@
 /* GERADO por scripts/temas/gerar-temas.mjs a partir do CSS do Tailwind: não editar à mão (npm run temas). */
-html.tema-alto-contraste{color-scheme:dark;background-color:#000;color:#fff;--foco:#ffff00}
+html.tema-alto-contraste{color-scheme:dark;background-color:#000;color:#fff;--foco:#ffff00;--carregando:#ffff00;--carregando-borda:transparent}
 html.tema-alto-contraste body{background-color:#000;color:#fff}
 html.tema-alto-contraste *,html.tema-alto-contraste ::before,html.tema-alto-contraste ::after{--tw-ring-offset-color:#000}
 html.tema-alto-contraste app-root a[href]{color:#ffff00;text-decoration:underline;text-underline-offset:2px}
@@ -36,6 +36,7 @@ html.tema-alto-contraste .border-indigo-600{border-color:#d0a8ff}
 html.tema-alto-contraste .border-orange-400{border-color:#ffb070}
 html.tema-alto-contraste .border-purple-200{border-color:#d0a8ff}
 html.tema-alto-contraste .border-purple-300{border-color:#d0a8ff}
+html.tema-alto-contraste .border-purple-600{border-color:#d0a8ff}
 html.tema-alto-contraste .border-red-100{border-color:#ff8080}
 html.tema-alto-contraste .border-red-200{border-color:#ff8080}
 html.tema-alto-contraste .border-red-300{border-color:#ff8080}
@@ -87,6 +88,7 @@ html.tema-alto-contraste .bg-orange-400{background-color:#000;box-shadow:inset 0
 html.tema-alto-contraste .bg-purple-50{background-color:#000}
 html.tema-alto-contraste .bg-purple-100{background-color:#000}
 html.tema-alto-contraste .bg-purple-500{background-color:#000;box-shadow:inset 0 0 0 2px #d0a8ff}
+html.tema-alto-contraste .bg-purple-600{background-color:#000;box-shadow:inset 0 0 0 2px #d0a8ff}
 html.tema-alto-contraste .bg-red-50{background-color:#000}
 html.tema-alto-contraste .bg-red-100{background-color:#000}
 html.tema-alto-contraste .bg-red-500{background-color:#000;box-shadow:inset 0 0 0 2px #ff8080}
@@ -193,6 +195,7 @@ html.tema-alto-contraste .file\:text-white::file-selector-button{color:#fff}
 @media (hover: hover){html.tema-alto-contraste .hover\:bg-indigo-50:hover{background-color:#000}}
 @media (hover: hover){html.tema-alto-contraste .hover\:bg-indigo-700:hover{background-color:#000;box-shadow:inset 0 0 0 2px #d0a8ff}}
 @media (hover: hover){html.tema-alto-contraste .hover\:bg-purple-200:hover{background-color:#000}}
+@media (hover: hover){html.tema-alto-contraste .hover\:bg-purple-700:hover{background-color:#000;box-shadow:inset 0 0 0 2px #d0a8ff}}
 @media (hover: hover){html.tema-alto-contraste .hover\:bg-red-50:hover{background-color:#000}}
 @media (hover: hover){html.tema-alto-contraste .hover\:bg-red-100:hover{background-color:#000}}
 @media (hover: hover){html.tema-alto-contraste .hover\:bg-red-700:hover{background-color:#000;box-shadow:inset 0 0 0 2px #ff8080}}
@@ -223,6 +226,7 @@ html.tema-alto-contraste .focus-visible\:ring-amber-400:focus-visible{--tw-ring-
 html.tema-alto-contraste .focus-visible\:ring-blue-500:focus-visible{--tw-ring-color:#ffff00}
 html.tema-alto-contraste .focus-visible\:ring-gray-400:focus-visible{--tw-ring-color:#ffff00}
 html.tema-alto-contraste .focus-visible\:ring-indigo-500:focus-visible{--tw-ring-color:#ffff00}
+html.tema-alto-contraste .focus-visible\:ring-purple-500:focus-visible{--tw-ring-color:#ffff00}
 html.tema-alto-contraste .focus-visible\:ring-slate-500:focus-visible{--tw-ring-color:#ffff00}
 html.tema-alto-contraste .focus-visible\:ring-teal-500:focus-visible{--tw-ring-color:#ffff00}
 html.tema-alto-contraste .disabled\:bg-gray-50:disabled{background-color:#000}

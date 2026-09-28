@@ -1,0 +1,147 @@
+<div [attr.data-erro]="erro ? 'sim' : null">
+
+  <!-- Ligação com outra seção ou com um catálogo -->
+  <app-pe-ligacao-campo *ngIf="ligacao" [campo]="campo" [fonte]="fonte" [escolhidos]="escolhidos"
+                        [registroId]="registro?.Id ?? null" [idBase]="idBase" [erro]="erro" [ajuda]="ajuda"
+                        (escolhidosChange)="escolhidosChange.emit($event)"></app-pe-ligacao-campo>
+
+  <!-- Um controle só, com o rótulo ligado. A ajuda fica embaixo do controle: assim os controles
+       da mesma linha da grade ficam alinhados, com ou sem ajuda (F1, C27) -->
+  <ng-container *ngIf="simples">
+    <label [for]="idBase" class="block text-sm font-semibold text-gray-800">
+      {{ campo.Rotulo }}<ng-container *ngIf="campo.Obrigatorio"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
+    </label>
+
+    <div class="mt-1">
+      <!-- Texto curto (com a máscara do número do SEI ou o endereço de internet, quando o modelo pede) -->
+      <input *ngIf="campo.Tipo === 'texto_curto'" #campoTexto [id]="idBase" [attr.type]="formato === 'url' ? 'url' : 'text'"
+             [attr.inputmode]="formato === 'sei' ? 'numeric' : null" [attr.maxlength]="formato === 'sei' ? tamanhoSei : null"
+             [attr.placeholder]="formato === 'sei' ? '00000-00000000/0000-00' : null" [attr.autocomplete]="formato ? 'off' : null"
+             [ngModel]="valor" (ngModelChange)="mudarTexto($event, campoTexto)"
+             [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro ? true : null" [attr.aria-required]="campo.Obrigatorio || null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [ngClass]="erro ? 'border-red-500' : 'border-gray-300'" />
+
+      <!-- Texto longo -->
+      <textarea *ngIf="campo.Tipo === 'texto_longo'" [id]="idBase" rows="4" [ngModel]="valor" (ngModelChange)="mudar($event)"
+                [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro ? true : null" [attr.aria-required]="campo.Obrigatorio || null"
+                class="w-full px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [ngClass]="erro ? 'border-red-500' : 'border-gray-300'"></textarea>
+
+      <!-- Número, valor em reais e percentual: texto no jeito brasileiro -->
+      <div *ngIf="numerico" class="flex items-center gap-2">
+        <span *ngIf="campo.Tipo === 'moeda'" class="text-sm text-gray-600" aria-hidden="true">R$</span>
+        <input [id]="idBase" type="text" [attr.inputmode]="inteiro ? 'numeric' : 'decimal'" [ngModel]="valor" (ngModelChange)="mudar($event)"
+               (blur)="arrumarNumero()"
+               [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro ? true : null" [attr.aria-required]="campo.Obrigatorio || null"
+               class="w-full min-w-0 px-3 py-2 border rounded-md text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500"
+               [ngClass]="erro ? 'border-red-500' : 'border-gray-300'" />
+        <span *ngIf="campo.Tipo === 'percentual'" class="text-sm text-gray-600" aria-hidden="true">%</span>
+        <span *ngIf="unidade" class="text-sm text-gray-600" aria-hidden="true">{{ unidade }}</span>
+      </div>
+
+      <!-- Data (a de decisão não passa de hoje, quando o modelo pede) -->
+      <input *ngIf="campo.Tipo === 'data'" [id]="idBase" type="date" [attr.max]="maximoData" [ngModel]="valor" (ngModelChange)="mudar($event)"
+             [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro ? true : null" [attr.aria-required]="campo.Obrigatorio || null"
+             class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             [ngClass]="erro ? 'border-red-500' : 'border-gray-300'" />
+
+      <!-- Lista: uma opção -->
+      <select *ngIf="campo.Tipo === 'lista'" [id]="idBase" [ngModel]="valor" (ngModelChange)="mudar($event)"
+              [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro ? true : null" [attr.aria-required]="campo.Obrigatorio || null"
+              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [ngClass]="erro ? 'border-red-500' : 'border-gray-300'">
+        <option value="">{{ campo.Obrigatorio ? 'Escolha uma opção' : 'Nenhuma (deixar em branco)' }}</option>
+        <option *ngFor="let o of opcoes; trackBy: porValor" [value]="o.Valor">{{ o.Rotulo }}</option>
+        <option *ngIf="valorInativo as inativo" [value]="inativo">{{ rotuloInativo }} (opção desativada)</option>
+      </select>
+
+      <!-- Arquivo -->
+      <ng-container *ngIf="campo.Tipo === 'arquivo'">
+        <div *ngIf="arquivo as a" class="flex flex-wrap items-center gap-2 text-sm text-gray-800 mb-2">
+          <span class="material-icons text-base text-gray-600" aria-hidden="true">attach_file</span>
+          <span class="break-all">{{ a.Nome }}</span>
+          <button type="button" (click)="baixar(a)" [attr.aria-disabled]="baixando || null"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            <span class="material-icons text-sm" aria-hidden="true">download</span> {{ baixando ? 'Baixando...' : 'Baixar' }}
+          </button>
+          <button type="button" (click)="tirarArquivo()"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 bg-white text-xs font-semibold text-red-700 hover:bg-red-50">
+            <span class="material-icons text-sm" aria-hidden="true">link_off</span> Tirar o arquivo
+          </button>
+        </div>
+        <!-- Arquivo recusado (tipo, tamanho ou envio) também marca o campo como inválido (F2, B-N2) -->
+        <input [id]="idBase" type="file" [accept]="aceita" (change)="escolherArquivo($event)" [disabled]="enviando"
+               [attr.aria-describedby]="descritores" [attr.aria-invalid]="erro || erroArquivo ? true : null"
+               class="block w-full text-sm text-gray-700 file:mr-3 file:px-4 file:py-2 file:rounded-md file:border-0 file:bg-blue-600 file:text-white file:text-sm file:font-semibold hover:file:bg-blue-700 disabled:opacity-50" />
+        <p *ngIf="enviando" role="status" class="text-xs text-gray-600 mt-1">Enviando o arquivo...</p>
+        <p *ngIf="avisoArquivo && !enviando" role="status" class="text-xs text-gray-600 mt-1">{{ avisoArquivo }}</p>
+        <p *ngIf="erroArquivo" [id]="idBase + '-erro-arquivo'" role="alert" class="text-xs text-red-600 mt-1">{{ erroArquivo }}</p>
+      </ng-container>
+    </div>
+    <div *ngIf="temAjuda" [id]="idBase + '-ajuda'" class="mt-1">
+      <p *ngIf="ajuda" class="text-xs text-gray-600 leading-relaxed">{{ ajuda }}</p>
+      <p *ngIf="dica" class="text-xs text-gray-500 italic">{{ dica }}</p>
+    </div>
+    <p *ngIf="tamanhoPerto as t" [id]="idBase + '-tamanho'" class="text-xs text-gray-600 mt-0.5">{{ t }}</p>
+  </ng-container>
+
+  <!-- Sim ou não e lista múltipla: grupo com legenda -->
+  <fieldset *ngIf="grupo" [id]="idBase" tabindex="-1" [attr.aria-describedby]="descritores">
+    <legend class="block text-sm font-semibold text-gray-800">
+      {{ campo.Rotulo }}<ng-container *ngIf="campo.Obrigatorio"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
+    </legend>
+
+    <div *ngIf="campo.Tipo === 'sim_nao'" class="flex flex-wrap items-center gap-4 mt-1">
+      <label class="inline-flex items-center gap-1.5 text-sm text-gray-800">
+        <input type="radio" class="w-4 h-4" [name]="idBase + '-resposta'" [checked]="valor === true" (change)="mudar(true)" /> Sim
+      </label>
+      <label class="inline-flex items-center gap-1.5 text-sm text-gray-800">
+        <input type="radio" class="w-4 h-4" [name]="idBase + '-resposta'" [checked]="valor === false" (change)="mudar(false)" /> Não
+      </label>
+      <button *ngIf="!campo.Obrigatorio && (valor === true || valor === false)" type="button" (click)="mudar(null)"
+              class="text-xs font-semibold text-blue-700 hover:underline">Limpar a resposta</button>
+    </div>
+
+    <div *ngIf="campo.Tipo === 'lista_multipla'" class="mt-1 space-y-1">
+      <label *ngFor="let o of opcoes; trackBy: porValor" class="flex items-start gap-2 text-sm text-gray-800">
+        <input type="checkbox" class="w-4 h-4 mt-0.5 shrink-0" [checked]="marcado(o.Valor)" (change)="alternarOpcao(o.Valor, $any($event.target).checked)" />
+        <span>{{ o.Rotulo }}</span>
+      </label>
+      <label *ngFor="let v of marcadosInativos" class="flex items-start gap-2 text-sm text-gray-600">
+        <input type="checkbox" class="w-4 h-4 mt-0.5 shrink-0" [checked]="true" (change)="alternarOpcao(v, $any($event.target).checked)" />
+        <span>{{ v }} (opção desativada: desmarque para tirar)</span>
+      </label>
+      <p *ngIf="opcoes.length === 0 && marcadosInativos.length === 0" class="text-xs text-gray-600">Esta lista ainda não tem opções. Fale com o administrador do módulo.</p>
+    </div>
+    <div *ngIf="temAjuda" [id]="idBase + '-ajuda'" class="mt-1">
+      <p *ngIf="ajuda" class="text-xs text-gray-600 leading-relaxed">{{ ajuda }}</p>
+      <p *ngIf="dica" class="text-xs text-gray-500 italic">{{ dica }}</p>
+    </div>
+  </fieldset>
+
+  <!-- Calculado: só leitura (o id recebe o foco quando o servidor aponta erro aqui) -->
+  <div *ngIf="campo.Tipo === 'calculado'" [id]="idBase" tabindex="-1" [attr.aria-describedby]="erro ? idBase + '-erro' : null">
+    <p class="block text-sm font-semibold text-gray-800">{{ campo.Rotulo }}</p>
+    <p class="text-sm text-gray-900 mt-1 tabular-nums">{{ textoGravado }}</p>
+    <p class="text-xs text-gray-500 italic mt-0.5">Calculado pelo sistema ao salvar: {{ explicacaoCalculo }}.</p>
+  </div>
+
+  <!-- Texto com formatação: o editor (carregado só quando o campo aparece), com o rótulo ligado por aria-labelledby -->
+  <ng-container *ngIf="rico">
+    <p [id]="idBase + '-rotulo'" (click)="focarTexto()" class="block text-sm font-semibold text-gray-800">
+      {{ campo.Rotulo }}<ng-container *ngIf="campo.Obrigatorio"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
+    </p>
+    <div class="mt-1">
+      <app-pe-editor-texto-rico [valor]="valor" [idBase]="idBase" [idRotulo]="idBase + '-rotulo'" [rotulo]="campo.Rotulo"
+                                [descritores]="descritores" [invalido]="!!erro" [obrigatorio]="campo.Obrigatorio"
+                                (valorChange)="mudar($event)"></app-pe-editor-texto-rico>
+    </div>
+    <div *ngIf="temAjuda" [id]="idBase + '-ajuda'" class="mt-1">
+      <p *ngIf="ajuda" class="text-xs text-gray-600 leading-relaxed">{{ ajuda }}</p>
+      <p *ngIf="dica" class="text-xs text-gray-500 italic">{{ dica }}</p>
+    </div>
+  </ng-container>
+
+  <p *ngIf="erro && !ligacao" [id]="idBase + '-erro'" class="text-xs text-red-600 mt-1">{{ erro }}</p>
+</div>

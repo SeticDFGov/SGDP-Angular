@@ -1,0 +1,73 @@
+<section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-deliberacao-titulo">
+  <h2 id="pe-deliberacao-titulo" class="text-base font-semibold text-gray-900">Deliberação do CGTIC</h2>
+  <p class="text-sm text-gray-700 leading-relaxed mt-1">
+    O CGTIC aprova o PDTIC de cada órgão (art. 5º). A Secretaria Executiva do comitê registra a decisão tomada em reunião: aprovado,
+    com o ato e a data, ou devolvido, com o que precisa ser ajustado. A decisão aparece aqui e na visão geral.
+  </p>
+
+  <!-- Ainda não enviado -->
+  <div *ngIf="antesDoEnvio" class="mt-4 flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800">
+    <span class="material-icons text-gray-500" aria-hidden="true">schedule</span>
+    <p class="leading-relaxed">
+      O PDTIC ainda não foi enviado ao CGTIC.
+      <ng-container *ngIf="links.envio as e">Registre a aprovação do SGTIC e envie no
+        <a [routerLink]="e.rota" [queryParams]="{ passo: e.numero }" data-sem-dica class="font-semibold underline">passo {{ e.numero }}</a>.</ng-container>
+    </p>
+  </div>
+
+  <!-- Enviado: esperando a decisão -->
+  <div *ngIf="aguardando" class="mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    <span class="material-icons text-amber-600" aria-hidden="true">hourglass_top</span>
+    <div class="leading-relaxed">
+      <p><strong>Aguardando a deliberação do CGTIC desde {{ quando(pdtic.EnviadoEm ?? deliberacao?.EnviadoEm) }}.</strong></p>
+      <p class="mt-1">Enquanto o comitê não decide, o PDTIC não muda. Quando a Secretaria do CGTIC registrar a decisão, ela aparece aqui.</p>
+    </div>
+  </div>
+
+  <!-- Devolvido: em destaque, com o que ajustar e o caminho para enviar de novo -->
+  <div *ngIf="devolvido" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+    <p class="flex items-center gap-2 text-base font-semibold">
+      <span class="material-icons text-red-600" aria-hidden="true">undo</span> O CGTIC devolveu o PDTIC para ajustes
+    </p>
+    <p class="mt-1 leading-relaxed">
+      <ng-container *ngIf="registradaEm">Decisão registrada em {{ registradaEm }}</ng-container><ng-container *ngIf="!registradaEm">Decisão registrada pela Secretaria do CGTIC</ng-container><ng-container *ngIf="ato"> ({{ ato }})</ng-container>.
+    </p>
+    <div *ngIf="deliberacao?.Observacao as o" class="mt-3 rounded-md border border-red-200 bg-white px-3 py-2 text-gray-900">
+      <p class="font-semibold">O que o comitê pediu para ajustar</p>
+      <p class="mt-1 whitespace-pre-line break-words leading-relaxed">{{ o }}</p>
+    </div>
+    <p class="font-semibold mt-3">Como ajustar e enviar de novo</p>
+    <ol class="list-decimal ml-5 mt-1 space-y-1 leading-relaxed">
+      <li>Ajuste o que foi pedido nos passos do PDTIC. O PDTIC voltou a ficar em edição.</li>
+      <li *ngIf="links.documento as d">Confira a prévia do documento no
+        <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>.</li>
+      <li *ngIf="links.envio as e">Registre de novo a aprovação do SGTIC, com a data da nova decisão: a versão ajustada volta ao comitê
+        interno antes de ir ao CGTIC. Depois, envie de novo no
+        <a [routerLink]="e.rota" [queryParams]="{ passo: e.numero }" data-sem-dica class="font-semibold underline">passo {{ e.numero }}</a>.</li>
+    </ol>
+  </div>
+
+  <!-- Aprovado -->
+  <div *ngIf="aprovado && !externoSemDeliberacao"
+       class="mt-4 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+    <span class="material-icons text-green-600" aria-hidden="true">verified</span>
+    <div class="leading-relaxed">
+      <p><strong>Aprovado pelo CGTIC em {{ dataAprovacao }}</strong><ng-container *ngIf="ato"> ({{ ato }})</ng-container>.</p>
+      <p *ngIf="registradoFora" class="text-xs mt-1">{{ registradoFora }}.</p>
+      <p *ngIf="registradaEm" class="text-xs mt-1">Decisão registrada em {{ registradaEm }}.</p>
+      <p *ngIf="pdtic.Situacao === 'aprovado' && links.publicacao as p" class="mt-1">Próximo passo: registre a publicação no
+        <a [routerLink]="p.rota" [queryParams]="{ passo: p.numero }" data-sem-dica class="font-semibold underline">passo {{ p.numero }}</a>.</p>
+    </div>
+  </div>
+
+  <!-- Aprovado fora do sistema -->
+  <p *ngIf="externoSemDeliberacao" class="mt-4 text-sm text-gray-700 leading-relaxed">
+    Este PDTIC foi aprovado fora do sistema e registrado já aprovado. A aprovação informada no registro está no PDF do PDTIC.
+  </p>
+
+  <button *ngIf="pdf as f" type="button" (click)="baixarPdf()" [attr.aria-disabled]="baixando || null"
+          class="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+    <span class="material-icons text-base" aria-hidden="true">picture_as_pdf</span>
+    {{ baixando ? 'Baixando...' : 'Baixar o ' + rotuloPdf(f) }}
+  </button>
+</section>

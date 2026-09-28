@@ -1,0 +1,28 @@
+<div aria-live="polite">
+  <p *ngIf="carregando && linhas.length === 0" class="text-sm text-gray-600">Carregando o histórico...</p>
+  <p *ngIf="erro" class="text-sm text-red-700">
+    Não foi possível carregar o histórico.
+    <button type="button" (click)="tentarDeNovo()" class="font-semibold underline">Tentar de novo</button>
+  </p>
+  <p *ngIf="carregou && !erro && linhas.length === 0" class="text-sm text-gray-600">{{ vazio }}</p>
+</div>
+
+<ol *ngIf="linhas.length > 0" class="space-y-2">
+  <li *ngFor="let h of linhas" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+    <p class="text-gray-900"><strong>{{ h.acao }}</strong><ng-container *ngIf="h.alvo"> · {{ h.alvo }}</ng-container></p>
+    <p class="text-xs text-gray-500">
+      {{ h.quando | date:'dd/MM/yyyy HH:mm' }}<ng-container *ngIf="h.quem"> · por {{ h.quem }}</ng-container>
+    </p>
+    <ul *ngIf="h.mudancas.length > 0" class="mt-1 space-y-0.5 text-xs text-gray-700">
+      <li *ngFor="let m of h.mudancas" class="break-words">
+        <span class="font-semibold">{{ m.campo }}:</span> {{ m.antes }}
+        <span aria-hidden="true">→</span><span class="sr-only">, passou a</span> {{ m.depois }}
+      </li>
+    </ul>
+  </li>
+</ol>
+
+<button *ngIf="temMais" type="button" (click)="carregarMais()" [attr.aria-disabled]="carregando || null"
+        class="mt-3 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+  {{ carregando ? 'Carregando...' : 'Carregar mais' }}
+</button>

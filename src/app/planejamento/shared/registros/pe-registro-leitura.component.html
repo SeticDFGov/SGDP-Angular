@@ -1,0 +1,36 @@
+<dl class="divide-y divide-gray-100 border-t border-b border-gray-100">
+  <div *ngIf="registro.Codigo" class="py-2 grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
+    <dt class="text-sm font-semibold text-gray-700">Código</dt>
+    <dd class="md:col-span-2 text-sm text-gray-900 font-mono">{{ registro.Codigo }}</dd>
+  </div>
+  <div *ngFor="let campo of secao.Campos; trackBy: porChave" class="py-2 grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
+    <dt class="text-sm font-semibold text-gray-700">{{ campo.Rotulo }}</dt>
+    <dd class="md:col-span-2 text-sm text-gray-900 break-words">
+      <!-- Ligações: código e resumo de cada destino -->
+      <ng-container *ngIf="ligacao(campo); else naoLigacao">
+        <span *ngIf="vinculos(campo).length === 0">-</span>
+        <ul *ngIf="vinculos(campo).length > 0" class="space-y-0.5">
+          <li *ngFor="let v of vinculos(campo)">{{ textoVinculo(v) }}</li>
+        </ul>
+      </ng-container>
+      <ng-template #naoLigacao>
+        <!-- Texto rico: montado sem o editor, só com a lista fechada -->
+        <div *ngIf="campo.Tipo === 'texto_rico'; else naoRico" [appPeTextoRico]="valor(campo)" [rotuloTexto]="campo.Rotulo"></div>
+        <ng-template #naoRico>
+          <ng-container *ngIf="arquivo(campo) as a; else valorSimples">
+            <span class="inline-flex flex-wrap items-center gap-2">
+              <span class="material-icons text-base text-gray-600" aria-hidden="true">attach_file</span>
+              <span class="break-all">{{ a.Nome }}</span>
+              <button type="button" (click)="baixar(a)" [attr.aria-disabled]="baixando || null" [attr.aria-label]="'Baixar o arquivo ' + a.Nome"
+                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                <span class="material-icons text-sm" aria-hidden="true">download</span> {{ baixando ? 'Baixando...' : 'Baixar' }}
+              </button>
+            </span>
+          </ng-container>
+          <ng-template #valorSimples><span class="whitespace-pre-line">{{ texto(campo) }}</span></ng-template>
+        </ng-template>
+      </ng-template>
+    </dd>
+  </div>
+</dl>
+<p class="text-xs text-gray-500 mt-3">{{ auditoria }}</p>

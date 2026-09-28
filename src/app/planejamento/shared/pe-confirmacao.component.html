@@ -1,0 +1,19 @@
+<!-- Acima das outras janelas do módulo (z-index em linha: sem classe nova no CSS inicial) -->
+<div *ngIf="confirmacao.pergunta() as p" class="fixed inset-0 bg-black/40 flex items-center justify-center p-4" style="z-index: 60">
+  <div appDialogo aria-labelledby="pe-confirmacao-titulo" [attr.aria-describedby]="p.texto ? 'pe-confirmacao-texto' : null"
+       (fechar)="confirmacao.responder(false)" class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+    <h2 id="pe-confirmacao-titulo" class="text-lg font-bold text-gray-900">{{ p.titulo }}</h2>
+    <p *ngIf="p.texto" id="pe-confirmacao-texto" class="text-sm text-gray-700 leading-relaxed mt-2">{{ p.texto }}</p>
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5">
+      <button type="button" (click)="confirmacao.responder(false)"
+              class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+        {{ p.nao || 'Cancelar' }}
+      </button>
+      <button type="button" (click)="confirmacao.responder(true)"
+              class="px-5 py-2 rounded-lg text-white text-sm font-semibold"
+              [ngClass]="p.perigo ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'">
+        {{ p.sim }}
+      </button>
+    </div>
+  </div>
+</div>

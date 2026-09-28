@@ -1,0 +1,152 @@
+<section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-fechamento-titulo">
+  <h2 id="pe-fechamento-titulo" tabindex="-1" class="text-base font-semibold text-gray-900">{{ titulo }}</h2>
+  <p class="text-sm text-gray-700 leading-relaxed mt-1">
+    <ng-container *ngIf="!avaliacao">
+      Fechar o ciclo guarda o que foi registrado nele{{ exigeResumo ? ' e gera o relatório de acompanhamento (RA) em minuta' : '' }}.
+      Para fechar, todas as ações precisam de situação{{ exigeResumo ? ', e o resumo do ciclo precisa estar preenchido' : '' }}. Feche
+      até o prazo; depois dele, o ciclo fica atrasado.
+    </ng-container>
+    <ng-container *ngIf="avaliacao">
+      Fechar a avaliação guarda os resultados, a análise e a avaliação do comitê. Para fechar, as seções obrigatórias dos passos da
+      avaliação precisam estar preenchidas.
+    </ng-container>
+  </p>
+
+  <!-- O resumo do ciclo -->
+  <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
+    <div>
+      <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Situação</dt>
+      <dd class="mt-0.5">
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold" [ngClass]="classeSituacao">
+          <span class="material-icons text-sm" aria-hidden="true">{{ iconeSituacao }}</span> {{ rotuloSituacao }}
+        </span>
+        <span *ngIf="ciclo.FechadoEm" class="block text-xs text-gray-600 mt-0.5">Fechado em {{ fechadoEm }}</span>
+      </dd>
+    </div>
+    <div *ngIf="periodo !== '-'">
+      <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Período</dt>
+      <dd class="text-gray-900 font-medium mt-0.5">{{ periodo }}</dd>
+    </div>
+    <div *ngIf="ciclo.Prazo">
+      <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Prazo para fechar</dt>
+      <dd class="text-gray-900 font-medium mt-0.5">{{ data(ciclo.Prazo) }}</dd>
+    </div>
+    <!-- No monitoramento: as ações, as medições e os riscos do ciclo -->
+    <ng-container *ngIf="!avaliacao && ciclo.Resumo as r">
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Ações com situação</dt>
+        <dd class="text-gray-900 font-medium mt-0.5">
+          {{ r.AcoesComSituacao }} de {{ r.TotalAcoes }}
+          <span *ngIf="semSituacao > 0" class="block text-xs font-normal text-amber-900">
+            {{ semSituacao === 1 ? 'Falta 1 ação' : 'Faltam ' + semSituacao + ' ações' }} sem situação.
+          </span>
+        </dd>
+      </div>
+      <div *ngIf="comMedicoes">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Medições</dt>
+        <dd class="text-gray-900 font-medium mt-0.5">{{ r.Medicoes }}</dd>
+      </div>
+      <div *ngIf="comRiscos">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Riscos que ocorreram</dt>
+        <dd class="text-gray-900 font-medium mt-0.5">{{ r.RiscosOcorridos }}</dd>
+      </div>
+    </ng-container>
+    <!-- Na avaliação: o que ela tem (os resultados das metas, a análise e a decisão do comitê), não as ações (F1, C23) -->
+    <ng-container *ngIf="avaliacao && partesAvaliacao as pa">
+      <div *ngIf="pa.resultados">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Resultados das metas</dt>
+        <dd class="text-gray-900 font-medium mt-0.5">{{ pa.resultados }}</dd>
+      </div>
+      <div *ngIf="pa.analise">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Análise dos resultados</dt>
+        <dd class="text-gray-900 font-medium mt-0.5">{{ pa.analise }}</dd>
+      </div>
+      <div *ngIf="pa.decisao">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Avaliação do comitê</dt>
+        <dd class="text-gray-900 font-medium mt-0.5">{{ pa.decisao }}</dd>
+      </div>
+    </ng-container>
+    <div *ngIf="ciclo.Relatorio as rel">
+      <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Relatório de acompanhamento</dt>
+      <dd class="text-gray-900 font-medium mt-0.5">Versão {{ rel.Numero }}, {{ rotuloVersao(rel.Situacao) }}, de {{ quando(rel.GeradoEm) }}</dd>
+    </div>
+  </dl>
+
+  <p *ngIf="ciclo.Situacao === 'futuro'" class="mt-4 text-sm text-gray-700">
+    Este ciclo ainda não começou<ng-container *ngIf="ciclo.Inicio">: os dados entram a partir de {{ data(ciclo.Inicio) }}</ng-container>.
+  </p>
+
+  <!-- O que o servidor disse que falta para fechar: com os links, já no ciclo (a lista recebe o foco) -->
+  <div *ngIf="itens.length > 0" id="pe-fechamento-pendencias" tabindex="-1"
+       class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    <p class="font-semibold">{{ resumoPendencias }}</p>
+    <ul class="list-disc ml-5 mt-1 space-y-2">
+      <li *ngFor="let item of itens; trackBy: porChave" class="leading-relaxed">
+        <!-- Pendência deste mesmo passo: o link não sairia do lugar; o botão leva à célula (ou à seção) que falta -->
+        <ng-container *ngIf="item.nestePasso; else outroPasso">
+          <button type="button" (click)="irParaPendencia()" class="font-semibold underline text-left">{{ item.rotulo }}</button>:
+        </ng-container>
+        <ng-template #outroPasso>
+          <ng-container *ngIf="item.rota; else semLink">
+            <a [routerLink]="item.rota" [queryParams]="item.query" data-sem-dica class="font-semibold underline">{{ item.rotulo }}</a>:
+          </ng-container>
+        </ng-template>
+        <ng-template #semLink><span *ngIf="item.rotulo" class="font-semibold">{{ item.rotulo }}: </span></ng-template>
+        {{ item.pendencia.Motivo }}
+      </li>
+    </ul>
+  </div>
+
+  <div *ngIf="podeFechar || podeReabrir" class="flex flex-wrap gap-2 mt-4">
+    <button *ngIf="podeFechar" type="button" id="pe-fechamento-fechar" (click)="abrirJanela('fechar')" [attr.aria-disabled]="gravando || null"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+      <span class="material-icons text-base" aria-hidden="true">lock</span> {{ rotuloFechar }}
+    </button>
+    <button *ngIf="podeReabrir" type="button" (click)="abrirJanela('reabrir')" [attr.aria-disabled]="gravando || null"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+      <span class="material-icons text-base" aria-hidden="true">lock_open</span> {{ rotuloReabrir }}
+    </button>
+  </div>
+  <p *ngIf="!podeEditar && ciclo.Situacao !== 'futuro'" class="mt-4 text-xs text-gray-500 italic">Quem fecha e reabre é a equipe do PDTIC, com o PDTIC publicado ou em acompanhamento.</p>
+</section>
+
+<!-- Confirmação (janela com foco preso e Esc) -->
+<div *ngIf="janela" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div appDialogo aria-labelledby="pe-fechamento-janela-titulo" aria-describedby="pe-fechamento-janela-texto" (fechar)="fecharJanela()"
+       class="bg-white rounded-xl shadow-xl w-full max-w-lg">
+    <div class="px-6 pt-4 pb-3 border-b border-gray-100">
+      <h2 id="pe-fechamento-janela-titulo" class="text-lg font-bold text-gray-900">
+        {{ janela === 'fechar' ? rotuloFechar : rotuloReabrir }} "{{ ciclo.Rotulo }}"?
+      </h2>
+    </div>
+    <div id="pe-fechamento-janela-texto" class="px-6 py-4 max-h-[70vh] overflow-y-auto text-sm text-gray-700 leading-relaxed">
+      <ng-container *ngIf="janela === 'fechar'">
+        <p>Ao fechar:</p>
+        <ul class="list-disc ml-5 mt-1 space-y-1">
+          <li>os dados {{ avaliacao ? 'da avaliação' : 'do ciclo' }} ficam só para consulta (a equipe pode reabrir depois){{ !avaliacao && !exigeResumo ? '.' : ';' }}</li>
+          <li *ngIf="!avaliacao && exigeResumo">o sistema gera o relatório de acompanhamento (RA) do ciclo, em minuta, para conferir e baixar;</li>
+          <li *ngIf="avaliacao">a avaliação fica guardada com a decisão do comitê, e outra pode ser aberta depois.</li>
+        </ul>
+        <p *ngIf="!avaliacao && semSituacao > 0" class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+          {{ semSituacao === 1 ? 'Ainda falta 1 ação sem situação' : 'Ainda faltam ' + semSituacao + ' ações sem situação' }}: o fechamento vai
+          ser recusado até a grade das ações ficar completa.
+        </p>
+      </ng-container>
+      <ng-container *ngIf="janela === 'reabrir'">
+        <p>Ao reabrir, a equipe volta a poder mudar os dados {{ avaliacao ? 'da avaliação' : 'do ciclo' }}. Quem reabriu e quando ficam
+          guardados. {{ !avaliacao && (exigeResumo || ciclo.Relatorio) ? 'Os relatórios já gerados continuam guardados; ao fechar de novo, sai uma versão nova.' : '' }}</p>
+      </ng-container>
+      <p *ngIf="erroServidor" id="pe-fechamento-erro-servidor" tabindex="-1"
+         class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erroServidor }}</p>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+      <button type="button" (click)="fecharJanela()" [disabled]="gravando"
+              class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+      <button type="button" (click)="confirmar()" [attr.aria-disabled]="gravando || null"
+              class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-60">
+        <span class="material-icons text-lg" aria-hidden="true">{{ janela === 'fechar' ? 'lock' : 'lock_open' }}</span>
+        {{ gravando ? (janela === 'fechar' ? 'Fechando...' : 'Reabrindo...') : (janela === 'fechar' ? rotuloFechar : rotuloReabrir) }}
+      </button>
+    </div>
+  </div>
+</div>

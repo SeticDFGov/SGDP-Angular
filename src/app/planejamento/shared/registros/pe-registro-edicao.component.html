@@ -1,0 +1,43 @@
+<form (ngSubmit)="salvar()" class="space-y-5">
+
+  <!-- O que falta para salvar: recebe o foco (é ele que o leitor de tela lê; sem role="alert", para
+       não ler duas vezes) e cada item leva ao campo -->
+  <div *ngIf="tentou && listaErros.length > 0" [id]="prefixoId + '-erros'" tabindex="-1"
+       class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <p class="font-semibold">Antes de salvar, corrija:</p>
+    <ul class="list-disc ml-5 mt-1 space-y-0.5">
+      <li *ngFor="let e of listaErros">
+        <button type="button" (click)="focar(e.chave)" class="block text-left underline">{{ e.rotulo }}: {{ e.mensagem }}</button>
+      </li>
+    </ul>
+  </div>
+
+  <p *ngIf="erroGeral" [id]="prefixoId + '-erro-geral'" tabindex="-1"
+     class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erroGeral }}</p>
+
+  <p *ngIf="temObrigatorio" class="text-xs text-gray-600">Os campos com <span class="text-red-600" aria-hidden="true">*</span><span class="sr-only">asterisco</span> são obrigatórios.</p>
+
+  <!-- Os campos em grade, na ordem do modelo: estreito, médio ou largo (no painel, até 2 por linha; no celular, 1) -->
+  <div *ngIf="secao.Campos.length > 0" class="pe-grade-campos" [class.pe-grade-painel]="emPainel">
+    <app-pe-campo *ngFor="let campo of secao.Campos; trackBy: porChave" [ngClass]="celula(campo)"
+                  [campo]="campo" [valor]="valorDe(campo)" [escolhidos]="escolhidosDe(campo)" [fonte]="fonte"
+                  [registro]="registro" [campos]="secao.Campos" [idBase]="idDo(campo)" [erro]="erroDe(campo)"
+                  (valorChange)="mudarValor(campo, $event)" (escolhidosChange)="mudarEscolhidos(campo, $event)"></app-pe-campo>
+  </div>
+
+  <p *ngIf="secao.Campos.length === 0" class="text-sm text-gray-600">Esta seção ainda não tem campos ligados. Fale com o
+    administrador do módulo.</p>
+
+  <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+    <button *ngIf="mostrarCancelar" type="button" (click)="cancelar()" [disabled]="salvando"
+            class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+      Cancelar
+    </button>
+    <!-- Enquanto salva, o botão fica ocupado (aria-disabled), sem sair do Tab: desligado, ele perdia o foco para a página (F1, C11) -->
+    <button type="submit" [disabled]="secao.Campos.length === 0" [attr.aria-disabled]="salvando || null"
+            class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+      <span class="material-icons text-lg" aria-hidden="true">{{ novo ? 'add' : 'save' }}</span>
+      {{ salvando ? 'Salvando...' : rotuloSalvar }}
+    </button>
+  </div>
+</form>

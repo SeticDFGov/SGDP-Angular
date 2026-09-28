@@ -12,6 +12,8 @@ export const Modulos = {
   Demandas: 'demandas',
   Pgia: 'pgia',
   Contratacoes: 'contratacoes',
+  /** Governança Estratégica: princípios, PETIC-DF e PDTIC de cada órgão (Decreto nº 48.900/2026). */
+  Planejamento: 'planejamento',
   Administracao: 'administracao'
 } as const;
 
@@ -44,31 +46,29 @@ export interface ModuloSgdp {
   prefixos: string[];
   /** Classes do tom ativo (literais, para o Tailwind encontrar). */
   tom: { faixa: string; icone: string; botao: string; chip: string; aba: string };
-  /** Abas do módulo no cabeçalho (o PGIA tem navegação própria, a trilha). */
+  /** Abas do módulo no cabeçalho (o PGIA e a Governança Estratégica têm navegação própria, a trilha). */
   abas: AbaModulo[];
 }
 
+/** A ordem do array é a ordem dos cards na tela inicial. */
 export const MODULOS: ModuloSgdp[] = [
   {
-    id: Modulos.Demandas,
-    nome: 'Demandas e Projetos',
-    nomeCurto: 'Demandas',
-    descricao: 'Acompanhamento das demandas de TIC da SUBGD: entregáveis, cronograma e painel de andamento.',
-    itens: ['Painel de acompanhamento', 'Demandas e entregáveis', 'Cronograma (Gantt)'],
-    icone: 'view_kanban',
-    rota: '/demandas',
-    prefixos: ['/demandas', '/dashboard'],
+    id: Modulos.Planejamento,
+    nome: 'Governança Estratégica',
+    nomeCurto: 'Governança Estratégica',
+    descricao: 'Governança de TIC do DF (Decreto nº 48.900/2026): os princípios, o PETIC-DF e o PDTIC de cada órgão, passo a passo, da elaboração ao acompanhamento.',
+    itens: ['O passo a passo do seu papel', 'Princípios e PETIC-DF', 'PDTIC do órgão, do começo ao fim'],
+    icone: 'flag',
+    rota: '/planejamento',
+    prefixos: ['/planejamento'],
     tom: {
-      faixa: 'bg-blue-600',
-      icone: 'bg-blue-50 text-blue-700',
-      botao: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',
-      chip: 'bg-blue-50 text-blue-800 border-blue-200',
-      aba: 'border-blue-600 text-blue-700'
+      faixa: 'bg-purple-600',
+      icone: 'bg-purple-50 text-purple-700',
+      botao: 'bg-purple-600 hover:bg-purple-700 focus-visible:ring-purple-500',
+      chip: 'bg-purple-50 text-purple-800 border-purple-200',
+      aba: 'border-purple-600 text-purple-700'
     },
-    abas: [
-      { rotulo: 'Painel', rota: '/dashboard', prefixos: ['/dashboard'], icone: 'pie_chart' },
-      { rotulo: 'Demandas', rota: '/demandas', prefixos: ['/demandas'], icone: 'view_kanban' }
-    ]
+    abas: []
   },
   {
     id: Modulos.Pgia,
@@ -123,6 +123,27 @@ export const MODULOS: ModuloSgdp[] = [
         ]
       },
       { rotulo: 'Importar planilha', rota: '/analises/importacao', prefixos: ['/analises/importacao'], icone: 'upload_file' }
+    ]
+  },
+  {
+    id: Modulos.Demandas,
+    nome: 'Demandas e Projetos',
+    nomeCurto: 'Demandas',
+    descricao: 'Acompanhamento das demandas de TIC da SUBGD: entregáveis, cronograma e painel de andamento.',
+    itens: ['Painel de acompanhamento', 'Demandas e entregáveis', 'Cronograma (Gantt)'],
+    icone: 'view_kanban',
+    rota: '/demandas',
+    prefixos: ['/demandas', '/dashboard'],
+    tom: {
+      faixa: 'bg-blue-600',
+      icone: 'bg-blue-50 text-blue-700',
+      botao: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',
+      chip: 'bg-blue-50 text-blue-800 border-blue-200',
+      aba: 'border-blue-600 text-blue-700'
+    },
+    abas: [
+      { rotulo: 'Painel', rota: '/dashboard', prefixos: ['/dashboard'], icone: 'pie_chart' },
+      { rotulo: 'Demandas', rota: '/demandas', prefixos: ['/demandas'], icone: 'view_kanban' }
     ]
   },
   {

@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
+import { semCarregamento } from '../carregamento/sem-carregamento';
 import {
   MeuPedidoAcesso,
   PaginaPedidosAcesso,
@@ -13,7 +14,8 @@ import {
 /**
  * Pedidos de acesso aos módulos (api/pedidos-acesso). Qualquer pessoa logada pede
  * e acompanha os próprios pedidos, mesmo sem módulo algum; a Administração decide
- * todos e a SGDI decide os do PGIA. O token vai pelo interceptor.
+ * todos, a SGDI decide os do PGIA e o administrador da Governança Estratégica, os
+ * do módulo dele. O token vai pelo interceptor.
  */
 @Injectable({ providedIn: 'root' })
 export class PedidosAcessoService {
@@ -46,10 +48,14 @@ export class PedidosAcessoService {
     return this.http.get<PaginaPedidosAcesso>(this.apiUrl, { params });
   }
 
-  /** Quantos pedidos esperam a decisão de quem está logado (zero para quem não decide). */
+  /**
+   * Quantos pedidos esperam a decisão de quem está logado (zero para quem não decide).
+   * Contador de segundo plano, com o número na tela como sinal: não acende o
+   * indicador de carregamento.
+   */
   contarPendentes(modulo?: string): Observable<{ Total: number }> {
     const params = modulo ? new HttpParams().set('modulo', modulo) : undefined;
-    return this.http.get<{ Total: number }>(`${this.apiUrl}/pendentes`, { params });
+    return this.http.get<{ Total: number }>(`${this.apiUrl}/pendentes`, { params, context: semCarregamento() });
   }
 
   /** Recarrega o contador geral. Falha deixa o valor anterior (é só um aviso). */
@@ -62,9 +68,15 @@ export class PedidosAcessoService {
     });
   }
 
-  /** Libera o módulo na hora. No PGIA, `papelPgia` nulo = agente público. */
-  aprovar(id: number, papelPgia: string | null): Observable<PedidoAcesso> {
-    return this.http.post<PedidoAcesso>(`${this.apiUrl}/${id}/aprovar`, { PapelPgia: papelPgia });
+  /**
+   * Libera o módulo na hora. No PGIA, `papelPgia` nulo = agente público. Na
+   * Governança Estratégica o papel é obrigatório (`papelPlanejamento`); ele só vai
+   * no corpo quando informado, e os pedidos dos outros módulos seguem iguais.
+   */
+  aprovar(id: number, papelPgia: string | null = null, papelPlanejamento: string | null = null): Observable<PedidoAcesso> {
+    const corpo: { PapelPgia: string | null; PapelPlanejamento?: string } = { PapelPgia: papelPgia };
+    if (papelPlanejamento) corpo.PapelPlanejamento = papelPlanejamento;
+    return this.http.post<PedidoAcesso>(`${this.apiUrl}/${id}/aprovar`, corpo);
   }
 
   recusar(id: number, motivo: string): Observable<PedidoAcesso> {

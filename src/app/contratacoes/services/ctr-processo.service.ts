@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Params } from '@angular/router';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
@@ -68,10 +68,12 @@ export class CtrProcessoService {
     return params;
   }
 
-  listar(filtro: CtrProcessoFiltro = {}): Observable<CtrPagedResponse<CtrProcesso>> {
+  /** `contexto`: a conferência do número enquanto a pessoa digita vai em segundo plano (sem o indicador de carregamento). */
+  listar(filtro: CtrProcessoFiltro = {}, contexto?: HttpContext): Observable<CtrPagedResponse<CtrProcesso>> {
     return this.http.get<CtrPagedResponse<CtrProcesso>>(`${this.apiUrl}/processo`, {
       headers: this.getHeaders(),
-      params: this.montarParams(filtro)
+      params: this.montarParams(filtro),
+      context: contexto
     });
   }
 

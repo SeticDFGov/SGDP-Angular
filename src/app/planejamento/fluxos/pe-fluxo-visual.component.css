@@ -1,0 +1,46 @@
+/* Editor visual dos fluxos (E9): só o que o Tailwind do projeto não tem (o CSS
+   do componente vai no pacote dele, não no inicial). O desenho tem fundo branco
+   em qualquer tema, como o SVG do servidor. */
+.pe-fxv-grade { display: flex; flex-direction: column; gap: 1rem; }
+.pe-fxv-area { min-width: 0; flex: 1 1 auto; }
+/* A paleta fica numa faixa acima do desenho, em qualquer largura: o desenho ganha a
+   linha inteira (F1, D04; ao lado, a paleta tirava 10 rem do desenho) */
+.pe-fxv-pecas { display: flex; flex-wrap: wrap; gap: .375rem; }
+.pe-fxv-pecas > li { flex: 1 1 7.5rem; }
+.pe-fxv-peca { touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; min-height: 2.25rem; }
+.pe-fxv-peca:disabled { cursor: default; }
+.pe-fxv-miniatura { flex: none; }
+/* A área do desenho cresce com ele até quase a altura da janela (menos o cabeçalho e o pé da tela; F1, D04) */
+.pe-fxv-rolagem {
+  position: relative; overflow: auto; max-height: max(18rem, calc(100vh - 13rem)); min-height: 8rem; background: #fff;
+  touch-action: pan-x pan-y; user-select: none; -webkit-user-select: none;
+}
+@media (max-width: 47.99rem) { .pe-fxv-rolagem { max-height: max(14rem, calc(100vh - 16rem)); } }
+/* Texto sobre o branco do desenho: a cor não muda com o tema */
+.pe-fxv-vazio { color: #4b5563; }
+.pe-fxv-conteudo { position: relative; }
+.pe-fxv-svg { display: block; }
+/* Quem edita arrasta os blocos e a alça também pelo toque: o Chrome só aplica o
+   touch-action no próprio svg, não nos elementos de dentro (F1, D01). O fundo
+   continua movendo o desenho (e a página, quando o desenho chega ao fim) */
+.pe-fxv-svg-editavel { touch-action: none; }
+.pe-fxv-svg text { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; pointer-events: none; }
+.pe-fxv-fundo { cursor: grab; }
+.pe-fxv-movendo .pe-fxv-fundo { cursor: grabbing; }
+.pe-fxv-bloco { cursor: pointer; }
+.pe-fxv-editavel { touch-action: none; }
+svg .pe-fxv-foco:focus, svg .pe-fxv-foco:focus-visible { outline: none; }
+/* O anel do foco (azul escuro sobre o branco do desenho, em qualquer tema): só pelo teclado */
+.pe-fxv-anel { display: none; }
+.pe-fxv-foco:focus-visible > .pe-fxv-anel { display: inline; }
+.pe-fxv-arrastado { opacity: .35; }
+.pe-fxv-seta, .pe-fxv-cabecalho { cursor: pointer; }
+.pe-fxv-alca { cursor: crosshair; touch-action: none; }
+/* Só quando a geometria nova chega: os blocos vão para o lugar novo (o CSS do site
+   tira as transições com "Reduzir animações" e no pedido do sistema) */
+.pe-fxv-animar .pe-fxv-bloco { transition: transform .2s ease-out; }
+.pe-fxv-animar .pe-fxv-linhas { animation: pe-fxv-surgir .25s ease-out; }
+@keyframes pe-fxv-surgir { from { opacity: .2; } }
+/* O campo do nome ali mesmo: ao rolar até ele, fica longe do cabeçalho e do pé presos da tela (F1, D02) */
+.pe-fxv-edicao { position: absolute; z-index: 5; scroll-margin: 6rem 1rem 9rem; }
+.pe-fxv-fantasma { position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; max-width: 18rem; }

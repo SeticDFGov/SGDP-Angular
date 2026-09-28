@@ -1,5 +1,6 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import { CarregamentoService } from '../carregamento/carregamento.service';
 
 export type Tema = 'claro' | 'escuro' | 'alto-contraste';
 
@@ -65,6 +66,8 @@ export class AcessibilidadeService {
   readonly reduzirAnimacoes = signal(false);
 
   private regiaoAviso: HTMLElement | null = null;
+  /** O texto que a região viva recebe daqui a pouco (a escrita espera a região ser esvaziada). */
+  private escritaPendente: { texto: string; temporizador: ReturnType<typeof setTimeout> } | null = null;
 
   constructor() {
     if (!this.noNavegador) return;
@@ -81,6 +84,11 @@ export class AcessibilidadeService {
     }
 
     effect(() => this.aplicar(this.tema(), this.fonte(), this.reduzirAnimacoes()));
+
+    // A espera longa do indicador de carregamento é lida nesta mesma região viva, e o aviso sai dela no fim
+    const carregamento = inject(CarregamentoService);
+    carregamento.anunciar = texto => this.anunciar(texto);
+    carregamento.limparAviso = () => this.limparAviso('Carregando');
   }
 
   escolherTema(tema: Tema): void {
@@ -155,7 +163,25 @@ export class AcessibilidadeService {
     const regiao = this.regiaoAviso;
     // Esvaziar e escrever depois: o mesmo texto duas vezes seguidas também é lido
     regiao.textContent = '';
-    setTimeout(() => regiao.textContent = texto, 60);
+    if (this.escritaPendente) clearTimeout(this.escritaPendente.temporizador);
+    const temporizador = setTimeout(() => {
+      regiao.textContent = texto;
+      this.escritaPendente = null;
+    }, 60);
+    this.escritaPendente = { texto, temporizador };
+  }
+
+  /**
+   * Tira da região viva um aviso que já passou (F1, D15): o "Carregando" depois que a
+   * espera acabou ficava escrito, e quem lia a página com o cursor virtual o achava.
+   * Só se ainda for ele: um aviso mais novo fica.
+   */
+  limparAviso(texto: string): void {
+    if (this.escritaPendente?.texto === texto) {
+      clearTimeout(this.escritaPendente.temporizador);
+      this.escritaPendente = null;
+    }
+    if (this.regiaoAviso?.textContent === texto) this.regiaoAviso.textContent = '';
   }
 
   private definirTexto(fonte: number): void {

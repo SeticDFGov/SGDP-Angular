@@ -1,0 +1,47 @@
+<section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="idBase + '-titulo'">
+  <!-- Recebe o foco depois da troca (as seções do passo vêm de novo) -->
+  <h2 [id]="idBase + '-titulo'" tabindex="-1" class="text-base font-semibold text-gray-900">Forma deste passo</h2>
+  <p class="text-sm text-gray-600 leading-relaxed mt-1">
+    Este passo pode ser preenchido do jeito mais simples, o mínimo do decreto, ou na forma de um nível mais completo, com mais
+    seções e campos. Use a forma que serve ao órgão: o nível alcançado conta o que o PDTIC tem.
+  </p>
+
+  <!-- Quem troca: o grupo de opções e o botão (a escolha só vale no botão) -->
+  <ng-container *ngIf="podeTrocar; else soLeitura">
+    <fieldset class="mt-3">
+      <legend class="text-sm font-semibold text-gray-800">Formas deste passo</legend>
+      <div *ngFor="let o of opcoes; trackBy: porNivel" class="flex items-start gap-2 mt-2">
+        <input type="radio" [id]="idOpcao(o)" [name]="idBase" [value]="o.nivelId" [checked]="escolhida === o.nivelId"
+               (change)="escolher(o)" [attr.aria-describedby]="idOpcao(o) + '-descricao'"
+               class="mt-1 shrink-0" />
+        <label [for]="idOpcao(o)" class="text-sm">
+          <span class="block font-semibold text-gray-900">{{ o.nome }}<span *ngIf="o.nivelId === emUsoId" class="font-normal text-gray-600"> (em uso)</span></span>
+          <span [id]="idOpcao(o) + '-descricao'" class="block text-xs text-gray-600">{{ o.descricao }}</span>
+        </label>
+      </div>
+    </fieldset>
+    <button type="button" (click)="usar()" [attr.aria-disabled]="(gravando || !mudou) || null"
+            class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700"
+            [ngClass]="gravando || !mudou ? 'opacity-50' : ''">
+      <span class="material-icons text-base" aria-hidden="true">tune</span> {{ gravando ? 'Trocando...' : 'Usar esta forma' }}
+    </button>
+    <p class="text-xs text-gray-500 italic mt-2">Os dados dos campos que saem ficam guardados e voltam se você usar a forma de novo.</p>
+  </ng-container>
+
+  <!-- Quem só lê: a forma em uso e as outras -->
+  <ng-template #soLeitura>
+    <p *ngIf="emUso as u" class="mt-3 text-sm text-gray-800">
+      <strong>Forma em uso: {{ u.nome }}</strong> ({{ u.descricao }}).
+    </p>
+    <p *ngIf="outras.length > 0" class="mt-1 text-sm text-gray-700">
+      Outras formas:
+      <ng-container *ngFor="let o of outras; let ultima = last; trackBy: porNivel">{{ o.nome }} ({{ o.descricao }}){{ ultima ? '.' : '; ' }}</ng-container>
+    </p>
+    <p class="text-xs text-gray-500 italic mt-2">
+      {{ semPdtic ? 'A equipe do PDTIC escolhe a forma depois de começar o PDTIC.' : 'Quem escolhe a forma é a equipe do PDTIC, enquanto o passo está em edição.' }}
+    </p>
+  </ng-template>
+
+  <p *ngIf="erro" [id]="idBase + '-erro'" tabindex="-1"
+     class="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erro }}</p>
+</section>

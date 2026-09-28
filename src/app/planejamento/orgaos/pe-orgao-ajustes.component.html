@@ -1,0 +1,173 @@
+<div class="space-y-5">
+
+  <!-- O órgão -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex flex-col md:flex-row items-start gap-4">
+      <div class="flex-1">
+        <h2 class="text-base font-semibold text-gray-900">Ajustes do órgão {{ orgao.Sigla }}</h2>
+        <!-- F3: no modo livre, não há nível do órgão (o nível é calculado pelo que o PDTIC tem) -->
+        <p *ngIf="!modoLivre" class="text-sm text-gray-600">{{ orgao.Nome }} · nível {{ orgao.NivelNome }}<ng-container *ngIf="orgao.NivelPadrao"> (o padrão)</ng-container></p>
+        <p *ngIf="modoLivre" class="text-sm text-gray-600">{{ orgao.Nome }} · modo livre<ng-container *ngIf="orgao.NivelAlcancadoNome"> · nível
+          alcançado: {{ orgao.NivelAlcancadoNome }}</ng-container></p>
+        <p *ngIf="!modoLivre" class="text-sm text-gray-700 leading-relaxed mt-2">O ajuste muda a situação de um passo, de uma seção ou de
+          um campo só para este órgão, por cima do nível. Por exemplo: pedir a análise SWOT a um órgão do nível Básico, ou dispensar um
+          campo que não faz sentido para ele. Cada ajuste precisa de justificativa.</p>
+        <p *ngIf="modoLivre" class="text-sm text-gray-700 leading-relaxed mt-2">O ajuste muda a situação de um passo, de uma seção ou de
+          um campo só para este órgão, por cima do modo livre. Por exemplo: tornar obrigatória a análise SWOT para o órgão, ou dispensar
+          um campo que não faz sentido para ele. Cada ajuste precisa de justificativa.</p>
+        <p class="text-xs text-gray-500 italic mt-1">Os conteúdos mínimos do PDTIC (art. 12, § 2º) não desligam, nem com ajuste. Nada
+          se apaga: o que o ajuste esconder fica guardado e volta se o ajuste sair.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button *ngIf="!modoLivre" type="button" (click)="trocarNivel.emit()"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 whitespace-nowrap">
+          <span class="material-icons text-base" aria-hidden="true">swap_vert</span> Trocar nível
+        </button>
+        <button type="button" (click)="verComoOrgao.emit()"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-purple-200 bg-white text-sm font-semibold text-purple-700 hover:bg-gray-50 whitespace-nowrap">
+          <span class="material-icons text-base" aria-hidden="true">visibility</span> Ver como o órgão vê
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <p *ngIf="carregando && !modelo" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando os ajustes...</p>
+  <div *ngIf="erroCarga" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+    Não foi possível carregar os ajustes do órgão.
+    <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+  </div>
+
+  <!-- A árvore com a coluna do ajuste -->
+  <div *ngIf="modelo as m" class="bg-white rounded-lg shadow">
+    <div class="relative overflow-x-auto" tabindex="0" role="region" aria-label="Tabela: ajustes do órgão">
+      <table class="w-full text-sm">
+        <caption class="sr-only">{{ modoLivre
+          ? 'Passos, seções e campos com a situação sem ajuste no modo livre, o ajuste para o órgão e como cada item fica'
+          : 'Passos, seções e campos com a situação no nível do órgão, o ajuste para o órgão e como cada item fica' }}</caption>
+        <thead>
+          <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+            <th scope="col" class="px-3 py-3">Item</th>
+            <th scope="col" class="px-2 py-3 whitespace-nowrap">{{ modoLivre ? 'Sem ajuste (modo livre)' : 'No nível ' + orgao.NivelNome }}</th>
+            <th scope="col" class="px-2 py-3">Ajuste para o órgão</th>
+            <th scope="col" class="px-2 py-3">Justificativa do ajuste</th>
+            <th scope="col" class="px-3 py-3">Fica assim</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let etapa of m.Etapas; let ie = index; trackBy: porId">
+            <tr class="border-t border-gray-300 bg-purple-50">
+              <td colspan="5" class="px-3 py-2 font-bold text-gray-900">Etapa {{ ie + 1 }} · {{ etapa.Titulo }}</td>
+            </tr>
+
+            <ng-container *ngFor="let passo of etapa.Passos; trackBy: porId">
+              <!-- Passo -->
+              <tr class="border-t border-gray-100 align-top" [ngClass]="mudou('passo', passo.Id) ? 'bg-amber-50' : ''">
+                <th scope="row" class="px-3 py-2 text-left font-normal">
+                  <div class="flex items-start gap-1.5 pl-2">
+                    <button *ngIf="passo.Secoes.length > 0; else semFilhos" type="button" (click)="alternar(passo)"
+                            [attr.aria-expanded]="abertos.has(passo.Id)"
+                            [attr.aria-label]="(abertos.has(passo.Id) ? 'Fechar as seções do passo ' : 'Abrir as seções do passo ') + passo.Titulo"
+                            class="shrink-0 p-0.5 rounded text-gray-600 hover:bg-gray-100">
+                      <span class="material-icons text-lg" aria-hidden="true">{{ abertos.has(passo.Id) ? 'expand_more' : 'chevron_right' }}</span>
+                    </button>
+                    <div class="min-w-0">
+                      <p class="font-semibold text-gray-900">{{ passo.Titulo }}</p>
+                      <p *ngIf="passo.Travado" class="text-xs text-purple-800 mt-0.5">
+                        <span class="material-icons text-sm align-middle" aria-hidden="true">lock</span>
+                        Conteúdo mínimo ({{ citacao(passo.IncisoDecreto) }}): não desliga.
+                      </p>
+                      <!-- F3 (modo livre): a forma que o órgão escolheu (as seções e os campos seguem ela) -->
+                      <p *ngIf="modoLivre && formaEscolhida(passo) as forma" class="text-xs text-gray-600 mt-0.5">Forma escolhida pelo órgão: {{ forma }}</p>
+                    </div>
+                  </div>
+                </th>
+                <ng-container *ngTemplateOutlet="celulas; context: { tipo: 'passo', item: passo }"></ng-container>
+              </tr>
+
+              <ng-container *ngIf="abertos.has(passo.Id)">
+                <ng-container *ngFor="let secao of passo.Secoes; trackBy: porId">
+                  <!-- Seção -->
+                  <tr class="border-t border-gray-100 align-top" [ngClass]="mudou('secao', secao.Id) ? 'bg-amber-50' : ''">
+                    <th scope="row" class="px-3 py-2 text-left font-normal">
+                      <div class="pl-10">
+                        <p class="font-semibold text-gray-800">{{ secao.Titulo }}</p>
+                        <p class="text-xs text-gray-600">{{ secao.Tipo === 'tabela' ? 'Tabela' : 'Formulário' }}<ng-container *ngIf="secao.Travada"> · travada: não desliga</ng-container></p>
+                      </div>
+                    </th>
+                    <ng-container *ngTemplateOutlet="celulas; context: { tipo: 'secao', item: secao }"></ng-container>
+                  </tr>
+                  <!-- Campos -->
+                  <tr *ngFor="let campo of secao.Campos; trackBy: porId" class="border-t border-gray-100 align-top"
+                      [ngClass]="mudou('campo', campo.Id) ? 'bg-amber-50' : ''">
+                    <th scope="row" class="px-3 py-2 text-left font-normal">
+                      <div class="pl-10">
+                        <p class="text-gray-900 ml-4">{{ campo.Rotulo }}</p>
+                        <p *ngIf="naoDesligaCampo(campo, secao)" class="text-xs text-purple-800 ml-4">
+                          {{ travadoPorSi(campo, secao) ? 'travado (tema das ações): não desliga' : 'principal de seção travada: não desliga' }}
+                        </p>
+                      </div>
+                    </th>
+                    <ng-container *ngTemplateOutlet="celulas; context: { tipo: 'campo', item: campo }"></ng-container>
+                  </tr>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Salvar -->
+  <div *ngIf="modelo" class="sticky bottom-0 z-10 rounded-lg border border-gray-200 bg-white px-5 py-3 shadow-lg">
+    <!-- O foco vai para a primeira justificativa que falta, que é descrita por este quadro (F1, C39) -->
+    <div *ngIf="erros.length > 0" id="pe-ajustes-erros" class="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+      <p *ngFor="let erro of erros">{{ erro }}</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <p class="flex-1 text-sm text-gray-700">
+        {{ quantosAjustes === 0 ? (modoLivre ? 'Nenhum ajuste: o órgão segue o modo livre.' : 'Nenhum ajuste: o órgão segue o nível.') : (quantosAjustes === 1 ? '1 ajuste para o órgão.' : quantosAjustes + ' ajustes para o órgão.') }}
+        <strong *ngIf="alterado" class="text-amber-700"> Há mudanças não salvas.</strong>
+      </p>
+      <!-- Indisponíveis sem sair do Tab (aria-disabled): desligados, os botões perdiam o foco depois de salvar ou desfazer (F1, C11) -->
+      <button type="button" (click)="desfazer()" [attr.aria-disabled]="(salvando || !alterado) || null"
+              class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50"
+              [ngClass]="salvando || !alterado ? 'opacity-50' : ''">
+        Desfazer
+      </button>
+      <button type="button" (click)="salvar()" [attr.aria-disabled]="(salvando || !alterado) || null"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+              [ngClass]="!salvando && !alterado ? 'opacity-50' : ''">
+        <span class="material-icons text-base" aria-hidden="true">save</span> {{ salvando ? 'Salvando...' : 'Salvar os ajustes' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<ng-template #semFilhos><span class="w-6 shrink-0" aria-hidden="true"></span></ng-template>
+
+<!-- Situação no nível, ajuste, justificativa e como o item fica -->
+<ng-template #celulas let-tipo="tipo" let-item="item">
+  <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold" [ngClass]="cor(semAjuste(tipo, item))">{{ rotulo(semAjuste(tipo, item)) }}</td>
+  <td class="px-2 py-2">
+    <select [attr.aria-label]="'Ajuste de ' + nomeDe(item) + ' para o órgão'"
+            [ngModel]="valorAjuste(tipo, item.Id)" (ngModelChange)="mudarAjuste(tipo, item.Id, $event)" [disabled]="salvando"
+            class="w-full min-w-[8.5rem] px-1.5 py-1 border rounded text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            [ngClass]="mudou(tipo, item.Id) ? 'border-amber-400' : 'border-gray-300'">
+      <option value="">{{ modoLivre ? 'Sem ajuste' : 'Segue o nível' }}</option>
+      <option *ngFor="let s of situacoes" [value]="s.valor" [disabled]="s.valor === 'desligado' && naoDesliga(tipo, item)">
+        {{ s.rotulo }}{{ s.valor === 'desligado' && naoDesliga(tipo, item) ? ' (travado)' : '' }}
+      </option>
+    </select>
+  </td>
+  <td class="px-2 py-2">
+    <input *ngIf="ajuste(tipo, item.Id) as a" type="text" [id]="idJustificativa(tipo, item.Id)" [ngModel]="a.justificativa"
+           (ngModelChange)="mudarJustificativa(tipo, item.Id, $event)"
+           [maxlength]="maxJustificativa" [readonly]="salvando" [attr.aria-label]="'Justificativa do ajuste de ' + nomeDe(item)"
+           [attr.aria-invalid]="justificativaFaltando(tipo, item.Id) || null"
+           [attr.aria-describedby]="justificativaFaltando(tipo, item.Id) ? 'pe-ajustes-erros' : null" [placeholder]="modoLivre ? 'Por que o órgão precisa do ajuste' : 'Por que o órgão foge do nível'"
+           class="w-full min-w-[12rem] px-2 py-1 border rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+           [ngClass]="justificativaFaltando(tipo, item.Id) ? 'border-red-500' : 'border-gray-300'" />
+  </td>
+  <td class="px-3 py-2 text-xs" [ngClass]="corFinal(tipo, item)">{{ textoFinalDe(tipo, item) }}</td>
+</ng-template>

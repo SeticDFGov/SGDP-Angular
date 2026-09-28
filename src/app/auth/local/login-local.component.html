@@ -26,6 +26,20 @@
         </button>
       </div>
 
+      <h2 class="text-sm font-semibold text-gray-900 mb-2">Governança Estratégica (Decreto 48.900/2026)</h2>
+      <p class="text-xs text-gray-500 italic mb-2">Pelo card da Governança Estratégica, cada persona abre o passo a passo do seu papel. As duas de órgão ficam na Secretaria de Estado de Saúde (SES).</p>
+      <div class="space-y-2 mb-6">
+        <button *ngFor="let p of personasPlanejamento" (click)="entrarComo(p)" [disabled]="entrando"
+          class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-left disabled:opacity-50">
+          <span>
+            <span class="font-medium text-gray-900">{{ p.Nome }}</span>
+            <span class="ml-2 px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-800 rounded-full">{{ p.PapelPlanejamento }}</span>
+            <span class="block text-xs text-gray-500 italic mt-0.5">{{ p.Descricao }}</span>
+          </span>
+          <span class="material-icons text-blue-600" aria-hidden="true">login</span>
+        </button>
+      </div>
+
       <h2 class="text-sm font-semibold text-gray-900 mb-2">Papéis do PGIA (Decreto 48.901/2026)</h2>
       <p class="text-xs text-gray-500 italic mb-2">Pelo card do PGIA, cada persona abre a trilha numerada do seu papel: exatamente o que aquele papel enxerga.</p>
       <div class="space-y-2 mb-6">
@@ -100,7 +114,12 @@
         <div class="flex flex-col justify-center gap-1 text-sm text-gray-700">
           <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="form.ConcederDemandas"> Conceder Demandas (consulta)</label>
           <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="form.ConcederPgia"> Conceder PGIA (agente)</label>
+          <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="form.ConcederPlanejamento"> Conceder Governança Estratégica</label>
         </div>
+        <select [(ngModel)]="form.PapelPlanejamento" aria-label="Papel na Governança Estratégica" [disabled]="!form.ConcederPlanejamento"
+          class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
+          <option *ngFor="let o of opcoesPapelPlanejamento" [value]="o.valor">{{ o.valor }}</option>
+        </select>
       </div>
       <div class="mt-3 flex items-center gap-3">
         <button (click)="entrar()" [disabled]="entrando"

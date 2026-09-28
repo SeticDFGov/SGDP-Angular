@@ -1,0 +1,259 @@
+<div citaPlanejamento class="tela-pgia max-w-5xl mx-auto space-y-5">
+
+  <!-- Esperando o meu-papel: nenhuma consulta antes dele -->
+  <p *ngIf="pode === null" role="status" class="text-sm text-gray-600">Conferindo o seu papel no módulo...</p>
+
+  <div *ngIf="pode === false && !erroPapel" class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Critérios de priorização</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem define os critérios que
+      ordenam as necessidades de TIC dos órgãos. Se você precisa mudar um critério, fale com ele.</p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <p class="mt-1">Sem ele, os critérios não abrem. Tente de novo em alguns instantes.</p>
+    <button type="button" (click)="tentarDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <ng-container *ngIf="pode">
+
+    <!-- Apresentação -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-1">Critérios de priorização</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">No planejamento, cada órgão dá notas às necessidades de TIC levantadas no
+        diagnóstico, e o sistema calcula a prioridade de cada uma. As mais prioritárias entram no plano; as outras vão para o anexo
+        do documento, para o próximo ciclo (atividades 3.1 e 3.2 do Guia de PDTIC).</p>
+      <p class="text-sm text-gray-700 leading-relaxed mt-2">O padrão é a <strong>matriz GUT</strong>, com notas de 1 a 5,
+        multiplicadas:</p>
+      <ul class="mt-1 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
+        <li><strong>Gravidade</strong>: o tamanho do problema se a necessidade não for atendida.</li>
+        <li><strong>Urgência</strong>: a pressa para atender.</li>
+        <li><strong>Tendência</strong>: o quanto o problema piora, ou a oportunidade se perde, com o tempo.</li>
+      </ul>
+      <p class="text-xs text-gray-500 italic mt-2">Você pode trocar os nomes, a escala, incluir critérios (por exemplo, o
+        alinhamento ao PETIC-DF ou o custo) e usar a soma ponderada no lugar do produto. A mudança vale na hora para todos os
+        órgãos e fica no histórico.</p>
+    </div>
+
+    <p *ngIf="carregando && !modelo" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando os critérios...</p>
+    <div *ngIf="erroCarga" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      Não foi possível carregar os critérios.
+      <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+
+    <!-- Sem campo de prioridade no modelo -->
+    <div *ngIf="modelo && alvos.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700 leading-relaxed">
+      <p class="font-semibold text-gray-900">O modelo ainda não tem um campo de prioridade calculada.</p>
+      <p class="mt-1">A prioridade é um campo do tipo "calculado pelo sistema", com o produto ou a soma ponderada de outros campos da
+        mesma seção. Crie esse campo na seção das necessidades de TIC, no editor do modelo, e volte aqui para ajustar os critérios.</p>
+      <a routerLink="/planejamento/modelo/estrutura" class="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-purple-700 hover:underline">
+        <span class="material-icons text-base" aria-hidden="true">account_tree</span> Abrir o editor do modelo
+      </a>
+    </div>
+
+    <ng-container *ngIf="alvo as a">
+      <form (ngSubmit)="salvar()" class="space-y-5">
+
+        <!-- O cálculo -->
+        <div class="bg-white rounded-lg shadow p-6 space-y-4">
+          <div *ngIf="alvos.length > 1">
+            <label for="pe-crit-alvo" class="block text-sm font-semibold text-gray-800 mb-1">Campo de prioridade</label>
+            <select id="pe-crit-alvo" [ngModel]="alvoId" (ngModelChange)="trocarAlvo($event)" name="pe-crit-alvo" [disabled]="alterado"
+                    aria-describedby="pe-crit-alvo-ajuda"
+                    class="w-full md:w-[32rem] px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+              <option *ngFor="let x of alvos" [ngValue]="x.campo.Id">{{ x.campo.Rotulo }} · {{ x.secao.Titulo }}</option>
+            </select>
+            <p id="pe-crit-alvo-ajuda" class="text-xs text-gray-500 italic mt-1">
+              {{ alterado ? 'Salve ou desfaça as mudanças para trocar de campo.' : 'O modelo tem mais de um campo calculado por produto ou soma ponderada.' }}
+            </p>
+          </div>
+
+          <div>
+            <h2 class="text-base font-semibold text-gray-900">Como a prioridade é calculada</h2>
+            <p class="text-sm text-gray-600 mt-0.5">
+              Campo "{{ a.campo.Rotulo }}" da seção "{{ a.secao.Titulo }}"<ng-container *ngIf="a.passo"> (passo "{{ a.passo.Titulo }}")</ng-container>.
+            </p>
+          </div>
+
+          <fieldset>
+            <legend class="block text-sm font-semibold text-gray-800 mb-1">Cálculo</legend>
+            <div class="space-y-1.5">
+              <label class="flex items-start gap-2 text-sm text-gray-800">
+                <input type="radio" name="pe-crit-calculo" value="produto" [(ngModel)]="calculo" class="w-4 h-4 mt-0.5" />
+                <span><strong>Produto</strong>: multiplica as notas (como na matriz GUT). Uma nota baixa em qualquer critério derruba a
+                  prioridade.</span>
+              </label>
+              <label class="flex items-start gap-2 text-sm text-gray-800">
+                <input type="radio" name="pe-crit-calculo" value="soma_ponderada" [(ngModel)]="calculo" class="w-4 h-4 mt-0.5" />
+                <span><strong>Soma ponderada</strong>: cada nota vezes o peso do critério, tudo somado. Use quando um critério vale mais
+                  que outro.</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div>
+            <label for="pe-crit-ajuda" class="block text-sm font-semibold text-gray-800 mb-1">Explicação da prioridade para o órgão</label>
+            <textarea id="pe-crit-ajuda" rows="2" [(ngModel)]="ajudaPrioridade" name="pe-crit-ajuda" [maxlength]="maxAjuda"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <p class="text-xs text-gray-500 italic mt-1">Aparece embaixo do campo de prioridade, na tela do órgão.</p>
+          </div>
+
+          <div class="rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-gray-800" aria-live="polite">
+            <strong class="text-purple-800">{{ a.campo.Rotulo }} =</strong> {{ formula }}<ng-container *ngIf="faixa"> · {{ faixa }}</ng-container>
+          </div>
+        </div>
+
+        <!-- Os critérios -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex flex-col md:flex-row items-start gap-3 mb-4">
+            <div class="flex-1">
+              <h2 class="text-base font-semibold text-gray-900">Critérios</h2>
+              <p class="text-sm text-gray-600 mt-0.5">Os campos de número (ou de lista com valores numéricos) da mesma seção podem ser
+                critérios. Marque os que entram no cálculo.</p>
+            </div>
+            <button type="button" (click)="abrirNovo()" [disabled]="novoAberto"
+                    class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50 whitespace-nowrap">
+              <span class="material-icons text-base" aria-hidden="true">add</span> Novo critério
+            </button>
+          </div>
+
+          <p *ngIf="criterios.length === 0" class="text-sm text-gray-600">Esta seção ainda não tem campos que possam ser critérios.
+            Crie um com o botão "Novo critério".</p>
+
+          <div class="space-y-4">
+            <fieldset *ngFor="let c of criterios; let i = index; trackBy: porId" class="rounded-lg border p-4"
+                      [ngClass]="c.entra ? 'border-purple-200 bg-white' : 'border-gray-200 bg-gray-50'">
+              <legend class="px-1 text-sm font-semibold text-gray-900">{{ c.rotulo || c.campo.Rotulo }}</legend>
+
+              <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-800">
+                <input type="checkbox" class="w-4 h-4" [(ngModel)]="c.entra" [name]="'pe-crit-entra-' + c.campo.Id" />
+                Entra no cálculo
+              </label>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                <div class="md:col-span-2">
+                  <label [for]="'pe-crit-rotulo-' + c.campo.Id" class="block text-xs font-semibold text-gray-700 mb-0.5">Nome do critério</label>
+                  <input [id]="'pe-crit-rotulo-' + c.campo.Id" type="text" [(ngModel)]="c.rotulo" [name]="'pe-crit-rotulo-' + c.campo.Id"
+                         [maxlength]="maxRotulo"
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div *ngIf="calculo === 'soma_ponderada' && c.entra">
+                  <label [for]="'pe-crit-peso-' + c.campo.Id" class="block text-xs font-semibold text-gray-700 mb-0.5">Peso</label>
+                  <input [id]="'pe-crit-peso-' + c.campo.Id" type="number" min="0" step="0.5" [(ngModel)]="c.peso" [name]="'pe-crit-peso-' + c.campo.Id"
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <label [for]="'pe-crit-ajuda-' + c.campo.Id" class="block text-xs font-semibold text-gray-700 mb-0.5">O que o critério mede</label>
+                <textarea [id]="'pe-crit-ajuda-' + c.campo.Id" rows="2" [(ngModel)]="c.ajuda" [name]="'pe-crit-ajuda-' + c.campo.Id" [maxlength]="maxAjuda"
+                          placeholder="Ex.: o tamanho do problema se a necessidade não for atendida"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              </div>
+
+              <!-- Escala: número (menor e maior valor) ou lista (as opções) -->
+              <div *ngIf="c.campo.Tipo === 'numero'" class="flex flex-wrap items-end gap-3 mt-3">
+                <span class="text-xs font-semibold text-gray-700 py-2">Escala</span>
+                <div>
+                  <label [for]="'pe-crit-min-' + c.campo.Id" class="block text-xs text-gray-700 mb-0.5">De</label>
+                  <input [id]="'pe-crit-min-' + c.campo.Id" type="number" [(ngModel)]="c.min" [name]="'pe-crit-min-' + c.campo.Id"
+                         class="w-24 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label [for]="'pe-crit-max-' + c.campo.Id" class="block text-xs text-gray-700 mb-0.5">Até</label>
+                  <input [id]="'pe-crit-max-' + c.campo.Id" type="number" [(ngModel)]="c.max" [name]="'pe-crit-max-' + c.campo.Id"
+                         class="w-24 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              <details *ngIf="c.campo.Tipo === 'lista'" class="mt-3 text-sm">
+                <summary class="cursor-pointer text-xs font-semibold text-gray-700">Escala: {{ opcoesAtivas(c.campo) }}</summary>
+                <div class="mt-2">
+                  <app-pe-opcoes-editor [campo]="c.campo" [prefixoId]="'pe-crit-opcao-' + c.campo.Id" (mudou)="opcoesMudaram(c, $event)"></app-pe-opcoes-editor>
+                </div>
+              </details>
+
+              <p class="text-xs text-gray-600 mt-3">
+                Nos níveis: {{ situacoes(c.campo) }}.
+                <a [routerLink]="'/planejamento/modelo/estrutura'" [queryParams]="{ item: 'campo-' + c.campo.Id }"
+                   class="font-semibold text-purple-700 underline">Mudar no editor do modelo</a>
+              </p>
+            </fieldset>
+          </div>
+
+          <!-- Critério novo -->
+          <div *ngIf="novoAberto" class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <h3 class="text-sm font-semibold text-gray-900">Novo critério</h3>
+            <p class="text-xs text-gray-600 mt-0.5">O critério é um campo de número na seção "{{ a.secao.Titulo }}". Ele nasce desligado
+              em todos os níveis: depois de criar, ligue nos níveis no editor do modelo.</p>
+            <div *ngIf="errosNovo.length > 0" role="alert" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              <ul class="list-disc ml-5"><li *ngFor="let erro of errosNovo">{{ erro }}</li></ul>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+              <div class="md:col-span-2">
+                <label for="pe-crit-novo-rotulo" class="block text-xs font-semibold text-gray-700 mb-0.5">Nome <span class="text-red-600">*</span></label>
+                <input id="pe-crit-novo-rotulo" type="text" [(ngModel)]="novoRotulo" name="pe-crit-novo-rotulo" [maxlength]="maxRotulo" (keydown.enter)="$event.preventDefault(); criarCriterio()"
+                       placeholder="Ex.: Alinhamento ao PETIC-DF"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div class="flex items-end gap-2">
+                <div>
+                  <label for="pe-crit-novo-min" class="block text-xs font-semibold text-gray-700 mb-0.5">De</label>
+                  <input id="pe-crit-novo-min" type="number" [(ngModel)]="novoMin" name="pe-crit-novo-min"
+                         class="w-24 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label for="pe-crit-novo-max" class="block text-xs font-semibold text-gray-700 mb-0.5">Até</label>
+                  <input id="pe-crit-novo-max" type="number" [(ngModel)]="novoMax" name="pe-crit-novo-max"
+                         class="w-24 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+            </div>
+            <label for="pe-crit-novo-ajuda" class="block text-xs font-semibold text-gray-700 mt-3 mb-0.5">O que o critério mede</label>
+            <textarea id="pe-crit-novo-ajuda" rows="2" [(ngModel)]="novaAjuda" name="pe-crit-novo-ajuda" [maxlength]="maxAjuda"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <div class="flex flex-wrap gap-2 mt-3">
+              <button type="button" (click)="criarCriterio()" [attr.aria-disabled]="criando || null"
+                      class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+                <span class="material-icons text-base" aria-hidden="true">add</span> {{ criando ? 'Criando...' : 'Criar critério' }}
+              </button>
+              <button type="button" (click)="novoAberto = false" [disabled]="criando"
+                      class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                Cancelar
+              </button>
+            </div>
+          </div>
+
+          <!-- Salvar -->
+          <div *ngIf="erros.length > 0" role="alert" class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <p class="font-semibold">Antes de salvar, corrija:</p>
+            <ul class="list-disc ml-5 mt-1 space-y-0.5"><li *ngFor="let erro of erros">{{ erro }}</li></ul>
+          </div>
+          <div class="mt-5 flex items-center gap-3 flex-wrap sticky bottom-0 z-10 py-3 bg-white border-t border-gray-200">
+            <button type="submit" [attr.aria-disabled]="salvando || null"
+                    class="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+              <span class="material-icons text-lg" aria-hidden="true">save</span> {{ salvando ? 'Salvando...' : 'Salvar os critérios' }}
+            </button>
+            <button type="button" (click)="desfazer()" [disabled]="!alterado" [attr.aria-disabled]="salvando || null"
+                    class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              Desfazer
+            </button>
+            <span *ngIf="alterado" class="text-sm text-amber-700">Há mudanças não salvas.</span>
+          </div>
+        </div>
+      </form>
+
+      <!-- Histórico do cálculo -->
+      <details class="bg-white rounded-lg shadow" (toggle)="historicoAberto = $any($event.target).open">
+        <summary class="cursor-pointer px-6 py-4 text-sm font-semibold text-gray-900">
+          <span class="inline-flex items-center gap-1.5"><span class="material-icons text-base text-purple-700" aria-hidden="true">history</span> O que mudou no cálculo da prioridade</span>
+        </summary>
+        <div class="px-6 pb-5">
+          <app-pe-historico *ngIf="historicoAberto" [entidade]="'campo'" [entidadeId]="a.campo.Id" [niveis]="niveis"></app-pe-historico>
+        </div>
+      </details>
+    </ng-container>
+  </ng-container>
+</div>

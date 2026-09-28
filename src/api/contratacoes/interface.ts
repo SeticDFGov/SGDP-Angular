@@ -239,7 +239,7 @@ export interface CtrClassificacaoRisco {
 /** Corpo de POST e PUT do processo (CtrProcessoCreateDTO/CtrProcessoUpdateDTO). */
 export interface CtrProcessoForm {
   NumeroProcesso: string;
-  /** Nº SEI do Formulário: opcional, no formato do número do processo SEI. No PUT, nulo limpa. */
+  /** Nº SEI do Formulário: opcional, texto livre até 25 caracteres (o número do documento no SEI). No PUT, nulo limpa. */
   NumeroSeiFormulario?: string | null;
   OrgaoNome: string;
   OrgaoSigla: string;

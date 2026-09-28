@@ -1,0 +1,195 @@
+<section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-ext-titulo">
+  <h2 id="pe-ext-titulo" tabindex="-1" class="text-base font-semibold text-gray-900">Registrar um PDTIC aprovado fora do sistema</h2>
+  <p class="text-sm text-gray-700 leading-relaxed mt-1">
+    Use esta opção quando o órgão {{ siglaOrgao }} já tem um PDTIC aprovado e publicado, feito fora deste sistema. O sistema guarda o
+    PDF, a vigência, a aprovação e a publicação, e o PDTIC entra direto na fase de acompanhamento.
+  </p>
+  <ul class="mt-2 text-sm text-gray-700 list-disc ml-5 space-y-1 leading-relaxed">
+    <li>Os passos da elaboração (etapas 1 a 3) ficam como feitos fora do sistema.</li>
+    <li>Depois do registro, preencha as metas, os indicadores, as ações e os riscos nos passos deles: é o que o acompanhamento usa.</li>
+  </ul>
+
+  <!-- O que falta: recebe o foco (o padrão do módulo, F1, C39), e cada item leva ao campo -->
+  <div *ngIf="tentou && errosForm.length > 0" id="pe-ext-erros" tabindex="-1"
+       class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <p class="font-semibold">Antes de registrar, corrija:</p>
+    <ul class="list-disc ml-5 mt-1 space-y-1">
+      <li *ngFor="let e of errosForm"><button type="button" (click)="focar(e.campo)" class="block text-left underline">{{ e.mensagem }}</button></li>
+    </ul>
+  </div>
+  <p *ngIf="erroGeral" id="pe-ext-erro-geral" tabindex="-1"
+     class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erroGeral }}</p>
+
+  <form (ngSubmit)="registrar()" class="mt-4 space-y-5">
+
+    <!-- O PDTIC -->
+    <fieldset class="space-y-4">
+      <legend class="text-sm font-semibold text-gray-900">O PDTIC</legend>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label [for]="ids.versao" class="block text-sm font-semibold text-gray-800 mb-1">
+            Versão<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <input [id]="ids.versao" name="pe-ext-versao" type="text" [(ngModel)]="form.versao" (ngModelChange)="mudou('versao')"
+                 [maxlength]="limites.versao" aria-required="true" [attr.aria-invalid]="erro('versao') ? true : null"
+                 [attr.aria-describedby]="descritores('versao', 'pe-ext-versao-ajuda')"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erro('versao') ? 'border-red-500' : 'border-gray-300'" />
+          <p id="pe-ext-versao-ajuda" class="text-xs text-gray-500 italic mt-1">Como está no documento. Exemplo: 1.0.</p>
+          <p *ngIf="erro('versao') as e" [id]="ids.versao + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+        <div>
+          <label [for]="ids.inicio" class="block text-sm font-semibold text-gray-800 mb-1">
+            Início da vigência<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <input [id]="ids.inicio" name="pe-ext-inicio" type="date" [(ngModel)]="form.inicio" (ngModelChange)="mudou('inicio')"
+                 aria-required="true" [attr.aria-invalid]="erro('inicio') ? true : null" [attr.aria-describedby]="descritores('inicio')"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erro('inicio') ? 'border-red-500' : 'border-gray-300'" />
+          <p *ngIf="erro('inicio') as e" [id]="ids.inicio + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+        <div>
+          <label [for]="ids.fim" class="block text-sm font-semibold text-gray-800 mb-1">
+            Fim da vigência<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <input [id]="ids.fim" name="pe-ext-fim" type="date" [(ngModel)]="form.fim" (ngModelChange)="mudou('fim')"
+                 aria-required="true" [attr.aria-invalid]="erro('fim') ? true : null" [attr.aria-describedby]="descritores('fim')"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erro('fim') ? 'border-red-500' : 'border-gray-300'" />
+          <p *ngIf="erro('fim') as e" [id]="ids.fim + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+      </div>
+
+      <div>
+        <label [for]="ids.arquivo" class="block text-sm font-semibold text-gray-800">
+          PDF do PDTIC aprovado<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+        </label>
+        <p id="pe-ext-arquivo-ajuda" class="text-xs text-gray-500 italic mt-0.5">O documento como foi aprovado e publicado. PDF, até {{ maxMb }} MB.</p>
+        <div *ngIf="arquivo as a" class="flex flex-wrap items-center gap-2 text-sm text-gray-800 mt-2">
+          <span class="material-icons text-base text-gray-600" aria-hidden="true">attach_file</span>
+          <span id="pe-ext-arquivo-atual" class="break-all">Arquivo enviado: {{ a.Nome }} ({{ tamanhoArquivo }})</span>
+          <button type="button" (click)="tirarArquivo()"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 bg-white text-xs font-semibold text-red-700 hover:bg-red-50">
+            <span class="material-icons text-sm" aria-hidden="true">link_off</span> Tirar o arquivo
+          </button>
+        </div>
+        <input [id]="ids.arquivo" type="file" accept=".pdf" (change)="escolherArquivo($event)" [disabled]="enviandoArquivo"
+               aria-required="true" [attr.aria-invalid]="erro('arquivo') ? true : null"
+               [attr.aria-describedby]="descritores('arquivo', arquivo ? 'pe-ext-arquivo-ajuda pe-ext-arquivo-atual' : 'pe-ext-arquivo-ajuda')"
+               class="mt-2 block w-full text-sm text-gray-700 file:mr-3 file:px-4 file:py-2 file:rounded-md file:border-0 file:bg-blue-600 file:text-white file:text-sm file:font-semibold hover:file:bg-blue-700 disabled:opacity-50" />
+        <p *ngIf="enviandoArquivo" role="status" class="text-xs text-gray-600 mt-1">Enviando o PDF...</p>
+        <p *ngIf="erro('arquivo') as e" [id]="ids.arquivo + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+      </div>
+    </fieldset>
+
+    <!-- Aprovação -->
+    <fieldset class="space-y-4">
+      <legend class="text-sm font-semibold text-gray-900">Aprovação</legend>
+      <fieldset [id]="ids.instancia" tabindex="-1" [attr.aria-describedby]="descritores('instancia')">
+        <legend class="block text-sm font-semibold text-gray-800">
+          Quem aprovou o PDTIC?<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+        </legend>
+        <div class="mt-2 space-y-2">
+          <label class="flex items-start gap-2 text-sm text-gray-800">
+            <input type="radio" class="w-4 h-4 mt-0.5" name="pe-ext-instancia" value="cgtic" [(ngModel)]="form.instancia" (ngModelChange)="mudou('instancia')" />
+            <span><strong>O CGTIC</strong>, o comitê de governança de TIC do DF (art. 5º). A aprovação entra no histórico das deliberações.</span>
+          </label>
+          <label class="flex items-start gap-2 text-sm text-gray-800">
+            <input type="radio" class="w-4 h-4 mt-0.5" name="pe-ext-instancia" value="outra" [(ngModel)]="form.instancia" (ngModelChange)="mudou('instancia')" />
+            <span><strong>Outra instância</strong>, como o comitê interno de TIC do órgão (SGTIC) ou a autoridade máxima.</span>
+          </label>
+        </div>
+        <p *ngIf="erro('instancia') as e" [id]="ids.instancia + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+      </fieldset>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label [for]="ids.aprovacaoData" class="block text-sm font-semibold text-gray-800 mb-1">
+            Data da aprovação<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <input [id]="ids.aprovacaoData" name="pe-ext-aprovacao-data" type="date" [(ngModel)]="form.aprovacaoData" (ngModelChange)="mudou('aprovacaoData')"
+                 [max]="hoje" aria-required="true" [attr.aria-invalid]="erro('aprovacaoData') ? true : null"
+                 [attr.aria-describedby]="descritores('aprovacaoData')"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erro('aprovacaoData') ? 'border-red-500' : 'border-gray-300'" />
+          <p *ngIf="erro('aprovacaoData') as e" [id]="ids.aprovacaoData + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+        <div>
+          <label [for]="ids.atoTipo" class="block text-sm font-semibold text-gray-800 mb-1">Tipo do ato</label>
+          <select [id]="ids.atoTipo" name="pe-ext-ato-tipo" [(ngModel)]="form.atoTipo" (ngModelChange)="mudou('atoTipo')"
+                  [attr.aria-invalid]="erro('atoTipo') ? true : null" [attr.aria-describedby]="descritores('atoTipo')"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option *ngFor="let t of tiposAto" [value]="t">{{ t }}</option>
+          </select>
+          <p *ngIf="erro('atoTipo') as e" [id]="ids.atoTipo + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+        <div>
+          <label [for]="ids.atoNumero" class="block text-sm font-semibold text-gray-800 mb-1">
+            Número do ato<ng-container *ngIf="form.instancia === 'cgtic'"><span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span></ng-container>
+          </label>
+          <input [id]="ids.atoNumero" name="pe-ext-ato-numero" type="text" [(ngModel)]="form.atoNumero" (ngModelChange)="mudou('atoNumero')"
+                 [maxlength]="limites.atoNumero" placeholder="Ex.: 3/2026" [attr.aria-required]="form.instancia === 'cgtic' || null"
+                 [attr.aria-invalid]="erro('atoNumero') ? true : null" [attr.aria-describedby]="descritores('atoNumero', 'pe-ext-ato-ajuda')"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erro('atoNumero') ? 'border-red-500' : 'border-gray-300'" />
+          <p id="pe-ext-ato-ajuda" class="text-xs text-gray-500 italic mt-1">Obrigatório quando quem aprovou foi o CGTIC.</p>
+          <p *ngIf="erro('atoNumero') as e" [id]="ids.atoNumero + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+        <div>
+          <label [for]="ids.sei" class="block text-sm font-semibold text-gray-800 mb-1">Número do processo SEI</label>
+          <input [id]="ids.sei" #campoSei name="pe-ext-sei" type="text" inputmode="numeric" autocomplete="off"
+                 [ngModel]="form.sei" (ngModelChange)="digitarSeiExt(campoSei)"
+                 [maxlength]="tamanhoSei" placeholder="Ex.: 00000-00000000/2026-00"
+                 [attr.aria-invalid]="erro('sei') ? true : null" [attr.aria-describedby]="descritores('sei', 'pe-ext-sei-ajuda')"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erro('sei') ? 'border-red-500' : 'border-gray-300'" />
+          <p id="pe-ext-sei-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional: o processo em que o ato foi juntado.</p>
+          <p *ngIf="erro('sei') as e" [id]="ids.sei + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Publicação -->
+    <fieldset class="space-y-4">
+      <legend class="text-sm font-semibold text-gray-900">Publicação</legend>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label [for]="ids.publicacaoData" class="block text-sm font-semibold text-gray-800 mb-1">
+            Data da publicação<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <input [id]="ids.publicacaoData" name="pe-ext-publicacao-data" type="date" [(ngModel)]="form.publicacaoData" (ngModelChange)="mudou('publicacaoData')"
+                 [max]="hoje" aria-required="true" [attr.aria-invalid]="erro('publicacaoData') ? true : null"
+                 [attr.aria-describedby]="descritores('publicacaoData')"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erro('publicacaoData') ? 'border-red-500' : 'border-gray-300'" />
+          <p *ngIf="erro('publicacaoData') as e" [id]="ids.publicacaoData + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+        <div class="md:col-span-2">
+          <label [for]="ids.endereco" class="block text-sm font-semibold text-gray-800 mb-1">
+            Endereço da íntegra na internet<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+          </label>
+          <input [id]="ids.endereco" name="pe-ext-endereco" type="text" inputmode="url" [(ngModel)]="form.endereco" (ngModelChange)="mudou('endereco')"
+                 [maxlength]="limites.endereco" placeholder="Ex.: https://www.orgao.df.gov.br/pdtic" aria-required="true"
+                 [attr.aria-invalid]="erro('endereco') ? true : null" [attr.aria-describedby]="descritores('endereco', 'pe-ext-endereco-ajuda')"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [ngClass]="erro('endereco') ? 'border-red-500' : 'border-gray-300'" />
+          <p id="pe-ext-endereco-ajuda" class="text-xs text-gray-500 italic mt-1">A página do órgão onde o PDTIC está publicado.</p>
+          <p *ngIf="erro('endereco') as e" [id]="ids.endereco + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+        </div>
+      </div>
+    </fieldset>
+
+    <p class="text-xs text-gray-500 italic">Confira os dados antes de registrar: o PDTIC registrado fica publicado e não se apaga.</p>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+      <button type="button" (click)="cancelar.emit()" [disabled]="registrando"
+              class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        Cancelar
+      </button>
+      <button type="submit" [disabled]="enviandoArquivo" [attr.aria-disabled]="registrando || null"
+              class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-60">
+        <span class="material-icons text-lg" aria-hidden="true">inventory</span> {{ registrando ? 'Registrando...' : 'Registrar o PDTIC' }}
+      </button>
+    </div>
+  </form>
+</section>

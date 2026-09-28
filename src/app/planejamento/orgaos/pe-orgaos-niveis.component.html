@@ -1,0 +1,232 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <!-- Esperando o meu-papel: nenhuma consulta antes dele -->
+  <p *ngIf="pode === null" role="status" class="text-sm text-gray-600">Conferindo o seu papel no módulo...</p>
+
+  <div *ngIf="pode === false && !erroPapel" class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Nível de cada órgão</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem acompanha o nível de maturidade
+      e os ajustes de cada órgão. Se você precisa mudar algo para um órgão, fale com ele.</p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <p class="mt-1">Sem ele, a lista de órgãos não abre. Tente de novo em alguns instantes.</p>
+    <button type="button" (click)="tentarDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <ng-container *ngIf="pode">
+    <p *ngIf="abrindoAjustes" role="status" class="text-sm text-gray-600">Carregando o órgão...</p>
+
+    <!-- Ajustes de um órgão -->
+    <ng-container *ngIf="orgaoAjustes as o; else lista">
+      <button type="button" (click)="voltarParaLista()"
+              class="inline-flex items-center gap-1.5 text-sm font-semibold text-purple-700 hover:underline">
+        <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar para a lista de órgãos
+      </button>
+      <app-pe-orgao-ajustes [orgao]="o" (verComoOrgao)="verComoOrgao(o)" (salvou)="ajustesSalvos($event)"
+                            (trocarNivel)="abrirTroca(o)"></app-pe-orgao-ajustes>
+    </ng-container>
+
+    <!-- Lista dos órgãos -->
+    <ng-template #lista>
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-gray-900 mb-1">Nível de cada órgão</h2>
+        <!-- F3: o texto segue o modo dos níveis -->
+        <p *ngIf="!modoLivre" class="text-sm text-gray-700 leading-relaxed">O nível de maturidade diz o que o órgão preenche no PDTIC.
+          Escolha o nível de cada órgão com a justificativa; ela fica no histórico, que ajuda no Relatório de Maturidade (art. 9º, X, do
+          Decreto nº 48.899/2026). Enquanto você não escolhe, vale o nível padrão: o primeiro nível ativo da lista.</p>
+        <p *ngIf="modoLivre" class="text-sm text-gray-700 leading-relaxed">No modo livre, o nível de cada órgão é calculado pelo que o
+          PDTIC tem. Aqui você vê o nível que cada órgão alcançou e ajusta um passo, uma seção ou um campo só para um órgão, quando
+          precisar. O histórico mostra os níveis escolhidos no modo definido, que ficam guardados.</p>
+        <p class="text-xs text-gray-500 italic mt-2">{{ modoLivre ? 'Por cima do modo livre' : 'Por cima do nível' }}, dá para ajustar um
+          passo, uma seção ou um campo só para um órgão. Use "Ver como o órgão vê" para conferir o passo a passo que o órgão recebe.</p>
+
+        <form (ngSubmit)="buscar()" class="flex flex-col md:flex-row md:items-end gap-3 mt-4">
+          <div class="flex-1">
+            <label for="pe-orgaos-filtro" class="block text-sm font-semibold text-gray-700 mb-1">Nome ou sigla do órgão</label>
+            <input id="pe-orgaos-filtro" type="text" [(ngModel)]="filtro" name="pe-orgaos-filtro" placeholder="Ex.: SES ou Saúde"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" [attr.aria-disabled]="carregando || null"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+              <span class="material-icons text-base" aria-hidden="true">search</span> Buscar
+            </button>
+            <button *ngIf="filtroAplicado" type="button" (click)="limparFiltro()" [attr.aria-disabled]="carregando || null"
+                    class="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              Limpar o filtro
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div aria-live="polite">
+          <p *ngIf="carregando && !orgaos" class="text-sm text-gray-600">Carregando os órgãos...</p>
+          <p *ngIf="erroCarga" class="text-sm text-red-700">Não foi possível carregar os órgãos.
+            <button type="button" (click)="buscar()" class="font-semibold underline">Tentar de novo</button></p>
+          <p *ngIf="orgaos && orgaos.length === 0 && !erroCarga" class="text-sm text-gray-600">
+            {{ filtroAplicado ? 'Nenhum órgão com esse nome ou sigla.' : 'Nenhum órgão cadastrado ainda.' }}
+          </p>
+          <p *ngIf="orgaos && orgaos.length > 0" class="text-sm text-gray-600 mb-3">
+            {{ orgaos.length === 1 ? '1 órgão' : orgaos.length + ' órgãos' }}<ng-container *ngIf="filtroAplicado"> com "{{ filtroAplicado }}"</ng-container>.
+          </p>
+        </div>
+
+        <div *ngIf="orgaos && orgaos.length > 0" class="relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: órgãos e níveis de maturidade">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Órgãos com o nível de maturidade e os ajustes de cada um</caption>
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                <th scope="col" class="px-4 py-3">Órgão</th>
+                <th scope="col" class="px-4 py-3">{{ modoLivre ? 'Nível alcançado' : 'Nível' }}</th>
+                <th scope="col" class="px-4 py-3">Ajustes</th>
+                <th scope="col" class="px-4 py-3">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let o of orgaos; trackBy: porOrgao" class="border-t border-gray-100 align-top">
+                <th scope="row" class="px-4 py-3 text-left font-normal">
+                  <p class="font-semibold text-gray-900">{{ o.Sigla }}</p>
+                  <p class="text-xs text-gray-600">{{ o.Nome }}</p>
+                </th>
+                <td class="px-4 py-3">
+                  <!-- F3: no modo livre, o nível que o PDTIC alcançou -->
+                  <p *ngIf="modoLivre" class="font-medium text-gray-900">{{ nivelAlcancado(o) }}</p>
+                  <ng-container *ngIf="!modoLivre">
+                    <p class="font-medium text-gray-900">{{ o.NivelNome }}</p>
+                    <p *ngIf="o.NivelPadrao" class="text-xs text-amber-700">nível padrão: nenhum nível escolhido para o órgão</p>
+                  </ng-container>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">{{ o.Ajustes === 0 ? 'Nenhum' : o.Ajustes }}</td>
+                <td class="px-4 py-3">
+                  <!-- Sem artigo antes da sigla: o gênero muda de órgão para órgão (F1, A11) -->
+                  <div class="flex flex-wrap gap-2">
+                    <button *ngIf="!modoLivre" type="button" (click)="abrirTroca(o)" [attr.aria-label]="'Trocar o nível do órgão ' + o.Sigla"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-blue-200 bg-white text-xs font-semibold text-blue-700 hover:bg-blue-50">
+                      <span class="material-icons text-sm" aria-hidden="true">swap_vert</span> Trocar nível
+                    </button>
+                    <button type="button" (click)="abrirHistorico(o)" [attr.aria-label]="'Histórico do nível do órgão ' + o.Sigla"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                      <span class="material-icons text-sm" aria-hidden="true">history</span> Histórico
+                    </button>
+                    <button type="button" (click)="abrirAjustes(o)" [attr.aria-label]="'Ajustes do órgão ' + o.Sigla"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                      <span class="material-icons text-sm" aria-hidden="true">tune</span> Ajustes
+                    </button>
+                    <button type="button" (click)="verComoOrgao(o)" [attr.aria-label]="'Ver o passo a passo como o órgão ' + o.Sigla + ' vê'"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-purple-200 bg-white text-xs font-semibold text-purple-700 hover:bg-gray-50">
+                      <span class="material-icons text-sm" aria-hidden="true">visibility</span> Ver como o órgão vê
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-template>
+  </ng-container>
+</div>
+
+<!-- Janela: trocar o nível -->
+<div *ngIf="troca as t" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div appDialogo aria-labelledby="pe-troca-titulo" (fechar)="fecharTroca()" class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+    <form (ngSubmit)="salvarTroca()" citaPlanejamento class="tela-pgia">
+      <h2 id="pe-troca-titulo" class="text-lg font-bold text-gray-900">Trocar o nível do órgão {{ t.orgao.Sigla }}</h2>
+      <p class="text-sm text-gray-600 mt-1">{{ t.orgao.Nome }}. Hoje: <strong>{{ t.orgao.NivelNome }}</strong><ng-container *ngIf="t.orgao.NivelPadrao"> (o padrão)</ng-container>.</p>
+
+      <!-- O resumo recebe o foco (sem aviso falado à parte, que o leria duas vezes) e cada item leva ao campo (F1, A13) -->
+      <div *ngIf="errosTroca.length > 0" id="pe-troca-erros" tabindex="-1"
+           class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <p class="font-semibold">Antes de trocar, corrija:</p>
+        <ul class="list-disc ml-5 mt-1 space-y-1">
+          <li *ngFor="let e of errosTroca"><button type="button" (click)="focarCampoTroca(e.campo)" class="block text-left underline">{{ e.mensagem }}</button></li>
+        </ul>
+      </div>
+
+      <label for="pe-troca-nivel" class="block text-sm font-semibold text-gray-800 mt-4 mb-1">
+        Nível novo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+      </label>
+      <select id="pe-troca-nivel" [(ngModel)]="t.nivelId" name="pe-troca-nivel" aria-required="true"
+              [attr.aria-invalid]="erroTroca('nivel') ? true : null" [attr.aria-describedby]="descritoresTroca('nivel', 'pe-troca-nivel-ajuda')"
+              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [ngClass]="erroTroca('nivel') ? 'border-red-500' : 'border-gray-300'">
+        <option [ngValue]="null" disabled>Escolha o nível</option>
+        <!-- F1 (A21): devolver o órgão ao padrão (vai como nível nulo) -->
+        <option *ngIf="!t.orgao.NivelPadrao" [ngValue]="nivelPadrao">
+          Voltar ao nível padrão{{ nivelPadraoAtual ? ' (hoje, ' + nivelPadraoAtual.Nome + ')' : '' }}
+        </option>
+        <option *ngFor="let n of niveisParaTroca(t.orgao)" [ngValue]="n.Id">
+          {{ n.Nome }}{{ n.Ativo ? '' : ' (desativado)' }}{{ n.Id === t.orgao.NivelId && !t.orgao.NivelPadrao ? ' (atual)' : '' }}
+        </option>
+      </select>
+      <p id="pe-troca-nivel-ajuda" class="text-xs text-gray-500 italic mt-1">{{ ajudaNivel(t) }}</p>
+      <p *ngIf="erroTroca('nivel') as e" id="pe-troca-nivel-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
+
+      <label for="pe-troca-justificativa" class="block text-sm font-semibold text-gray-800 mt-4 mb-1">
+        Justificativa<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+      </label>
+      <textarea id="pe-troca-justificativa" rows="4" [(ngModel)]="t.justificativa" name="pe-troca-justificativa" [maxlength]="maxJustificativa"
+                placeholder="Ex.: A equipe de TIC já elaborou dois PDTICs e mantém o inventário atualizado."
+                aria-required="true" [attr.aria-invalid]="erroTroca('justificativa') ? true : null"
+                [attr.aria-describedby]="descritoresTroca('justificativa', 'pe-troca-justificativa-ajuda')"
+                class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [ngClass]="erroTroca('justificativa') ? 'border-red-500' : 'border-gray-300'"></textarea>
+      <p id="pe-troca-justificativa-ajuda" class="text-xs text-gray-500 italic mt-1">Diga por que o órgão fica neste nível. A justificativa
+        fica no histórico do órgão.</p>
+      <p *ngIf="erroTroca('justificativa') as e" id="pe-troca-justificativa-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
+
+      <p class="text-xs text-gray-600 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 mt-4">O passo a passo do órgão muda na hora.
+        Nada do que o órgão já preencheu se perde: o que o nível novo não pede fica guardado e volta se o nível voltar.</p>
+
+      <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5">
+        <button type="button" (click)="fecharTroca()" [disabled]="salvandoNivel"
+                class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          Cancelar
+        </button>
+        <!-- Enquanto salva, ocupado (aria-disabled) sem sair do Tab: desligado, o botão perdia o foco (F1, C11) -->
+        <button type="submit" [attr.aria-disabled]="salvandoNivel || null"
+                class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+          <span class="material-icons text-lg" aria-hidden="true">save</span> {{ salvandoNivel ? 'Salvando...' : 'Trocar o nível' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Janela: histórico do nível -->
+<div *ngIf="historicoDe as o" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div appDialogo aria-labelledby="pe-historico-nivel-titulo" (fechar)="fecharHistorico()" class="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6">
+    <h2 id="pe-historico-nivel-titulo" class="text-lg font-bold text-gray-900">Histórico do nível do órgão {{ o.Sigla }}</h2>
+    <p class="text-sm text-gray-600 mt-1">{{ o.Nome }}. Do mais recente para o mais antigo.</p>
+
+    <div class="mt-4 max-h-[70vh] overflow-y-auto" aria-live="polite">
+      <p *ngIf="!historico && !erroHistorico" class="text-sm text-gray-600">Carregando o histórico...</p>
+      <p *ngIf="erroHistorico" class="text-sm text-red-700">Não foi possível carregar o histórico. Feche e abra de novo.</p>
+      <p *ngIf="historico && historico.length === 0" class="text-sm text-gray-600">O nível deste órgão ainda não foi definido: vale o
+        nível padrão.</p>
+      <ol *ngIf="historico && historico.length > 0" class="space-y-2">
+        <li *ngFor="let h of historico" class="rounded-lg border border-gray-200 px-3 py-2 text-sm">
+          <!-- F1 (A21): "(padrão)" quando o nível era o padrão ou o órgão voltou a ele -->
+          <p class="text-gray-900">
+            <strong>{{ rotuloNivelHistorico(h.NivelAnterior, h.NivelAnteriorPadrao) }}</strong>
+            <span aria-hidden="true">→</span><span class="sr-only">, passou a</span>
+            <strong>{{ rotuloNivelHistorico(h.NivelNovo, h.NivelNovoPadrao) }}</strong>
+          </p>
+          <p class="text-xs text-gray-500">{{ h.DefinidoEm | date:'dd/MM/yyyy HH:mm' }}<ng-container *ngIf="nomeDeQuem(h.DefinidoPorNome, h.DefinidoPor) as quem"> · por {{ quem }}</ng-container></p>
+          <p *ngIf="h.Justificativa" class="text-xs text-gray-700 mt-1"><span class="font-semibold">Justificativa:</span> {{ h.Justificativa }}</p>
+        </li>
+      </ol>
+    </div>
+
+    <div class="flex justify-end mt-5">
+      <button type="button" (click)="fecharHistorico()"
+              class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Fechar</button>
+    </div>
+  </div>
+</div>

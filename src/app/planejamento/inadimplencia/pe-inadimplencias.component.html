@@ -1,0 +1,358 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-xl font-bold text-gray-900">Notificações e inadimplências</h2>
+    <p class="text-sm text-gray-700 leading-relaxed mt-1">
+      O órgão que não comunica à SGDI o PDTIC aprovado pelo comitê interno (art. 7º, V, do Decreto nº 48.899/2026) tem a inadimplência
+      registrada no painel e comunicada ao órgão de controle interno (art. 7º, § 3º, do Decreto nº 48.899/2026). Antes, a SGDI segue os
+      passos do art. 11 do Decreto nº 48.899/2026:
+    </p>
+    <ol class="mt-2 text-sm text-gray-700 list-decimal ml-5 space-y-1 leading-relaxed">
+      <li>Notifica o titular do órgão, com o prazo descumprido e a comunicação pendente.</li>
+      <li>Espera 5 dias úteis para o órgão regularizar ou apresentar justificativa. O sistema conta os dias úteis, sem fins de semana e
+        feriados.</li>
+      <li>Sem regularização nem justificativa aceita, registra a inadimplência com o motivo (descumprimento de prazo, omissão reiterada ou
+        recusa injustificada de comunicação) e a nota de motivação que vai para o controle interno (art. 11, § 1º, do Decreto nº 48.899/2026).</li>
+      <li>Quando o órgão regulariza, registra o saneamento: a marca sai do painel, e a data fica guardada (art. 11, § 2º, do Decreto nº
+        48.899/2026).</li>
+    </ol>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <button type="button" (click)="tentarPapelDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <!-- Equipe e consulta do órgão: as notificações do próprio órgão, só para ler -->
+  <ng-container *ngIf="podeVer === false && !erroPapel">
+    <app-pe-inadimplencias-orgao *ngIf="meuOrgao; else semOrgao" [orgaoId]="meuOrgao" [sigla]="siglaMeuOrgao" [nivelTitulo]="3"></app-pe-inadimplencias-orgao>
+    <ng-template #semOrgao>
+      <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-5 text-sm leading-relaxed">
+        <span class="material-icons text-amber-600" aria-hidden="true">lock</span>
+        <p>A lista de todos os órgãos é da SGDI, do administrador do módulo e da Secretaria do CGTIC.</p>
+      </div>
+    </ng-template>
+  </ng-container>
+
+  <ng-container *ngIf="podeVer">
+
+    <!-- Filtros e a notificação nova -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex flex-col md:flex-row md:items-end gap-3">
+        <div>
+          <label for="pe-inad-filtro-situacao" class="block text-sm font-semibold text-gray-800">Situação</label>
+          <select id="pe-inad-filtro-situacao" name="pe-inad-filtro-situacao" [(ngModel)]="situacaoEscolhida" (ngModelChange)="aplicarFiltros()"
+                  class="mt-1 w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todas</option>
+            <option *ngFor="let s of situacoes; trackBy: porValor" [value]="s.valor">{{ s.rotulo }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="pe-inad-filtro-orgao" class="block text-sm font-semibold text-gray-800">Órgão</label>
+          <select id="pe-inad-filtro-orgao" name="pe-inad-filtro-orgao" [(ngModel)]="orgaoEscolhido" (ngModelChange)="aplicarFiltros()"
+                  class="mt-1 w-full max-w-md px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todos os órgãos</option>
+            <option *ngFor="let o of orgaos ?? []; trackBy: porOrgao" [value]="'' + o.OrgaoId">{{ o.Sigla }} · {{ o.Nome }}</option>
+          </select>
+        </div>
+        <button *ngIf="filtrosAtivos" type="button" (click)="limparFiltros()"
+                class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+          <span class="material-icons text-base" aria-hidden="true">filter_alt_off</span> Limpar os filtros
+        </button>
+        <button *ngIf="podeRegistrar" type="button" (click)="abrir('notificar')"
+                class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700">
+          <span class="material-icons text-base" aria-hidden="true">forward_to_inbox</span> Registrar uma notificação
+        </button>
+      </div>
+      <p class="text-xs text-gray-500 italic mt-2">Os filtros valem na hora e ficam no endereço da página. As notificações em aberto vêm primeiro.</p>
+      <p *ngIf="!podeRegistrar" class="text-xs text-gray-500 italic mt-1">Quem registra as notificações e as inadimplências é a SGDI e o
+        administrador do módulo. Aqui você só lê.</p>
+    </div>
+
+    <p *ngIf="carregando && itens.length === 0" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando as notificações...</p>
+
+    <div *ngIf="erroLista" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      {{ erroLista }}
+      <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+
+    <section *ngIf="carregou && !erroLista && !(carregando && itens.length === 0)" class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-inad-lista">
+      <h3 id="pe-inad-lista" class="text-base font-semibold text-gray-900">Notificações</h3>
+
+      <!-- Nenhuma no sistema, ou nenhuma com os filtros -->
+      <div *ngIf="itens.length === 0 && !filtrosAtivos" class="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+        <p>Nenhuma notificação registrada até agora.</p>
+        <button *ngIf="podeRegistrar" type="button" (click)="abrir('notificar')" class="mt-2 font-semibold text-purple-700 underline">
+          Registrar a primeira notificação
+        </button>
+      </div>
+      <p *ngIf="itens.length === 0 && filtrosAtivos" class="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+        Nenhuma notificação com {{ descricaoFiltros }}.
+        <button type="button" (click)="limparFiltros()" class="font-semibold text-purple-700 underline">Limpar os filtros</button>
+      </p>
+
+      <ng-container *ngIf="itens.length > 0">
+        <p class="text-sm text-gray-600 mt-1" aria-live="polite">{{ total === 1 ? '1 notificação.' : total + ' notificações.' }}</p>
+        <ul class="mt-3 space-y-4">
+          <li *ngFor="let i of itens; trackBy: porId" class="rounded-lg border border-gray-200 p-4">
+            <app-pe-inadimplencia-detalhe [item]="i" [mostrarOrgao]="true"></app-pe-inadimplencia-detalhe>
+
+            <!-- Ações: a notificação em aberto (justificar, registrar depois do prazo, sanear) e a inadimplência (sanear) -->
+            <div *ngIf="podeRegistrar && (i.Situacao === 'notificado' || i.Situacao === 'inadimplente')" class="mt-3 pt-3 border-t border-gray-100">
+              <div class="flex flex-wrap gap-2">
+                <button *ngIf="i.Situacao === 'notificado'" type="button" (click)="abrir('justificar', i)"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        [attr.aria-label]="'Aceitar a justificativa do órgão ' + i.OrgaoSigla">
+                  <span class="material-icons text-base" aria-hidden="true">fact_check</span> Aceitar a justificativa
+                </button>
+                <button *ngIf="i.Situacao === 'notificado'" type="button" (click)="abrir('registrar', i)" [disabled]="!i.Vencido"
+                        [attr.aria-describedby]="i.Vencido ? null : 'pe-inad-quando-' + i.Id"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                        [attr.aria-label]="'Registrar a inadimplência do órgão ' + i.OrgaoSigla">
+                  <span class="material-icons text-base" aria-hidden="true">report</span> Registrar a inadimplência
+                </button>
+                <button type="button" (click)="abrir('sanear', i)"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-green-600 bg-white text-sm font-semibold text-green-800 hover:bg-green-50"
+                        [attr.aria-label]="'Registrar o saneamento do órgão ' + i.OrgaoSigla">
+                  <span class="material-icons text-base" aria-hidden="true">task_alt</span> Registrar o saneamento
+                </button>
+              </div>
+              <p *ngIf="quandoPodeRegistrar(i) as q" [id]="'pe-inad-quando-' + i.Id" class="text-xs text-gray-500 italic mt-2">
+                Registrar a inadimplência: {{ q }}
+              </p>
+            </div>
+          </li>
+        </ul>
+
+        <button *ngIf="temMais" type="button" (click)="carregarMais()" [attr.aria-disabled]="carregando || null"
+                class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          {{ carregando ? 'Carregando...' : 'Carregar mais' }}
+        </button>
+      </ng-container>
+    </section>
+  </ng-container>
+
+  <!-- Janela da ação (foco preso, Esc fecha, foco de volta ao botão que abriu) -->
+  <div *ngIf="janela" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    <div appDialogo aria-labelledby="pe-inad-janela-titulo" (fechar)="fechar()" class="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+      <form (ngSubmit)="confirmar()" novalidate>
+        <div class="px-6 pt-4 pb-3 border-b border-gray-100">
+          <h2 id="pe-inad-janela-titulo" class="text-lg font-bold text-gray-900">{{ tituloJanela }}</h2>
+          <p *ngIf="alvo as a" class="text-sm text-gray-700 mt-1">
+            Órgão {{ a.OrgaoSigla }} · notificado em {{ dataDoAlvo() }} · {{ prazoDoAlvo() }}
+          </p>
+        </div>
+
+        <div class="px-6 py-4 max-h-[70vh] overflow-y-auto text-sm text-gray-700 leading-relaxed space-y-4">
+          <p *ngIf="alvo as a" class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 break-words">
+            <span class="font-semibold text-gray-900">Comunicação pendente: </span><span data-sem-dica>{{ a.Obrigacao }}</span>
+          </p>
+
+          <!-- O que falta, com o botão que leva a cada campo -->
+          <div *ngIf="tentou && errosForm.length > 0" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
+            <p class="font-semibold">Antes de registrar, corrija:</p>
+            <ul class="list-disc ml-5 mt-1 space-y-2">
+              <li *ngFor="let e of errosForm"><button type="button" (click)="focar(e.campo)" class="block text-left underline">{{ e.mensagem }}</button></li>
+            </ul>
+          </div>
+
+          <!-- Registrar a notificação -->
+          <ng-container *ngIf="janela === 'notificar'">
+            <p>O sistema conta 5 dias úteis a partir da data da notificação. Depois desse prazo, sem regularização nem justificativa aceita, a
+              inadimplência pode ser registrada.</p>
+            <div>
+              <label [for]="ids.orgao" class="block text-sm font-semibold text-gray-800">
+                Órgão notificado<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+              </label>
+              <select [id]="ids.orgao" name="pe-inad-orgao" [(ngModel)]="form.orgao" (ngModelChange)="mudou('orgao')"
+                      aria-required="true" [attr.aria-invalid]="erro('orgao') ? true : null" [attr.aria-describedby]="descritores('orgao')"
+                      class="mt-1 w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      [ngClass]="erro('orgao') ? 'border-red-500' : 'border-gray-300'">
+                <option value="">{{ orgaos === null ? 'Carregando os órgãos...' : 'Escolha o órgão' }}</option>
+                <option *ngFor="let o of orgaos ?? []; trackBy: porOrgao" [value]="'' + o.OrgaoId">{{ o.Sigla }} · {{ o.Nome }}</option>
+              </select>
+              <p *ngIf="orgaos !== null && orgaos.length === 0" class="text-xs text-red-600 mt-1">
+                A lista de órgãos não veio.
+                <button type="button" (click)="recarregarOrgaos()" class="font-semibold underline">Tentar de novo</button>
+              </p>
+              <p *ngIf="erro('orgao') as e" [id]="ids.orgao + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+            </div>
+            <div>
+              <label [for]="ids.obrigacao" class="block text-sm font-semibold text-gray-800">
+                Comunicação pendente<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+              </label>
+              <p id="pe-inad-obrigacao-ajuda" class="text-xs text-gray-500 italic mt-0.5">O que o órgão deixou de comunicar à SGDI, com a citação.
+                A notificação indica a comunicação pendente e o prazo descumprido (art. 11, I, do Decreto nº 48.899/2026).</p>
+              <textarea [id]="ids.obrigacao" name="pe-inad-obrigacao" rows="3" [(ngModel)]="form.obrigacao" (ngModelChange)="mudou('obrigacao')"
+                        [maxlength]="limites.obrigacao" aria-required="true" [attr.aria-invalid]="erro('obrigacao') ? true : null"
+                        [attr.aria-describedby]="descritores('obrigacao', 'pe-inad-obrigacao-ajuda')"
+                        class="mt-1 w-full px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        [ngClass]="erro('obrigacao') ? 'border-red-500' : 'border-gray-300'"></textarea>
+              <p *ngIf="erro('obrigacao') as e" [id]="ids.obrigacao + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+            </div>
+            <div>
+              <label [for]="ids.prazo" class="block text-sm font-semibold text-gray-800">
+                Prazo descumprido<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+              </label>
+              <input [id]="ids.prazo" name="pe-inad-prazo" type="text" [(ngModel)]="form.prazo" (ngModelChange)="mudou('prazo')"
+                     [maxlength]="limites.prazoDescumprido" placeholder="Ex.: 30 dias depois da aprovação pelo comitê interno"
+                     aria-required="true" [attr.aria-invalid]="erro('prazo') ? true : null" [attr.aria-describedby]="descritores('prazo', 'pe-inad-prazo-ajuda')"
+                     class="mt-1 w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [ngClass]="erro('prazo') ? 'border-red-500' : 'border-gray-300'" />
+              <p id="pe-inad-prazo-ajuda" class="text-xs text-gray-500 italic mt-1">O prazo que a regulamentação da SGDI dá para a comunicação.</p>
+              <p *ngIf="erro('prazo') as e" [id]="ids.prazo + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label [for]="ids.data" class="block text-sm font-semibold text-gray-800">
+                  Data da notificação<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+                </label>
+                <input [id]="ids.data" name="pe-inad-data" type="date" [(ngModel)]="form.data" (ngModelChange)="mudou('data')" [max]="hoje"
+                       aria-required="true" [attr.aria-invalid]="erro('data') ? true : null" [attr.aria-describedby]="descritores('data')"
+                       class="mt-1 w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       [ngClass]="erro('data') ? 'border-red-500' : 'border-gray-300'" />
+                <p *ngIf="erro('data') as e" [id]="ids.data + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+              </div>
+              <div>
+                <label [for]="ids.documento" class="block text-sm font-semibold text-gray-800">
+                  Documento da notificação<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+                </label>
+                <input [id]="ids.documento" name="pe-inad-documento" type="text" [(ngModel)]="form.documento" (ngModelChange)="mudou('documento')"
+                       [maxlength]="limites.documento" placeholder="Ex.: Ofício nº 12/2026-SGDI"
+                       aria-required="true" [attr.aria-invalid]="erro('documento') ? true : null" [attr.aria-describedby]="descritores('documento')"
+                       class="mt-1 w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       [ngClass]="erro('documento') ? 'border-red-500' : 'border-gray-300'" />
+                <p *ngIf="erro('documento') as e" [id]="ids.documento + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+              </div>
+              <div>
+                <label [for]="ids.sei" class="block text-sm font-semibold text-gray-800">Número do processo SEI</label>
+                <!-- A máscara do SEI enquanto a pessoa digita, como na decisão do CGTIC (F2) -->
+                <input [id]="ids.sei" #campoSei name="pe-inad-sei" type="text" inputmode="numeric" autocomplete="off" [ngModel]="form.sei"
+                       (ngModelChange)="digitarSeiNotificacao(campoSei)" [maxlength]="tamanhoSei" placeholder="Ex.: 00000-00000000/2026-00"
+                       [attr.aria-invalid]="erro('sei') ? true : null" [attr.aria-describedby]="descritores('sei', 'pe-inad-sei-ajuda')"
+                       class="mt-1 w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       [ngClass]="erro('sei') ? 'border-red-500' : 'border-gray-300'" />
+                <p id="pe-inad-sei-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional: o processo em que a notificação foi juntada.</p>
+                <p *ngIf="erro('sei') as e" [id]="ids.sei + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- Aceitar a justificativa -->
+          <ng-container *ngIf="janela === 'justificar'">
+            <p>Com a justificativa aceita, a notificação se encerra e o órgão não fica inadimplente por ela (art. 11, III, do Decreto nº
+              48.899/2026).</p>
+            <div>
+              <label [for]="ids.justificativa" class="block text-sm font-semibold text-gray-800">
+                Justificativa apresentada pelo órgão<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+              </label>
+              <p id="pe-inad-justificativa-ajuda" class="text-xs text-gray-500 italic mt-0.5">Resuma o que o órgão alegou e por que a SGDI aceitou.</p>
+              <textarea [id]="ids.justificativa" name="pe-inad-justificativa" rows="5" [(ngModel)]="form.justificativa" (ngModelChange)="mudou('justificativa')"
+                        [maxlength]="limites.justificativa" aria-required="true" [attr.aria-invalid]="erro('justificativa') ? true : null"
+                        [attr.aria-describedby]="descritores('justificativa', 'pe-inad-justificativa-ajuda')"
+                        class="mt-1 w-full px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        [ngClass]="erro('justificativa') ? 'border-red-500' : 'border-gray-300'"></textarea>
+              <p *ngIf="erro('justificativa') as e" [id]="ids.justificativa + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+            </div>
+          </ng-container>
+
+          <!-- Registrar a inadimplência -->
+          <ng-container *ngIf="janela === 'registrar'">
+            <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+              A inadimplência fica marcada no painel, na conformidade e na página do órgão até o saneamento, e é comunicada ao órgão de controle
+              interno com a nota de motivação (art. 7º, § 3º, do Decreto nº 48.899/2026).
+            </p>
+            <fieldset [id]="ids.motivo" tabindex="-1" [attr.aria-describedby]="descritores('motivo')">
+              <legend class="block text-sm font-semibold text-gray-800">
+                Motivo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+              </legend>
+              <p class="text-xs text-gray-500 italic mt-0.5">A indicação expressa do motivo que o art. 11, III, do Decreto nº 48.899/2026 pede.</p>
+              <div class="mt-2 space-y-2">
+                <label *ngFor="let m of motivos; trackBy: porValor" class="flex items-start gap-2 text-sm text-gray-800">
+                  <input type="radio" class="w-4 h-4 mt-0.5" name="pe-inad-motivo" [value]="m.valor" [(ngModel)]="form.motivo" (ngModelChange)="mudou('motivo')" />
+                  <span><strong>{{ m.rotulo }}.</strong> {{ m.explicacao }}</span>
+                </label>
+              </div>
+              <p *ngIf="erro('motivo') as e" [id]="ids.motivo + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+            </fieldset>
+            <div>
+              <label [for]="ids.nota" class="block text-sm font-semibold text-gray-800">
+                Nota de motivação<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+              </label>
+              <div id="pe-inad-nota-ajuda" class="text-xs text-gray-500 italic mt-0.5">
+                <p>A nota acompanha a comunicação ao controle interno e descreve (art. 11, § 1º, do Decreto nº 48.899/2026):</p>
+                <ul class="list-disc ml-5 mt-1 space-y-0.5">
+                  <li>o prazo ou a obrigação descumprida;</li>
+                  <li>as notificações feitas e as respostas recebidas;</li>
+                  <li>o impacto da omissão no portfólio de TIC do GDF;</li>
+                  <li>as medidas corretivas recomendadas.</li>
+                </ul>
+              </div>
+              <textarea [id]="ids.nota" name="pe-inad-nota" rows="7" [(ngModel)]="form.nota" (ngModelChange)="mudou('nota')"
+                        [maxlength]="limites.nota" aria-required="true" [attr.aria-invalid]="erro('nota') ? true : null"
+                        [attr.aria-describedby]="descritores('nota', 'pe-inad-nota-ajuda')"
+                        class="mt-1 w-full px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        [ngClass]="erro('nota') ? 'border-red-500' : 'border-gray-300'"></textarea>
+              <p *ngIf="erro('nota') as e" [id]="ids.nota + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+            </div>
+            <div>
+              <label [for]="ids.controle" class="block text-sm font-semibold text-gray-800">Comunicado ao controle interno em</label>
+              <input [id]="ids.controle" name="pe-inad-controle" type="date" [(ngModel)]="form.controle" (ngModelChange)="mudou('controle')" [max]="hoje"
+                     [attr.aria-invalid]="erro('controle') ? true : null" [attr.aria-describedby]="descritores('controle', 'pe-inad-controle-ajuda')"
+                     class="mt-1 w-full md:w-auto px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [ngClass]="erro('controle') ? 'border-red-500' : 'border-gray-300'" />
+              <p id="pe-inad-controle-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional: a data em que a SGDI comunicou o órgão de controle
+                interno, se já comunicou.</p>
+              <p *ngIf="erro('controle') as e" [id]="ids.controle + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+            </div>
+          </ng-container>
+
+          <!-- Registrar o saneamento -->
+          <ng-container *ngIf="janela === 'sanear'">
+            <p>O órgão regularizou a comunicação pendente. Com o saneamento, a marca sai do painel e a data fica guardada: o decreto dá 2 dias
+              úteis para isso depois da regularização (art. 11, § 2º, do Decreto nº 48.899/2026).</p>
+            <div>
+              <label [for]="ids.saneado" class="block text-sm font-semibold text-gray-800">
+                Data do saneamento<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+              </label>
+              <input [id]="ids.saneado" name="pe-inad-saneado" type="date" [(ngModel)]="form.saneado" (ngModelChange)="mudou('saneado')" [max]="hoje"
+                     aria-required="true" [attr.aria-invalid]="erro('saneado') ? true : null" [attr.aria-describedby]="descritores('saneado', 'pe-inad-saneado-ajuda')"
+                     class="mt-1 w-full md:w-auto px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [ngClass]="erro('saneado') ? 'border-red-500' : 'border-gray-300'" />
+              <p id="pe-inad-saneado-ajuda" class="text-xs text-gray-500 italic mt-1">O dia em que o órgão regularizou a comunicação.</p>
+              <p *ngIf="erro('saneado') as e" [id]="ids.saneado + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+            </div>
+            <div>
+              <label [for]="ids.observacao" class="block text-sm font-semibold text-gray-800">Observação</label>
+              <textarea [id]="ids.observacao" name="pe-inad-observacao" rows="4" [(ngModel)]="form.observacao" (ngModelChange)="mudou('observacao')"
+                        [maxlength]="limites.observacao" [attr.aria-invalid]="erro('observacao') ? true : null"
+                        [attr.aria-describedby]="descritores('observacao', 'pe-inad-observacao-ajuda')"
+                        class="mt-1 w-full px-3 py-2 border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        [ngClass]="erro('observacao') ? 'border-red-500' : 'border-gray-300'"></textarea>
+              <p id="pe-inad-observacao-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional: como o órgão regularizou (o que comunicou e quando).</p>
+              <p *ngIf="erro('observacao') as e" [id]="ids.observacao + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
+            </div>
+          </ng-container>
+
+          <p *ngIf="erroJanela" id="pe-inad-erro-janela" tabindex="-1"
+             class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erroJanela }}</p>
+        </div>
+
+        <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <button type="button" (click)="fechar()" [disabled]="gravando"
+                  class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            Cancelar
+          </button>
+          <button type="submit" [attr.aria-disabled]="gravando || null"
+                  class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-60"
+                  [ngClass]="janela === 'registrar' ? 'bg-red-600 hover:bg-red-700' : 'bg-purple-600 hover:bg-purple-700'">
+            {{ botaoJanela }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

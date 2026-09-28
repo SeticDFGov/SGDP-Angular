@@ -1,0 +1,139 @@
+<!-- data-sem-dica: a dica de norma não mexe no texto que se edita (ela partiria os nós do editor) -->
+<div class="pe-editor-rico" data-sem-dica>
+  <div class="border rounded-md bg-white" [ngClass]="invalido ? 'border-red-500' : 'border-gray-300'">
+
+    <p *ngIf="situacao === 'carregando'" role="status" class="px-3 py-2 text-xs text-gray-600">Carregando o editor de texto...</p>
+    <div *ngIf="situacao === 'falhou'" role="alert" class="px-3 py-2 text-sm text-red-700">
+      Não foi possível carregar o editor de texto. Confira a conexão e
+      <button type="button" (click)="carregar()" class="font-semibold underline">tente de novo</button>.
+    </div>
+
+    <!-- Barra de ferramentas: um ponto no Tab; setas, Home e End andam entre os botões -->
+    <div *ngIf="situacao === 'pronto'" #barra role="toolbar" [attr.aria-label]="'Formatação de ' + rotulo" [attr.aria-controls]="idEditavel"
+         (keydown)="aoTeclarBarra($event)"
+         class="flex flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1">
+      <ng-container *ngFor="let b of botoes; trackBy: porId">
+        <span *ngIf="b.separa" class="border-r border-gray-300 h-6 mr-1" aria-hidden="true"></span>
+        <button type="button" (click)="usar(b)" (focus)="aoFocarBotao(b)" [disabled]="desligado(b)" [attr.tabindex]="tabindexDe(b)"
+                [attr.aria-label]="b.rotulo" [title]="dica(b)" [attr.aria-keyshortcuts]="b.teclas || null" [attr.aria-pressed]="pressionado(b)"
+                class="inline-flex items-center justify-center h-8 px-2 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40"
+                [ngClass]="pressionado(b) ? 'bg-purple-100 text-purple-800' : ''">
+          <span *ngIf="b.icone" class="material-icons text-lg" aria-hidden="true">{{ b.icone }}</span>
+          <span *ngIf="!b.icone" class="text-xs font-semibold">{{ b.texto }}</span>
+        </button>
+      </ng-container>
+
+      <!-- Com o cursor numa tabela: as ações dela, numa linha própria -->
+      <ng-container *ngIf="estado.tabela">
+        <span class="w-full" aria-hidden="true"></span>
+        <span class="text-xs font-semibold text-gray-600 mr-1">Tabela:</span>
+        <button *ngFor="let b of botoesTabela; trackBy: porId" type="button" (click)="usar(b)" (focus)="aoFocarBotao(b)"
+                [disabled]="desligado(b)" [attr.tabindex]="tabindexDe(b)" [attr.aria-label]="b.rotulo" [title]="dica(b)"
+                [attr.aria-pressed]="pressionado(b)"
+                class="inline-flex items-center justify-center h-8 px-2 rounded text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40"
+                [ngClass]="pressionado(b) ? 'bg-purple-100 text-purple-800' : ''">{{ b.texto }}</button>
+      </ng-container>
+    </div>
+
+    <!-- Link: sem janela, na própria barra (Esc fecha só o painel) -->
+    <div *ngIf="painel === 'link'" role="group" [attr.aria-labelledby]="idBase + '-link-titulo'" (keydown.escape)="fecharPainel($event)"
+         class="border-b border-gray-200 bg-white px-3 py-3 space-y-2">
+      <p [id]="idBase + '-link-titulo'" class="text-sm font-semibold text-gray-800">{{ estado.link ? 'Mudar o link' : 'Incluir link' }}</p>
+      <div>
+        <label [for]="idBase + '-link-endereco'" class="block text-xs font-semibold text-gray-700">Endereço do link</label>
+        <input [id]="idBase + '-link-endereco'" type="url" [ngModel]="hrefLink" (ngModelChange)="hrefLink = $event" placeholder="https://www.df.gov.br"
+               (keydown.enter)="$event.preventDefault(); aplicarLink()"
+               [attr.aria-invalid]="erroLink ? true : null"
+               [attr.aria-describedby]="erroLink ? idBase + '-link-ajuda ' + idBase + '-link-erro' : idBase + '-link-ajuda'"
+               class="mt-0.5 w-full md:w-72 px-2 py-1.5 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+               [ngClass]="erroLink ? 'border-red-500' : 'border-gray-300'" />
+        <p [id]="idBase + '-link-ajuda'" class="text-xs text-gray-500 italic mt-0.5">
+          {{ estado.temSelecao || estado.link ? 'O link vai no texto selecionado.' : 'Sem texto selecionado, o próprio endereço entra no texto.' }}
+          Cole ou digite o endereço completo, como https://www.df.gov.br.
+        </p>
+        <p *ngIf="erroLink" [id]="idBase + '-link-erro'" class="text-xs text-red-600 mt-1">{{ erroLink }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" (click)="aplicarLink()"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+          <span class="material-icons text-base" aria-hidden="true">link</span> Aplicar o link
+        </button>
+        <button *ngIf="estado.link" type="button" (click)="tirarLink()"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-red-200 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+          <span class="material-icons text-base" aria-hidden="true">link_off</span> Tirar o link
+        </button>
+        <button type="button" (click)="fecharPainel()"
+                class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Imagem: o arquivo vai para a API e a descrição é obrigatória -->
+    <div *ngIf="painel === 'imagem'" role="group" [attr.aria-labelledby]="idBase + '-imagem-titulo'" (keydown.escape)="fecharPainel($event)"
+         class="border-b border-gray-200 bg-white px-3 py-3 space-y-2">
+      <p [id]="idBase + '-imagem-titulo'" class="text-sm font-semibold text-gray-800">Inserir imagem</p>
+      <div>
+        <label [for]="idBase + '-imagem-arquivo'" class="block text-xs font-semibold text-gray-700">
+          Imagem<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+        </label>
+        <p [id]="idBase + '-imagem-arquivo-ajuda'" class="text-xs text-gray-500 italic mt-0.5">PNG ou JPEG, até 5 MB. Por exemplo, o organograma da unidade de TIC.</p>
+        <input [id]="idBase + '-imagem-arquivo'" type="file" [accept]="aceitaImagem" (change)="escolherImagem($event)" [disabled]="enviandoImagem"
+               aria-required="true" [attr.aria-invalid]="erroArquivoImagem || erroEnvioImagem ? true : null"
+               [attr.aria-describedby]="descritoresArquivoImagem"
+               class="mt-1 block w-full text-sm text-gray-700 file:mr-3 file:px-4 file:py-2 file:rounded-md file:border-0 file:bg-blue-600 file:text-white file:text-sm file:font-semibold hover:file:bg-blue-700 disabled:opacity-50" />
+        <p *ngIf="erroArquivoImagem" [id]="idBase + '-imagem-arquivo-erro'" class="text-xs text-red-600 mt-1">{{ erroArquivoImagem }}</p>
+        <!-- A recusa do servidor (tipo de verdade, tamanho, falha) é do campo da imagem, como a da conferência daqui:
+             ligada a ele e lida quando ele recebe o foco (F2, B-N2) -->
+        <p *ngIf="erroEnvioImagem" [id]="idBase + '-imagem-envio-erro'" class="text-xs text-red-600 mt-1">{{ erroEnvioImagem }}</p>
+      </div>
+      <div>
+        <label [for]="idBase + '-imagem-descricao'" class="block text-xs font-semibold text-gray-700">
+          Descrição da imagem<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+        </label>
+        <p [id]="idBase + '-imagem-descricao-ajuda'" class="text-xs text-gray-500 italic mt-0.5">
+          Diga, numa frase, o que a imagem mostra. É o que o leitor de tela lê para quem não enxerga.
+        </p>
+        <input [id]="idBase + '-imagem-descricao'" type="text" [ngModel]="descricaoImagem" (ngModelChange)="descricaoImagem = $event; aoMudarDescricao()"
+               (keydown.enter)="$event.preventDefault(); inserirImagem()" [maxlength]="maxDescricao" [disabled]="enviandoImagem"
+               aria-required="true" [attr.aria-invalid]="erroDescricaoImagem ? true : null"
+               [attr.aria-describedby]="erroDescricaoImagem ? idBase + '-imagem-descricao-ajuda ' + idBase + '-imagem-descricao-erro' : idBase + '-imagem-descricao-ajuda'"
+               class="mt-0.5 w-full md:w-72 px-2 py-1.5 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+               [ngClass]="erroDescricaoImagem ? 'border-red-500' : 'border-gray-300'" />
+        <p *ngIf="erroDescricaoImagem" [id]="idBase + '-imagem-descricao-erro'" class="text-xs text-red-600 mt-1">{{ erroDescricaoImagem }}</p>
+      </div>
+      <p *ngIf="enviandoImagem" role="status" class="text-xs text-gray-600">Enviando a imagem...</p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" (click)="inserirImagem()" [attr.aria-disabled]="enviandoImagem || null"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+          <span class="material-icons text-base" aria-hidden="true">image</span> {{ enviandoImagem ? 'Enviando...' : 'Inserir a imagem' }}
+        </button>
+        <button type="button" (click)="fecharPainel()" [disabled]="enviandoImagem"
+                class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Marcador (documento do PDTIC): entra no ponto do cursor; Esc fecha só o painel -->
+    <div *ngIf="painel === 'marcador'" role="group" [attr.aria-labelledby]="idBase + '-marcador-titulo'" (keydown.escape)="fecharPainel($event)"
+         class="border-b border-gray-200 bg-white px-3 py-3 space-y-2">
+      <p [id]="idBase + '-marcador-titulo'" class="text-sm font-semibold text-gray-800">Inserir marcador</p>
+      <p class="text-xs text-gray-500 italic">O marcador entra no ponto onde estava o cursor. Na prévia e no PDF, ele vira o dado do órgão.</p>
+      <ul class="grid gap-1 md:grid-cols-2">
+        <li *ngFor="let m of marcadores; let i = index; trackBy: porChave">
+          <button type="button" [id]="idBase + '-marcador-' + i" (click)="inserirMarcador(m)"
+                  class="w-full text-left px-2 py-1.5 rounded border border-gray-200 bg-white hover:bg-gray-50">
+            <span class="block text-sm font-mono text-purple-800">{{ textoDoMarcador(m) }}</span>
+            <span class="block text-xs text-gray-600">{{ m.Descricao }}<ng-container *ngIf="m.Exemplo">. Exemplo: {{ m.Exemplo }}</ng-container></span>
+          </button>
+        </li>
+      </ul>
+      <button type="button" (click)="fecharPainel()"
+              class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">Cancelar</button>
+    </div>
+
+    <!-- O texto: o editor é montado aqui; o foco que chega ao hospedeiro vai para ele -->
+    <div #hospedeiro [id]="idBase" tabindex="-1" (focus)="focarEditor()"></div>
+  </div>
+  <p [id]="idAtalhos" class="text-xs text-gray-500 italic mt-1">
+    Atalhos (no Mac, Cmd no lugar de Ctrl): Ctrl+B negrito, Ctrl+I itálico, Ctrl+U sublinhado, Ctrl+K link, Ctrl+Z desfazer.
+    Nas listas, Ctrl+] e Ctrl+[ mudam o recuo; nas tabelas, as setas andam entre as células. O Tab sai do texto.
+  </p>
+</div>

@@ -68,21 +68,22 @@
             <tr class="border-t border-gray-100 align-top" [class.bg-blue-50]="edicao?.usuario?.Id === u.Id">
               <td class="px-4 py-3">
                 <p class="font-semibold text-gray-900">{{ u.Nome || '(sem nome)' }}</p>
-                <p class="text-xs text-gray-500">{{ u.Email }}</p>
-                <p class="text-xs text-gray-500 mt-0.5">Unidade: {{ u.UnidadeNome || 'não definida' }}</p>
+                <!-- Cinza 600: sobre o azul da linha em edição, o 500 ficava abaixo de 4,5:1 (F1, A10) -->
+                <p class="text-xs text-gray-600">{{ u.Email }}</p>
+                <p class="text-xs text-gray-600 mt-0.5">Unidade: {{ u.UnidadeNome || 'não definida' }}</p>
               </td>
               <td *ngFor="let m of modulos" class="px-4 py-3">
                 <ng-container *ngIf="temModulo(u, m.id); else semModulo">
                   <span class="inline-flex items-center gap-1 text-green-700 font-medium">
                     <span class="material-icons text-base" aria-hidden="true">check_circle</span> Sim
                   </span>
-                  <p class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                  <p class="text-xs text-gray-600 mt-0.5 flex items-center gap-1">
                     <span *ngIf="noKeycloak(u, m.id) || noKeycloak(u, M.Administracao)" class="material-icons text-sm text-slate-500" title="Vem do Keycloak" aria-hidden="true">key</span>
                     {{ origem(u, m.id) }}
                   </p>
                 </ng-container>
                 <ng-template #semModulo>
-                  <span class="inline-flex items-center gap-1 text-gray-500">
+                  <span class="inline-flex items-center gap-1 text-gray-600">
                     <span class="material-icons text-base" aria-hidden="true">remove_circle_outline</span> Não
                   </span>
                 </ng-template>
@@ -100,7 +101,32 @@
             <!-- Editor da linha -->
             <tr *ngIf="edicao && edicao.usuario.Id === u.Id" class="bg-blue-50/60">
               <td [attr.colspan]="modulos.length + 2" class="px-4 pb-5 pt-1">
-                <div class="grid gap-4 lg:grid-cols-4 md:grid-cols-2">
+                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+                  <!-- Governança Estratégica: acesso e papel juntos -->
+                  <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <label class="flex items-center gap-2 font-semibold text-gray-900">
+                      <input type="checkbox" [ngModel]="edicao.form.Planejamento" (ngModelChange)="alternarPlanejamento($event)" name="acesso-planejamento" class="w-4 h-4">
+                      Governança Estratégica
+                    </label>
+                    <label for="acesso-papel-planejamento" class="block text-xs font-semibold text-gray-700 mt-3 mb-1">
+                      Papel dentro da Governança Estratégica <span *ngIf="edicao.form.Planejamento" class="text-red-600">*</span>
+                    </label>
+                    <select id="acesso-papel-planejamento" [(ngModel)]="edicao.form.PapelPlanejamento" name="acesso-papel-planejamento"
+                            [disabled]="!edicao.form.Planejamento" [attr.aria-invalid]="faltaPapelPlanejamento"
+                            class="w-full px-2 py-1.5 border rounded-md text-sm bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                            [ngClass]="faltaPapelPlanejamento ? 'border-red-500' : 'border-gray-300'">
+                      <option [ngValue]="null" disabled>Escolha o papel</option>
+                      <option *ngFor="let p of opcoesPapelPlanejamento" [ngValue]="p.valor">{{ p.rotulo }}</option>
+                    </select>
+                    <p *ngIf="faltaPapelPlanejamento" class="text-xs text-red-600 mt-2">
+                      Escolha o papel: a Governança Estratégica só é liberada com um papel.
+                    </p>
+                    <p *ngIf="papelPlanejamentoOrgaoSemUnidade" class="text-xs text-amber-700 mt-2">
+                      Os papéis de órgão precisam de unidade ligada a um órgão: é a unidade que diz o órgão da pessoa. Defina a unidade ao lado.
+                    </p>
+                    <p class="text-xs text-gray-500 italic mt-2">O papel também pode ser trocado pelo administrador do módulo, na tela Pessoas e acessos da Governança Estratégica.</p>
+                  </div>
 
                   <!-- Demandas -->
                   <div class="bg-white rounded-lg border border-gray-200 p-4">
@@ -162,7 +188,7 @@
                         {{ alterandoUnidade ? '...' : 'Alterar' }}
                       </button>
                     </div>
-                    <p class="text-xs text-gray-500 italic mt-1">A unidade liga a pessoa ao órgão no PGIA e também define o que ela vê nas demandas.</p>
+                    <p class="text-xs text-gray-500 italic mt-1">A unidade liga a pessoa ao órgão no PGIA e na Governança Estratégica e também define o que ela vê nas demandas.</p>
                   </div>
                 </div>
 
@@ -172,6 +198,9 @@
                     <span class="material-icons text-base" aria-hidden="true">save</span>
                     {{ salvando ? 'Salvando...' : 'Salvar acessos' }}
                   </button>
+                  <span *ngIf="faltaPapelPlanejamento" role="alert" class="text-sm text-red-700">
+                    Falta escolher o papel na Governança Estratégica.
+                  </span>
                   <button type="button" (click)="edicao = null" class="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50">
                     Cancelar
                   </button>

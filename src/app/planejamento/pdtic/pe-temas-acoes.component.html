@@ -1,0 +1,56 @@
+<section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-temas-titulo">
+  <h2 id="pe-temas-titulo" class="text-base font-semibold text-gray-900">Ações por tema do decreto</h2>
+  <p class="text-sm text-gray-600 leading-relaxed mt-0.5">
+    O PDTIC precisa ter ações de segurança da informação e continuidade (art. 12, § 2º, V), de transformação digital e
+    interoperabilidade (art. 12, § 2º, VI) e de governança de dados (art. 12, § 2º, IX). As ações vêm do plano de ações, pelo
+    tema marcado em cada uma. Tema sem nenhuma ação precisa de uma justificativa, em "Temas sem ação", logo abaixo.
+  </p>
+  <p *ngIf="passoAcoes as pa" class="text-sm mt-2">
+    <!-- data-sem-dica: citação dentro de link não vira chip -->
+    <a [routerLink]="pa.rota" [queryParams]="{ passo: pa.numero }" data-sem-dica class="font-semibold text-blue-700 underline">
+      Ver as ações no passo {{ pa.numero }} ({{ pa.titulo }})
+    </a>
+  </p>
+
+  <p *ngIf="carregando && temas.length === 0" role="status" class="text-sm text-gray-600 mt-3">Conferindo as ações...</p>
+  <div *ngIf="erro" role="alert" class="text-sm text-red-700 mt-3">
+    {{ erro }}
+    <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+  </div>
+
+  <ng-container *ngIf="!erro && temas.length > 0">
+    <p *ngIf="semAcaoSemJustificativa > 0" class="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <span class="material-icons text-amber-600" aria-hidden="true">warning</span>
+      <span>{{ semAcaoSemJustificativa === 1 ? 'Um tema está' : semAcaoSemJustificativa + ' temas estão' }} sem ação e sem justificativa.</span>
+    </p>
+
+    <ul class="mt-4 space-y-4">
+      <li *ngFor="let t of temas; trackBy: porValor" class="rounded-lg border px-4 py-3"
+          [ngClass]="t.Acoes.length ? 'border-gray-200' : 'border-amber-200 bg-amber-50'">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 class="text-sm font-semibold text-gray-900">{{ t.Rotulo }}</h3>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                [ngClass]="t.Acoes.length ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-900'">{{ contagem(t) }}</span>
+        </div>
+        <p class="text-xs text-gray-600 mt-0.5">Base legal: {{ citacao(t) }}</p>
+
+        <ul *ngIf="t.Acoes.length > 0" class="mt-2 divide-y divide-gray-100 border-t border-gray-100">
+          <li *ngFor="let a of t.Acoes; trackBy: porRegistro" class="py-2 flex flex-col md:flex-row gap-1 md:gap-3 text-sm">
+            <span class="font-mono font-semibold text-gray-900 shrink-0">{{ a.Codigo || '-' }}</span>
+            <span class="flex-1 min-w-0 text-gray-800 break-words">{{ a.Descricao || '-' }}</span>
+            <span *ngIf="a.Situacao" class="text-xs text-gray-600 shrink-0">{{ a.Situacao }}</span>
+          </li>
+        </ul>
+
+        <div *ngIf="t.Acoes.length === 0" class="mt-2 text-sm">
+          <p *ngIf="t.Justificativa?.trim(); else semJustificativa" class="text-gray-800 whitespace-pre-line break-words">
+            <span class="font-semibold">Justificativa:</span> {{ t.Justificativa }}
+          </p>
+          <ng-template #semJustificativa>
+            <p class="text-amber-900">Falta a justificativa: diga, em "Temas sem ação", por que não há ação deste tema.</p>
+          </ng-template>
+        </div>
+      </li>
+    </ul>
+  </ng-container>
+</section>

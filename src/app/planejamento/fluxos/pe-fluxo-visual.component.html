@@ -1,0 +1,282 @@
+<div class="pe-fxv-grade">
+
+  <!-- ── Paleta: arrastar para o desenho, ou clicar ───────────────────────── -->
+  <section class="pe-fxv-paleta" aria-labelledby="pe-fxv-paleta-titulo">
+    <h4 id="pe-fxv-paleta-titulo" class="text-sm font-semibold text-gray-900">Blocos</h4>
+    <p id="pe-fxv-paleta-ajuda" class="text-xs text-gray-500 italic mt-1">Arraste para uma raia ou para cima de uma seta. Ou clique: o
+      bloco entra depois do bloco selecionado, na seta selecionada ou no fim da raia.</p>
+    <ul class="pe-fxv-pecas mt-2" aria-labelledby="pe-fxv-paleta-titulo">
+      <li *ngFor="let t of paleta; trackBy: porTipo">
+        <button type="button" class="pe-fxv-peca flex items-center gap-2 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-left text-sm text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+                [disabled]="!podeEditar || semRaias" [attr.aria-label]="rotuloPaleta(t)" [title]="rotuloPaleta(t)"
+                aria-describedby="pe-fxv-paleta-ajuda" (pointerdown)="comecarArrastoPaleta($event, t)" (click)="cliquePaleta(t)">
+          <svg class="pe-fxv-miniatura" viewBox="0 0 30 22" width="30" height="22" aria-hidden="true" focusable="false">
+            <ng-container [ngSwitch]="t">
+              <ng-container *ngSwitchCase="'tarefa'">
+                <rect x="2" y="3" width="26" height="16" rx="4" fill="#E2ECF7" stroke="#3E6C99" stroke-width="1.4" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'subprocesso'">
+                <rect x="2" y="3" width="26" height="16" rx="4" fill="#E2ECF7" stroke="#3E6C99" stroke-width="1.4" />
+                <rect x="11.5" y="10.5" width="7" height="7" fill="#FFFFFF" stroke="#3E6C99" stroke-width="1" />
+                <path d="M15 12v4M13 14h4" stroke="#3E6C99" stroke-width="1.2" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'decisao'">
+                <path d="M15 1L25 11L15 21L5 11Z" fill="#FFF6C7" stroke="#9A7B12" stroke-width="1.4" />
+                <path d="M12 8l6 6M18 8l-6 6" stroke="#7A5F0C" stroke-width="1.8" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'paralelo'">
+                <path d="M15 1L25 11L15 21L5 11Z" fill="#FFF6C7" stroke="#9A7B12" stroke-width="1.4" />
+                <path d="M15 6.5v9M10.5 11h9" stroke="#7A5F0C" stroke-width="2" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'inicio'">
+                <circle cx="15" cy="11" r="9" fill="#DCF3D2" stroke="#3C9A32" stroke-width="2" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'fim'">
+                <circle cx="15" cy="11" r="8.5" fill="#F9D6D4" stroke="#B42318" stroke-width="3" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'ligacao'">
+                <circle cx="15" cy="11" r="9.5" fill="#FFFBEA" stroke="#8A6D1D" stroke-width="1.2" />
+                <circle cx="15" cy="11" r="7" fill="none" stroke="#8A6D1D" stroke-width="1" />
+                <path d="M11 9.5h4v-2.5l4.5 4l-4.5 4v-2.5h-4Z" fill="#8A6D1D" />
+              </ng-container>
+            </ng-container>
+          </svg>
+          <span class="leading-tight">{{ rotuloTipo(t) }}</span>
+        </button>
+      </li>
+    </ul>
+    <p *ngIf="semRaias" class="text-xs text-gray-600 mt-2">Inclua uma raia para começar.</p>
+  </section>
+
+  <!-- ── O desenho ────────────────────────────────────────────────────────── -->
+  <section class="pe-fxv-area" aria-labelledby="pe-fxv-area-titulo">
+    <div class="flex flex-wrap items-center gap-2">
+      <h4 id="pe-fxv-area-titulo" class="text-sm font-semibold text-gray-900">Desenho</h4>
+      <span class="text-xs text-gray-600">{{ textoEstado }}</span>
+      <div role="group" [attr.aria-label]="'Tamanho do desenho, agora ' + textoZoom" class="ml-auto inline-flex flex-wrap items-center gap-1">
+        <button type="button" (click)="afastar()" [disabled]="!vista" aria-label="Afastar o desenho" title="Afastar (tecla -)"
+                class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+          <span class="material-icons text-base" aria-hidden="true">zoom_out</span>
+        </button>
+        <button type="button" (click)="aproximar()" [disabled]="!vista" aria-label="Aproximar o desenho" title="Aproximar (tecla +)"
+                class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+          <span class="material-icons text-base" aria-hidden="true">zoom_in</span>
+        </button>
+        <button type="button" (click)="tamanhoReal()" [disabled]="!vista" [attr.aria-pressed]="zoom === 1"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+          Tamanho real
+        </button>
+        <button type="button" (click)="caberNaTela()" [disabled]="!vista" title="Caber na tela (tecla 0)"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+          <span class="material-icons text-sm" aria-hidden="true">fit_screen</span> Caber na tela
+        </button>
+        <span class="text-xs text-gray-600" aria-hidden="true">{{ textoZoom }}</span>
+      </div>
+    </div>
+
+    <!-- O que vai acontecer ao soltar (durante o arrasto) -->
+    <p class="text-xs mt-1" [ngClass]="arrasto?.ativo ? 'font-semibold text-purple-800' : 'text-gray-500 italic'">
+      <ng-container *ngIf="arrasto?.ativo">{{ alvo?.texto || 'Solte numa raia ou sobre uma seta.' }}</ng-container>
+      <ng-container *ngIf="!arrasto?.ativo">Arraste o fundo para mover o desenho.<span class="hidden md:inline"> Ctrl + roda do mouse muda o
+        tamanho.</span></ng-container>
+    </p>
+    <p id="pe-fxv-ajuda" class="sr-only">No desenho, Tab chega aos blocos, depois às setas e às raias. As setas do teclado andam pela ordem do
+      fluxo. Enter abre o painel do item, com as opções de um clique. Delete remove. F2 muda o nome do bloco. As teclas + e - mudam o
+      tamanho do desenho, e 0 faz caber na tela.</p>
+    <p id="pe-fxv-ajuda-bloco" class="sr-only">Setas do teclado: próximo e anterior. Enter: abrir o painel. Delete: remover. F2: mudar
+      o nome.</p>
+
+    <div *ngIf="estado === 'erro'" role="alert" class="mt-2 text-sm text-red-700">
+      {{ erro }}
+      <button type="button" (click)="tentarDeNovo()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+
+    <div #rolagem class="pe-fxv-rolagem mt-2 rounded-lg border border-gray-200" [class.pe-fxv-movendo]="movendo" (keydown)="teclaDesenho($event)">
+      <p *ngIf="!vista" class="pe-fxv-vazio px-4 py-6 text-center text-sm">
+        {{ estado === 'erro' ? 'O desenho não pôde ser montado agora.' : 'Montando o desenho...' }}
+      </p>
+      <div *ngIf="vista as v" class="pe-fxv-conteudo" [style.width.px]="larguraTela" [style.height.px]="alturaTela">
+        <svg #desenho class="pe-fxv-svg" xmlns="http://www.w3.org/2000/svg" [class.pe-fxv-animar]="animar" [class.pe-fxv-svg-editavel]="podeEditar"
+             [attr.width]="larguraTela" [attr.height]="alturaTela" [attr.viewBox]="'0 0 ' + v.largura + ' ' + v.altura"
+             role="group" [attr.aria-label]="'Desenho do fluxo ' + nomeFluxo + ', para editar'" [attr.aria-describedby]="idAjuda">
+
+          <!-- Fundo: clicar tira a seleção; arrastar com o mouse move o desenho -->
+          <rect class="pe-fxv-fundo" x="0" y="0" [attr.width]="v.largura" [attr.height]="v.altura" fill="#FFFFFF"
+                (pointerdown)="comecarMover($event)" (click)="cliqueFundo()" />
+
+          <!-- Raias e a faixa do fluxo -->
+          <g aria-hidden="true" stroke="#6B7280" stroke-width="1">
+            <ng-container *ngIf="v.faixa as f">
+              <rect [attr.x]="f.x" [attr.y]="f.y" [attr.width]="f.largura" [attr.height]="f.altura" fill="#ECEEF2" />
+              <text *ngFor="let t of f.textos; trackBy: porIndice" stroke="none" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho"
+                    font-weight="bold" [attr.fill]="t.cor" [attr.text-anchor]="t.ancora" [attr.transform]="transformaTexto(t)"
+                    [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
+            </ng-container>
+            <ng-container *ngFor="let r of v.raias; trackBy: porId">
+              <rect [attr.x]="r.x" [attr.y]="r.y" [attr.width]="r.largura" [attr.height]="r.altura" fill="none" />
+              <rect *ngIf="alvo?.raiaId === r.id" class="pe-fxv-realce" [attr.x]="r.x + r.larguraCabecalho" [attr.y]="r.y + 2"
+                    [attr.width]="r.largura - r.larguraCabecalho - 2" [attr.height]="r.altura - 4" fill="#EDE9FE" stroke="#6D28D9"
+                    stroke-width="2" stroke-dasharray="6 4" />
+              <rect [attr.x]="r.x" [attr.y]="r.y" [attr.width]="r.larguraCabecalho" [attr.height]="r.altura"
+                    [attr.fill]="raiaSelecionada(r) ? '#EDE9FE' : '#F5F6F8'" />
+              <text *ngFor="let t of r.textos; trackBy: porIndice" stroke="none" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho"
+                    font-weight="bold" [attr.fill]="t.cor" [attr.text-anchor]="t.ancora" [attr.transform]="transformaTexto(t)"
+                    [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
+            </ng-container>
+          </g>
+
+          <!-- Setas (ligações): clicar seleciona; duplo clique na saída da decisão muda o rótulo -->
+          <g class="pe-fxv-linhas" aria-hidden="true">
+            <g *ngFor="let l of v.ligacoes; trackBy: porId" class="pe-fxv-seta" (click)="cliqueSeta($event, l)" (dblclick)="abrirRotulo(l.id)">
+              <path *ngIf="alvo?.ligacaoId === l.id || setaSelecionada(l)" [attr.d]="l.caminho" fill="none" stroke="#6D28D9" stroke-width="5"
+                    stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.55" />
+              <path [attr.d]="l.caminho" fill="none" stroke="#374151" stroke-width="1.3" stroke-linejoin="round"
+                    [attr.stroke-dasharray]="l.provisoria ? '5 4' : null" />
+              <path [attr.d]="l.ponta" fill="#374151" />
+              <path class="pe-fxv-toque" [attr.d]="l.caminho" fill="none" stroke="transparent" stroke-width="12" />
+              <rect *ngIf="l.rotuloFundo as f" [attr.x]="f.x" [attr.y]="f.y" [attr.width]="f.largura" [attr.height]="f.altura" fill="#FFFFFF"
+                    fill-opacity="0.9" />
+              <text *ngIf="l.rotuloTexto as t" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho" [attr.fill]="t.cor"
+                    [attr.text-anchor]="t.ancora" [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
+            </g>
+          </g>
+
+          <!-- Blocos: cada um recebe o foco (as setas do teclado andam pela ordem do fluxo) -->
+          <g role="group" [attr.aria-label]="rotuloGrupoBlocos">
+            <g *ngFor="let b of v.blocos; trackBy: porId" class="pe-fxv-bloco pe-fxv-foco" [id]="idBloco(b.id)" role="button"
+               [attr.tabindex]="b.id === focoBloco ? 0 : -1" [attr.aria-label]="nomeBloco(b)" [attr.aria-current]="selecionado(b) ? 'true' : null"
+               [attr.aria-describedby]="idAjudaBloco" [class.pe-fxv-arrastado]="arrastado(b)" [class.pe-fxv-editavel]="podeEditar"
+               [style.transform]="'translate(' + b.x + 'px, ' + b.y + 'px)'"
+               (pointerdown)="comecarArrastoBloco($event, b)" (click)="cliqueBloco($event, b)" (dblclick)="abrirNome(b.id)"
+               (keydown)="teclaBloco($event, b)" (focus)="aoFocarBloco(b)" (pointerenter)="sobre = b.id" (pointerleave)="sairDoPonteiro(b)">
+              <rect *ngIf="selecionado(b)" x="-6" y="-6" [attr.width]="b.largura + 12" [attr.height]="b.altura + 12" rx="10" fill="#EDE9FE"
+                    stroke="#6D28D9" stroke-width="2" />
+              <rect *ngIf="alvo?.blocoId === b.id" x="-6" y="-6" [attr.width]="b.largura + 12" [attr.height]="b.altura + 12" rx="10"
+                    fill="#DCFCE7" stroke="#15803D" stroke-width="2.5" />
+              <rect *ngIf="b.solto" x="-4" y="-4" [attr.width]="b.largura + 8" [attr.height]="b.altura + 8" rx="8" fill="none"
+                    stroke="#B45309" stroke-width="1.5" stroke-dasharray="4 3" />
+              <ng-container [ngSwitch]="b.tipo">
+                <ng-container *ngSwitchCase="'tarefa'">
+                  <rect x="0" y="0" [attr.width]="b.largura" [attr.height]="b.altura" rx="9" [attr.fill]="b.cor.fundo" [attr.stroke]="b.cor.borda"
+                        stroke-width="1.4" />
+                </ng-container>
+                <ng-container *ngSwitchCase="'subprocesso'">
+                  <rect x="0" y="0" [attr.width]="b.largura" [attr.height]="b.altura" rx="9" [attr.fill]="b.cor.fundo" [attr.stroke]="b.cor.borda"
+                        stroke-width="1.4" />
+                  <rect [attr.x]="b.largura / 2 - 5.5" [attr.y]="b.altura - 14" width="11" height="11" fill="#FFFFFF" [attr.stroke]="b.cor.borda"
+                        stroke-width="1.1" />
+                  <path [attr.d]="marcaSubprocesso(b)" [attr.stroke]="b.cor.borda" stroke-width="1.5" />
+                </ng-container>
+                <ng-container *ngSwitchCase="'inicio'">
+                  <circle [attr.cx]="b.largura / 2" [attr.cy]="b.altura / 2" [attr.r]="b.largura / 2" fill="#DCF3D2" stroke="#3C9A32" stroke-width="2" />
+                </ng-container>
+                <ng-container *ngSwitchCase="'fim'">
+                  <circle [attr.cx]="b.largura / 2" [attr.cy]="b.altura / 2" [attr.r]="b.largura / 2 - 1" fill="#F9D6D4" stroke="#B42318"
+                          stroke-width="3.4" />
+                </ng-container>
+                <ng-container *ngSwitchCase="'ligacao'">
+                  <circle [attr.cx]="b.largura / 2" [attr.cy]="b.altura / 2" [attr.r]="b.largura / 2" fill="#FFFBEA" stroke="#8A6D1D" stroke-width="1.3" />
+                  <circle [attr.cx]="b.largura / 2" [attr.cy]="b.altura / 2" [attr.r]="b.largura / 2 - 3" fill="none" stroke="#8A6D1D" stroke-width="1.1" />
+                  <path [attr.d]="setaDaLigacao(b)" [attr.fill]="b.recebe ? '#8A6D1D' : '#FFFFFF'" [attr.stroke]="b.recebe ? null : '#8A6D1D'"
+                        stroke-width="1.1" />
+                </ng-container>
+              </ng-container>
+              <!-- Decisão e paralelo: o losango (sem o caso padrão do ngSwitch, que seria código novo no pacote inicial) -->
+              <ng-container *ngIf="b.tipo === 'decisao' || b.tipo === 'paralelo'">
+                <path [attr.d]="losango(b)" fill="#FFF6C7" stroke="#9A7B12" stroke-width="1.4" />
+                <path [attr.d]="marcaPorta(b)" stroke="#7A5F0C" [attr.stroke-width]="b.tipo === 'paralelo' ? 2.8 : 2.6" fill="none" />
+              </ng-container>
+              <text *ngFor="let t of b.textos; trackBy: porIndice" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho"
+                    [attr.font-weight]="t.negrito ? 'bold' : null" [attr.fill]="t.cor" [attr.text-anchor]="t.ancora"
+                    [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
+              <g *ngFor="let a of b.artefatos; trackBy: porIndice">
+                <path [attr.d]="a.conector" fill="none" stroke="#6B7280" stroke-width="1.1" stroke-dasharray="1.2 2.6" stroke-linecap="round" />
+                <path [attr.d]="a.ponta" fill="none" stroke="#6B7280" stroke-width="1.1" />
+                <path [attr.d]="a.documento" fill="#F3F4F6" stroke="#6B7280" stroke-width="1" />
+                <path [attr.d]="a.dobra" fill="#E5E7EB" stroke="#6B7280" stroke-width="1" />
+                <text *ngFor="let t of a.textos; trackBy: porIndice" [attr.x]="t.x" [attr.y]="t.y" [attr.font-size]="t.tamanho" [attr.fill]="t.cor"
+                      [attr.text-anchor]="t.ancora" [attr.textLength]="t.largura || null" [attr.lengthAdjust]="t.largura ? 'spacingAndGlyphs' : null">{{ t.texto }}</text>
+              </g>
+              <!-- O anel do foco aparece pelo CSS (:focus-visible) -->
+              <rect class="pe-fxv-anel" x="-9" y="-9" [attr.width]="b.largura + 18" [attr.height]="b.altura + 18" rx="12" fill="none"
+                    stroke="#1D4ED8" stroke-width="3" />
+              <!-- A alça de ligar (arrastar dela até o próximo passo) -->
+              <g *ngIf="mostraAlca(b)" class="pe-fxv-alca" (pointerdown)="comecarLigacao($event, b)">
+                <circle [attr.cx]="b.largura + 9" [attr.cy]="b.altura / 2" [attr.r]="raioAlca" fill="transparent" />
+                <circle [attr.cx]="b.largura + 9" [attr.cy]="b.altura / 2" r="6.5" fill="#FFFFFF" stroke="#6D28D9" stroke-width="2" />
+                <path [attr.d]="'M' + (b.largura + 6) + ' ' + (b.altura / 2) + 'h6M' + (b.largura + 10) + ' ' + (b.altura / 2 - 2.5) + 'l2.5 2.5l-2.5 2.5'"
+                      fill="none" stroke="#6D28D9" stroke-width="1.6" />
+              </g>
+            </g>
+          </g>
+
+          <!-- Setas para o teclado (o realce aparece na seta de verdade, acima) -->
+          <g role="group" [attr.aria-label]="rotuloGrupoSetas">
+            <g *ngFor="let l of setas; trackBy: porId" class="pe-fxv-foco" [id]="idSeta(l.id)" role="button"
+               [attr.tabindex]="l.id === focoSeta ? 0 : -1" [attr.aria-label]="nomeSeta(l)" [attr.aria-current]="setaSelecionada(l) ? 'true' : null"
+               (keydown)="teclaSeta($event, l)" (focus)="aoFocarSeta(l)">
+              <path [attr.d]="l.caminho" fill="none" stroke="transparent" pointer-events="none" />
+              <path class="pe-fxv-anel" [attr.d]="l.caminho" fill="none" stroke="#1D4ED8" stroke-width="5" stroke-linecap="round"
+                    stroke-linejoin="round" stroke-opacity="0.6" pointer-events="none" />
+            </g>
+          </g>
+
+          <!-- Cabeçalhos das raias: clicar abre as ações da raia no painel -->
+          <g role="group" aria-label="Raias">
+            <g *ngFor="let r of v.raias; trackBy: porId" class="pe-fxv-cabecalho pe-fxv-foco" [id]="idRaia(r.id)" role="button" tabindex="0"
+               [attr.aria-label]="nomeRaia(r)" [attr.aria-current]="raiaSelecionada(r) ? 'true' : null"
+               (click)="cliqueRaia(r)" (keydown)="teclaRaia($event, r)">
+              <rect [attr.x]="r.x" [attr.y]="r.y" [attr.width]="r.larguraCabecalho" [attr.height]="r.altura" fill="transparent" />
+              <rect class="pe-fxv-anel" [attr.x]="r.x + 2" [attr.y]="r.y + 2" [attr.width]="r.larguraCabecalho - 4" [attr.height]="r.altura - 4"
+                    fill="none" stroke="#1D4ED8" stroke-width="3" />
+            </g>
+          </g>
+
+          <!-- A linha da alça até o ponteiro, durante o arrasto de ligar -->
+          <line #linhaLigar [attr.display]="linha ? null : 'none'" [attr.x1]="linha?.x1 ?? 0" [attr.y1]="linha?.y1 ?? 0"
+                [attr.x2]="linha?.x1 ?? 0" [attr.y2]="linha?.y1 ?? 0" stroke="#6D28D9" stroke-width="2" stroke-dasharray="5 4"
+                pointer-events="none" aria-hidden="true" />
+        </svg>
+
+        <!-- O nome ali mesmo (duplo clique ou F2) -->
+        <form *ngIf="edicaoNome && blocoPorId(edicaoNome.id) as b" class="pe-fxv-edicao" (ngSubmit)="confirmarNome(true)"
+              (keydown.escape)="cancelarNome()" [style.left.px]="b.x * zoom" [style.top.px]="(b.y + b.altura / 2) * zoom - 18"
+              [style.width.px]="b.largura * zoom > 200 ? b.largura * zoom : 200">
+          <label for="pe-fxv-nome" class="sr-only">{{ rotuloDoCampoNome(b.id) }}</label>
+          <input id="pe-fxv-nome" name="nome" type="text" [(ngModel)]="edicaoNome.valor" [maxlength]="maxNome" autocomplete="off"
+                 (blur)="aoSairDoNome()"
+                 class="w-full px-2 py-1 border border-purple-600 rounded-md text-sm bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </form>
+
+        <!-- O rótulo da saída da decisão, sobre a seta -->
+        <form *ngIf="edicaoRotulo && setaPorId(edicaoRotulo.id) as l" class="pe-fxv-edicao rounded-md border border-purple-300 bg-white p-2 shadow-lg"
+              (ngSubmit)="confirmarRotulo(true)" (keydown.escape)="cancelarRotulo()" (focusout)="aoSairDoRotulo($event)"
+              [style.left.px]="l.meio.x * zoom - 100" [style.top.px]="l.meio.y * zoom - 22">
+          <label for="pe-fxv-rotulo" class="block text-xs font-semibold text-gray-800">Rótulo da saída</label>
+          <div class="flex items-center gap-1 mt-1">
+            <input id="pe-fxv-rotulo" name="rotulo" type="text" [(ngModel)]="edicaoRotulo.valor" [maxlength]="maxRotulo" autocomplete="off"
+                   class="w-24 px-2 py-1 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button type="button" (click)="usarRotulo('Sim')" class="px-2 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-50">Sim</button>
+            <button type="button" (click)="usarRotulo('Não')" class="px-2 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-50">Não</button>
+            <button type="submit" class="px-2 py-1 rounded-md bg-blue-600 text-xs font-semibold text-white hover:bg-blue-700">Pronto</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 mt-2">
+      <button type="button" id="pe-fx-incluir-raia" (click)="incluirRaia()" [disabled]="!podeEditar"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
+        <span class="material-icons text-base" aria-hidden="true">add</span> Incluir raia
+      </button>
+      <p class="text-xs text-gray-500 italic">Clique no nome de uma raia para renomear, subir, descer ou remover.</p>
+    </div>
+  </section>
+</div>
+
+<!-- O que se arrasta segue o ponteiro, com o que vai acontecer ao soltar -->
+<div #fantasma class="pe-fxv-fantasma rounded-md border border-purple-300 bg-white px-2 py-1 shadow-lg" aria-hidden="true"
+     [style.display]="arrasto?.ativo ? null : 'none'">
+  <p class="text-xs font-semibold text-gray-900 truncate">{{ arrasto?.rotulo }}</p>
+  <p class="text-xs text-gray-700">{{ alvo?.texto || 'Solte numa raia ou sobre uma seta.' }}</p>
+</div>

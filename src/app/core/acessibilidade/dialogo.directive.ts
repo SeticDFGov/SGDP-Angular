@@ -5,6 +5,12 @@ const FOCAVEIS = 'a[href], button:not([disabled]), input:not([disabled]):not([ty
   + 'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
+ * As janelas abertas, da mais antiga para a mais nova. Só a de cima responde ao
+ * Esc e ao Tab: uma confirmação aberta de dentro de outra janela não fecha as duas.
+ */
+const abertas: DialogoDirective[] = [];
+
+/**
  * Janela modal acessível (WCAG 2.1.2 e 2.4.3). Vai no elemento da janela (não no
  * véu escuro): marca `role="dialog"` e `aria-modal`, leva o foco para dentro ao
  * abrir (o primeiro campo ou botão, a não ser que a tela já tenha posto o foco lá
@@ -23,11 +29,14 @@ export class DialogoDirective implements AfterViewInit, OnDestroy {
 
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly noNavegador = isPlatformBrowser(inject(PLATFORM_ID));
-  private origem: HTMLElement | null = null;
+  private origem: HTMLElement | SVGElement | null = null;
 
   ngAfterViewInit(): void {
     if (!this.noNavegador) return;
-    this.origem = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    abertas.push(this);
+    // Quem abriu pode ser um item de um desenho em SVG (o bloco do editor de fluxos, com Delete): o foco volta a ele também
+    const ativo = document.activeElement;
+    this.origem = ativo instanceof HTMLElement || ativo instanceof SVGElement ? ativo : null;
     // Depois do render: a tela pode pôr o foco num campo dela (ViewChild), e isso vale
     setTimeout(() => {
       const janela = this.elemento.nativeElement;
@@ -37,11 +46,14 @@ export class DialogoDirective implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    const i = abertas.indexOf(this);
+    if (i >= 0) abertas.splice(i, 1);
     if (this.noNavegador && this.origem?.isConnected) this.origem.focus();
   }
 
   @HostListener('document:keydown', ['$event'])
   aoTeclar(evento: KeyboardEvent): void {
+    if (abertas.length && abertas[abertas.length - 1] !== this) return;
     if (evento.key === 'Escape') {
       this.fechar.emit();
       return;

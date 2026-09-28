@@ -14,18 +14,30 @@ import {
 } from '../../../api/acessos/interface';
 import { MODULOS, Modulos, ModuloId, ModuloSgdp } from '../../core/modulos/modulos';
 import { OPCOES_PAPEL_PGIA, rotuloCurtoPapelPgia } from '../../core/acessos/papeis-pgia';
+import {
+  OPCOES_PAPEL_PLANEJAMENTO, papelPlanejamentoDeOrgao, rotuloCurtoPapelPlanejamento
+} from '../../core/acessos/papeis-planejamento';
 
 interface EdicaoAcesso {
   usuario: UsuarioAcesso;
   form: AcessoUsuarioForm;
   unidadeId: string | null;
+  /** Governança Estratégica como estava ao abrir o editor: só vai no PUT se a pessoa mexer. */
+  planejamentoInicial: boolean;
+  papelPlanejamentoInicial: string | null;
+  tentouSalvar: boolean;
 }
 
 /**
- * Gestão de acessos por módulo: quem enxerga Demandas, PGIA e Supervisão Contínua.
- * O acesso de cada pessoa soma o Keycloak (perfis admin/gestor e a role "pgia" do
- * grupo; só leitura aqui, com o retrato do último login) e o que é concedido
- * nesta tela. A API recusa o que não foi liberado (política por módulo).
+ * Gestão de acessos por módulo: quem enxerga Demandas, PGIA, Supervisão Contínua e
+ * Governança Estratégica. O acesso de cada pessoa soma o Keycloak (perfis
+ * admin/gestor e a role "pgia" do grupo; só leitura aqui, com o retrato do último
+ * login) e o que é concedido nesta tela. A API recusa o que não foi liberado
+ * (política por módulo).
+ *
+ * Governança Estratégica: acesso e papel andam juntos, e os dois campos só vão no
+ * PUT quando o bloco do módulo foi mexido (ausente não muda nada no servidor): a
+ * tela nunca tira o acesso de ninguém sem querer.
  */
 @Component({
   selector: 'app-admin-acessos',
@@ -40,6 +52,7 @@ export class AdminAcessosComponent implements OnInit {
 
   readonly modulos: ModuloSgdp[] = MODULOS;
   readonly opcoesPapelPgia = OPCOES_PAPEL_PGIA;
+  readonly opcoesPapelPlanejamento = OPCOES_PAPEL_PLANEJAMENTO;
   readonly filtroSemAcesso = FILTRO_SEM_ACESSO;
   readonly M = Modulos;
 
@@ -132,6 +145,8 @@ export class AdminAcessosComponent implements OnInit {
         return 'Agente (grupo do Keycloak)';
       case Modulos.Contratacoes:
         return 'Supervisão contínua';
+      case Modulos.Planejamento:
+        return u.PapelPlanejamento ? rotuloCurtoPapelPlanejamento(u.PapelPlanejamento) : 'Concedido, sem papel';
       default:
         return 'Keycloak';
     }
@@ -141,6 +156,10 @@ export class AdminAcessosComponent implements OnInit {
     return rotuloCurtoPapelPgia(papel);
   }
 
+  rotuloPapelPlanejamento(papel: string | null | undefined): string {
+    return rotuloCurtoPapelPlanejamento(papel);
+  }
+
   // ── Edição ────────────────────────────────────────────────────────────────
 
   editar(u: UsuarioAcesso): void {
@@ -148,6 +167,8 @@ export class AdminAcessosComponent implements OnInit {
       this.edicao = null;
       return;
     }
+    const planejamento = this.concedido(u, Modulos.Planejamento) || !!u.PapelPlanejamento;
+    const papelPlanejamento = u.PapelPlanejamento ?? null;
     this.edicao = {
       usuario: u,
       unidadeId: u.UnidadeId,
@@ -155,8 +176,13 @@ export class AdminAcessosComponent implements OnInit {
         Demandas: this.concedido(u, Modulos.Demandas),
         Pgia: this.concedido(u, Modulos.Pgia) || !!u.PapelPgia,
         PapelPgia: u.PapelPgia,
-        Contratacoes: u.PapelContratacoes === PapeisContratacoes.Analise
-      }
+        Contratacoes: u.PapelContratacoes === PapeisContratacoes.Analise,
+        Planejamento: planejamento,
+        PapelPlanejamento: papelPlanejamento
+      },
+      planejamentoInicial: planejamento,
+      papelPlanejamentoInicial: papelPlanejamento,
+      tentouSalvar: false
     };
   }
 
@@ -167,13 +193,41 @@ export class AdminAcessosComponent implements OnInit {
     if (!ligado) this.edicao.form.PapelPgia = null;
   }
 
+  alternarPlanejamento(ligado: boolean): void {
+    if (!this.edicao) return;
+    this.edicao.form.Planejamento = ligado;
+    // Sem o módulo não há papel; ao religar, volta o papel que a pessoa tinha (ou pede para escolher)
+    this.edicao.form.PapelPlanejamento = ligado ? this.edicao.papelPlanejamentoInicial : null;
+  }
+
   get papelOrgaoSemUnidade(): boolean {
     return !!this.edicao && this.edicao.form.PapelPgia === PapeisPgia.Orgao && !this.edicao.unidadeId;
+  }
+
+  get papelPlanejamentoOrgaoSemUnidade(): boolean {
+    return !!this.edicao && !!this.edicao.form.Planejamento
+      && papelPlanejamentoDeOrgao(this.edicao.form.PapelPlanejamento) && !this.edicao.unidadeId;
+  }
+
+  /** O bloco da Governança Estratégica foi mexido (só então os dois campos vão no PUT). */
+  get mexeuPlanejamento(): boolean {
+    const e = this.edicao;
+    if (!e) return false;
+    return !!e.form.Planejamento !== e.planejamentoInicial
+      || (!!e.form.Planejamento && (e.form.PapelPlanejamento ?? null) !== e.papelPlanejamentoInicial);
+  }
+
+  /** Liberar a Governança Estratégica exige o papel. */
+  get faltaPapelPlanejamento(): boolean {
+    return !!this.edicao && this.edicao.tentouSalvar && this.mexeuPlanejamento
+      && !!this.edicao.form.Planejamento && !this.edicao.form.PapelPlanejamento;
   }
 
   salvar(): void {
     if (!this.edicao || this.salvando) return;
     const { usuario, form } = this.edicao;
+    this.edicao.tentouSalvar = true;
+    if (this.faltaPapelPlanejamento) return;
 
     // Retirar o PGIA de quem tem papel também tira o papel: confirma antes
     if (!form.Pgia && usuario.PapelPgia) {
@@ -181,13 +235,30 @@ export class AdminAcessosComponent implements OnInit {
       if (!ok) return;
     }
 
-    this.salvando = true;
-    this.acessosService.definirAcessos(usuario.Id, {
+    // Idem na Governança Estratégica
+    const mexeuPlanejamento = this.mexeuPlanejamento;
+    if (mexeuPlanejamento && !form.Planejamento && this.edicao.planejamentoInicial) {
+      const papel = this.edicao.papelPlanejamentoInicial;
+      const ok = confirm(papel
+        ? `Ao retirar o acesso à Governança Estratégica, ${usuario.Nome} perde também o papel "${this.rotuloPapelPlanejamento(papel)}". Continuar?`
+        : `Retirar o acesso de ${usuario.Nome} à Governança Estratégica?`);
+      if (!ok) return;
+    }
+
+    const dados: AcessoUsuarioForm = {
       Demandas: form.Demandas,
       Pgia: form.Pgia,
       PapelPgia: form.Pgia ? form.PapelPgia : null,
       Contratacoes: form.Contratacoes
-    }).subscribe({
+    };
+    // Ausente = não muda nada no servidor: só vai quando o bloco foi mexido
+    if (mexeuPlanejamento) {
+      dados.Planejamento = !!form.Planejamento;
+      dados.PapelPlanejamento = form.Planejamento ? form.PapelPlanejamento ?? null : null;
+    }
+
+    this.salvando = true;
+    this.acessosService.definirAcessos(usuario.Id, dados).subscribe({
       next: atualizado => {
         this.salvando = false;
         this.substituirNaPagina(atualizado);

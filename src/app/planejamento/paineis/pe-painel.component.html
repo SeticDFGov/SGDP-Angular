@@ -1,0 +1,151 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-xl font-bold text-gray-900">Painel dos órgãos</h2>
+    <!-- F3: o nome do nível muda com o modo, que chega com a resposta; ele fica num nó de texto só dele (o ng-container),
+         para a dica de norma do fim do parágrafo não ser refeita -->
+    <p class="text-sm text-gray-700 leading-relaxed mt-1">
+      Os números de todos os órgãos, como estão agora: a situação do PDTIC de cada um,
+      <ng-container>{{ modoLivre ? 'o nível alcançado' : 'o nível de maturidade' }}</ng-container>, as necessidades e as metas ligadas
+      ao PETIC-DF, as ações, os riscos e os alertas. A SGDI coordena o monitoramento e a avaliação dos PDTICs (art. 9º, IV, do Decreto
+      nº 48.899/2026).
+    </p>
+    <p *ngIf="geradoEm" class="text-xs text-gray-500 italic mt-2">Números calculados em {{ geradoEm }}.</p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <button type="button" (click)="tentarPapelDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <div *ngIf="podeVer === false && !erroPapel" class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-5 text-sm leading-relaxed">
+    <span class="material-icons text-amber-600" aria-hidden="true">lock</span>
+    <p>O painel com todos os órgãos é da SGDI, do administrador do módulo e da Secretaria do CGTIC.
+      <ng-container *ngIf="paginaDoMeuOrgao as pagina">A situação do seu órgão está na <a [routerLink]="pagina" class="font-semibold underline">página do órgão</a>.</ng-container>
+    </p>
+  </div>
+
+  <ng-container *ngIf="podeVer">
+
+    <!-- Filtros: valem na hora e vão para o endereço -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h3 class="text-base font-semibold text-gray-900">Filtrar o painel</h3>
+      <div class="flex flex-col md:flex-row md:items-end gap-3 mt-3">
+        <div>
+          <!-- F3: no modo livre, o filtro é pelo nível alcançado (com "Sem nível alcançado") -->
+          <label for="pe-painel-nivel" class="block text-sm font-semibold text-gray-800">{{ modoLivre ? 'Nível alcançado' : 'Nível de maturidade' }}</label>
+          <select id="pe-painel-nivel" name="pe-painel-nivel" [(ngModel)]="nivelEscolhido" (ngModelChange)="aplicarFiltros()"
+                  class="mt-1 w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todos os níveis</option>
+            <option *ngFor="let n of niveis; trackBy: porNivel" [value]="'' + n.Id">{{ n.Nome }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="pe-painel-situacao" class="block text-sm font-semibold text-gray-800">Situação do PDTIC</label>
+          <select id="pe-painel-situacao" name="pe-painel-situacao" [(ngModel)]="situacaoEscolhida" (ngModelChange)="aplicarFiltros()"
+                  class="mt-1 w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todas as situações</option>
+            <option *ngFor="let s of situacoes; trackBy: porSituacao" [value]="s.Chave">{{ s.Rotulo }}</option>
+          </select>
+        </div>
+        <button *ngIf="filtrosAtivos" type="button" (click)="limparFiltros()"
+                class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+          <span class="material-icons text-base" aria-hidden="true">filter_alt_off</span> Limpar os filtros
+        </button>
+      </div>
+      <p class="text-xs text-gray-500 italic mt-2">Os filtros valem na hora para todo o painel e ficam no endereço da página: dá para
+        voltar a eles ou mandar o link a alguém.</p>
+      <p *ngIf="carregando && painel" role="status" class="text-sm text-gray-600 mt-2">Atualizando o painel...</p>
+    </div>
+
+    <p *ngIf="carregando && !painel" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o painel...</p>
+
+    <div *ngIf="erro" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      {{ erro }}
+      <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+
+    <ng-container *ngIf="painel as p">
+
+      <!-- Nenhum órgão: no sistema, ou com os filtros -->
+      <div *ngIf="p.TotalOrgaos === 0 && !filtrosAtivos" class="bg-white rounded-lg shadow p-6">
+        <p class="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+          Ainda não há órgãos no sistema. Um órgão aparece aqui quando alguém da unidade dele entra no SGDP pela primeira vez.
+        </p>
+      </div>
+      <div *ngIf="p.TotalOrgaos === 0 && filtrosAtivos" class="bg-white rounded-lg shadow p-6">
+        <p class="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+          Nenhum órgão com {{ descricaoFiltros }}.
+          <button type="button" (click)="limparFiltros()" class="font-semibold text-purple-700 underline">Limpar os filtros</button>
+        </p>
+      </div>
+
+      <ng-container *ngIf="p.TotalOrgaos > 0">
+
+        <!-- Os números -->
+        <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-painel-numeros">
+          <h3 id="pe-painel-numeros" class="text-base font-semibold text-gray-900">
+            Os números<ng-container *ngIf="filtrosAtivos"> com {{ descricaoFiltros }}</ng-container>
+          </h3>
+          <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-3">
+            <li *ngFor="let c of cartoes; trackBy: porChave" class="rounded-lg border border-gray-200 p-4 flex flex-col">
+              <p class="text-sm font-semibold text-gray-700">{{ c.titulo }}</p>
+              <p class="text-3xl font-bold text-gray-900 tabular-nums mt-1">{{ c.numero }}</p>
+              <p class="text-xs text-gray-600 mt-1">{{ c.texto }}</p>
+              <a [routerLink]="c.rota" [queryParams]="c.query" data-sem-dica
+                 class="mt-auto pt-3 inline-flex items-center gap-1 text-sm font-semibold text-purple-700 underline"
+                 [attr.aria-label]="'Ver os órgãos: ' + c.titulo">
+                Ver os órgãos <span class="material-icons text-base" aria-hidden="true">arrow_forward</span>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Os alertas, cada um com a lista já filtrada -->
+        <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-painel-alertas">
+          <h3 id="pe-painel-alertas" class="text-base font-semibold text-gray-900">Alertas</h3>
+          <p *ngIf="totalAlertas === 0" class="mt-2 flex items-center gap-2 text-sm text-green-800">
+            <span class="material-icons text-green-600" aria-hidden="true">task_alt</span> Nenhum alerta agora.
+          </p>
+          <ul class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            <li *ngFor="let a of alertas; trackBy: porChave" class="flex items-start gap-3 rounded-lg border px-4 py-3"
+                [ngClass]="a.numero > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-gray-50'">
+              <span class="material-icons" [ngClass]="a.numero > 0 ? 'text-amber-700' : 'text-gray-500'" aria-hidden="true">{{ a.icone }}</span>
+              <div class="min-w-0 text-sm">
+                <p [ngClass]="a.numero > 0 ? 'text-amber-900' : 'text-gray-700'">
+                  <strong class="tabular-nums">{{ a.numero === 0 ? 'Nenhum' : a.numero }}</strong>
+                  {{ a.numero <= 1 ? a.singular : a.plural }}
+                </p>
+                <a *ngIf="a.numero > 0" [routerLink]="a.rota" [queryParams]="a.query" data-sem-dica
+                   class="inline-flex items-center gap-1 mt-1 font-semibold text-purple-700 underline">
+                  {{ a.link }} <span class="material-icons text-base" aria-hidden="true">arrow_forward</span>
+                </a>
+              </div>
+            </li>
+          </ul>
+          <p class="text-xs text-gray-500 italic mt-3">A inadimplência segue o art. 11 do Decreto nº 48.899/2026: notificação, prazo de 5 dias
+            úteis e o registro com o motivo. A marca sai do painel quando o órgão regulariza.</p>
+        </section>
+
+        <!-- Os gráficos: HTML e SVG, cada um com a tabela equivalente -->
+        <div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div *ngFor="let g of graficos; trackBy: porChave" class="min-w-0">
+              <app-pe-grafico-barras [titulo]="g.titulo" [legenda]="g.legenda" [series]="g.series" [barras]="g.barras"
+                                     [rotuloCategoria]="g.rotuloCategoria" [unidade]="g.unidade" [vazio]="g.vazio"
+                                     [mostrarTotal]="g.series.length === 1"></app-pe-grafico-barras>
+              <p *ngIf="g.chave === 'objetivos'" class="mt-2 text-sm">
+                <a [routerLink]="base + '/arvore-petic'" data-sem-dica class="inline-flex items-center gap-1 font-semibold text-purple-700 underline">
+                  <span class="material-icons text-base" aria-hidden="true">account_tree</span> Ver a árvore do PETIC-DF, objetivo por objetivo
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </ng-container>
+  </ng-container>
+</div>

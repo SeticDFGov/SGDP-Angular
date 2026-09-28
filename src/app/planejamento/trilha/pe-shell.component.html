@@ -1,0 +1,246 @@
+<div class="tela-pgia max-w-6xl mx-auto">
+
+  <ng-container *ngIf="estado as e">
+
+    <!-- Consultando o papel ou a trilha -->
+    <p *ngIf="e.carga === 'carregando'" role="status"
+       class="bg-white rounded-xl shadow-sm border border-gray-200 mb-5 px-5 py-4 text-sm text-gray-600">
+      {{ e.orgaoVisto !== null ? 'Carregando o passo a passo do órgão...' : 'Carregando o seu passo a passo...' }}
+    </p>
+
+    <!-- Tem o módulo, mas não tem papel -->
+    <div *ngIf="e.carga === 'sem-papel'" class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-5">
+      <span class="material-icons text-amber-600" aria-hidden="true">person_off</span>
+      <div class="text-sm leading-relaxed">
+        <h1 class="text-base font-semibold">Você ainda não tem um papel na Governança Estratégica</h1>
+        <p class="mt-1">O seu acesso ao módulo está liberado, mas é o papel que diz o que você faz aqui: administrar o módulo,
+          acompanhar os órgãos pela SGDI, secretariar o CGTIC ou trabalhar no PDTIC do seu órgão.</p>
+        <p class="mt-1 font-semibold">Fale com o administrador do módulo para ele definir o seu papel.</p>
+      </div>
+    </div>
+
+    <!-- Papel de órgão, mas a unidade não está ligada a um órgão -->
+    <div *ngIf="e.carga === 'sem-orgao'" class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-5">
+      <span class="material-icons text-amber-600" aria-hidden="true">domain_disabled</span>
+      <div class="text-sm leading-relaxed">
+        <h1 class="text-base font-semibold">A sua unidade não está ligada a um órgão</h1>
+        <p class="mt-1">O seu papel é de órgão, e o passo a passo do PDTIC depende do órgão: é por ele que o sistema sabe os passos
+          e os campos que você preenche. Enquanto a unidade não estiver ligada a um órgão, não há passo a passo para mostrar.</p>
+        <p class="mt-1 font-semibold">Peça à Administração do SGDP que ligue a sua unidade a um órgão.</p>
+      </div>
+    </div>
+
+    <!-- Não deu para consultar o papel -->
+    <div *ngIf="e.carga === 'erro'" role="alert" class="flex items-start gap-3 bg-red-50 border border-red-200 text-red-900 rounded-xl p-5">
+      <span class="material-icons text-red-600" aria-hidden="true">error</span>
+      <div class="text-sm leading-relaxed">
+        <h1 class="text-base font-semibold">Não foi possível carregar o seu papel na Governança Estratégica</h1>
+        <p class="mt-1">Tente de novo em alguns instantes. Se o problema continuar, avise a equipe que administra o sistema.</p>
+        <button type="button" (click)="tentarDeNovo()"
+                class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+          <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+        </button>
+      </div>
+    </div>
+
+    <!-- A trilha do órgão não veio do servidor -->
+    <div *ngIf="e.carga === 'erro-trilha'" role="alert" class="flex items-start gap-3 bg-red-50 border border-red-200 text-red-900 rounded-xl p-5">
+      <span class="material-icons text-red-600" aria-hidden="true">error</span>
+      <div class="text-sm leading-relaxed">
+        <h1 class="text-base font-semibold">Não foi possível carregar o passo a passo do órgão</h1>
+        <p class="mt-1">{{ e.erroTrilha }} Tente de novo em alguns instantes. Se o problema continuar, avise a equipe que administra o sistema.</p>
+        <div class="flex flex-wrap gap-2 mt-3">
+          <button type="button" (click)="tentarDeNovo()"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+            <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+          </button>
+          <button *ngIf="e.orgaoVisto !== null" type="button" (click)="voltarParaMinhaTrilha()"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar para o meu passo a passo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trilha de um órgão vista por um papel global ou pelo admin do SGDP: só para ler -->
+    <div *ngIf="e.carga === 'pronta' && e.orgaoVisto !== null && e.trilhaOrgao as t"
+         class="mb-3 flex flex-col md:flex-row md:items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
+      <span class="material-icons text-amber-600" aria-hidden="true">visibility</span>
+      <p class="flex-1 leading-relaxed">
+        <strong>Você está vendo o passo a passo do órgão {{ t.OrgaoSigla }} como ele vê.</strong>
+        <!-- F3: no modo livre, os passos saem do mínimo do decreto, dos opcionais e das formas que o órgão escolheu -->
+        <ng-container *ngIf="modoLivre; else doNivel">É só para ler: no modo livre, os passos são os do mínimo do decreto (o nível
+          {{ t.NivelNome }}) mais os outros do Guia, como opcionais, com as formas que o órgão escolheu e os ajustes feitos para ele, e os
+          dados são os do PDTIC dele.</ng-container>
+        <ng-template #doNivel>É só para ler: os passos, as seções e os campos saem do nível do órgão ({{ t.NivelNome }}<ng-container *ngIf="t.NivelPadrao">, o padrão</ng-container>)
+          e dos ajustes feitos para ele, e os dados são os do PDTIC dele.</ng-template>
+      </p>
+      <button type="button" (click)="voltarParaMinhaTrilha()"
+              class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-300 bg-white text-sm font-semibold text-amber-900 hover:bg-gray-50 whitespace-nowrap">
+        <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar para o meu passo a passo
+      </button>
+    </div>
+
+    <!-- F2 (C-O1): o endereço pedia uma versão que a trilha não mostra (substituída, encerrada). A região fica sempre
+         na página, para o leitor de tela ler o aviso quando ele chega (as versões vêm depois da trilha) -->
+    <div role="status">
+      <div *ngIf="e.carga === 'pronta' && avisoVersao as a"
+           class="mb-3 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm text-blue-900">
+        <span class="material-icons text-blue-600" aria-hidden="true">history</span>
+        <p class="flex-1 leading-relaxed">
+          {{ a.texto }}
+          <ng-container *ngIf="a.pagina">{{ a.anterior ? 'Consulte a anterior na' : 'As versões anteriores ficam na' }}
+            <a [routerLink]="a.pagina" data-sem-dica class="font-semibold underline">página do órgão{{ siglaOrgao ? ' ' + siglaOrgao : '' }}</a>.</ng-container>
+        </p>
+      </div>
+    </div>
+
+    <!-- Trilha do papel: fica sempre à vista, acima de cada tela -->
+    <section *ngIf="e.carga === 'pronta' && e.trilha as trilha" citaPlanejamento class="bg-white rounded-xl shadow-sm border border-gray-200 mb-5">
+
+      <!-- Papel, visão do admin e visão geral -->
+      <div class="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100">
+        <div class="min-w-0">
+          <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Seu passo a passo na Governança Estratégica · Decreto nº 48.900/2026</p>
+          <!-- Espaço acima e abaixo do título: o contorno do foco (3 px, afastado 2 px; a barra de acessibilidade leva o
+               foco a ele) não cobre a linha de cima (F1, B23) nem a de baixo (F2, B23) -->
+          <h1 class="text-lg font-bold text-gray-900 truncate mt-2 mb-2">
+            {{ trilha.nome }}<span *ngIf="siglaOrgao" class="text-gray-500 font-medium"> · {{ siglaOrgao }}</span>
+          </h1>
+          <p *ngIf="rotuloNivel" class="text-xs text-gray-600">{{ rotuloNivel }}<ng-container *ngIf="rotuloPdtic as r"> · {{ r }}</ng-container></p>
+          <!-- Revisão em andamento: a versão nova e a vigente (que segue em acompanhamento) -->
+          <div *ngIf="versoes as v" role="group" aria-labelledby="pe-versao-rotulo" class="flex flex-wrap items-center gap-1 mt-1 text-xs text-gray-600">
+            <span id="pe-versao-rotulo">Versão do PDTIC à vista:</span>
+            <button type="button" (click)="escolherVersao(v.emRevisao)" [attr.aria-pressed]="versaoAberta(v.emRevisao)"
+                    class="px-2 py-0.5 rounded-full border text-xs font-semibold"
+                    [ngClass]="versaoAberta(v.emRevisao) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
+              {{ v.emRevisao.Versao }} · em revisão
+            </button>
+            <button type="button" (click)="escolherVersao(v.vigente)" [attr.aria-pressed]="versaoAberta(v.vigente)"
+                    class="px-2 py-0.5 rounded-full border text-xs font-semibold"
+                    [ngClass]="versaoAberta(v.vigente) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
+              {{ v.vigente.Versao }} · {{ rotuloVigente(v.vigente) }}
+            </button>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <form *ngIf="podeTrocarVisao" (ngSubmit)="verTrilha()" class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+            <label for="pe-visao-trilha">Ver o passo a passo de</label>
+            <select id="pe-visao-trilha" [(ngModel)]="visaoEscolhida" name="pe-visao-trilha"
+                    class="max-w-xs border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <optgroup [attr.label]="e.adminGeral ? 'Papéis centrais' : 'Seu passo a passo'">
+                <option *ngFor="let o of opcoesCentrais; trackBy: porValor" [value]="o.valor">{{ o.rotulo }}</option>
+              </optgroup>
+              <optgroup label="Passo a passo de um órgão, como o órgão vê">
+                <option *ngIf="opcaoOrgaoAvulsa as o" [value]="o.valor">{{ o.rotulo }}</option>
+                <option *ngFor="let o of opcoesOrgaos; trackBy: porValor" [value]="o.valor">{{ o.rotulo }}</option>
+                <option *ngIf="avisoOrgaos" value="" disabled>{{ avisoOrgaos }}</option>
+              </optgroup>
+            </select>
+            <button type="submit" [disabled]="!escolhaPendente"
+                    class="px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+              Ver
+            </button>
+          </form>
+          <a [routerLink]="base"
+             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors"
+             [ngClass]="naVisaoGeral ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50'"
+             [attr.aria-current]="naVisaoGeral ? 'page' : null">
+            <span class="material-icons text-base" aria-hidden="true">dashboard</span> Visão geral
+          </a>
+        </div>
+      </div>
+
+      <!-- Etapas numeradas. Com rolagem lateral (tela estreita), cada etapa é um botão: o Tab
+           chega a todas, e o navegador rola a lista até o botão com o foco -->
+      <ol class="px-3 py-3 flex gap-1 relative overflow-x-auto" aria-label="Etapas do passo a passo">
+        <li *ngFor="let etapa of trilha.etapas; let i = index" class="flex-1 min-w-[8.5rem]">
+          <button type="button" (click)="abrirEtapa(i)"
+                  class="w-full h-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
+                  [ngClass]="etapaAberta === i ? 'bg-purple-50 ring-1 ring-purple-300' : 'hover:bg-gray-50'"
+                  [attr.aria-current]="etapaAberta === i ? 'step' : null"
+                  [title]="'Etapa ' + (i + 1) + ': ' + etapa.titulo + (textoEtapa(i) ? ' (' + textoEtapa(i) + ')' : '')">
+            <span class="relative shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                  [ngClass]="etapaAberta === i ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700'">
+              {{ i + 1 }}
+              <span class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white" [ngClass]="corBolinha(i)" aria-hidden="true"></span>
+            </span>
+            <span class="text-xs font-semibold leading-tight" [ngClass]="etapaAberta === i ? 'text-purple-800' : 'text-gray-700'">{{ etapa.rotulo }}<span *ngIf="textoEtapa(i) as t" class="sr-only"> ({{ t }})</span></span>
+          </button>
+        </li>
+      </ol>
+
+      <!-- Passos da etapa aberta -->
+      <div *ngIf="etapa as et" class="px-5 pb-4 pt-3 border-t border-gray-100">
+        <p class="text-sm text-gray-700">
+          <strong class="text-gray-900">Etapa {{ (etapaAberta ?? 0) + 1 }} · {{ et.titulo }}.</strong> {{ et.resumo }}
+        </p>
+        <div class="flex flex-wrap gap-2 mt-3">
+          <!-- data-sem-dica: citação no título do passo não vira chip dentro do link -->
+          <a *ngFor="let p of passosDaEtapa(etapaAberta ?? 0)" [routerLink]="p.rota" [queryParams]="{ passo: p.numero }" data-sem-dica
+             class="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border text-sm transition-colors"
+             [ngClass]="passoAtual?.numero === p.numero
+               ? 'bg-purple-600 border-purple-600 text-white'
+               : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'"
+             [attr.aria-current]="passoAtual?.numero === p.numero ? 'step' : null">
+            <span class="px-1.5 py-0.5 rounded-full text-xs font-bold"
+                  [ngClass]="passoAtual?.numero === p.numero ? 'bg-white/10' : 'bg-gray-100 text-gray-700'">{{ p.numero }}</span>
+            {{ p.titulo }}<span *ngIf="p.semTela" class="sr-only"> (sem tela nesta versão do sistema)</span><span *ngIf="status(p) as s" class="sr-only"> ({{ textoLinkStatus(p, s) }})</span><span
+              *ngIf="validacao(p) as v" class="sr-only">, {{ textoValidacao(v) }}</span>
+            <span *ngIf="status(p) as s" class="material-icons text-base" aria-hidden="true"
+                  [ngClass]="passoAtual?.numero === p.numero ? 'text-white' : corIconeEstado(s.estado)">{{ iconeEstado(s.estado) }}</span>
+            <!-- B: a marca "validado pela equipe" (a dica e o texto para o leitor de tela dizem o que é) -->
+            <span *ngIf="validacao(p) as v" class="material-icons text-base" aria-hidden="true" [title]="textoValidacao(v)"
+                  [ngClass]="passoAtual?.numero === p.numero ? 'text-white' : corValidacao(v)">{{ iconeValidacao(v) }}</span>
+          </a>
+        </div>
+
+        <!-- O que fazer neste passo -->
+        <div *ngIf="passoAtual" class="mt-3 rounded-lg bg-purple-50 border border-purple-200 px-4 py-3 flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 text-sm">
+          <p class="flex-1 text-gray-800 leading-relaxed">
+            <strong class="text-purple-800">O que fazer no passo {{ passoAtual.numero }}:</strong> {{ passoAtual.oQueFazer }}
+          </p>
+          <span *ngIf="passoAtual.baseLegal" class="text-xs text-gray-600">Base legal: {{ passoAtual.baseLegal }}</span>
+          <span *ngIf="passoAtual.guia" class="text-xs text-gray-600">{{ guia(passoAtual) }}</span>
+          <!-- O selo quebra a linha quando o texto é longo (sem isso, no celular, ele saía da tela, F1, A02) -->
+          <span *ngIf="status(passoAtual) as s"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold"
+                [ngClass]="classeEstado(s.estado)">
+            <span class="material-icons text-sm" aria-hidden="true">{{ iconeEstado(s.estado) }}</span>{{ s.texto }}
+          </span>
+          <!-- O porquê de aguardando, atrasado e fora do sistema: em texto, não só na cor -->
+          <span *ngIf="status(passoAtual)?.motivo as m" class="text-xs text-gray-700">{{ m }}</span>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+
+  <!-- Tela do passo (ou a visão geral): só com a trilha montada -->
+  <ng-container *ngIf="estado?.carga === 'pronta'">
+    <router-outlet (activate)="aoAtivarTela($event)" (deactivate)="aoDesativarTela()"></router-outlet>
+
+    <!-- Anterior / próximo passo, na ordem da trilha -->
+    <nav *ngIf="passoAtual" class="max-w-5xl mx-auto mt-6 mb-2 flex flex-col sm:flex-row gap-3 justify-between" aria-label="Navegação entre os passos">
+      <button *ngIf="anterior as a; else semAnterior" type="button" (click)="irPara(a)"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 text-left">
+        <span class="material-icons text-lg" aria-hidden="true">arrow_back</span>
+        <span><span class="block text-xs text-gray-500">Passo anterior</span>{{ a.numero }} · {{ a.titulo }}</span>
+      </button>
+      <ng-template #semAnterior><span></span></ng-template>
+
+      <button *ngIf="proximo as p; else fimTrilha" type="button" (click)="irPara(p)"
+              class="inline-flex items-center justify-end gap-2 px-4 py-2.5 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 text-right">
+        <span><span class="block text-xs">Próximo passo</span>{{ p.numero }} · {{ p.titulo }}</span>
+        <span class="material-icons text-lg" aria-hidden="true">arrow_forward</span>
+      </button>
+      <ng-template #fimTrilha>
+        <a [routerLink]="base" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-700 text-white text-sm font-medium hover:bg-green-800">
+          <span class="material-icons text-lg" aria-hidden="true">flag</span> Fim do passo a passo: voltar à visão geral
+        </a>
+      </ng-template>
+    </nav>
+  </ng-container>
+
+  <!-- As confirmações de todas as telas do módulo (F1, A04 e B03: nada de confirm do navegador) -->
+  <app-pe-confirmacao></app-pe-confirmacao>
+</div>

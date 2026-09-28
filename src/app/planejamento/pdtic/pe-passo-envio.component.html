@@ -1,0 +1,128 @@
+<section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-envio-titulo">
+  <h2 id="pe-envio-titulo" tabindex="-1" class="text-base font-semibold text-gray-900">Envio ao CGTIC</h2>
+  <p class="text-sm text-gray-700 leading-relaxed mt-1">
+    Com a aprovação do SGTIC registrada, o órgão envia o PDTIC ao comitê de governança de TIC do DF (CGTIC), que aprova ou devolve
+    para ajustes (art. 5º). O envio pelo sistema vale como a comunicação do PDTIC aprovado à SGDI (art. 7º, V, do Decreto nº 48.899/2026).
+  </p>
+
+  <!-- Em elaboração ou devolvido: o que falta e o envio -->
+  <ng-container *ngIf="emEdicao">
+    <div *ngIf="devolvido" class="mt-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+      <span class="material-icons text-red-600" aria-hidden="true">undo</span>
+      <p class="leading-relaxed">
+        O CGTIC devolveu o PDTIC para ajustes. Depois de ajustar o que foi pedido, registre de novo a aprovação do SGTIC, acima, com a
+        data da nova decisão: a versão ajustada volta ao comitê interno antes de ir ao CGTIC. Depois, envie de novo por aqui.
+        <ng-container *ngIf="passoDeliberacao as d">O que o comitê pediu está no
+          <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>.</ng-container>
+      </p>
+    </div>
+
+    <ng-container *ngIf="podeEditar; else quemEnvia">
+      <p *ngIf="carregandoPrevia && !previa" role="status" class="mt-4 text-sm text-gray-600">Conferindo o que falta para enviar...</p>
+      <div *ngIf="erroPrevia" role="alert" class="mt-4 text-sm text-red-700">
+        {{ erroPrevia }}
+        <button type="button" (click)="carregarPrevia()" class="font-semibold underline">Tentar de novo</button>
+      </div>
+
+      <ng-container *ngIf="previa">
+        <div *ngIf="itens.length > 0" id="pe-envio-pendencias" tabindex="-1"
+             class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p class="font-semibold">{{ resumoPendencias }}</p>
+          <ul class="list-disc ml-5 mt-1 space-y-1">
+            <li *ngFor="let item of itens; trackBy: porPasso" class="leading-relaxed">
+              <ng-container *ngIf="item.link as l; else semLink">
+                <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold underline">Passo {{ item.pendencia.PassoNumero }} · {{ item.pendencia.PassoTitulo }}</a>:
+              </ng-container>
+              <ng-template #semLink><span class="font-semibold">Passo {{ item.pendencia.PassoNumero }} · {{ item.pendencia.PassoTitulo }}</span>:</ng-template>
+              {{ item.pendencia.Motivo }}
+            </li>
+          </ul>
+        </div>
+        <div *ngIf="itens.length === 0 && previa.PodeEnviar"
+             class="mt-4 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+          <span class="material-icons text-green-600" aria-hidden="true">task_alt</span>
+          <p class="leading-relaxed">Tudo pronto para enviar: nenhum passo impede o envio.
+            <ng-container *ngIf="passoDocumento as d">Antes, confira a prévia do documento no
+              <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>:
+              o PDF enviado sai dela.</ng-container>
+          </p>
+        </div>
+        <p *ngIf="itens.length === 0 && !previa.PodeEnviar" class="mt-4 text-sm text-gray-700">
+          O servidor ainda não libera o envio. Confira a aprovação do SGTIC acima e use "Conferir de novo".
+        </p>
+      </ng-container>
+
+      <div class="flex flex-wrap gap-2 mt-4">
+        <button type="button" (click)="abrirJanela()" [disabled]="!podeEnviar" [attr.aria-disabled]="enviando || null"
+                [attr.aria-describedby]="!podeEnviar ? 'pe-envio-ajuda' : null"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+          <span class="material-icons text-base" aria-hidden="true">send</span> {{ enviando ? 'Enviando...' : 'Enviar ao CGTIC' }}
+        </button>
+        <button type="button" (click)="conferirDeNovo()" [attr.aria-disabled]="carregandoPrevia || null"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <span class="material-icons text-base" aria-hidden="true">refresh</span> {{ carregandoPrevia ? 'Conferindo...' : 'Conferir de novo' }}
+        </button>
+      </div>
+      <p *ngIf="!podeEnviar" id="pe-envio-ajuda" class="text-xs text-gray-500 italic mt-2">
+        O botão "Enviar ao CGTIC" fica disponível quando nada falta. Resolva cada passo da lista e use "Conferir de novo".
+      </p>
+    </ng-container>
+    <ng-template #quemEnvia>
+      <p class="mt-4 text-sm text-gray-700">Quem envia o PDTIC ao CGTIC é a equipe do PDTIC.</p>
+    </ng-template>
+  </ng-container>
+
+  <!-- Já enviado (ou fora do sistema) -->
+  <ng-container *ngIf="!emEdicao">
+    <div *ngIf="pdtic.EnviadoEm; else semEnvio"
+         class="mt-4 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+      <span class="material-icons text-green-600" aria-hidden="true">mark_email_read</span>
+      <div class="leading-relaxed min-w-0">
+        <p><strong>Enviado ao CGTIC em {{ quando(pdtic.EnviadoEm) }}.</strong> O envio valeu como a comunicação do PDTIC à SGDI.</p>
+        <p *ngIf="passoDeliberacao as d" class="mt-1">A decisão do comitê aparece no
+          <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>.</p>
+        <button *ngIf="pdf as f" type="button" (click)="baixarPdf()" [attr.aria-disabled]="baixando || null"
+                class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <span class="material-icons text-base" aria-hidden="true">picture_as_pdf</span>
+          {{ baixando ? 'Baixando...' : 'Baixar o PDF enviado (versão ' + f.numero + ' do documento)' }}
+        </button>
+      </div>
+    </div>
+    <ng-template #semEnvio>
+      <p class="mt-4 text-sm text-gray-700 leading-relaxed">
+        {{ pdtic.RegistradoExternamente
+          ? 'Este PDTIC foi aprovado fora do sistema e registrado já aprovado: não houve envio pelo sistema.'
+          : 'Não há registro de envio desta versão pelo sistema.' }}
+      </p>
+    </ng-template>
+  </ng-container>
+</section>
+
+<!-- Confirmação do envio (janela com foco preso e Esc) -->
+<div *ngIf="janela" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div appDialogo aria-labelledby="pe-envio-janela-titulo" aria-describedby="pe-envio-janela-texto" (fechar)="fecharJanela()"
+       class="bg-white rounded-xl shadow-xl w-full max-w-lg">
+    <div class="px-6 pt-4 pb-3 border-b border-gray-100">
+      <h2 id="pe-envio-janela-titulo" class="text-lg font-bold text-gray-900">Enviar o PDTIC {{ pdtic.Versao }} ao CGTIC?</h2>
+    </div>
+    <div id="pe-envio-janela-texto" class="px-6 py-4 max-h-[70vh] overflow-y-auto text-sm text-gray-700 leading-relaxed">
+      <p>Ao enviar:</p>
+      <ul class="list-disc ml-5 mt-1 space-y-1">
+        <li>o sistema gera o PDF do PDTIC e guarda essa versão do documento como a enviada;</li>
+        <li>o PDTIC fica em aprovação: nenhum passo da elaboração muda até o comitê decidir;</li>
+        <li>o envio vale como a comunicação do PDTIC à SGDI;</li>
+        <li>a Secretaria do CGTIC registra a decisão do comitê: aprovado, ou devolvido com o que ajustar.</li>
+      </ul>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+      <button type="button" (click)="fecharJanela()" [disabled]="enviando"
+              class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        Cancelar
+      </button>
+      <button type="button" (click)="enviar()" [attr.aria-disabled]="enviando || null"
+              class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-60">
+        <span class="material-icons text-lg" aria-hidden="true">send</span> {{ enviando ? 'Enviando...' : 'Enviar ao CGTIC' }}
+      </button>
+    </div>
+  </div>
+</div>

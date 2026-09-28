@@ -1,0 +1,700 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <!-- Esperando o meu-papel: nenhuma consulta antes dele -->
+  <p *ngIf="pode === null" role="status" class="text-sm text-gray-600">Conferindo o seu papel no módulo...</p>
+
+  <div *ngIf="pode === false && !erroPapel" class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Etapas, passos, seções e campos</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem monta o modelo que os órgãos
+      seguem. Se você precisa mudar um passo ou um campo, fale com ele.</p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <p class="mt-1">Sem ele, o modelo não abre. Tente de novo em alguns instantes.</p>
+    <button type="button" (click)="tentarDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <ng-container *ngIf="pode">
+
+    <!-- Apresentação -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-1">Etapas, passos, seções e campos</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">Aqui você diz o que cada nível de maturidade pede. Cada passo, seção e campo
+        tem uma situação em cada nível:</p>
+      <ul class="mt-2 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
+        <li><strong>Obrigatório</strong>: aparece, e o órgão precisa preencher.</li>
+        <li><strong>Opcional</strong>: aparece, e o órgão preenche se fizer sentido (num passo opcional, ele pode marcar "não se aplica", com justificativa).</li>
+        <li><strong>Desligado</strong>: não aparece. Nada se apaga: se você ligar de novo, os dados voltam.</li>
+      </ul>
+      <p class="text-xs text-gray-500 italic mt-2">O campo só aparece se a seção dele aparece, e a seção, se o passo aparece. Os
+        passos e as seções dos nove conteúdos mínimos do PDTIC (art. 12, § 2º) ficam travados: não desligam em nenhum nível, nem
+        o campo principal dessas seções. O campo tema das ações também é travado, e os três temas do decreto (art. 12, § 2º, V,
+        VI e IX) não saem da lista dele. Os itens travados têm o cadeado. Toda mudança vale na hora para os órgãos e fica no
+        histórico.</p>
+
+      <div class="flex flex-wrap items-center gap-2 mt-4">
+        <button type="button" (click)="abrirTudo()"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+          <span class="material-icons text-base" aria-hidden="true">unfold_more</span> Abrir tudo
+        </button>
+        <button type="button" (click)="fecharTudo()"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+          <span class="material-icons text-base" aria-hidden="true">unfold_less</span> Fechar tudo
+        </button>
+        <label class="inline-flex items-center gap-1.5 text-sm text-gray-700 ml-2">
+          <input type="checkbox" class="w-4 h-4" [(ngModel)]="incluirExcluidos" (ngModelChange)="alternarExcluidos()" name="pe-incluir-excluidos"
+                 [disabled]="carregando || quantasPendentes > 0" />
+          Mostrar também os itens apagados
+        </label>
+        <a routerLink="/planejamento/modelo/criterios" class="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-purple-700 hover:underline">
+          <span class="material-icons text-base" aria-hidden="true">low_priority</span> Critérios de priorização
+        </a>
+      </div>
+      <p *ngIf="incluirExcluidos" class="text-xs text-gray-500 italic mt-2">Os itens apagados aparecem só para consulta, com o histórico.
+        Enquanto eles estão à vista, a ordem não muda.</p>
+    </div>
+
+    <!-- O que mudou no modelo -->
+    <details class="bg-white rounded-lg shadow" (toggle)="historicoGeralAberto = $any($event.target).open">
+      <summary class="cursor-pointer px-6 py-4 text-sm font-semibold text-gray-900">
+        <span class="inline-flex items-center gap-1.5"><span class="material-icons text-base text-purple-700" aria-hidden="true">history</span> O que mudou no modelo</span>
+      </summary>
+      <div class="px-6 pb-5">
+        <app-pe-historico *ngIf="historicoGeralAberto" [niveis]="niveis" [nomeItem]="nomeItem"
+                          vazio="Nenhuma mudança no modelo ainda."></app-pe-historico>
+      </div>
+    </details>
+
+    <!-- Carga -->
+    <p *ngIf="carregando && !modelo" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando o modelo...</p>
+    <div *ngIf="erroCarga" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      Não foi possível carregar o modelo.
+      <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+
+    <!-- Matriz: etapas, passos, seções e campos × níveis -->
+    <div *ngIf="modelo as m" class="bg-white rounded-lg shadow">
+      <div class="px-6 pt-4 pb-3">
+        <h2 class="text-base font-semibold text-gray-900">Passo a passo do órgão</h2>
+        <p *ngIf="niveis.length === 0" class="text-sm text-amber-700 mt-1">Não há nenhum nível de maturidade. Crie os níveis antes, no
+          passo "Defina os níveis de maturidade".</p>
+      </div>
+      <div id="pe-estrutura-tabela" class="relative overflow-x-auto border-t border-gray-200" tabindex="0" role="region" aria-label="Tabela: etapas, passos, seções e campos do passo a passo do órgão">
+        <table class="w-full text-sm">
+          <caption class="sr-only">Etapas, passos, seções e campos do passo a passo do órgão, com a situação de cada item em cada nível de maturidade</caption>
+          <thead>
+            <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+              <th scope="col" class="px-3 py-3">Item</th>
+              <th *ngFor="let n of niveis" scope="col" class="px-2 py-3 whitespace-nowrap">
+                {{ n.Nome }}<span *ngIf="!n.Ativo" class="block normal-case font-normal">(desativado)</span>
+              </th>
+              <th scope="col" class="px-3 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let etapa of m.Etapas; let ie = index; trackBy: porId">
+
+              <!-- Etapa -->
+              <tr class="border-t border-gray-300 bg-purple-50 align-top">
+                <th scope="row" class="px-3 py-2.5 text-left">
+                  <div class="flex items-start gap-1.5">
+                    <ng-container *ngTemplateOutlet="alternador; context: { tipo: 'etapa', item: etapa }"></ng-container>
+                    <div class="min-w-0">
+                      <p class="font-bold text-gray-900">Etapa {{ ie + 1 }} · {{ etapa.Titulo }}</p>
+                      <p class="text-xs font-normal text-gray-600">
+                        {{ etapa.Passos.length === 1 ? '1 passo' : etapa.Passos.length + ' passos' }}<ng-container *ngIf="etapa.ReferenciaGuia"> · {{ guia(etapa.ReferenciaGuia) }}</ng-container>
+                      </p>
+                    </div>
+                  </div>
+                </th>
+                <td *ngFor="let n of niveis" class="px-2 py-2.5 text-xs font-semibold text-purple-800" aria-hidden="true">{{ n.Nome }}</td>
+                <td class="px-3 py-2.5">
+                  <div class="flex flex-wrap gap-1">
+                    <button type="button" (click)="editarEtapa(etapa)" [id]="'pe-editar-etapa-' + etapa.Id"
+                            [attr.aria-label]="'Editar a etapa ' + etapa.Titulo" [title]="'Editar a etapa'"
+                            class="p-1 rounded text-gray-700 hover:bg-gray-100">
+                      <span class="material-icons text-base" aria-hidden="true">edit</span>
+                    </button>
+                    <button type="button" (click)="novoPasso(etapa)" [attr.aria-label]="'Novo passo na etapa ' + etapa.Titulo"
+                            class="inline-flex items-center gap-1 px-2 py-1 rounded border border-purple-200 bg-white text-xs font-semibold text-purple-800 hover:bg-gray-50 whitespace-nowrap">
+                      <span class="material-icons text-sm" aria-hidden="true">add</span> Passo
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <ng-container *ngIf="aberto('etapa', etapa.Id)">
+                <tr *ngIf="etapa.Passos.length === 0" class="border-t border-gray-100">
+                  <td [attr.colspan]="niveis.length + 2" class="pl-10 pr-3 py-2 text-xs text-gray-500 italic">Nenhum passo nesta etapa.</td>
+                </tr>
+
+                <ng-container *ngFor="let passo of etapa.Passos; let ip = index; trackBy: porId">
+
+                  <!-- Passo -->
+                  <tr class="border-t border-gray-100 align-top"
+                      [ngClass]="linhaMudou('passo', passo) ? 'bg-amber-50' : (passo.Excluido ? 'bg-gray-50' : '')">
+                    <th scope="row" class="px-3 py-2 text-left font-normal">
+                      <div class="flex items-start gap-1.5 pl-2">
+                        <ng-container *ngIf="passo.Secoes.length > 0 || !passo.Excluido; else semFilhos">
+                          <ng-container *ngTemplateOutlet="alternador; context: { tipo: 'passo', item: passo }"></ng-container>
+                        </ng-container>
+                        <div class="min-w-0">
+                          <p class="font-semibold" [ngClass]="passo.Excluido ? 'text-gray-500' : 'text-gray-900'">{{ passo.Titulo }}</p>
+                          <p class="text-xs text-gray-600 flex flex-wrap gap-x-3 gap-y-1 mt-0.5">
+                            <span *ngIf="passo.Travado" class="inline-flex items-center gap-1 text-purple-800 font-semibold">
+                              <span class="material-icons text-sm" aria-hidden="true">lock</span> Travado
+                            </span>
+                            <span *ngIf="passo.Tipo !== 'dados'">{{ rotuloTipoPasso(passo.Tipo) }}</span>
+                            <span>{{ passo.Secoes.length === 1 ? '1 seção' : passo.Secoes.length + ' seções' }}</span>
+                            <span *ngIf="passo.ReferenciaGuia">{{ guia(passo.ReferenciaGuia) }}</span>
+                            <span *ngIf="!passo.Sistema" class="text-blue-800">criado pelo administrador</span>
+                            <span *ngIf="passo.Excluido" class="font-semibold text-red-700">apagado</span>
+                          </p>
+                          <p *ngIf="passo.Travado" class="text-xs text-purple-800 mt-0.5">
+                            Conteúdo mínimo do PDTIC ({{ citacao(passo.IncisoDecreto) }}): não desliga em nenhum nível.
+                          </p>
+                        </div>
+                      </div>
+                    </th>
+                    <td *ngFor="let n of niveis" class="px-2 py-2">
+                      <ng-container *ngTemplateOutlet="celulaNivel; context: { tipo: 'passo', item: passo, nivel: n }"></ng-container>
+                    </td>
+                    <td class="px-3 py-2">
+                      <ng-container *ngTemplateOutlet="acoes; context: { tipo: 'passo', item: passo }"></ng-container>
+                    </td>
+                  </tr>
+
+                  <ng-container *ngIf="aberto('passo', passo.Id)">
+                    <ng-container *ngFor="let secao of passo.Secoes; let is = index; trackBy: porId">
+
+                      <!-- Seção -->
+                      <tr class="border-t border-gray-100 align-top"
+                          [ngClass]="linhaMudou('secao', secao) ? 'bg-amber-50' : (secao.Excluido ? 'bg-gray-50' : '')">
+                        <th scope="row" class="px-3 py-2 text-left font-normal">
+                          <div class="flex items-start gap-1.5 pl-6">
+                            <ng-container *ngIf="secao.Campos.length > 0 || !secao.Excluido; else semFilhos">
+                              <ng-container *ngTemplateOutlet="alternador; context: { tipo: 'secao', item: secao }"></ng-container>
+                            </ng-container>
+                            <ng-container *ngTemplateOutlet="nomeSecao; context: { $implicit: secao }"></ng-container>
+                          </div>
+                        </th>
+                        <td *ngFor="let n of niveis" class="px-2 py-2">
+                          <ng-container *ngTemplateOutlet="celulaNivel; context: { tipo: 'secao', item: secao, nivel: n }"></ng-container>
+                        </td>
+                        <td class="px-3 py-2">
+                          <ng-container *ngTemplateOutlet="acoes; context: { tipo: 'secao', item: secao }"></ng-container>
+                        </td>
+                      </tr>
+
+                      <ng-container *ngIf="aberto('secao', secao.Id)">
+                        <!-- Campos -->
+                        <tr *ngFor="let campo of secao.Campos; let ic = index; trackBy: porId" class="border-t border-gray-100 align-top"
+                            [ngClass]="linhaMudou('campo', campo) ? 'bg-amber-50' : (campo.Excluido ? 'bg-gray-50' : '')">
+                          <th scope="row" class="px-3 py-2 text-left font-normal">
+                            <ng-container *ngTemplateOutlet="nomeCampo; context: { $implicit: campo }"></ng-container>
+                          </th>
+                          <td *ngFor="let n of niveis" class="px-2 py-2">
+                            <ng-container *ngTemplateOutlet="celulaNivel; context: { tipo: 'campo', item: campo, nivel: n }"></ng-container>
+                          </td>
+                          <td class="px-3 py-2">
+                            <ng-container *ngTemplateOutlet="acoes; context: { tipo: 'campo', item: campo }"></ng-container>
+                          </td>
+                        </tr>
+                        <tr *ngIf="!secao.Excluido" class="border-t border-gray-100">
+                          <td [attr.colspan]="niveis.length + 2" class="px-3 py-1.5">
+                            <div class="pl-10">
+                              <button type="button" (click)="novoCampo(secao)"
+                                      class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-blue-700 hover:bg-blue-50">
+                                <span class="material-icons text-sm" aria-hidden="true">add</span> Novo campo em "{{ secao.Titulo }}"
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      </ng-container>
+                    </ng-container>
+
+                    <tr *ngIf="!passo.Excluido" class="border-t border-gray-100">
+                      <td [attr.colspan]="niveis.length + 2" class="px-3 py-1.5">
+                        <button type="button" (click)="novaSecao(passo)"
+                                class="ml-6 inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-blue-700 hover:bg-blue-50">
+                          <span class="material-icons text-sm" aria-hidden="true">add</span> Nova seção em "{{ passo.Titulo }}"
+                        </button>
+                      </td>
+                    </tr>
+                  </ng-container>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Seções fora do PDTIC (PETIC-DF e referenciais do DF): situação geral -->
+    <div *ngIf="modelo as m" class="bg-white rounded-lg shadow">
+      <div class="px-6 pt-4 pb-3 flex flex-col md:flex-row items-start gap-3">
+        <div class="flex-1">
+          <h2 class="text-base font-semibold text-gray-900">Seções fora do PDTIC</h2>
+          <p class="text-sm text-gray-600 leading-relaxed mt-0.5">São as seções do PETIC-DF e dos referenciais do DF (princípios e
+            diretrizes do ciclo). Elas não dependem do nível de maturidade dos órgãos: têm uma situação só. Os dados delas são
+            preenchidos nas telas da etapa "Cadastre os referenciais".</p>
+        </div>
+        <button type="button" (click)="novaSecaoFora()"
+                class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 whitespace-nowrap">
+          <span class="material-icons text-base" aria-hidden="true">add</span> Nova seção fora do PDTIC
+        </button>
+      </div>
+      <p *ngIf="m.SecoesForaDoPdtic.length === 0" class="px-6 pb-5 text-sm text-gray-600">
+        Nenhuma seção fora do PDTIC. As do PETIC-DF e dos referenciais do DF entram com o conteúdo inicial do módulo: se elas não
+        aparecem, avise a equipe que administra o sistema.
+      </p>
+      <div *ngIf="m.SecoesForaDoPdtic.length > 0" id="pe-estrutura-tabela-fora" class="relative overflow-x-auto border-t border-gray-200" tabindex="0" role="region" aria-label="Tabela: seções fora do PDTIC">
+        <table class="w-full text-sm">
+          <caption class="sr-only">Seções fora do PDTIC e os campos delas, com a situação de cada item</caption>
+          <thead>
+            <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+              <th scope="col" class="px-3 py-3">Item</th>
+              <th scope="col" class="px-2 py-3">Situação</th>
+              <th scope="col" class="px-3 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let secao of m.SecoesForaDoPdtic; let is = index; trackBy: porId">
+              <tr class="border-t border-gray-100 align-top"
+                  [ngClass]="linhaMudou('secao', secao) ? 'bg-amber-50' : (secao.Excluido ? 'bg-gray-50' : '')">
+                <th scope="row" class="px-3 py-2 text-left font-normal">
+                  <div class="flex items-start gap-1.5">
+                    <ng-container *ngIf="secao.Campos.length > 0 || !secao.Excluido; else semFilhos">
+                      <ng-container *ngTemplateOutlet="alternador; context: { tipo: 'secao', item: secao }"></ng-container>
+                    </ng-container>
+                    <ng-container *ngTemplateOutlet="nomeSecao; context: { $implicit: secao }"></ng-container>
+                  </div>
+                </th>
+                <td class="px-2 py-2">
+                  <ng-container *ngTemplateOutlet="celulaGeral; context: { tipo: 'secao', item: secao }"></ng-container>
+                </td>
+                <td class="px-3 py-2">
+                  <ng-container *ngTemplateOutlet="acoes; context: { tipo: 'secao', item: secao }"></ng-container>
+                </td>
+              </tr>
+              <ng-container *ngIf="aberto('secao', secao.Id)">
+                <tr *ngFor="let campo of secao.Campos; let ic = index; trackBy: porId" class="border-t border-gray-100 align-top"
+                    [ngClass]="linhaMudou('campo', campo) ? 'bg-amber-50' : (campo.Excluido ? 'bg-gray-50' : '')">
+                  <th scope="row" class="px-3 py-2 text-left font-normal">
+                    <ng-container *ngTemplateOutlet="nomeCampo; context: { $implicit: campo }"></ng-container>
+                  </th>
+                  <td class="px-2 py-2">
+                    <ng-container *ngTemplateOutlet="celulaGeral; context: { tipo: 'campo', item: campo }"></ng-container>
+                  </td>
+                  <td class="px-3 py-2">
+                    <ng-container *ngTemplateOutlet="acoes; context: { tipo: 'campo', item: campo }"></ng-container>
+                  </td>
+                </tr>
+                <tr *ngIf="!secao.Excluido" class="border-t border-gray-100">
+                  <td colspan="3" class="px-3 py-1.5">
+                    <div class="pl-10">
+                      <button type="button" (click)="novoCampo(secao)"
+                              class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-blue-700 hover:bg-blue-50">
+                        <span class="material-icons text-sm" aria-hidden="true">add</span> Novo campo em "{{ secao.Titulo }}"
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mudanças de situação ainda não salvas -->
+    <div *ngIf="quantasPendentes > 0" role="region" aria-label="Mudanças de situação não salvas"
+         class="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 bg-white px-5 py-3 shadow-lg">
+      <span class="material-icons text-amber-600" aria-hidden="true">pending_actions</span>
+      <p class="flex-1 text-sm text-gray-800">
+        <strong>{{ quantasPendentes === 1 ? '1 item com a situação mudada' : quantasPendentes + ' itens com a situação mudada' }}</strong>,
+        ainda não salvos. As células mudadas estão em destaque.
+      </p>
+      <!-- Ocupados sem sair do Tab (aria-disabled): desligados, os botões perdiam o foco (F1, C11 e A05) -->
+      <button type="button" (click)="descartarSituacoes()" [attr.aria-disabled]="salvandoSituacoes || null"
+              class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50"
+              [ngClass]="salvandoSituacoes ? 'opacity-50' : ''">
+        Desfazer
+      </button>
+      <button type="button" (click)="salvarSituacoes()" [attr.aria-disabled]="salvandoSituacoes || null"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+        <span class="material-icons text-base" aria-hidden="true">save</span> {{ salvandoSituacoes ? 'Salvando...' : 'Salvar as mudanças' }}
+      </button>
+    </div>
+  </ng-container>
+</div>
+
+<!-- ── Pedaços reaproveitados nas linhas ─────────────────────────────────── -->
+<!-- Cada pedaço recebe só o tipo e o item (e o nível); o resto sai do índice do componente -->
+
+<!-- Abrir e fechar um ramo da árvore -->
+<ng-template #alternador let-tipo="tipo" let-item="item">
+  <button type="button" (click)="alternar(tipo, item.Id)" [attr.aria-expanded]="aberto(tipo, item.Id)"
+          [attr.aria-label]="(aberto(tipo, item.Id) ? 'Fechar ' : 'Abrir ') + rotuloRamo(tipo, item)"
+          class="shrink-0 p-0.5 rounded text-gray-600 hover:bg-gray-100">
+    <span class="material-icons text-lg" aria-hidden="true">{{ aberto(tipo, item.Id) ? 'expand_more' : 'chevron_right' }}</span>
+  </button>
+</ng-template>
+
+<!-- Espaço do alternador quando o ramo não tem filhos -->
+<ng-template #semFilhos><span class="w-6 shrink-0" aria-hidden="true"></span></ng-template>
+
+<!-- Nome da seção, com os selos -->
+<ng-template #nomeSecao let-secao>
+  <div class="min-w-0">
+    <p class="font-semibold" [ngClass]="secao.Excluido ? 'text-gray-500' : 'text-gray-800'">{{ secao.Titulo }}</p>
+    <p class="text-xs text-gray-600 flex flex-wrap gap-x-3 gap-y-1 mt-0.5">
+      <span *ngIf="secao.Travada" class="inline-flex items-center gap-1 text-purple-800 font-semibold">
+        <span class="material-icons text-sm" aria-hidden="true">lock</span> Travada
+      </span>
+      <span>{{ secao.Tipo === 'tabela' ? 'Tabela' + (secao.PrefixoCodigo ? ' (' + secao.PrefixoCodigo + '01, ' + secao.PrefixoCodigo + '02...)' : '') : 'Formulário' }}</span>
+      <span *ngIf="secao.Escopo !== 'pdtic'">{{ rotuloEscopo(secao.Escopo) }}</span>
+      <span>{{ secao.Campos.length === 1 ? '1 campo' : secao.Campos.length + ' campos' }}</span>
+      <span *ngIf="!secao.NoDocumento">fora do documento</span>
+      <span *ngIf="!secao.NaPlanilha">fora da planilha</span>
+      <span *ngIf="!secao.Sistema" class="text-blue-800">criada pelo administrador</span>
+      <span *ngIf="secao.Excluido" class="font-semibold text-red-700">apagada</span>
+    </p>
+    <p *ngIf="secao.Travada" class="text-xs text-purple-800 mt-0.5">
+      Conteúdo mínimo do PDTIC ({{ citacao(secao.IncisoDecreto) }}): não desliga em nenhum nível.
+    </p>
+  </div>
+</ng-template>
+
+<!-- Nome do campo, com o jeito de responder -->
+<ng-template #nomeCampo let-campo>
+  <div class="pl-10 min-w-0">
+    <p [ngClass]="campo.Excluido ? 'text-gray-500' : 'text-gray-900'">
+      {{ campo.Rotulo }}
+      <span *ngIf="campo.Principal" class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 text-xs font-semibold">principal</span>
+    </p>
+    <p class="text-xs text-gray-600 mt-0.5">{{ descricaoDoCampo(campo) }}</p>
+    <p class="text-xs text-gray-600 flex flex-wrap gap-x-3">
+      <span *ngIf="travadoPorSi(campo)" class="inline-flex items-center gap-1 text-purple-800 font-semibold">
+        <span class="material-icons text-sm" aria-hidden="true">lock</span> Travado
+      </span>
+      <span *ngIf="naoDesliga('campo', campo) && !travadoPorSi(campo)" class="text-purple-800">principal de seção travada: não desliga</span>
+      <span *ngIf="!campo.NoDocumento">fora do documento</span>
+      <span *ngIf="!campo.NaPlanilha">fora da planilha</span>
+      <span *ngIf="!campo.Sistema" class="text-blue-800">criado pelo administrador</span>
+      <span *ngIf="campo.Excluido" class="font-semibold text-red-700">apagado</span>
+    </p>
+    <p *ngIf="travadoPorSi(campo)" class="text-xs text-purple-800 mt-0.5">{{ explicacaoCampoTravado }}</p>
+  </div>
+</ng-template>
+
+<!-- Situação num nível -->
+<ng-template #celulaNivel let-tipo="tipo" let-item="item" let-nivel="nivel">
+  <span *ngIf="item.Excluido; else seletorNivel" class="text-xs text-gray-500">{{ rotuloSituacao(situacaoNaTela(tipo, item, nivel.Id)) }}</span>
+  <ng-template #seletorNivel>
+    <select [attr.aria-label]="'Situação de ' + nomeDe(item) + ' no nível ' + nivel.Nome"
+            [ngModel]="situacaoNaTela(tipo, item, nivel.Id)" (ngModelChange)="mudarSituacao(tipo, item, nivel.Id, $event)"
+            [disabled]="salvandoSituacoes"
+            class="w-full min-w-[8.5rem] px-1.5 py-1 border rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            [ngClass]="classeSituacao(situacaoNaTela(tipo, item, nivel.Id), celulaMudou(tipo, item, nivel.Id))">
+      <option *ngFor="let s of situacoes" [value]="s.valor" [disabled]="s.valor === 'desligado' && naoDesliga(tipo, item)">
+        {{ s.rotulo }}{{ s.valor === 'desligado' && naoDesliga(tipo, item) ? ' (travado)' : '' }}
+      </option>
+    </select>
+  </ng-template>
+</ng-template>
+
+<!-- Situação geral (fora do PDTIC) -->
+<ng-template #celulaGeral let-tipo="tipo" let-item="item">
+  <span *ngIf="item.Excluido; else seletorGeral" class="text-xs text-gray-500">{{ rotuloSituacao(geralNaTela(tipo, item)) }}</span>
+  <ng-template #seletorGeral>
+    <select [attr.aria-label]="'Situação de ' + nomeDe(item)"
+            [ngModel]="geralNaTela(tipo, item)" (ngModelChange)="mudarGeral(tipo, item, $event)"
+            [disabled]="salvandoSituacoes"
+            class="w-full min-w-[8.5rem] px-1.5 py-1 border rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            [ngClass]="classeSituacao(geralNaTela(tipo, item), linhaMudou(tipo, item))">
+      <option *ngFor="let s of situacoes" [value]="s.valor" [disabled]="s.valor === 'desligado' && naoDesliga(tipo, item)">
+        {{ s.rotulo }}{{ s.valor === 'desligado' && naoDesliga(tipo, item) ? ' (travado)' : '' }}
+      </option>
+    </select>
+  </ng-template>
+</ng-template>
+
+<!-- Ações da linha: editar, subir, descer e apagar -->
+<ng-template #acoes let-tipo="tipo" let-item="item">
+  <div class="flex flex-wrap items-center gap-1">
+    <button type="button" [id]="'pe-editar-' + tipo + '-' + item.Id" (click)="editar(tipo, item)"
+            [attr.aria-label]="(item.Excluido ? 'Consultar ' : 'Editar ') + nomeDe(item)" [title]="item.Excluido ? 'Consultar e ver o histórico' : 'Editar'"
+            class="p-1 rounded text-gray-700 hover:bg-gray-100">
+      <span class="material-icons text-base" aria-hidden="true">{{ item.Excluido ? 'visibility' : 'edit' }}</span>
+    </button>
+    <ng-container *ngIf="!item.Excluido">
+      <button type="button" [id]="'pe-subir-' + tipo + '-' + item.Id" (click)="mover(tipo, item, -1)"
+              [disabled]="posicaoDe(tipo, item) === 0 || incluirExcluidos" [attr.aria-disabled]="movendo || null"
+              [attr.aria-label]="'Subir ' + nomeDe(item)" title="Subir"
+              class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+        <span class="material-icons text-base" aria-hidden="true">arrow_upward</span>
+      </button>
+      <button type="button" [id]="'pe-descer-' + tipo + '-' + item.Id" (click)="mover(tipo, item, 1)"
+              [disabled]="posicaoDe(tipo, item) === irmaos(tipo, item).length - 1 || incluirExcluidos" [attr.aria-disabled]="movendo || null"
+              [attr.aria-label]="'Descer ' + nomeDe(item)" title="Descer"
+              class="p-1 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+        <span class="material-icons text-base" aria-hidden="true">arrow_downward</span>
+      </button>
+      <button *ngIf="!item.Sistema" type="button" (click)="apagar(tipo, item)" [attr.aria-disabled]="apagando !== null || null"
+              [attr.aria-label]="'Apagar ' + nomeDe(item)" title="Apagar"
+              class="p-1 rounded text-red-700 hover:bg-red-50 disabled:opacity-40">
+        <span class="material-icons text-base" aria-hidden="true">delete</span>
+      </button>
+    </ng-container>
+  </div>
+</ng-template>
+
+<!-- ── Janela de edição ──────────────────────────────────────────────────── -->
+<div *ngIf="edicao as e" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div appDialogo aria-labelledby="pe-edicao-titulo" (fechar)="fecharEdicao()" class="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+    <form (ngSubmit)="salvarEdicao()" citaPlanejamento class="tela-pgia">
+      <div class="px-6 pt-4 pb-3 border-b border-gray-100">
+        <h2 id="pe-edicao-titulo" class="text-lg font-bold text-gray-900">{{ tituloEdicao }}</h2>
+        <p *ngIf="origemEdicao" class="text-xs text-gray-600 mt-0.5">{{ origemEdicao }}</p>
+        <p *ngIf="e.somenteLeitura" class="text-xs font-semibold text-red-700 mt-1">Este item foi apagado: aparece só para consulta.</p>
+      </div>
+
+      <div class="px-6 py-4 max-h-[70vh] overflow-y-auto space-y-4">
+        <!-- O resumo recebe o foco; sem aviso falado à parte, que o leria duas vezes (F1, C31) -->
+        <div *ngIf="errosEdicao.length > 0" id="pe-edicao-erros" tabindex="-1"
+             class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p class="font-semibold">Antes de salvar, corrija:</p>
+          <ul class="list-disc ml-5 mt-1 space-y-0.5">
+            <li *ngFor="let erro of errosEdicao">{{ erro }}</li>
+          </ul>
+        </div>
+
+        <!-- Título (etapa, passo e seção) -->
+        <div *ngIf="e.tipo !== 'campo'">
+          <label for="pe-ed-titulo" class="block text-sm font-semibold text-gray-800 mb-1">Título <span class="text-red-600">*</span></label>
+          <input id="pe-ed-titulo" type="text" [(ngModel)]="e.titulo" name="pe-ed-titulo" [maxlength]="limites.titulo" [disabled]="e.somenteLeitura"
+                 [attr.aria-invalid]="campoInvalido('titulo')" aria-describedby="pe-ed-titulo-ajuda"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                 [ngClass]="campoInvalido('titulo') ? 'border-red-500' : 'border-gray-300'" />
+          <p id="pe-ed-titulo-ajuda" class="text-xs text-gray-500 italic mt-1">
+            {{ e.tipo === 'secao' ? 'O nome do bloco de dados, como o órgão vai ver.' : 'Comece com um verbo, como uma ordem: "Liste as soluções e os ativos de TIC".' }}
+          </p>
+        </div>
+
+        <!-- Etapa -->
+        <div *ngIf="e.tipo === 'etapa'">
+          <label for="pe-ed-descricao" class="block text-sm font-semibold text-gray-800 mb-1">Descrição</label>
+          <textarea id="pe-ed-descricao" rows="3" [(ngModel)]="e.descricao" name="pe-ed-descricao" [maxlength]="limites.descricao"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          <p class="text-xs text-gray-500 italic mt-1">Aparece embaixo do título da etapa, no passo a passo do órgão. As etapas seguem o
+            Guia de PDTIC: nesta etapa do desenvolvimento, não dá para criar nem apagar etapa.</p>
+        </div>
+
+        <!-- Passo -->
+        <ng-container *ngIf="e.tipo === 'passo'">
+          <div>
+            <label for="pe-ed-oquefazer" class="block text-sm font-semibold text-gray-800 mb-1">O que fazer <span class="text-red-600">*</span></label>
+            <textarea id="pe-ed-oquefazer" rows="3" [(ngModel)]="e.oQueFazer" name="pe-ed-oquefazer" [maxlength]="limites.oQueFazer" [disabled]="e.somenteLeitura"
+                      [attr.aria-invalid]="campoInvalido('oQueFazer')" aria-describedby="pe-ed-oquefazer-ajuda"
+                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                      [ngClass]="campoInvalido('oQueFazer') ? 'border-red-500' : 'border-gray-300'"></textarea>
+            <p id="pe-ed-oquefazer-ajuda" class="text-xs text-gray-500 italic mt-1">Uma ou duas frases curtas, em linguagem simples.
+              Aparece na caixa "O que fazer" do passo a passo.</p>
+          </div>
+          <div>
+            <label for="pe-ed-baselegal" class="block text-sm font-semibold text-gray-800 mb-1">Base legal</label>
+            <input id="pe-ed-baselegal" type="text" [(ngModel)]="e.baseLegal" name="pe-ed-baselegal" [maxlength]="limites.baseLegal" [disabled]="e.somenteLeitura"
+                   aria-describedby="pe-ed-baselegal-ajuda" placeholder="Ex.: art. 12, § 2º, II"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+            <p id="pe-ed-baselegal-ajuda" class="text-xs text-gray-500 italic mt-1">Sem o nome, vale o Decreto nº 48.900/2026. Para o
+              outro decreto, escreva o nome depois: "art. 7º, V, do Decreto nº 48.899/2026". Assim a citação vira dica com o texto da norma.</p>
+          </div>
+          <div *ngIf="!e.novo">
+            <label for="pe-ed-referencia" class="block text-sm font-semibold text-gray-800 mb-1">Atividade do Guia de PDTIC</label>
+            <input id="pe-ed-referencia" type="text" [(ngModel)]="e.referenciaGuia" name="pe-ed-referencia" [maxlength]="limites.referencia" [disabled]="e.somenteLeitura"
+                   aria-describedby="pe-ed-referencia-ajuda" placeholder="Ex.: 2.4"
+                   class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+            <p id="pe-ed-referencia-ajuda" class="text-xs text-gray-500 italic mt-1">Como "1.1", "2.8 a 2.11" ou "Anexo X, item 19".
+              O passo a passo mostra "Guia de PDTIC: atividade 2.4".</p>
+          </div>
+          <div *ngIf="!e.novo">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-800">
+              <input type="checkbox" class="w-4 h-4" [(ngModel)]="e.aceitaNaoSeAplica" name="pe-ed-naoseaplica"
+                     [disabled]="e.somenteLeitura || !!e.passo?.Travado" />
+              O órgão pode marcar "não se aplica" (quando o passo for opcional para ele)
+            </label>
+            <p *ngIf="e.passo?.Travado" class="text-xs text-gray-500 italic mt-1">Os conteúdos mínimos do PDTIC nunca aceitam "não se aplica".</p>
+          </div>
+          <p *ngIf="e.novo" class="text-xs text-gray-600 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
+            O passo novo é de dados: tem seções com formulários e tabelas. Ele nasce opcional no último nível da lista e desligado nos
+            demais. A atividade do guia e o "não se aplica" podem ser ajustados depois de criar.
+          </p>
+          <p *ngIf="!e.novo && e.passo" class="text-xs text-gray-600">
+            Tipo: {{ rotuloTipoPasso(e.passo.Tipo) }}<ng-container *ngIf="e.passo.Travado"> · travado: conteúdo mínimo do PDTIC ({{ citacao(e.passo.IncisoDecreto) }})</ng-container>
+          </p>
+        </ng-container>
+
+        <!-- Seção -->
+        <ng-container *ngIf="e.tipo === 'secao'">
+          <div *ngIf="e.novo && !e.passo">
+            <label for="pe-ed-escopo" class="block text-sm font-semibold text-gray-800 mb-1">Onde a seção fica</label>
+            <select id="pe-ed-escopo" [(ngModel)]="e.escopo" name="pe-ed-escopo"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option *ngFor="let o of escoposFora" [ngValue]="o.valor">{{ o.rotulo }}</option>
+            </select>
+          </div>
+          <div>
+            <label for="pe-ed-ajuda" class="block text-sm font-semibold text-gray-800 mb-1">Ajuda</label>
+            <textarea id="pe-ed-ajuda" rows="3" [(ngModel)]="e.ajuda" name="pe-ed-ajuda" [maxlength]="limites.ajuda" [disabled]="e.somenteLeitura"
+                      aria-describedby="pe-ed-ajuda-secao"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"></textarea>
+            <p id="pe-ed-ajuda-secao" class="text-xs text-gray-500 italic mt-1">Explica ao órgão o que preencher nesta seção, em frases curtas.</p>
+          </div>
+          <fieldset>
+            <legend class="block text-sm font-semibold text-gray-800 mb-1">Tipo</legend>
+            <div class="space-y-1">
+              <label *ngFor="let t of tiposSecao" class="flex items-center gap-2 text-sm text-gray-800">
+                <input type="radio" name="pe-ed-tiposecao" [value]="t.valor" [(ngModel)]="e.tipoSecao" [disabled]="e.somenteLeitura || tipoBloqueado" class="w-4 h-4" />
+                {{ t.rotulo }}
+              </label>
+            </div>
+            <p *ngIf="tipoBloqueado" class="text-xs text-gray-500 italic mt-1">A seção veio do guia ou do decreto: o tipo não muda.</p>
+          </fieldset>
+          <div *ngIf="e.tipoSecao === 'tabela'">
+            <label for="pe-ed-prefixo" class="block text-sm font-semibold text-gray-800 mb-1">Prefixo do código <span class="text-red-600">*</span></label>
+            <input id="pe-ed-prefixo" type="text" [ngModel]="e.prefixoCodigo" (ngModelChange)="digitarPrefixo($event)" name="pe-ed-prefixo"
+                   [maxlength]="limites.prefixo" [disabled]="e.somenteLeitura" placeholder="Ex.: N"
+                   [attr.aria-invalid]="campoInvalido('prefixo')" aria-describedby="pe-ed-prefixo-ajuda"
+                   class="w-24 px-3 py-2 border rounded-md text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                   [ngClass]="campoInvalido('prefixo') ? 'border-red-500' : 'border-gray-300'" />
+            <p id="pe-ed-prefixo-ajuda" class="text-xs text-gray-500 italic mt-1">De 1 a 3 letras. Cada linha da tabela ganha um código
+              com ele: N01, N02... As outras seções usam o código para se ligar a esta.</p>
+          </div>
+          <div *ngIf="!e.novo" class="flex flex-wrap gap-5">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-800">
+              <input type="checkbox" class="w-4 h-4" [(ngModel)]="e.noDocumento" name="pe-ed-nodocumento" [disabled]="e.somenteLeitura" />
+              Aparece no documento do PDTIC
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-800">
+              <input type="checkbox" class="w-4 h-4" [(ngModel)]="e.naPlanilha" name="pe-ed-naplanilha" [disabled]="e.somenteLeitura" />
+              Aparece nas planilhas
+            </label>
+          </div>
+          <p *ngIf="e.novo" class="text-xs text-gray-600 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
+            A seção nova nasce desligada<ng-container *ngIf="e.passo"> em todos os níveis</ng-container>. Depois de criar, inclua os campos e
+            ligue a seção onde ela vai valer.
+          </p>
+          <p *ngIf="!e.novo && e.secao?.Travada" class="text-xs text-gray-600">
+            Travada: conteúdo mínimo do PDTIC ({{ citacao(e.secao?.IncisoDecreto ?? null) }}).
+          </p>
+        </ng-container>
+
+        <!-- Campo -->
+        <ng-container *ngIf="e.tipo === 'campo'">
+          <div>
+            <label for="pe-ed-rotulo" class="block text-sm font-semibold text-gray-800 mb-1">Rótulo <span class="text-red-600">*</span></label>
+            <input id="pe-ed-rotulo" type="text" [(ngModel)]="e.rotulo" name="pe-ed-rotulo" [maxlength]="limites.rotulo" [disabled]="e.somenteLeitura"
+                   [attr.aria-invalid]="campoInvalido('rotulo')" aria-describedby="pe-ed-rotulo-ajuda"
+                   class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                   [ngClass]="campoInvalido('rotulo') ? 'border-red-500' : 'border-gray-300'" />
+            <p id="pe-ed-rotulo-ajuda" class="text-xs text-gray-500 italic mt-1">O nome do campo no formulário, na tabela, no documento
+              e na coluna da planilha.</p>
+          </div>
+          <div>
+            <label for="pe-ed-ajuda-campo" class="block text-sm font-semibold text-gray-800 mb-1">Ajuda</label>
+            <textarea id="pe-ed-ajuda-campo" rows="2" [(ngModel)]="e.ajuda" name="pe-ed-ajuda-campo" [maxlength]="limites.ajuda" [disabled]="e.somenteLeitura"
+                      aria-describedby="pe-ed-ajuda-campo-dica"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"></textarea>
+            <p id="pe-ed-ajuda-campo-dica" class="text-xs text-gray-500 italic mt-1">Aparece embaixo do campo e na aba Leia-me da planilha.</p>
+          </div>
+          <div>
+            <label for="pe-ed-tipocampo" class="block text-sm font-semibold text-gray-800 mb-1">Tipo</label>
+            <select id="pe-ed-tipocampo" [ngModel]="e.tipoCampo" (ngModelChange)="trocarTipoCampo($event)" name="pe-ed-tipocampo"
+                    [disabled]="e.somenteLeitura || tipoBloqueado" aria-describedby="pe-ed-tipocampo-ajuda"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+              <option *ngFor="let t of tiposCampo" [ngValue]="t.valor">{{ t.rotulo }}</option>
+            </select>
+            <p id="pe-ed-tipocampo-ajuda" class="text-xs text-gray-500 italic mt-1">
+              {{ tipoBloqueado ? 'O campo veio do guia ou do decreto: o tipo não muda, porque outras partes dependem dele.' : 'Trocar o tipo refaz a configuração abaixo.' }}
+            </p>
+          </div>
+          <div class="rounded-lg border border-gray-200 p-4">
+            <p class="text-sm font-semibold text-gray-900 mb-2">Configuração: {{ rotuloTipoCampo(e.tipoCampo) }}</p>
+            <app-pe-config-campo [tipo]="e.tipoCampo" [config]="e.config" [secoes]="secoesParaLigar" [campos]="camposParaCalculo"
+                                 prefixoId="pe-ed-config" [somenteLeitura]="e.somenteLeitura" [erros]="errosConfig"></app-pe-config-campo>
+          </div>
+          <ng-container *ngIf="!e.novo">
+            <div>
+              <label for="pe-ed-largura" class="block text-sm font-semibold text-gray-800">Largura (na tabela e no formulário)</label>
+              <p id="pe-ed-largura-ajuda" class="text-xs text-gray-500 italic mt-0.5 mb-1">A largura da coluna na tabela e o espaço do campo no formulário: estreita
+                (um terço da linha), média (meia linha) ou larga (a linha inteira); no painel da tabela, até dois campos por linha, e no celular, um.
+                "Automática" decide pelo tipo: datas e números estreitos, listas médias, textos curtos médios até 100 caracteres, e textos
+                longos, ligações e arquivos largos.</p>
+              <select id="pe-ed-largura" [(ngModel)]="e.largura" name="pe-ed-largura" [disabled]="e.somenteLeitura" aria-describedby="pe-ed-largura-ajuda"
+                      class="w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+                <option value="">Automática</option>
+                <option *ngFor="let l of larguras" [value]="l.valor">{{ l.rotulo }}</option>
+              </select>
+            </div>
+            <div class="flex flex-wrap gap-5">
+              <label class="inline-flex items-center gap-2 text-sm text-gray-800">
+                <input type="checkbox" class="w-4 h-4" [(ngModel)]="e.noDocumento" name="pe-ed-campo-nodocumento" [disabled]="e.somenteLeitura" />
+                Aparece no documento do PDTIC
+              </label>
+              <label class="inline-flex items-center gap-2 text-sm text-gray-800">
+                <input type="checkbox" class="w-4 h-4" [(ngModel)]="e.naPlanilha" name="pe-ed-campo-naplanilha" [disabled]="e.somenteLeitura" />
+                Aparece nas planilhas
+              </label>
+            </div>
+            <p *ngIf="e.campo as c" class="text-xs text-gray-600">
+              Chave nos registros: <span class="font-mono">{{ c.Chave }}</span><ng-container *ngIf="c.Principal"> · campo principal da
+              seção (a descrição de cada registro)<ng-container *ngIf="e.secao?.Travada">: numa seção travada, não desliga</ng-container></ng-container>
+            </p>
+            <p *ngIf="e.campo && travadoPorSi(e.campo)" class="flex items-start gap-1.5 text-xs text-purple-800">
+              <span class="material-icons text-sm" aria-hidden="true">lock</span> <span>{{ explicacaoCampoTravado }}</span>
+            </p>
+          </ng-container>
+
+          <!-- Opções da lista -->
+          <div *ngIf="comOpcoes">
+            <h3 class="text-sm font-semibold text-gray-900 mb-2">Opções da lista</h3>
+            <app-pe-opcoes-editor *ngIf="!e.novo && e.campo; else opcoesDepois" [campo]="e.campo" [somenteLeitura]="e.somenteLeitura"
+                                  prefixoId="pe-ed-opcao" (mudou)="opcoesMudaram($event)"></app-pe-opcoes-editor>
+            <ng-template #opcoesDepois>
+              <p class="text-xs text-gray-600 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">Depois de criar o campo, esta janela
+                abre de novo para você incluir as opções.</p>
+            </ng-template>
+          </div>
+          <p *ngIf="e.novo" class="text-xs text-gray-600 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
+            O campo novo nasce desligado em todos os níveis. Depois de criar, ligue o campo nos níveis que vão usá-lo.
+          </p>
+        </ng-container>
+
+        <!-- Histórico do item -->
+        <details *ngIf="entidadeHistorico as h" class="rounded-lg border border-gray-200" (toggle)="historicoItemAberto = $any($event.target).open">
+          <summary class="cursor-pointer px-4 py-2.5 text-sm font-semibold text-gray-900">Histórico deste item</summary>
+          <div class="px-4 pb-4">
+            <app-pe-historico *ngIf="historicoItemAberto" [entidade]="h.entidade" [entidadeId]="h.id" [niveis]="niveis"></app-pe-historico>
+          </div>
+        </details>
+      </div>
+
+      <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+        <button type="button" (click)="fecharEdicao()" [disabled]="salvando"
+                class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          {{ e.somenteLeitura ? 'Fechar' : 'Cancelar' }}
+        </button>
+        <button *ngIf="!e.somenteLeitura" type="submit" [attr.aria-disabled]="salvando || null"
+                class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+          <span class="material-icons text-lg" aria-hidden="true">{{ e.novo ? 'add' : 'save' }}</span>
+          {{ salvando ? 'Salvando...' : (e.novo ? 'Criar' : 'Salvar') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

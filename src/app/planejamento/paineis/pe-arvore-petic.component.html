@@ -1,0 +1,192 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-xl font-bold text-gray-900">Árvore do PETIC-DF</h2>
+    <p class="text-sm text-gray-700 leading-relaxed mt-1">
+      Os objetivos estratégicos do PETIC-DF vigente e, embaixo de cada um, os indicadores do próprio PETIC-DF e as necessidades e as metas
+      que cada órgão ligou ao objetivo no PDTIC. O PDTIC alinha as iniciativas de TIC do órgão ao PETIC-DF (art. 12, § 1º).
+    </p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <button type="button" (click)="tentarPapelDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <div *ngIf="podeVer === false && !erroPapel" class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-5 text-sm leading-relaxed">
+    <span class="material-icons text-amber-600" aria-hidden="true">lock</span>
+    <p>A árvore com todos os órgãos é da SGDI, do administrador do módulo e da Secretaria do CGTIC. O PETIC-DF está em
+      <a [routerLink]="base + '/referenciais/petic'" class="font-semibold underline">Referenciais do DF</a><ng-container *ngIf="paginaDoMeuOrgao as pagina">,
+        e o seu órgão, na <a [routerLink]="pagina" class="font-semibold underline">página do órgão</a></ng-container>.</p>
+  </div>
+
+  <ng-container *ngIf="podeVer">
+
+    <!-- Filtro por órgão -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex flex-col md:flex-row md:items-end gap-3">
+        <div>
+          <label for="pe-arvore-orgao" class="block text-sm font-semibold text-gray-800">Ver só um órgão</label>
+          <select id="pe-arvore-orgao" name="pe-arvore-orgao" [(ngModel)]="orgaoEscolhido" (ngModelChange)="escolherOrgao()"
+                  class="mt-1 w-full max-w-md px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todos os órgãos</option>
+            <option *ngIf="orgao !== null && nomeOrgao === 'o órgão escolhido'" [value]="'' + orgao">Órgão escolhido</option>
+            <option *ngFor="let o of orgaos; trackBy: porOrgao" [value]="'' + o.OrgaoId">{{ o.Sigla }} · {{ o.Nome }}</option>
+          </select>
+        </div>
+        <button *ngIf="orgao !== null" type="button" (click)="limparFiltro()"
+                class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+          <span class="material-icons text-base" aria-hidden="true">filter_alt_off</span> Ver todos os órgãos
+        </button>
+      </div>
+      <p class="text-xs text-gray-500 italic mt-2">A escolha vale na hora e fica no endereço da página.</p>
+      <p *ngIf="carregando && dados" role="status" class="text-sm text-gray-600 mt-2">Atualizando a árvore...</p>
+    </div>
+
+    <p *ngIf="carregando && !dados" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando a árvore do PETIC-DF...</p>
+
+    <div *ngIf="erro" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      {{ erro }}
+      <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+
+    <ng-container *ngIf="dados as d">
+
+      <!-- Sem PETIC-DF vigente -->
+      <div *ngIf="!d.Petic" class="bg-white rounded-lg shadow p-6">
+        <p class="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+          Ainda não há PETIC-DF vigente. A árvore aparece quando o CGTIC aprovar o PETIC-DF.
+          <a [routerLink]="base + '/referenciais/petic'" data-sem-dica class="font-semibold text-purple-700 underline">Ver o PETIC-DF</a>
+        </p>
+      </div>
+
+      <section *ngIf="d.Petic as petic" class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-arvore-titulo">
+        <div class="flex flex-col md:flex-row md:justify-between gap-3">
+          <div class="min-w-0">
+            <h3 id="pe-arvore-titulo" class="text-base font-semibold text-gray-900">PETIC-DF {{ petic.Versao }}: {{ petic.Titulo }}</h3>
+            <p class="text-sm text-gray-600 mt-0.5">
+              {{ d.Objetivos.length === 1 ? '1 objetivo estratégico.' : d.Objetivos.length + ' objetivos estratégicos.' }}
+              <ng-container *ngIf="orgao !== null">
+                O órgão {{ nomeOrgao }} ligou {{ totalNecessidadesOrgao === 1 ? '1 necessidade' : totalNecessidadesOrgao + ' necessidades' }}
+                e {{ totalMetasOrgao === 1 ? '1 meta' : totalMetasOrgao + ' metas' }} a eles.
+              </ng-container>
+            </p>
+          </div>
+          <div *ngIf="d.Objetivos.length > 1" class="flex flex-wrap gap-2 shrink-0">
+            <button type="button" (click)="abrirTodos()" [disabled]="todosAbertos"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              <span class="material-icons text-base" aria-hidden="true">unfold_more</span> Abrir todos
+            </button>
+            <button type="button" (click)="fecharTodos()"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+              <span class="material-icons text-base" aria-hidden="true">unfold_less</span> Fechar todos
+            </button>
+          </div>
+        </div>
+
+        <p *ngIf="d.Objetivos.length === 0" class="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
+          O PETIC-DF vigente ainda não tem objetivos estratégicos cadastrados.
+        </p>
+
+        <ul class="mt-4 space-y-4">
+          <li *ngFor="let o of d.Objetivos; trackBy: porObjetivo" class="rounded-lg border border-gray-200">
+            <h4>
+              <button type="button" (click)="alternar(o)" [attr.aria-expanded]="aberto(o)" [attr.aria-controls]="aberto(o) ? idConteudo(o) : null"
+                      class="w-full flex items-start gap-2 px-4 py-3 text-left rounded-lg hover:bg-gray-50">
+                <span class="material-icons text-purple-700" aria-hidden="true">{{ aberto(o) ? 'expand_less' : 'expand_more' }}</span>
+                <span class="min-w-0">
+                  <span class="block text-sm font-semibold text-gray-900 break-words">{{ titulo(o) }}</span>
+                  <span class="block text-xs text-gray-600 mt-0.5">{{ contagem(o) }}</span>
+                </span>
+              </button>
+            </h4>
+
+            <div *ngIf="aberto(o)" [id]="idConteudo(o)" class="px-4 pb-4 border-t border-gray-100">
+
+              <!-- Indicadores do próprio PETIC-DF -->
+              <h5 class="text-sm font-semibold text-gray-900 mt-3">Indicadores do PETIC-DF</h5>
+              <p *ngIf="o.Indicadores.length === 0" class="text-sm text-gray-600 mt-1">O objetivo não tem indicadores no PETIC-DF.</p>
+              <div *ngIf="o.Indicadores.length > 0" class="mt-2 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region"
+                   [attr.aria-label]="'Tabela: indicadores do objetivo ' + (o.Codigo || '')">
+                <table class="w-full text-sm">
+                  <caption class="sr-only">Indicadores do PETIC-DF para o objetivo {{ titulo(o) }}</caption>
+                  <thead>
+                    <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                      <th scope="col" class="px-3 py-2">Código</th>
+                      <th scope="col" class="px-3 py-2">Indicador</th>
+                      <th scope="col" class="px-3 py-2">Meta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let i of o.Indicadores; trackBy: porIndice" class="border-t border-gray-100 align-top">
+                      <td class="px-3 py-2 font-mono text-gray-900 whitespace-nowrap">{{ i.Codigo || '-' }}</td>
+                      <th scope="row" class="px-3 py-2 text-left font-normal text-gray-800 break-words">{{ i.Nome || '-' }}</th>
+                      <td class="px-3 py-2 text-gray-800 break-words">{{ i.Meta || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Por órgão: necessidades e metas ligadas ao objetivo -->
+              <h5 class="text-sm font-semibold text-gray-900 mt-4">Necessidades e metas dos órgãos</h5>
+              <p *ngIf="o.Orgaos.length === 0" class="text-sm text-gray-600 mt-1">
+                {{ orgao !== null ? 'O órgão ' + nomeOrgao + ' ainda não ligou necessidades nem metas a este objetivo.'
+                  : 'Nenhum órgão ligou necessidades ou metas a este objetivo ainda.' }}
+              </p>
+              <div *ngFor="let x of o.Orgaos; trackBy: porOrgao" class="mt-3 rounded-lg border border-gray-200 p-3">
+                <p class="text-sm font-semibold text-gray-900">
+                  <a [routerLink]="pagina(x)" data-sem-dica class="text-purple-700 underline" [attr.aria-label]="'Página do órgão ' + x.Sigla">{{ x.Sigla }}</a>
+                  <span class="font-normal text-gray-600"> · {{ x.Necessidades.length === 1 ? '1 necessidade' : x.Necessidades.length + ' necessidades' }}
+                    · {{ x.Metas.length === 1 ? '1 meta' : x.Metas.length + ' metas' }}</span>
+                </p>
+
+                <ul *ngIf="x.Necessidades.length > 0" class="mt-2 space-y-1 text-sm" [attr.aria-label]="'Necessidades do órgão ' + x.Sigla">
+                  <li *ngFor="let n of x.Necessidades; trackBy: porIndice" class="flex flex-wrap items-start gap-x-3 gap-y-1">
+                    <span class="font-mono font-semibold text-gray-900">{{ n.Codigo || '-' }}</span>
+                    <span class="text-gray-800 break-words min-w-0">{{ n.Descricao || '(sem descrição)' }}</span>
+                    <span *ngIf="priorizada(n) as pr" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
+                          [ngClass]="n.Priorizada ? 'bg-green-50 text-green-800 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'">
+                      <span class="material-icons text-sm" aria-hidden="true">{{ n.Priorizada ? 'star' : 'star_border' }}</span>{{ pr }}
+                    </span>
+                  </li>
+                </ul>
+                <p *ngIf="x.Necessidades.length === 0" class="text-xs text-gray-600 mt-2">Nenhuma necessidade ligada a este objetivo.</p>
+
+                <div *ngIf="x.Metas.length > 0" class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region"
+                     [attr.aria-label]="'Tabela: metas do órgão ' + x.Sigla + ' no objetivo ' + (o.Codigo || '')">
+                  <table class="w-full text-sm">
+                    <caption class="sr-only">Metas do órgão {{ x.Sigla }} ligadas ao objetivo {{ titulo(o) }}</caption>
+                    <thead>
+                      <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                        <th scope="col" class="px-3 py-2">Código</th>
+                        <th scope="col" class="px-3 py-2">Meta</th>
+                        <th scope="col" class="px-3 py-2">Indicador</th>
+                        <th scope="col" class="px-3 py-2">Valor</th>
+                        <th scope="col" class="px-3 py-2">Prazo</th>
+                        <th scope="col" class="px-3 py-2">Situação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let m of x.Metas; trackBy: porIndice" class="border-t border-gray-100 align-top">
+                        <td class="px-3 py-2 font-mono text-gray-900 whitespace-nowrap">{{ m.Codigo || '-' }}</td>
+                        <th scope="row" class="px-3 py-2 text-left font-normal text-gray-800 break-words min-w-[12rem]">{{ m.Descricao || '-' }}</th>
+                        <td class="px-3 py-2 text-gray-800 break-words">{{ m.Indicador || '-' }}</td>
+                        <td class="px-3 py-2 text-gray-800 break-words">{{ m.Valor || '-' }}</td>
+                        <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ prazo(m) }}</td>
+                        <td class="px-3 py-2 text-gray-800">{{ m.Situacao || '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p *ngIf="x.Metas.length === 0" class="text-xs text-gray-600 mt-2">Nenhuma meta ligada a este objetivo.</p>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </ng-container>
+  </ng-container>
+</div>

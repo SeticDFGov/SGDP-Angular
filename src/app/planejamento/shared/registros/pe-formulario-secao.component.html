@@ -1,0 +1,12 @@
+<ng-container *ngIf="dados.PodeEditar; else leitura">
+  <p *ngIf="!registro" class="text-sm text-gray-600 mb-4">Este formulário ainda não foi preenchido.</p>
+  <app-pe-registro-edicao [secao]="dados.Secao" [registro]="registro" [fonte]="fonte" [prefixoId]="prefixoId"
+                          [rotuloSalvar]="registro ? 'Salvar' : 'Salvar o formulário'"
+                          (salvou)="aoSalvar($event)" (alterado)="alterado.emit($event)" (conflito)="aoConflito($event)"></app-pe-registro-edicao>
+  <p *ngIf="auditoria as a" class="text-xs text-gray-500 mt-3">{{ a }}</p>
+</ng-container>
+
+<ng-template #leitura>
+  <p *ngIf="!registro" class="text-sm text-gray-600">Este formulário ainda não foi preenchido.</p>
+  <app-pe-registro-leitura *ngIf="registro as r" [secao]="dados.Secao" [registro]="r"></app-pe-registro-leitura>
+</ng-template>

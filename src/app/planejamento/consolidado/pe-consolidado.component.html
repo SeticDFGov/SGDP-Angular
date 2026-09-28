@@ -1,0 +1,93 @@
+<div citaPlanejamento class="tela-pgia max-w-5xl mx-auto space-y-5">
+
+  <!-- O que é. F3: o nome da coluna do nível muda com o modo; ele fica num nó de texto só dele (o ng-container), para a
+       dica de norma do fim do parágrafo não ser refeita quando o modo chega -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Planilhas consolidadas</h2>
+    <p class="text-sm text-gray-700 leading-relaxed">
+      Cada planilha junta uma seção do PDTIC de todos os órgãos, com o PDTIC atual de cada um. As primeiras colunas dizem de quem
+      é a linha: órgão, sigla, <ng-container>{{ modoLivre ? 'nível alcançado' : 'nível de maturidade' }}</ng-container>, versão e
+      situação do PDTIC. Depois vêm os campos da seção, de todos os níveis (a célula fica vazia quando o campo não vale para o órgão).
+      É a base do portfólio estratégico de TIC do GDF (art. 9º, V, do Decreto nº 48.899/2026).
+    </p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <p class="mt-1">Tente de novo em alguns instantes.</p>
+    <button type="button" (click)="tentarPapelDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <!-- Papel de órgão: aviso, sem consulta -->
+  <div *ngIf="podeVer === false && !erroPapel" class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-5 text-sm leading-relaxed">
+    <span class="material-icons text-amber-600" aria-hidden="true">lock</span>
+    <p>As planilhas consolidadas, com os dados de todos os órgãos, são da SGDI, do administrador do módulo e da Secretaria do
+      CGTIC. As planilhas do PDTIC do seu órgão ficam em cada passo do PDTIC e na visão geral.</p>
+  </div>
+
+  <ng-container *ngIf="podeVer">
+    <p *ngIf="carregando" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando as seções do PDTIC...</p>
+    <div *ngIf="erro" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      {{ erro }}
+      <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+
+    <ng-container *ngIf="!carregando && !erro">
+      <!-- Todas as seções num arquivo -->
+      <div class="bg-white rounded-lg shadow p-6 flex flex-col md:flex-row md:items-center gap-3">
+        <div class="flex-1 text-sm text-gray-700 leading-relaxed">
+          <p class="font-semibold text-gray-900">Todas as seções num arquivo</p>
+          <p>Um XLSX com uma aba por seção e a aba Leia-me, com a ajuda de cada coluna.</p>
+        </div>
+        <button type="button" (click)="baixarCompleta()" [attr.aria-disabled]="baixando !== null || null"
+                class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap">
+          <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando === 'completa' ? 'Gerando...' : 'Baixar todas (XLSX)' }}
+        </button>
+      </div>
+
+      <!-- Uma seção de cada vez -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-gray-900">Uma seção</h2>
+        <div class="mt-2">
+          <label for="pe-consolidado-busca" class="block text-sm font-semibold text-gray-800">Procurar seção</label>
+          <input id="pe-consolidado-busca" type="search" [(ngModel)]="busca" placeholder="Nome da seção ou do passo"
+                 aria-describedby="pe-consolidado-contagem"
+                 class="mt-1 w-full md:w-72 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <p id="pe-consolidado-contagem" class="text-xs text-gray-600 mt-1" aria-live="polite">
+            {{ totalFiltradas === 1 ? '1 seção.' : totalFiltradas + ' seções.' }}
+          </p>
+        </div>
+
+        <p *ngIf="etapas.length === 0" class="text-sm text-gray-600 mt-4">O modelo ainda não tem seções do PDTIC marcadas para a planilha.</p>
+        <p *ngIf="etapas.length > 0 && filtradas.length === 0" class="text-sm text-gray-600 mt-4">Nenhuma seção com essa busca.</p>
+
+        <div *ngFor="let e of filtradas; trackBy: porChave" class="mt-5">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-purple-700">{{ e.titulo }}</h3>
+          <ul class="mt-2 divide-y divide-gray-100 border border-gray-200 rounded-lg">
+            <li *ngFor="let s of e.secoes; trackBy: porChave" class="px-4 py-3 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-900">{{ s.titulo }}</p>
+                <p class="text-xs text-gray-600 mt-0.5">{{ s.passo }} · {{ s.tabela ? 'tabela' : 'formulário' }}</p>
+              </div>
+              <div class="flex flex-wrap gap-2 shrink-0">
+                <button type="button" (click)="baixar(s, 'xlsx')" [attr.aria-disabled]="baixando !== null || null"
+                        [attr.aria-label]="'Baixar a planilha consolidada de ' + s.titulo + ' em XLSX'"
+                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
+                  <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando === s.chave + ':xlsx' ? 'Gerando...' : 'XLSX' }}
+                </button>
+                <button type="button" (click)="baixar(s, 'csv')" [attr.aria-disabled]="baixando !== null || null"
+                        [attr.aria-label]="'Baixar a planilha consolidada de ' + s.titulo + ' em CSV'"
+                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
+                  <span class="material-icons text-base" aria-hidden="true">download</span> {{ baixando === s.chave + ':csv' ? 'Gerando...' : 'CSV' }}
+                </button>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </ng-container>
+  </ng-container>
+</div>

@@ -1,0 +1,485 @@
+<div citaPlanejamento class="tela-pgia max-w-6xl mx-auto space-y-5">
+
+  <!-- Endereço sem um órgão válido -->
+  <div *ngIf="orgaoId === null" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700">
+    <h2 class="text-xl font-bold text-gray-900">Página do órgão</h2>
+    <p class="mt-2">Este endereço não indica um órgão.
+      <a [routerLink]="base + '/orgaos'" class="font-semibold text-purple-700 underline">Escolha o órgão na lista</a>.</p>
+  </div>
+
+  <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
+    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
+    <button type="button" (click)="tentarPapelDeNovo()"
+            class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
+      <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
+    </button>
+  </div>
+
+  <!-- Papel de órgão num órgão que não é o dele -->
+  <div *ngIf="orgaoId !== null && podeVer === false && !erroPapel" class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-5 text-sm leading-relaxed">
+    <span class="material-icons text-amber-600" aria-hidden="true">lock</span>
+    <p>Você vê só a página do seu órgão.
+      <ng-container *ngIf="paginaDoMeuOrgao as pagina"><a [routerLink]="pagina" class="font-semibold underline">Abrir a página do seu órgão</a>.</ng-container>
+    </p>
+  </div>
+
+  <ng-container *ngIf="podeVer">
+    <p *ngIf="carregando && !resumo" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando a página do órgão...</p>
+
+    <div *ngIf="naoEncontrado" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700">
+      <h2 class="text-xl font-bold text-gray-900">Página do órgão</h2>
+      <p class="mt-2">Não encontramos este órgão.
+        <a *ngIf="veTodos" [routerLink]="base + '/orgaos'" class="font-semibold text-purple-700 underline">Escolha o órgão na lista</a></p>
+    </div>
+
+    <div *ngIf="erro" role="alert" class="bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      {{ erro }}
+      <button type="button" (click)="carregar()" class="font-semibold underline">Tentar de novo</button>
+    </div>
+
+    <ng-container *ngIf="resumo as r">
+
+      <!-- Cabeçalho: situação, versão, nível, conformidade e a notificação em aberto -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Página do órgão</p>
+        <h2 id="pe-org-titulo" tabindex="-1" class="text-xl font-bold text-gray-900 mt-0.5 break-words">{{ r.Orgao.Sigla }} · {{ r.Orgao.Nome }}</h2>
+        <p *ngIf="ehPapelDeOrgao" class="text-xs text-gray-500 italic mt-1">A página do seu órgão, só para ler: o que a SGDI e o CGTIC veem.</p>
+
+        <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 text-sm">
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">PDTIC</dt>
+            <dd class="mt-0.5 flex flex-wrap items-center gap-2">
+              <span *ngIf="r.Pdtic as p" class="font-medium text-gray-900">{{ p.Versao }}</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                    [ngClass]="classeSituacaoPdtic(r.Pdtic?.Situacao)">{{ rotuloSituacaoPdtic(r.Pdtic?.Situacao) }}</span>
+            </dd>
+          </div>
+          <!-- F3: no modo livre, o nível que o PDTIC alcançou -->
+          <div *ngIf="modoLivre">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Nível alcançado</dt>
+            <dd class="mt-0.5 font-medium text-gray-900">{{ textoNivelAlcancado }}</dd>
+          </div>
+          <div *ngIf="!modoLivre">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Nível de maturidade</dt>
+            <dd class="mt-0.5 font-medium text-gray-900">{{ r.Nivel.Nome || 'O padrão' }}<ng-container *ngIf="r.Nivel.Padrao && r.Nivel.Nome"> (o padrão)</ng-container></dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Conformidade</dt>
+            <dd class="mt-0.5 flex flex-wrap items-center gap-2">
+              <span class="font-medium text-gray-900 tabular-nums">{{ percentual }}</span>
+              <span *ngIf="grupo as g" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap" [ngClass]="g.classe">
+                <span class="material-icons text-sm" aria-hidden="true">{{ g.icone }}</span>{{ g.rotulo }}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Notificação da SGDI</dt>
+            <dd class="mt-0.5">
+              <span *ngIf="vigente as v; else semNotificacao"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap" [ngClass]="classeInadimplencia(v)">
+                <span class="material-icons text-sm" aria-hidden="true">{{ iconeInadimplencia(v) }}</span>{{ rotuloInadimplencia(v) }}
+              </span>
+              <ng-template #semNotificacao><span class="text-gray-700">Nenhuma em aberto</span></ng-template>
+            </dd>
+          </div>
+        </dl>
+
+        <div class="flex flex-wrap gap-2 mt-5">
+          <button type="button" (click)="verTrilha()"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700">
+            <span class="material-icons text-base" aria-hidden="true">visibility</span> {{ ehPapelDeOrgao ? 'Ir para o passo a passo do PDTIC' : 'Ver o PDTIC no passo a passo do órgão' }}
+          </button>
+          <button *ngIf="r.Pdtic" type="button" (click)="verDocumento()"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-base" aria-hidden="true">description</span> Ver o documento
+          </button>
+          <button *ngIf="r.Pdtic" type="button" (click)="baixarPlanilha()" [attr.aria-disabled]="!!baixando || null"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            <span class="material-icons text-base" aria-hidden="true">table_view</span> {{ baixando === 'planilha' ? 'Gerando...' : 'Planilha completa do PDTIC (XLSX)' }}
+          </button>
+          <a *ngIf="veTodos" [routerLink]="base + '/arvore-petic'" [queryParams]="{ orgao: r.Orgao.Id }" data-sem-dica
+             class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-base" aria-hidden="true">account_tree</span> Árvore do PETIC-DF deste órgão
+          </a>
+          <a *ngIf="veTodos" [routerLink]="base + '/orgaos'" data-sem-dica
+             class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+            <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar à lista dos órgãos
+          </a>
+        </div>
+        <p class="text-xs text-gray-500 italic mt-2">O passo a passo do órgão abre só para ler, com as seções e os dados do PDTIC como o órgão
+          preencheu. O documento fica no passo do documento, com as versões em PDF.</p>
+      </div>
+
+      <!-- O PDTIC e as versões -->
+      <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-pdtic">
+        <h3 id="pe-org-pdtic" class="text-base font-semibold text-gray-900">PDTIC</h3>
+        <p *ngIf="!r.Pdtic" class="text-sm text-gray-700 mt-1">O órgão ainda não começou o PDTIC no sistema.</p>
+        <ng-container *ngIf="r.Pdtic as p">
+          <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-2">
+            <div>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Vigência</dt>
+              <dd class="text-gray-900 mt-0.5">{{ vigencia(p) === '-' ? 'Ainda não informada' : vigencia(p) }}</dd>
+            </div>
+            <div *ngIf="p.EnviadoEm">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Enviado ao CGTIC</dt>
+              <dd class="text-gray-900 mt-0.5">{{ quando(p.EnviadoEm) }}</dd>
+            </div>
+            <div *ngIf="p.AprovadoEm">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ rotuloAprovado(p) }}</dt>
+              <dd class="text-gray-900 mt-0.5">{{ quandoMarco(p, p.AprovadoEm) }}</dd>
+            </div>
+            <div *ngIf="p.PublicadoEm">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Publicado</dt>
+              <dd class="text-gray-900 mt-0.5">{{ quandoMarco(p, p.PublicadoEm) }}</dd>
+            </div>
+            <div *ngIf="p.EncerradoEm">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Encerrado</dt>
+              <dd class="text-gray-900 mt-0.5">{{ quando(p.EncerradoEm) }}</dd>
+            </div>
+          </dl>
+          <p *ngIf="p.RegistradoExternamente" class="text-sm text-gray-700 mt-3">PDTIC aprovado fora do sistema e registrado já publicado.</p>
+        </ng-container>
+
+        <ng-container *ngIf="r.Versoes.length > 1">
+          <h4 class="text-sm font-semibold text-gray-900 mt-4">Versões</h4>
+          <div class="mt-2 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: versões do PDTIC">
+            <table class="w-full text-sm">
+              <caption class="sr-only">Versões do PDTIC do órgão {{ r.Orgao.Sigla }}, da mais nova para a mais antiga</caption>
+              <thead>
+                <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                  <th scope="col" class="px-3 py-2.5">Versão</th>
+                  <th scope="col" class="px-3 py-2.5">Situação</th>
+                  <th scope="col" class="px-3 py-2.5">Vigência</th>
+                  <th scope="col" class="px-3 py-2.5">Publicada</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let v of r.Versoes; trackBy: porId" class="border-t border-gray-100">
+                  <th scope="row" class="px-3 py-2 text-left font-mono font-normal text-gray-900">{{ v.Versao }}</th>
+                  <td class="px-3 py-2">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeSituacaoPdtic(v.Situacao)">{{ rotuloSituacaoPdtic(v.Situacao) }}</span>
+                  </td>
+                  <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ vigencia(v) }}</td>
+                  <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ quandoMarco(v, v.PublicadoEm) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <!-- O nível, com o histórico (F3: no modo livre, o histórico é o dos níveis escolhidos no modo definido) -->
+        <ng-container *ngIf="!modoLivre">
+          <h4 class="text-sm font-semibold text-gray-900 mt-4">Nível de maturidade: {{ r.Nivel.Nome || 'o padrão' }}</h4>
+          <p class="text-xs text-gray-600 mt-0.5">O nível diz os passos e os campos que o órgão preenche. Quem define é o administrador do
+            módulo.<ng-container *ngIf="r.Nivel.Padrao"> O órgão ainda não tem nível escolhido: vale o nível padrão.</ng-container></p>
+        </ng-container>
+        <ng-container *ngIf="modoLivre">
+          <h4 class="text-sm font-semibold text-gray-900 mt-4">Nível alcançado: {{ textoNivelAlcancado }}</h4>
+          <p class="text-xs text-gray-600 mt-0.5">No modo livre, o nível do órgão é calculado pelo que o PDTIC tem. O que falta para o próximo
+            nível está no quadro "Nível do PDTIC", logo abaixo.<ng-container *ngIf="r.Nivel.Historico.length > 0"> O histórico mostra os níveis
+            escolhidos no modo definido, que ficam guardados.</ng-container></p>
+        </ng-container>
+        <button *ngIf="r.Nivel.Historico.length > 0" type="button" (click)="historicoAberto = !historicoAberto" [attr.aria-expanded]="historicoAberto"
+                [attr.aria-controls]="historicoAberto ? 'pe-org-historico-nivel' : null"
+                class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+          <span class="material-icons text-base" aria-hidden="true">history</span> {{ modoLivre ? 'Histórico do nível escolhido' : 'Histórico do nível' }}
+          <span class="material-icons text-base" aria-hidden="true">{{ historicoAberto ? 'expand_less' : 'expand_more' }}</span>
+        </button>
+        <ul *ngIf="historicoAberto" id="pe-org-historico-nivel" class="mt-2 space-y-2 text-sm">
+          <li *ngFor="let h of r.Nivel.Historico; trackBy: porIndice" class="rounded-md border border-gray-200 px-3 py-2">
+            <!-- F1 (A21): o nível de antes e o de depois, com "(padrão)"; F1 (C19): o nome de quem trocou -->
+            <p class="text-gray-900">
+              <ng-container *ngIf="h.NivelAnterior !== undefined">{{ nivelDoHistorico(h.NivelAnterior, h.NivelAnteriorPadrao) }}
+                <span aria-hidden="true">→</span><span class="sr-only">, passou a</span></ng-container>
+              <strong>{{ nivelDoHistorico(h.NivelNome, h.Padrao) }}</strong> · {{ quando(h.AlteradoEm) }}<ng-container
+                *ngIf="nomeDeQuem(h.AlteradoPorNome, h.AlteradoPor) as quem"> por {{ quem }}</ng-container>
+            </p>
+            <p *ngIf="h.Justificativa" class="text-gray-700 mt-0.5 whitespace-pre-line break-words">{{ h.Justificativa }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- F3 (modo livre): o nível do PDTIC e o que falta para o próximo (cada passo abre o passo a passo do órgão nele) -->
+      <app-pe-nivel-pdtic *ngIf="modoLivre && r.Pdtic && nivelAlcancado as n" [nivel]="n" idBase="pe-org-nivel"
+                          (abrirPasso)="abrirPassoQueFalta($event)"></app-pe-nivel-pdtic>
+
+      <!-- Andamento por etapa -->
+      <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-andamento">
+        <h3 id="pe-org-andamento" class="text-base font-semibold text-gray-900">Andamento do passo a passo</h3>
+        <p *ngIf="r.Andamento.length === 0" class="text-sm text-gray-700 mt-1">
+          {{ r.Pdtic ? 'O andamento ainda não está disponível.' : 'O andamento aparece quando o órgão começar o PDTIC.' }}
+        </p>
+        <ng-container *ngIf="r.Andamento.length > 0">
+          <p class="text-sm text-gray-700 mt-1">
+            <ng-container *ngIf="r.ProximoPasso as proximo; else nadaPendente">
+              Próximo passo recomendado ao órgão: <strong>{{ proximo }}</strong>.
+              <button type="button" (click)="abrirProximoPasso(proximo)" class="font-semibold text-purple-700 underline">Abrir o passo {{ proximo }}</button>
+            </ng-container>
+            <ng-template #nadaPendente>Nenhum passo pendente agora.</ng-template>
+          </p>
+          <div class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: andamento por etapa">
+            <table class="w-full text-sm">
+              <caption class="sr-only">Andamento do passo a passo do órgão {{ r.Orgao.Sigla }} por etapa:
+                {{ andamentoPorObrigatorio ? 'passos obrigatórios resolvidos e opcionais feitos' : 'passos resolvidos' }}, atrasados e
+                aguardando{{ temValidados ? ', e os validados pela equipe' : '' }}</caption>
+              <thead>
+                <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                  <th scope="col" class="px-3 py-2.5">Etapa</th>
+                  <th scope="col" class="px-3 py-2.5">Passos resolvidos</th>
+                  <th scope="col" class="px-3 py-2.5 text-right">Atrasados</th>
+                  <th scope="col" class="px-3 py-2.5 text-right">Aguardando</th>
+                  <!-- B: os passos validados pela equipe em cada etapa -->
+                  <th *ngIf="temValidados" scope="col" class="px-3 py-2.5 text-right">Validados pela equipe</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let a of r.Andamento; trackBy: porEtapa" class="border-t border-gray-100 align-top">
+                  <th scope="row" class="px-3 py-2 text-left font-normal text-gray-800 min-w-[12rem]">Etapa {{ a.Etapa }} · {{ a.Titulo }}</th>
+                  <td class="px-3 py-2 text-gray-900 min-w-[8.5rem]">
+                    <span class="tabular-nums">{{ resolvidos(a) }}</span>
+                    <progress *ngIf="a.Total > 0" class="block w-full mt-1" [value]="a.Feitos" [max]="a.Total" aria-hidden="true"></progress>
+                    <!-- F3 (correções): os opcionais feitos, quando houver (como na visão geral) -->
+                    <span *ngIf="opcionaisFeitos(a) as opcionais" class="block text-xs text-gray-600 mt-1"><span class="sr-only">; </span>{{ opcionais }}</span>
+                  </td>
+                  <td class="px-3 py-2 text-right tabular-nums" [ngClass]="a.Atrasados > 0 ? 'font-bold text-red-700' : 'text-gray-800'">{{ a.Atrasados }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-gray-800">{{ a.Aguardando }}</td>
+                  <td *ngIf="temValidados" class="px-3 py-2 text-right tabular-nums text-gray-800">{{ a.Validados ?? 0 }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs text-gray-500 italic mt-2">Passo resolvido é o feito, o marcado como "não se aplica" ou o feito fora do sistema.<ng-container
+              *ngIf="andamentoPorObrigatorio"> A coluna conta os passos obrigatórios; os opcionais não são cobrados e aparecem embaixo,
+            quando o órgão fez algum.</ng-container> Aguardando é o passo que depende de outra coisa antes, como a deliberação do CGTIC ou a
+            publicação.</p>
+        </ng-container>
+      </section>
+
+      <!-- Conformidade -->
+      <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-conformidade">
+        <h3 id="pe-org-conformidade" class="text-base font-semibold text-gray-900">Conformidade</h3>
+        <p *ngIf="!r.Conformidade" class="text-sm text-gray-700 mt-1">A conformidade do órgão não veio agora.</p>
+        <ng-container *ngIf="r.Conformidade">
+          <p class="text-sm text-gray-700 mt-1">
+            {{ percentual }}<ng-container *ngIf="grupo as g">: {{ g.rotulo.toLowerCase() }} ({{ g.faixa }})</ng-container>.
+            O percentual conta os itens atendidos entre os que se aplicam ao órgão.
+          </p>
+          <ul class="mt-3 divide-y divide-gray-100 border border-gray-200 rounded-lg">
+            <li *ngFor="let i of itensConformidade; trackBy: porChave" class="px-4 py-3 flex flex-col md:flex-row gap-2 md:gap-4">
+              <div class="md:w-72 shrink-0">
+                <p class="text-sm font-semibold text-gray-900">{{ i.rotulo }}</p>
+                <p *ngIf="i.atende" class="text-xs text-gray-700 mt-0.5">{{ i.atende }}</p>
+                <p *ngIf="i.base" class="text-xs text-gray-600 mt-0.5">{{ i.base }}</p>
+              </div>
+              <p class="text-sm inline-flex items-start gap-1" [ngClass]="i.marca.classe">
+                <span class="material-icons text-base" aria-hidden="true">{{ i.marca.icone }}</span>
+                <span><strong>{{ i.marca.texto }}</strong><ng-container *ngIf="i.detalhe"><span class="text-gray-700">. {{ i.detalhe }}</span></ng-container></span>
+              </p>
+            </li>
+          </ul>
+        </ng-container>
+      </section>
+
+      <!-- Não se aplica -->
+      <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-nsa">
+        <h3 id="pe-org-nsa" class="text-base font-semibold text-gray-900">Passos marcados como "não se aplica"</h3>
+        <p *ngIf="r.NaoSeAplica.length === 0" class="text-sm text-gray-700 mt-1">Nenhum passo marcado como "não se aplica".</p>
+        <ul *ngIf="r.NaoSeAplica.length > 0" class="mt-3 space-y-2">
+          <li *ngFor="let n of r.NaoSeAplica; trackBy: porNaoSeAplica" class="rounded-md border border-gray-200 px-4 py-3 text-sm">
+            <p class="font-semibold text-gray-900">Passo {{ n.PassoNumero || '-' }}<ng-container *ngIf="n.PassoTitulo"> · {{ n.PassoTitulo }}</ng-container></p>
+            <p class="text-gray-800 mt-1 whitespace-pre-line break-words"><span class="font-semibold">Justificativa:</span> {{ n.Justificativa || '-' }}</p>
+            <p class="text-xs text-gray-500 mt-1">Marcado em {{ quando(n.MarcadoEm) }}<ng-container *ngIf="nomeDeQuem(n.MarcadoPorNome, n.MarcadoPor) as quem"> por {{ quem }}</ng-container></p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Comentários abertos -->
+      <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-comentarios">
+        <h3 id="pe-org-comentarios" class="text-base font-semibold text-gray-900">Comentários abertos</h3>
+        <p class="text-xs text-gray-600 mt-0.5">Os comentários da SGDI nos passos que a equipe do PDTIC ainda não resolveu.</p>
+        <p *ngIf="r.ComentariosAbertos.length === 0" class="text-sm text-gray-700 mt-2">Nenhum comentário aberto.</p>
+        <ul *ngIf="r.ComentariosAbertos.length > 0" class="mt-3 space-y-2">
+          <li *ngFor="let c of r.ComentariosAbertos; trackBy: porId" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
+            <div class="flex flex-col md:flex-row md:justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-semibold text-gray-900">Passo {{ c.PassoNumero || '-' }}</p>
+                <p class="text-gray-800 mt-1 whitespace-pre-line break-words">{{ c.Texto }}</p>
+                <p class="text-xs text-gray-600 mt-1">{{ c.AutorNome || 'SGDI' }} · {{ quando(c.CriadoEm) }}</p>
+              </div>
+              <button type="button" (click)="abrirPassoDoComentario(c)"
+                      class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap self-start"
+                      [attr.aria-label]="c.PassoNumero ? 'Abrir o passo ' + c.PassoNumero + ' do comentário' : 'Abrir o passo do comentário'">
+                Abrir o passo <span class="material-icons text-base" aria-hidden="true">arrow_forward</span>
+              </button>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Aprovações e deliberações -->
+      <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-aprovacoes">
+        <h3 id="pe-org-aprovacoes" class="text-base font-semibold text-gray-900">Aprovações</h3>
+        <p class="text-xs text-gray-600 mt-0.5">As decisões registradas nos passos de aprovação: o comitê interno (SGTIC), o comitê que avalia o
+          acompanhamento e a autoridade máxima.</p>
+        <p *ngIf="r.Aprovacoes.length === 0" class="text-sm text-gray-700 mt-2">Nenhuma aprovação registrada ainda.</p>
+        <div *ngIf="r.Aprovacoes.length > 0" class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: aprovações">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Aprovações registradas nos passos do PDTIC do órgão {{ r.Orgao.Sigla }}</caption>
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                <th scope="col" class="px-3 py-2.5">Passo</th>
+                <th scope="col" class="px-3 py-2.5">Aprovação</th>
+                <th scope="col" class="px-3 py-2.5">Decisão</th>
+                <th scope="col" class="px-3 py-2.5">Data</th>
+                <th scope="col" class="px-3 py-2.5">Ato</th>
+                <th scope="col" class="px-3 py-2.5">SEI</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let a of r.Aprovacoes; trackBy: porIndice" class="border-t border-gray-100 align-top">
+                <td class="px-3 py-2 text-gray-900 whitespace-nowrap">{{ a.PassoNumero || '-' }}</td>
+                <th scope="row" class="px-3 py-2 text-left font-normal text-gray-800 min-w-[12rem]">{{ a.Rotulo || '-' }}</th>
+                <td class="px-3 py-2 text-gray-800">{{ decisao(a) }}</td>
+                <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ quando(a.Data) }}</td>
+                <td class="px-3 py-2 text-gray-800 break-words">{{ a.Ato || '-' }}</td>
+                <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ a.Sei || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="pe-org-deliberacoes" class="text-base font-semibold text-gray-900 mt-6">Deliberações do CGTIC</h3>
+        <p *ngIf="r.Deliberacoes.length === 0" class="text-sm text-gray-700 mt-1">Nenhum envio ao CGTIC ainda.</p>
+        <div *ngIf="r.Deliberacoes.length > 0" class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: deliberações do CGTIC">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Deliberações do CGTIC sobre o PDTIC do órgão {{ r.Orgao.Sigla }}</caption>
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                <th scope="col" class="px-3 py-2.5">Versão</th>
+                <th scope="col" class="px-3 py-2.5">Enviado em</th>
+                <th scope="col" class="px-3 py-2.5">Situação</th>
+                <th scope="col" class="px-3 py-2.5">Ato</th>
+                <th scope="col" class="px-3 py-2.5">O que ajustar</th>
+                <th scope="col" class="px-3 py-2.5"><span class="sr-only">PDF enviado</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of r.Deliberacoes; trackBy: porId" class="border-t border-gray-100 align-top">
+                <th scope="row" class="px-3 py-2 text-left font-mono font-normal text-gray-900">{{ d.VersaoObjeto }}</th>
+                <!-- F1 (C40): a deliberação do registro fora do sistema não foi enviada: diz quando foi registrada e usa a data do ato -->
+                <td class="px-3 py-2 text-gray-800 whitespace-nowrap">
+                  <ng-container *ngIf="registradaFora(d); else enviada">Registrado fora do sistema em {{ quando(d.EnviadoEm) }}</ng-container>
+                  <ng-template #enviada>{{ quando(d.EnviadoEm) }}</ng-template>
+                </td>
+                <td class="px-3 py-2">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" [ngClass]="classeDeliberacao(d)">{{ rotuloDeliberacao(d) }}</span>
+                  <span *ngIf="d.DecididoEm" class="block text-xs text-gray-600 mt-1">em {{ decididaEm(d) }}</span>
+                </td>
+                <td class="px-3 py-2 text-gray-800 break-words">{{ ato(d) }}</td>
+                <td class="px-3 py-2 text-gray-800 whitespace-pre-line break-words min-w-[12rem]">{{ d.Situacao === 'devolvido' ? (d.Observacao || '-') : '-' }}</td>
+                <td class="px-3 py-2 text-right">
+                  <button *ngIf="d.Documento" type="button" (click)="baixarPdfEnviado(d)" [attr.aria-disabled]="!!baixando || null"
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap disabled:opacity-50"
+                          [attr.aria-label]="'Baixar o PDF enviado da versão ' + d.VersaoObjeto">
+                    <span class="material-icons text-sm" aria-hidden="true">picture_as_pdf</span> {{ baixando === 'deliberacao-' + d.Id ? 'Baixando...' : 'PDF enviado' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Documentos gerados -->
+      <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-documentos">
+        <h3 id="pe-org-documentos" class="text-base font-semibold text-gray-900">Documentos gerados</h3>
+        <p class="text-xs text-gray-600 mt-0.5">Os PDFs do documento do PDTIC e dos relatórios de acompanhamento (RA) e de resultados (RR).</p>
+        <p *ngIf="r.Documentos.length === 0" class="text-sm text-gray-700 mt-2">Nenhum PDF gerado ainda.</p>
+        <div *ngIf="r.Documentos.length > 0" class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: documentos gerados">
+          <table class="w-full text-sm">
+            <caption class="sr-only">PDFs gerados do órgão {{ r.Orgao.Sigla }}</caption>
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                <th scope="col" class="px-3 py-2.5">Documento</th>
+                <th scope="col" class="px-3 py-2.5">Versão</th>
+                <th scope="col" class="px-3 py-2.5">Situação</th>
+                <th scope="col" class="px-3 py-2.5">Gerado em</th>
+                <th scope="col" class="px-3 py-2.5 text-right">Páginas</th>
+                <th scope="col" class="px-3 py-2.5"><span class="sr-only">Baixar</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of r.Documentos; trackBy: porDocumento" class="border-t border-gray-100 align-top">
+                <th scope="row" class="px-3 py-2 text-left font-normal text-gray-800 min-w-[12rem]">{{ rotuloDocumento(d) }}</th>
+                <td class="px-3 py-2 text-gray-900 tabular-nums">{{ d.Numero }}</td>
+                <td class="px-3 py-2 text-gray-800">{{ situacaoDocumento(d) }}</td>
+                <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ quando(d.GeradoEm) }}</td>
+                <td class="px-3 py-2 text-right text-gray-800 tabular-nums">{{ d.Paginas ?? '-' }}</td>
+                <td class="px-3 py-2 text-right">
+                  <button *ngIf="d.Url" type="button" (click)="baixarDocumento(d)" [attr.aria-disabled]="!!baixando || null"
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap disabled:opacity-50"
+                          [attr.aria-label]="'Baixar ' + rotuloDocumento(d) + ', versão ' + d.Numero">
+                    <span class="material-icons text-sm" aria-hidden="true">download</span> {{ baixando === chaveDocumento(d) ? 'Baixando...' : 'Baixar' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Ciclos de acompanhamento -->
+      <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-ciclos">
+        <h3 id="pe-org-ciclos" class="text-base font-semibold text-gray-900">Ciclos de acompanhamento</h3>
+        <p *ngIf="ciclos.length === 0" class="text-sm text-gray-700 mt-1">Ainda não há ciclos: eles começam depois da publicação do PDTIC.</p>
+        <div *ngIf="ciclos.length > 0" class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: ciclos de acompanhamento">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Ciclos de monitoramento e de avaliação do PDTIC do órgão {{ r.Orgao.Sigla }}</caption>
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+                <th scope="col" class="px-3 py-2.5">Ciclo</th>
+                <th scope="col" class="px-3 py-2.5">Tipo</th>
+                <th scope="col" class="px-3 py-2.5">Período</th>
+                <th scope="col" class="px-3 py-2.5">Prazo para fechar</th>
+                <th scope="col" class="px-3 py-2.5">Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of ciclos; trackBy: porId" class="border-t border-gray-100 align-top">
+                <th scope="row" class="px-3 py-2 text-left font-normal text-gray-900 min-w-[8.5rem]">{{ c.Rotulo }}</th>
+                <td class="px-3 py-2 text-gray-800">{{ tipoCiclo(c) }}</td>
+                <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ periodo(c) }}</td>
+                <td class="px-3 py-2 text-gray-800 whitespace-nowrap">{{ quando(c.Prazo) }}</td>
+                <td class="px-3 py-2">
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap" [ngClass]="classeCiclo(c)">
+                    <span class="material-icons text-sm" aria-hidden="true">{{ iconeCiclo(c) }}</span>{{ rotuloCiclo(c) }}
+                  </span>
+                  <span *ngIf="c.FechadoEm" class="block text-xs text-gray-600 mt-1">fechado em {{ quando(c.FechadoEm) }}<ng-container
+                    *ngIf="nomeDeQuem(c.FechadoPorNome, c.FechadoPor) as quem"> por {{ quem }}</ng-container></span>
+                  <span *ngIf="c.ReabertoEm && !c.FechadoEm" class="block text-xs text-gray-600 mt-1">reaberto em {{ quando(c.ReabertoEm) }}<ng-container
+                    *ngIf="nomeDeQuem(c.ReabertoPorNome, c.ReabertoPor) as quem"> por {{ quem }}</ng-container></span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Notificações da SGDI (inadimplência) -->
+      <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-notificacoes">
+        <h3 id="pe-org-notificacoes" class="text-base font-semibold text-gray-900">Notificações da SGDI</h3>
+        <p class="text-xs text-gray-600 mt-0.5">A notificação, o prazo de 5 dias úteis e a inadimplência (art. 11 do Decreto nº 48.899/2026).</p>
+        <p *ngIf="inadimplencias.length === 0" class="text-sm text-gray-700 mt-2">Nenhuma notificação da SGDI para o órgão.</p>
+        <ul *ngIf="inadimplencias.length > 0" class="mt-3 space-y-4">
+          <li *ngFor="let i of inadimplencias; trackBy: porId" class="rounded-lg border border-gray-200 p-4">
+            <app-pe-inadimplencia-detalhe [item]="i"></app-pe-inadimplencia-detalhe>
+          </li>
+        </ul>
+        <a *ngIf="veTodos" [routerLink]="base + '/inadimplencia'" [queryParams]="{ orgao: r.Orgao.Id }" data-sem-dica
+           class="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-purple-700 underline">
+          Ver na tela das notificações e inadimplências <span class="material-icons text-base" aria-hidden="true">arrow_forward</span>
+        </a>
+      </section>
+    </ng-container>
+  </ng-container>
+</div>

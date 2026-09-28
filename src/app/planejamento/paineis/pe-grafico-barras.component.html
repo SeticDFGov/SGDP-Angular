@@ -1,0 +1,78 @@
+<div class="bg-white rounded-lg shadow p-5 min-w-0">
+  <div class="flex flex-wrap items-start justify-between gap-2">
+    <h3 [id]="id + '-titulo'" class="text-sm font-semibold text-gray-900">{{ titulo }}</h3>
+    <button *ngIf="!semDados" type="button" (click)="alternar()" [attr.aria-pressed]="comoTabela" [attr.aria-controls]="id + '-tabela'"
+            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border text-xs font-semibold whitespace-nowrap"
+            [ngClass]="comoTabela ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">
+      <span class="material-icons text-sm" aria-hidden="true">table_rows</span> Ver como tabela
+    </button>
+  </div>
+  <p *ngIf="legenda" class="text-xs text-gray-600 leading-relaxed mt-1">{{ legenda }}</p>
+
+  <p *ngIf="semDados" class="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-5 text-center text-sm text-gray-600">{{ vazio }}</p>
+
+  <ng-container *ngIf="!semDados">
+    <!-- Descrição para o leitor de tela (o desenho abaixo fica escondido dele; a tabela diz o mesmo) -->
+    <p class="sr-only">{{ descricao }}</p>
+
+    <!-- Legenda das séries: a cor e o nome; o nome também vai ao lado de cada barra -->
+    <ul *ngIf="varias && !comoTabela" class="flex flex-wrap gap-3 mt-2 text-xs text-gray-700" aria-hidden="true">
+      <li *ngFor="let s of series; let i = index" class="inline-flex items-center gap-1.5">
+        <svg class="w-3 h-3" focusable="false"><rect width="100%" height="100%" rx="2" fill="currentColor" [ngClass]="classesSeries[i]"></rect></svg>
+        {{ s.nome }}
+      </li>
+    </ul>
+
+    <!-- O desenho: HTML (rótulos e números) e SVG (as barras) -->
+    <ul *ngIf="!comoTabela" class="mt-3 space-y-2" aria-hidden="true">
+      <li *ngFor="let l of linhas; trackBy: porChave">
+        <ng-container *ngIf="!varias; else variasSeries">
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-gray-700 break-words min-w-0">{{ l.rotulo }}</span>
+            <span class="font-bold text-gray-900 tabular-nums whitespace-nowrap">{{ l.celulas[0].valor }}</span>
+          </div>
+          <svg class="block w-full h-3 mt-1 rounded-full bg-gray-100" focusable="false">
+            <rect height="100%" rx="6" fill="currentColor" [attr.width]="l.celulas[0].largura" [ngClass]="l.celulas[0].classe"></rect>
+          </svg>
+        </ng-container>
+        <ng-template #variasSeries>
+          <p class="text-xs text-gray-700 break-words">{{ l.rotulo }}</p>
+          <div *ngFor="let c of l.celulas" class="flex items-center gap-2 mt-1 text-xs">
+            <span class="w-24 shrink-0 text-gray-600">{{ c.serie }}</span>
+            <svg class="block flex-1 min-w-0 h-3 rounded-full bg-gray-100" focusable="false">
+              <rect height="100%" rx="6" fill="currentColor" [attr.width]="c.largura" [ngClass]="c.classe"></rect>
+            </svg>
+            <span class="w-8 shrink-0 text-right font-bold text-gray-900 tabular-nums">{{ c.valor }}</span>
+          </div>
+        </ng-template>
+      </li>
+    </ul>
+
+    <!-- A tabela equivalente: sempre no leitor de tela; à vista com "Ver como tabela" -->
+    <div [id]="id + '-tabela'" [class.sr-only]="!comoTabela" [ngClass]="comoTabela ? 'mt-3 relative overflow-x-auto border border-gray-200 rounded-lg' : ''"
+         [attr.tabindex]="comoTabela ? 0 : null" [attr.role]="comoTabela ? 'region' : null"
+         [attr.aria-label]="comoTabela ? 'Tabela: ' + titulo : null">
+      <table class="w-full text-sm">
+        <caption class="sr-only">{{ titulo }}</caption>
+        <thead>
+          <tr class="bg-gray-50 text-left text-xs text-gray-600 uppercase tracking-wide">
+            <th scope="col" class="px-3 py-2.5">{{ rotuloCategoria }}</th>
+            <th *ngFor="let s of series" scope="col" class="px-3 py-2.5 text-right">{{ s.nome }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let l of linhas; trackBy: porChave" class="border-t border-gray-100">
+            <th scope="row" class="px-3 py-2 text-left font-normal text-gray-800 break-words">{{ l.rotulo }}</th>
+            <td *ngFor="let c of l.celulas" class="px-3 py-2 text-right font-semibold text-gray-900 tabular-nums">{{ c.valor }}</td>
+          </tr>
+        </tbody>
+        <tfoot *ngIf="mostrarTotal && !varias">
+          <tr class="border-t border-gray-200">
+            <th scope="row" class="px-3 py-2 text-left font-semibold text-gray-900">Total</th>
+            <td class="px-3 py-2 text-right font-bold text-gray-900 tabular-nums">{{ totais[0] }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </ng-container>
+</div>

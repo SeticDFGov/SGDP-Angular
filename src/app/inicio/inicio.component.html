@@ -21,8 +21,9 @@
     </div>
   </div>
 
-  <!-- Cards dos módulos, lado a lado (a Administração só para quem é administrador) -->
-  <div class="grid gap-6 sm:grid-cols-2" [ngClass]="modulos.length > 3 ? 'xl:grid-cols-4' : 'xl:grid-cols-3'">
+  <!-- Cards dos módulos, lado a lado (a Administração só para quem é administrador):
+       quatro numa linha; cinco em duas linhas de três e dois, com as classes que o projeto já usa -->
+  <div class="grid gap-6 sm:grid-cols-2" [ngClass]="modulos.length === 4 ? 'xl:grid-cols-4' : 'xl:grid-cols-3'">
     <div *ngFor="let modulo of modulos"
          (click)="abrir(modulo)"
          class="group relative flex flex-col rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer"
@@ -99,8 +100,8 @@
                   : aguardando(modulo) ? 'bg-amber-100 text-amber-900 border border-amber-200 cursor-default focus-visible:ring-amber-400'
                   : 'bg-gray-300 text-gray-700 hover:bg-gray-400/60 focus-visible:ring-gray-400'"
                 [attr.aria-label]="liberado(modulo) ? 'Acessar ' + modulo.nome
-                  : aguardando(modulo) ? 'Pedido de acesso a ' + modulo.nome + ' aguardando decisão'
-                  : 'Pedir acesso a ' + modulo.nome">
+                  : aguardando(modulo) ? 'Pedido de acesso ao módulo ' + modulo.nome + ' aguardando decisão'
+                  : 'Pedir acesso ao módulo ' + modulo.nome">
           <ng-container *ngIf="liberado(modulo)">
             Acessar
             <span class="material-icons text-lg" aria-hidden="true">arrow_forward</span>
@@ -142,7 +143,7 @@
       </div>
 
       <p id="texto-pedido" class="text-sm text-gray-700 mt-4 leading-relaxed">
-        O pedido vai para os administradores do sistema<ng-container *ngIf="dialogo.modulo.id === 'pgia'"> e para a SGDI</ng-container>.
+        O pedido vai para os administradores do sistema<ng-container *ngIf="tambemDecide(dialogo.modulo) as outro"> {{ outro }}</ng-container>.
         A resposta aparece aqui, no card do módulo. Se o pedido for aprovado, o módulo abre na hora.
       </p>
 

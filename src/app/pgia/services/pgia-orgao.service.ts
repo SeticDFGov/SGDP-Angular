@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
@@ -28,8 +28,9 @@ export class PgiaOrgaoService {
     return new HttpHeaders().set('Authorization', `Bearer ${token}`);
   }
 
-  getMeuOrgao(): Observable<PgiaMeuOrgao> {
-    return this.http.get<PgiaMeuOrgao>(`${this.apiUrl}/meu-orgao`, { headers: this.getHeaders() });
+  /** `contexto`: a situação da trilha consulta em segundo plano (sem o indicador de carregamento). */
+  getMeuOrgao(contexto?: HttpContext): Observable<PgiaMeuOrgao> {
+    return this.http.get<PgiaMeuOrgao>(`${this.apiUrl}/meu-orgao`, { headers: this.getHeaders(), context: contexto });
   }
 
   listarOrgaos(): Observable<PgiaOrgao[]> {
@@ -64,12 +65,12 @@ export class PgiaOrgaoService {
     return this.http.post<PgiaDesignacao>(`${this.apiUrl}/${orgaoId}/encarregado-dados`, form, { headers: this.getHeaders() });
   }
 
-  listarPrazos(orgaoId: number): Observable<PgiaPrazo[]> {
-    return this.http.get<PgiaPrazo[]>(`${this.apiUrl}/${orgaoId}/prazos`, { headers: this.getHeaders() });
+  listarPrazos(orgaoId: number, contexto?: HttpContext): Observable<PgiaPrazo[]> {
+    return this.http.get<PgiaPrazo[]>(`${this.apiUrl}/${orgaoId}/prazos`, { headers: this.getHeaders(), context: contexto });
   }
 
-  listarPrazosCentrais(): Observable<PgiaPrazo[]> {
-    return this.http.get<PgiaPrazo[]>(`${this.apiUrl}/prazos/centrais`, { headers: this.getHeaders() });
+  listarPrazosCentrais(contexto?: HttpContext): Observable<PgiaPrazo[]> {
+    return this.http.get<PgiaPrazo[]>(`${this.apiUrl}/prazos/centrais`, { headers: this.getHeaders(), context: contexto });
   }
 
   marcarCumprimento(prazoId: number, cumpridoEm: string | null): Observable<PgiaPrazo> {
