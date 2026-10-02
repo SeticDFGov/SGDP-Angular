@@ -6,7 +6,7 @@ export interface OpcaoEscolha {
   rotulo: string;
   /** Segunda linha, menor (o nome do órgão debaixo da sigla). */
   detalhe?: string;
-  /** Processos com esta opção, contados com os outros filtros. */
+  /** Contratações com esta opção, contadas com os outros filtros. */
   quantidade: number;
 }
 
@@ -77,7 +77,7 @@ export class CtrEscolhaMultiplaComponent {
 
   /** O que o leitor de tela lê em cada opção: o nome, o detalhe e a quantidade. */
   nomeAcessivel(o: OpcaoEscolha): string {
-    return `${o.rotulo}${o.detalhe ? ', ' + o.detalhe : ''}, ${o.quantidade} ${o.quantidade === 1 ? 'processo' : 'processos'}`;
+    return `${o.rotulo}${o.detalhe ? ', ' + o.detalhe : ''}, ${o.quantidade} ${o.quantidade === 1 ? 'contratação' : 'contratações'}`;
   }
 
   porValor(_: number, o: OpcaoEscolha): string {

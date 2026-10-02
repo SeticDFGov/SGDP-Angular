@@ -6,9 +6,10 @@ import { CtrPublicoService } from '../services/ctr-publico.service';
 import { CtrContratacaoPublica } from '../../../api/contratacoes/interface';
 import { CtrEscolhaMultiplaComponent, OpcaoEscolha } from './ctr-escolha-multipla.component';
 import { CtrIncorporarComponent } from './ctr-incorporar.component';
+import { CtrGraficoTiposComponent, ItemGraficoTipo } from './ctr-grafico-tipos.component';
 import { CAMINHO_PAINEL_PUBLICO, FiltrosPainelPublico, MENSAGEM_ALTURA, parametrosDosFiltros } from './painel-publico';
 
-type Campo = 'orgao' | 'objeto' | 'tipo' | 'data' | 'valor';
+type Campo = 'orgao' | 'objeto' | 'tipo' | 'data';
 type Faceta = 'orgao' | 'tipo' | 'data' | null;
 
 interface Linha extends CtrContratacaoPublica {
@@ -27,12 +28,18 @@ const POR_PAGINA = 10;
 
 /**
  * Painel público da Supervisão Contínua das Contratações (/transparencia-contratacoes), aberto
- * e sem login, como a transparência da IA. Mostra as contratações com contrato assinado dos
- * processos de supervisão contínua: três filtros (órgão, tipo e o período da chegada à SGDI
- * à assinatura), três cartões (órgãos, processos e valor estimado) e a tabela.
+ * e sem login, como a transparência da IA. Mostra os processos de supervisão contínua, em
+ * análise e com contrato assinado, sem o valor (pedido de 2026-10-02: o sigiloso é o valor,
+ * não a contratação): três filtros (órgão, tipo e o período da chegada à SGDI à assinatura),
+ * dois cartões (órgãos e contratações), o gráfico por tipo e a tabela.
  *
  * - Os filtros se combinam, e cada um mostra só o que existe com os outros, com a quantidade.
- * - Marcar processos na tabela faz os cartões somarem só eles (a tabela continua com todos).
+ * - O gráfico é a lista do filtro de tipo desenhada: conta as contratações de cada tipo pelos
+ *   outros filtros, e clicar numa coluna escolhe ou tira o tipo.
+ * - Marcar contratações na tabela faz os cartões e o gráfico contarem só elas (a tabela
+ *   continua com todas; retorno do usuário sobre o mock, em 2026-10-02).
+ * - Na tela, "contratações" no lugar de "processos" (mesmo retorno): "60 contratações",
+ *   "46 com assinatura".
  * - Os filtros vão no endereço (`orgao` e `tipo` repetidos, `de` e `ate`), para o link valer.
  * - Em /transparencia-contratacoes/incorporar é a mesma tela para outro site pôr num iframe:
  *   sem o cabeçalho, com um título curto e o link da página inteira; a altura vai por
@@ -44,7 +51,7 @@ const POR_PAGINA = 10;
 @Component({
   selector: 'app-ctr-painel-publico',
   standalone: true,
-  imports: [CommonModule, CtrEscolhaMultiplaComponent, CtrIncorporarComponent],
+  imports: [CommonModule, CtrEscolhaMultiplaComponent, CtrIncorporarComponent, CtrGraficoTiposComponent],
   templateUrl: './ctr-painel-publico.component.html'
 })
 export class CtrPainelPublicoComponent implements OnInit {
@@ -68,7 +75,7 @@ export class CtrPainelPublicoComponent implements OnInit {
   readonly tipos = signal<ReadonlySet<string>>(new Set<string>());
   /** Chegada à SGDI a partir de (yyyy-MM-dd). */
   readonly de = signal('');
-  /** Assinatura do contrato até (yyyy-MM-dd). */
+  /** Assinatura do contrato até (yyyy-MM-dd); com ele, só entram os assinados. */
   readonly ate = signal('');
   readonly marcados = signal<ReadonlySet<number>>(new Set<number>());
   readonly ordem = signal<{ campo: Campo; desc: boolean }>({ campo: 'data', desc: true });
@@ -77,8 +84,6 @@ export class CtrPainelPublicoComponent implements OnInit {
   /** Texto da região viva (leitor de tela). */
   readonly anuncio = signal('');
 
-  private readonly moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-  private readonly umaCasa = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
   private readonly inteiro = new Intl.NumberFormat('pt-BR');
 
   /** Nome de cada órgão pela sigla: o do processo mais recente (o nome é texto livre). */
@@ -100,7 +105,7 @@ export class CtrPainelPublicoComponent implements OnInit {
   readonly limitesDatas = computed(() => {
     const outras = this.linhas().filter(l => this.passa(l, 'data'));
     const chegadas = outras.map(l => l.ChegadaSgdi).filter((d): d is string => !!d).sort();
-    const assinaturas = outras.map(l => l.DataAssinaturaContrato).sort();
+    const assinaturas = outras.map(l => l.DataAssinaturaContrato).filter((d): d is string => !!d).sort();
     const de = this.de(), ate = this.ate();
     const ultimaChegada = chegadas[chegadas.length - 1] ?? '';
     const primeiraAssinatura = assinaturas[0] ?? '';
@@ -109,25 +114,22 @@ export class CtrPainelPublicoComponent implements OnInit {
       deMax: ate && (!ultimaChegada || ate < ultimaChegada) ? ate : ultimaChegada,
       ateMin: de && (!primeiraAssinatura || de > primeiraAssinatura) ? de : primeiraAssinatura,
       ateMax: assinaturas[assinaturas.length - 1] ?? '',
-      dica: !outras.length ? 'Nenhum processo com os outros filtros.'
-        : chegadas.length
-          ? `Com os outros filtros, há processos com chegada desde ${this.dataBr(chegadas[0])} e assinatura até ${this.dataBr(assinaturas[assinaturas.length - 1])}.`
-          : `Com os outros filtros, há processos com assinatura até ${this.dataBr(assinaturas[assinaturas.length - 1])}.`
+      dica: !outras.length ? 'Nenhuma contratação com os outros filtros.' : this.dicaDatas(chegadas[0], assinaturas[assinaturas.length - 1])
     };
   });
 
   readonly ordenadas = computed(() => {
     const { campo, desc } = this.ordem();
-    const chave = (l: Linha): string | number =>
+    const chave = (l: Linha): string =>
       campo === 'orgao' ? l.OrgaoSigla
         : campo === 'objeto' ? l.Objeto
         : campo === 'tipo' ? l.CategoriaObjeto
-        : campo === 'valor' ? l.ValorEstimado ?? -1
-        : l.DataAssinaturaContrato;
+        : l.ChegadaSgdi ?? '';
     return [...this.filtradas()].sort((a, b) => {
-      const x = chave(a), y = chave(b);
-      let r = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'pt-BR');
-      if (r === 0) r = a.DataAssinaturaContrato.localeCompare(b.DataAssinaturaContrato);
+      // A data é a chegada à SGDI; sem ela, o processo fica no fim nos dois sentidos
+      if (campo === 'data' && !a.ChegadaSgdi !== !b.ChegadaSgdi) return a.ChegadaSgdi ? -1 : 1;
+      let r = chave(a).localeCompare(chave(b), 'pt-BR');
+      if (r === 0) r = (a.DataAssinaturaContrato ?? '9999').localeCompare(b.DataAssinaturaContrato ?? '9999');
       return desc ? -r : r;
     });
   });
@@ -154,34 +156,49 @@ export class CtrPainelPublicoComponent implements OnInit {
   readonly totais = computed(() => {
     const marcados = this.marcados();
     const base = marcados.size ? this.filtradas().filter(l => marcados.has(l.id)) : this.filtradas();
-    const comValor = base.filter(l => l.ValorEstimado !== null);
     return {
       selecao: marcados.size > 0,
       orgaos: new Set(base.map(l => l.OrgaoSigla)).size,
       processos: base.length,
-      valor: comValor.reduce((soma, l) => soma + (l.ValorEstimado ?? 0), 0),
-      semValor: base.length - comValor.length
+      assinados: base.filter(l => !!l.DataAssinaturaContrato).length
     };
   });
 
   readonly cartoes = computed(() => {
     const t = this.totais();
-    const contexto = (selecao: string, filtro: string, tudo: string) => t.selecao ? selecao : this.temFiltro() ? filtro : tudo;
-    const semValor = t.semValor ? ` · ${this.plural(t.semValor, 'processo sem valor informado', 'processos sem valor informado')}` : '';
+    const filtro = this.temFiltro();
     return [
       {
-        rotulo: 'Órgãos', icone: 'apartment', valor: this.inteiro.format(t.orgaos),
-        contexto: contexto('dos processos marcados', 'com processos nos filtros', 'com contratos assinados')
+        rotulo: 'Órgãos', icone: 'apartment', numero: this.inteiro.format(t.orgaos),
+        contexto: t.selecao ? 'das contratações marcadas' : filtro ? 'com contratações nos filtros' : 'com contratações na supervisão contínua'
       },
       {
-        rotulo: 'Processos', icone: 'description', valor: this.inteiro.format(t.processos),
-        contexto: contexto('marcados na tabela', `de ${this.inteiro.format(this.linhas().length)} no total`, 'com contrato assinado')
-      },
-      {
-        rotulo: 'Valor estimado total', icone: 'payments', valor: this.moedaCurta(t.valor),
-        contexto: this.moeda.format(t.valor) + semValor
+        rotulo: 'Contratações', icone: 'description', numero: this.inteiro.format(t.processos),
+        contexto: (t.selecao ? 'marcadas na tabela; ' : filtro ? `de ${this.inteiro.format(this.linhas().length)} no total; ` : '')
+          + `${this.inteiro.format(t.assinados)} com assinatura`
       }
     ];
+  });
+
+  /**
+   * O gráfico, da maior quantidade para a menor: a lista do filtro de tipo (a quantidade pelos
+   * outros filtros); com contratações marcadas na tabela, só elas, como nos cartões. O tipo
+   * escolhido fica, mesmo com zero, para dar para tirá-lo pela coluna.
+   */
+  readonly itensDoGrafico = computed<ItemGraficoTipo[]>(() => {
+    const marcados = this.marcados();
+    let itens: ItemGraficoTipo[];
+    if (marcados.size) {
+      const contagem = new Map<string, number>();
+      for (const l of this.filtradas()) {
+        if (marcados.has(l.id)) contagem.set(l.CategoriaObjeto, (contagem.get(l.CategoriaObjeto) ?? 0) + 1);
+      }
+      this.tipos().forEach(t => { if (!contagem.has(t)) contagem.set(t, 0); });
+      itens = [...contagem.entries()].map(([tipo, quantidade]) => ({ tipo, quantidade }));
+    } else {
+      itens = this.opcoesTipo().map(o => ({ tipo: o.valor, quantidade: o.quantidade }));
+    }
+    return itens.sort((a, b) => b.quantidade - a.quantidade || a.tipo.localeCompare(b.tipo, 'pt-BR'));
   });
 
   readonly chips = computed<Chip[]>(() => {
@@ -192,7 +209,7 @@ export class CtrPainelPublicoComponent implements OnInit {
     if (this.de()) chips.push({ rotulo: `Chegada a partir de ${this.dataBr(this.de())}`, tirar: () => this.definirDe('') });
     if (this.ate()) chips.push({ rotulo: `Assinatura até ${this.dataBr(this.ate())}`, tirar: () => this.definirAte('') });
     const n = this.marcados().size;
-    if (n) chips.push({ rotulo: `${this.plural(n, 'processo marcado', 'processos marcados')} na tabela`, tirar: () => this.limparSelecao(), selecao: true });
+    if (n) chips.push({ rotulo: `${this.plural(n, 'contratação marcada', 'contratações marcadas')} na tabela`, tirar: () => this.limparSelecao(), selecao: true });
     return chips;
   });
 
@@ -278,7 +295,7 @@ export class CtrPainelPublicoComponent implements OnInit {
     this.ate.set('');
     this.marcados.set(new Set<number>());
     this.depoisDoFiltro();
-    this.anunciar(`Filtros limpos: ${this.plural(this.linhas().length, 'processo', 'processos')}.`);
+    this.anunciar(`Filtros limpos: ${this.plural(this.linhas().length, 'contratação', 'contratações')}.`);
   }
 
   /** Limpar desabilita o próprio botão: o foco vai para o primeiro filtro. */
@@ -295,7 +312,7 @@ export class CtrPainelPublicoComponent implements OnInit {
 
   readonly avisoSelecao = computed(() => {
     const n = this.marcados().size;
-    return `${this.plural(n, 'processo marcado', 'processos marcados')}: os cartões mostram só ${n === 1 ? 'ele' : 'eles'}.`;
+    return `${this.plural(n, 'contratação marcada', 'contratações marcadas')}: os cartões e o gráfico mostram só ${n === 1 ? 'ela' : 'elas'}.`;
   });
 
   // ── Tabela ────────────────────────────────────────────────────────────────
@@ -308,18 +325,24 @@ export class CtrPainelPublicoComponent implements OnInit {
     this.marcados.set(alternado(this.marcados(), id));
     const n = this.marcados().size;
     this.anunciar(n
-      ? `Cartões com ${this.plural(n, 'processo marcado', 'processos marcados')}.`
-      : 'Cartões com todos os processos da tabela.');
+      ? `Cartões e gráfico com ${this.plural(n, 'contratação marcada', 'contratações marcadas')}.`
+      : 'Cartões e gráfico com todas as contratações da tabela.');
   }
 
   limparSelecao(): void {
     this.marcados.set(new Set<number>());
-    this.anunciar('Cartões com todos os processos da tabela.');
+    this.anunciar('Cartões e gráfico com todas as contratações da tabela.');
+  }
+
+  /** "Limpar seleção" some com o clique: o foco vai para o título da tabela. */
+  limparSelecaoPeloBotao(): void {
+    this.limparSelecao();
+    this.focar('#ctr-pub-titulo-tabela');
   }
 
   ordenarPor(campo: Campo): void {
     const atual = this.ordem();
-    this.ordem.set(atual.campo === campo ? { campo, desc: !atual.desc } : { campo, desc: campo === 'data' || campo === 'valor' });
+    this.ordem.set(atual.campo === campo ? { campo, desc: !atual.desc } : { campo, desc: campo === 'data' });
     this.pagina.set(1);
   }
 
@@ -353,10 +376,6 @@ export class CtrPainelPublicoComponent implements OnInit {
     return iso ? iso.slice(0, 10).split('-').reverse().join('/') : '-';
   }
 
-  valor(l: Linha): string {
-    return l.ValorEstimado === null ? 'Não informado' : this.moeda.format(l.ValorEstimado);
-  }
-
   // ── Interno ───────────────────────────────────────────────────────────────
 
   /** O processo passa pelos filtros; `exceto` deixa um de fora, para cada filtro mostrar o que existe com os outros. */
@@ -367,7 +386,8 @@ export class CtrPainelPublicoComponent implements OnInit {
     if (exceto !== 'data') {
       const de = this.de(), ate = this.ate();
       if (de && (!l.ChegadaSgdi || l.ChegadaSgdi < de)) return false;
-      if (ate && l.DataAssinaturaContrato > ate) return false;
+      // Com o "até", só entram os assinados (o processo em análise ainda não tem a data)
+      if (ate && (!l.DataAssinaturaContrato || l.DataAssinaturaContrato > ate)) return false;
     }
     return true;
   }
@@ -397,7 +417,7 @@ export class CtrPainelPublicoComponent implements OnInit {
     if (marcados.length !== this.marcados().size) this.marcados.set(new Set(marcados));
     this.pagina.set(1);
     const n = this.filtradas().length;
-    this.anunciar(n ? `${this.plural(n, 'processo encontrado', 'processos encontrados')}.` : 'Nenhum processo com esses filtros.');
+    this.anunciar(n ? `${this.plural(n, 'contratação encontrada', 'contratações encontradas')}.` : 'Nenhuma contratação com esses filtros.');
     if (this.noNavegador) {
       this.local.replaceState(this.local.path().split('?')[0], parametrosDosFiltros(this.filtrosAtuais()).toString());
     }
@@ -442,15 +462,13 @@ export class CtrPainelPublicoComponent implements OnInit {
     setTimeout(() => this.anuncio.set(texto), 120);
   }
 
-  private moedaCurta(v: number): string {
-    const escala = (n: number, um: string, varios: string) => {
-      const r = Math.round(n * 10) / 10;
-      return `R$ ${this.umaCasa.format(r)} ${r < 2 ? um : varios}`;
-    };
-    if (v >= 1e9) return escala(v / 1e9, 'bilhão', 'bilhões');
-    if (v >= 1e6) return escala(v / 1e6, 'milhão', 'milhões');
-    if (v >= 1e4) return `R$ ${this.umaCasa.format(Math.round(v / 100) / 10)} mil`;
-    return this.moeda.format(v);
+  /** O que existe com os outros filtros: a primeira chegada e a última assinatura, quando há. */
+  private dicaDatas(primeiraChegada: string | undefined, ultimaAssinatura: string | undefined): string {
+    const partes = [
+      primeiraChegada ? `chegada desde ${this.dataBr(primeiraChegada)}` : '',
+      ultimaAssinatura ? `assinatura até ${this.dataBr(ultimaAssinatura)}` : ''
+    ].filter(Boolean);
+    return partes.length ? `Com os outros filtros, há contratações com ${partes.join(' e ')}.` : 'As contratações com os outros filtros ainda não têm datas.';
   }
 
   private plural(n: number, um: string, varios: string): string {

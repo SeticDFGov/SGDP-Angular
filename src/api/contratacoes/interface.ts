@@ -547,8 +547,9 @@ export interface CtrPainel {
 // ── Painel público (GET api/contratacoes/publico/painel, anônimo) ───────────
 
 /**
- * Uma contratação com contrato assinado de um processo de supervisão contínua, só com
- * os campos abertos. O "tipo da contratação" do painel é a categoria do objeto.
+ * Um processo de supervisão contínua, em análise ou com contrato assinado, só com os campos
+ * abertos: o valor estimado não é publicado (pedido de 2026-10-02). O "tipo da contratação"
+ * do painel é a categoria do objeto.
  */
 export interface CtrContratacaoPublica {
   OrgaoSigla: string;
@@ -557,14 +558,12 @@ export interface CtrContratacaoPublica {
   CategoriaObjeto: string;
   /** yyyy-MM-dd; nulo quando o processo não tem a data de chegada. */
   ChegadaSgdi: string | null;
-  /** yyyy-MM-dd */
-  DataAssinaturaContrato: string;
-  /** Valor estimado do processo; nulo quando não foi informado. */
-  ValorEstimado: number | null;
+  /** yyyy-MM-dd; nulo enquanto o contrato não foi assinado (processo em análise). */
+  DataAssinaturaContrato: string | null;
 }
 
 export interface CtrPainelPublico {
-  /** Do contrato assinado mais recente para o mais antigo. */
+  /** Da chegada à SGDI mais recente para a mais antiga (sem a data, no fim). */
   Contratacoes: CtrContratacaoPublica[];
   /** Última alteração entre as contratações publicadas. */
   AtualizadoEm: string | null;
