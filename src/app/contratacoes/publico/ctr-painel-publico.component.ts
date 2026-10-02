@@ -73,7 +73,7 @@ export class CtrPainelPublicoComponent implements OnInit {
 
   readonly orgaos = signal<ReadonlySet<string>>(new Set<string>());
   readonly tipos = signal<ReadonlySet<string>>(new Set<string>());
-  /** Chegada à SGDI a partir de (yyyy-MM-dd). */
+  /** Inclusão no portfólio (a chegada à SGDI) a partir de (yyyy-MM-dd). */
   readonly de = signal('');
   /** Assinatura do contrato até (yyyy-MM-dd); com ele, só entram os assinados. */
   readonly ate = signal('');
@@ -206,7 +206,7 @@ export class CtrPainelPublicoComponent implements OnInit {
     const porNome = (a: string, b: string) => a.localeCompare(b, 'pt-BR');
     [...this.orgaos()].sort(porNome).forEach(o => chips.push({ rotulo: `Órgão: ${o}`, tirar: () => this.alternarOrgao(o) }));
     [...this.tipos()].sort(porNome).forEach(t => chips.push({ rotulo: `Tipo: ${t}`, tirar: () => this.alternarTipo(t) }));
-    if (this.de()) chips.push({ rotulo: `Chegada a partir de ${this.dataBr(this.de())}`, tirar: () => this.definirDe('') });
+    if (this.de()) chips.push({ rotulo: `Inclusão no portfólio a partir de ${this.dataBr(this.de())}`, tirar: () => this.definirDe('') });
     if (this.ate()) chips.push({ rotulo: `Assinatura até ${this.dataBr(this.ate())}`, tirar: () => this.definirAte('') });
     const n = this.marcados().size;
     if (n) chips.push({ rotulo: `${this.plural(n, 'contratação marcada', 'contratações marcadas')} na tabela`, tirar: () => this.limparSelecao(), selecao: true });
@@ -222,7 +222,7 @@ export class CtrPainelPublicoComponent implements OnInit {
     const lista = (s: ReadonlySet<string>) => [...s].sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', ');
     if (this.orgaos().size) partes.push(`órgão: ${lista(this.orgaos())}`);
     if (this.tipos().size) partes.push(`tipo: ${lista(this.tipos())}`);
-    if (this.de()) partes.push(`chegada a partir de ${this.dataBr(this.de())}`);
+    if (this.de()) partes.push(`inclusão no portfólio a partir de ${this.dataBr(this.de())}`);
     if (this.ate()) partes.push(`assinatura até ${this.dataBr(this.ate())}`);
     return partes.join('; ');
   });
@@ -465,7 +465,7 @@ export class CtrPainelPublicoComponent implements OnInit {
   /** O que existe com os outros filtros: a primeira chegada e a última assinatura, quando há. */
   private dicaDatas(primeiraChegada: string | undefined, ultimaAssinatura: string | undefined): string {
     const partes = [
-      primeiraChegada ? `chegada desde ${this.dataBr(primeiraChegada)}` : '',
+      primeiraChegada ? `inclusão no portfólio desde ${this.dataBr(primeiraChegada)}` : '',
       ultimaAssinatura ? `assinatura até ${this.dataBr(ultimaAssinatura)}` : ''
     ].filter(Boolean);
     return partes.length ? `Com os outros filtros, há contratações com ${partes.join(' e ')}.` : 'As contratações com os outros filtros ainda não têm datas.';
