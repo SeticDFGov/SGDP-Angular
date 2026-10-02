@@ -23,6 +23,23 @@ export const routes: Routes = [
       .then(m => m.PgiaTransparenciaComponent)
   },
   {
+    // Painel público da Supervisão Contínua das Contratações: aberto, fora do MainLayout e sem
+    // guard, como a transparência da IA. Só as contratações com contrato assinado.
+    path: 'transparencia-contratacoes',
+    title: 'Contratações de TIC do GDF',
+    loadComponent: () => import('./contratacoes/publico/ctr-painel-publico.component')
+      .then(m => m.CtrPainelPublicoComponent)
+  },
+  {
+    // A mesma tela para outros sites porem num iframe: sem a barra de acessibilidade e sem o
+    // cabeçalho (o index.html e o App reconhecem este caminho antes da primeira pintura)
+    path: 'transparencia-contratacoes/incorporar',
+    title: 'Contratações de TIC do GDF',
+    data: { incorporado: true },
+    loadComponent: () => import('./contratacoes/publico/ctr-painel-publico.component')
+      .then(m => m.CtrPainelPublicoComponent)
+  },
+  {
     // Recursos de acessibilidade (eMAG): aberta, sem login, como a transparência
     path: 'acessibilidade',
     title: 'Acessibilidade',

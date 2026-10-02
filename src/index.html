@@ -24,9 +24,20 @@
   // junto com as classes do Tailwind, que é quando o tema muda).
   (function () {
     var html = document.documentElement;
+    // Painel público da Supervisão incorporado em outro site (iframe): a classe incorporado
+    // tira o VLibras (o do site de fora vale) e o tema pode vir no endereço (?tema=), sem
+    // gravar nada. A barra de acessibilidade também fica de fora nesse caminho (App).
+    var incorporado = location.pathname.indexOf('/transparencia-contratacoes/incorporar') === 0;
+    var temaPedido = incorporado ? (/[?&]tema=(claro|escuro|alto-contraste)(&|$)/.exec(location.search) || [])[1] : null;
+    if (incorporado) html.classList.add('incorporado');
+    var p = {};
     try {
-      var p = JSON.parse(localStorage.getItem('sgdp.acessibilidade') || '{}') || {};
-      var tema = p.tema;
+      p = JSON.parse(localStorage.getItem('sgdp.acessibilidade') || '{}') || {};
+    } catch (e) {
+      // navegador sem armazenamento local (ou iframe com o armazenamento bloqueado): fica o padrão
+    }
+    try {
+      var tema = temaPedido || p.tema;
       if (tema !== 'claro' && tema !== 'escuro' && tema !== 'alto-contraste') {
         // Sem escolha: segue o sistema operacional
         tema = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
@@ -44,7 +55,7 @@
       if (fonte >= 90 && fonte <= 150 && fonte !== 100) html.style.fontSize = fonte + '%';
       if (p.reduzirAnimacoes === true) html.classList.add('sem-animacoes');
     } catch (e) {
-      // navegador sem armazenamento local: fica o padrão
+      // qualquer falha aqui: fica o padrão (tema claro, texto em 100%)
     }
   })();
 </script>

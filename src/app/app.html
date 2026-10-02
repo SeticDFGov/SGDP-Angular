@@ -2,11 +2,14 @@
      (aparece na troca de página e nas requisições que passam de 150 ms) -->
 <app-barra-carregamento />
 <!-- Barra de acessibilidade em todas as páginas; carrega sob demanda, com a mesma
-     altura reservada para a página não pular quando ela chega -->
-@defer (on idle) {
-  <app-barra-acessibilidade />
-} @placeholder {
-  <div class="h-9 bg-gray-100 border-b border-gray-200" aria-hidden="true"></div>
+     altura reservada para a página não pular quando ela chega. Fica de fora só no painel
+     público incorporado em outro site (iframe), que usa a barra do site de fora -->
+@if (!incorporado) {
+  @defer (on idle) {
+    <app-barra-acessibilidade />
+  } @placeholder {
+    <div class="h-9 bg-gray-100 border-b border-gray-200" aria-hidden="true"></div>
+  }
 }
 <router-outlet></router-outlet>
 <app-notifications></app-notifications>

@@ -1,0 +1,47 @@
+<div class="relative" (focusout)="aoSairDoFoco($event)">
+  <span class="block text-xs font-semibold text-gray-600 mb-1" [id]="idBase + '-rotulo'">{{ rotulo }}</span>
+  <button #botao type="button" [id]="idBase + '-botao'"
+          class="w-full flex items-center justify-between gap-2 px-3 py-2 border rounded-md text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+          [ngClass]="escolhidos.size ? 'border-blue-600 bg-blue-50 text-blue-900 font-semibold' : 'border-gray-300 bg-white text-gray-900'"
+          aria-haspopup="listbox" [attr.aria-expanded]="aberta" [attr.aria-controls]="aberta ? idBase + '-lista' : null"
+          [attr.aria-labelledby]="idBase + '-rotulo ' + idBase + '-botao'"
+          (click)="aberta ? fechar(false) : abrir()">
+    <span class="truncate">{{ resumo }}</span>
+    <span class="material-icons text-lg leading-none" aria-hidden="true">{{ aberta ? 'expand_less' : 'expand_more' }}</span>
+  </button>
+
+  <div *ngIf="aberta" class="absolute left-0 right-0 mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg"
+       (keydown)="teclaNoPainel($event)">
+    <div *ngIf="comBusca" class="p-2 border-b border-gray-200">
+      <input #campoBusca type="search" [value]="busca" (input)="aoBuscar(campoBusca.value)" (keydown)="teclaNaBusca($event)"
+             [placeholder]="placeholderBusca" [attr.aria-label]="placeholderBusca" autocomplete="off"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div #lista role="listbox" aria-multiselectable="true" [id]="idBase + '-lista'" [attr.aria-labelledby]="idBase + '-rotulo'"
+         class="max-h-64 overflow-y-auto p-1" (keydown)="teclaNaLista($event)">
+      <div *ngFor="let o of visiveis; trackBy: porValor" role="option" [attr.data-valor]="o.valor"
+           [attr.aria-selected]="escolhidos.has(o.valor)" [attr.tabindex]="o.valor === ativa ? 0 : -1"
+           [attr.aria-label]="nomeAcessivel(o)"
+           class="flex items-start gap-2 px-3 py-2 mb-0.5 rounded-md border-l-4 text-sm cursor-pointer"
+           [ngClass]="escolhidos.has(o.valor)
+             ? 'bg-blue-100 border-blue-600 text-blue-900 font-semibold'
+             : 'border-transparent text-gray-700 hover:bg-gray-50'"
+           (click)="escolher(o.valor)">
+        <span class="flex-1 min-w-0">
+          {{ o.rotulo }}
+          <span *ngIf="o.detalhe" class="block text-xs font-normal text-gray-600">{{ o.detalhe }}</span>
+        </span>
+        <span class="text-xs tabular-nums" [ngClass]="escolhidos.has(o.valor) ? 'text-blue-900' : 'text-gray-500'" aria-hidden="true">{{ o.quantidade }}</span>
+      </div>
+      <p *ngIf="!visiveis.length" class="px-3 py-2 text-sm text-gray-500">
+        {{ busca.trim() ? 'Nada com esse nome.' : textoNenhuma }}
+      </p>
+    </div>
+
+    <div class="flex items-center justify-between gap-2 p-2 border-t border-gray-200">
+      <button type="button" class="text-xs font-semibold text-blue-700 hover:underline" (click)="limpar.emit()">{{ rotuloLimpar }}</button>
+      <button type="button" class="bg-blue-600 text-white text-xs font-semibold py-1 px-3 rounded-md hover:bg-blue-700" (click)="fechar(true)">Pronto</button>
+    </div>
+  </div>
+</div>

@@ -1,5 +1,30 @@
 <div citaIn class="tela-pgia max-w-6xl mx-auto">
 
+  <!-- Aviso do painel público: o link para abrir, copiar ou levar a outro site -->
+  <div class="border-l-4 border-green-600 bg-green-50 p-4 text-sm leading-relaxed rounded-r-md mb-4 flex items-start gap-3">
+    <span class="material-icons text-green-700" aria-hidden="true">public</span>
+    <div class="min-w-0">
+      <p><strong class="text-green-800">Painel público no ar.</strong> Qualquer pessoa vê, sem senha, os processos com
+      contrato assinado: órgão, objeto, tipo, datas e valor estimado. Outros sites podem incorporar o painel.</p>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2">
+        <a [href]="caminhoPainelPublico" target="_blank" rel="noopener" aria-label="Abrir o painel público numa aba nova"
+           class="inline-flex items-center gap-1 font-semibold text-blue-700 underline break-all">
+          {{ enderecoPainelPublico }}<span class="material-icons text-base leading-none" aria-hidden="true">open_in_new</span>
+        </a>
+        <button type="button" (click)="copiarLinkPublico()"
+                class="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 border border-blue-200 rounded-md px-2 py-1 bg-white hover:bg-blue-50">
+          <span class="material-icons text-sm leading-none" aria-hidden="true">content_copy</span>Copiar link
+        </button>
+        <button type="button" (click)="incorporarAberto = true"
+                class="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 border border-blue-200 rounded-md px-2 py-1 bg-white hover:bg-blue-50">
+          <span class="material-icons text-sm leading-none" aria-hidden="true">code</span>Código para incorporar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <app-ctr-incorporar *ngIf="incorporarAberto" (fechar)="incorporarAberto = false"></app-ctr-incorporar>
+
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
     Panorama das análises em andamento: onde os processos estão, quanto tempo levam entre as instâncias e quais estão
     parados. Os números consideram só os processos ativos; os concluídos (contrato assinado) entram nas contagens e têm
