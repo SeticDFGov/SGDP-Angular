@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CitaInDirective } from '../shared/cita-in.directive';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Params, RouterModule } from '@angular/router';
 import { CtrProcessoService } from '../services/ctr-processo.service';
@@ -12,6 +12,9 @@ import {
   corDiasSemMovimento
 } from '../shared/ctr-rotulos';
 import { CtrContagem, CtrPainel, CtrProcessoFiltro } from '../../../api/contratacoes/interface';
+import { NotificationService } from '../../core/services/notification.service';
+import { CtrIncorporarComponent } from '../publico/ctr-incorporar.component';
+import { CAMINHO_PAINEL_PUBLICO, copiarTexto } from '../publico/painel-publico';
 
 /**
  * Painel da área: contagens por situação, maior risco da contratação, categoria
@@ -25,7 +28,7 @@ import { CtrContagem, CtrPainel, CtrProcessoFiltro } from '../../../api/contrata
 @Component({
   selector: 'app-ctr-painel',
   standalone: true,
-  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule],
+  imports: [CitaInDirective, CommonModule, FormsModule, RouterModule, CtrIncorporarComponent],
   templateUrl: './ctr-painel.component.html'
 })
 export class CtrPainelComponent implements OnInit {
@@ -41,6 +44,14 @@ export class CtrPainelComponent implements OnInit {
   badgeCriticidade = badgeCriticidade;
   badgeNivelRisco = badgeNivelRisco;
   corDiasSemMovimento = corDiasSemMovimento;
+
+  // ── Aviso do painel público (/transparencia-contratacoes) ─────────────────
+  private readonly documento = inject(DOCUMENT);
+  private readonly notificacoes = inject(NotificationService);
+  readonly caminhoPainelPublico = CAMINHO_PAINEL_PUBLICO;
+  /** O endereço como aparece no aviso: o host deste site (produção ou homologação). */
+  readonly enderecoPainelPublico = (this.documento.location?.host ?? '') + CAMINHO_PAINEL_PUBLICO;
+  incorporarAberto = false;
 
   constructor(private processoService: CtrProcessoService) {}
 
@@ -91,6 +102,12 @@ export class CtrPainelComponent implements OnInit {
       this.links.set(chave, params);
     }
     return params;
+  }
+
+  async copiarLinkPublico(): Promise<void> {
+    const endereco = (this.documento.location?.origin ?? '') + CAMINHO_PAINEL_PUBLICO;
+    if (await copiarTexto(endereco)) this.notificacoes.success('Link copiado.', 3000);
+    else this.notificacoes.warning('Não foi possível copiar. Selecione o endereço e copie com Ctrl+C.');
   }
 
   /** Tempo médio em dias, com um decimal; sem amostra mostra "-". */

@@ -58,6 +58,13 @@ body:has([aria-modal="true"]) > #vlibras-access-wrapper {
   z-index: 40;
 }
 
+/* Painel público da Supervisão incorporado em outro site (iframe, classe posta pelo script
+   do index.html): o VLibras é o do site de fora */
+html.incorporado body > div[vw],
+html.incorporado body > #vlibras-access-wrapper {
+  display: none !important;
+}
+
 /* Indicador de carregamento (core/carregamento). Enquanto a barra do topo está à
    vista, a página mostra o cursor de espera (links e botões ficam com o deles). O
    botão ou link clicado que ainda espera ganha o cursor de espera e um giro por cima,

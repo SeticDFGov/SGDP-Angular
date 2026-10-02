@@ -544,6 +544,31 @@ export interface CtrPainel {
   Gargalos: CtrProcesso[];
 }
 
+// ── Painel público (GET api/contratacoes/publico/painel, anônimo) ───────────
+
+/**
+ * Um processo de supervisão contínua, em análise ou com contrato assinado, só com os campos
+ * abertos: o valor estimado não é publicado (pedido de 2026-10-02). O "tipo da contratação"
+ * do painel é a categoria do objeto.
+ */
+export interface CtrContratacaoPublica {
+  OrgaoSigla: string;
+  OrgaoNome: string;
+  Objeto: string;
+  CategoriaObjeto: string;
+  /** yyyy-MM-dd; nulo quando o processo não tem a data de chegada. */
+  ChegadaSgdi: string | null;
+  /** yyyy-MM-dd; nulo enquanto o contrato não foi assinado (processo em análise). */
+  DataAssinaturaContrato: string | null;
+}
+
+export interface CtrPainelPublico {
+  /** Da chegada à SGDI mais recente para a mais antiga (sem a data, no fim). */
+  Contratacoes: CtrContratacaoPublica[];
+  /** Última alteração entre as contratações publicadas. */
+  AtualizadoEm: string | null;
+}
+
 // ── Importação da planilha ──────────────────────────────────────────────────
 
 export type CtrAcaoImportacao = 'Criar' | 'Atualizar' | 'Rejeitar';
