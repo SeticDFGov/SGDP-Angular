@@ -59,7 +59,7 @@
                                     plural="tipos" rotuloLimpar="Limpar tipos"
                                     (alternar)="alternarTipo($event)" (limpar)="limparTipos()"></app-ctr-escolha-multipla>
           <div>
-            <label for="ctr-pub-de" class="block text-xs font-semibold text-gray-600 mb-1">Chegada à SGDI a partir de</label>
+            <label for="ctr-pub-de" class="block text-xs font-semibold text-gray-600 mb-1">Inclusão no portfólio</label>
             <input id="ctr-pub-de" type="date" [value]="de()" [min]="limitesDatas().deMin" [max]="limitesDatas().deMax"
                    (change)="definirDe($any($event.target).value)"
                    class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -136,8 +136,8 @@
               <select id="ctr-pub-ordem" [value]="ordem().campo + '-' + (ordem().desc ? 'desc' : 'asc')"
                       (change)="ordenarPeloSeletor($any($event.target).value)"
                       class="px-2 py-1 border border-gray-300 rounded-md text-sm font-normal bg-white">
-                <option value="data-desc">Chegada mais recente</option>
-                <option value="data-asc">Chegada mais antiga</option>
+                <option value="data-desc">Inclusão mais recente</option>
+                <option value="data-asc">Inclusão mais antiga</option>
                 <option value="orgao-asc">Órgão, de A a Z</option>
                 <option value="orgao-desc">Órgão, de Z a A</option>
                 <option value="tipo-asc">Tipo, de A a Z</option>
@@ -180,7 +180,7 @@
                       Tipo<span class="material-icons text-base leading-none" aria-hidden="true">{{ seta('tipo') }}</span></button>
                   </th>
                   <th scope="col" class="px-3 py-2 whitespace-nowrap" [attr.aria-sort]="ariaSort('data')">
-                    <button type="button" (click)="ordenarPor('data')" title="Ordena pela chegada à SGDI" class="inline-flex items-center gap-1 font-semibold">
+                    <button type="button" (click)="ordenarPor('data')" title="Ordena pela inclusão no portfólio" class="inline-flex items-center gap-1 font-semibold">
                       Data<span class="material-icons text-base leading-none" aria-hidden="true">{{ seta('data') }}</span></button>
                   </th>
                 </tr>
@@ -201,9 +201,8 @@
                     <span class="inline-block px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">{{ l.CategoriaObjeto }}</span>
                   </td>
                   <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
-                    Chegada <span class="text-sm text-gray-800">{{ dataBr(l.ChegadaSgdi) }}</span><br>
-                    Assinatura <span *ngIf="l.DataAssinaturaContrato" class="text-sm text-gray-800">{{ dataBr(l.DataAssinaturaContrato) }}</span><span
-                      *ngIf="!l.DataAssinaturaContrato" class="text-sm text-gray-600 italic">pendente</span>
+                    Inclusão <span class="text-sm text-gray-800">{{ dataBr(l.ChegadaSgdi) }}</span>
+                    <ng-container *ngIf="l.DataAssinaturaContrato"><br>Assinatura <span class="text-sm text-gray-800">{{ dataBr(l.DataAssinaturaContrato) }}</span></ng-container>
                   </td>
                 </tr>
               </tbody>
@@ -221,8 +220,8 @@
                   <p class="font-semibold text-gray-900">{{ l.OrgaoSigla }}<span class="block text-xs font-normal text-gray-600">{{ l.OrgaoNome }}</span></p>
                   <p class="text-gray-700 mt-1">{{ l.Objeto }}</p>
                   <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">{{ l.CategoriaObjeto }}</span>
-                  <p class="text-xs text-gray-600 mt-1">Chegada {{ dataBr(l.ChegadaSgdi) }} · <ng-container *ngIf="l.DataAssinaturaContrato">Assinatura
-                    {{ dataBr(l.DataAssinaturaContrato) }}</ng-container><span *ngIf="!l.DataAssinaturaContrato" class="italic">Assinatura pendente</span></p>
+                  <p class="text-xs text-gray-600 mt-1">Inclusão {{ dataBr(l.ChegadaSgdi) }}<ng-container *ngIf="l.DataAssinaturaContrato"> · Assinatura
+                    {{ dataBr(l.DataAssinaturaContrato) }}</ng-container></p>
                 </div>
               </div>
             </li>
@@ -253,12 +252,12 @@
     </ng-container>
 
     <footer class="text-xs text-gray-600 leading-relaxed mt-5">
-      <ng-container *ngIf="!incorporado">
-        Supervisão Contínua das Contratações de TIC, da Secretaria de Estado de Governança Digital e Integração (SGDI),
-        prevista no Decreto nº 48.899/2026 e na Instrução Normativa SGDI nº 1/2026. Esta página é aberta: você não precisa
-        de senha.
-      </ng-container>
-      <ng-container *ngIf="incorporado">Fonte: Secretaria de Estado de Governança Digital e Integração (SGDI), Governo do Distrito Federal.</ng-container>
+      O acompanhamento da contratação no âmbito do Regime de Supervisão Contínua encerra-se com a assinatura do respectivo
+      contrato.
+      <!-- O nome do painel e da SGDI já estão no cabeçalho: o rodapé não os repete -->
+      <ng-container *ngIf="!incorporado"> Base legal: Decreto nº 48.899/2026 e Instrução Normativa SGDI nº 1/2026. Esta página é
+        aberta: você não precisa de senha.</ng-container>
+      <ng-container *ngIf="incorporado"> Fonte: Secretaria de Estado de Governança Digital e Integração (SGDI), Governo do Distrito Federal.</ng-container>
       <ng-container *ngIf="atualizadoEm()"> Dados atualizados em {{ atualizadoEm() | date:'dd/MM/yyyy' }}.</ng-container>
     </footer>
 
