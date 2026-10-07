@@ -8,7 +8,7 @@ export const PAPEL_CTR_ANALISE = 'ctr_analise';
 
 // ── Domínios (espelham CtrDominios.cs; valores fixos pelo contrato) ─────────
 
-/** Categoria do objeto contratado: os 12 valores observados na planilha mais "Serviços de TIC". */
+/** Categoria do objeto contratado: os 12 valores observados na planilha mais "Serviços de TIC", "Nuvem" e "Tokens de IA". */
 export const CATEGORIAS_OBJETO = [
   'Infraestrutura de Rede',
   'Desenvolvimento / Fábrica de Software',
@@ -21,6 +21,8 @@ export const CATEGORIAS_OBJETO = [
   'Captação Audiovisual',
   'Telefonia / VoIP',
   'Serviços de TIC',
+  'Nuvem',
+  'Tokens de IA',
   'Sem objeto / Indefinido',
   'Outros'
 ] as const;
