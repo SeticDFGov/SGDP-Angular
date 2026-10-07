@@ -46,6 +46,7 @@ const PARAMETROS: ParametroFiltro[] = [
   { campo: 'Sigla', parametro: 'sigla' },
   { campo: 'Criticidade', parametro: 'criticidade' },
   { campo: 'EtapaPlanejamento', parametro: 'etapa' },
+  { campo: 'TipoContratacao', parametro: 'tipo' },
   { campo: 'EsclarecimentoPendente', parametro: 'esclarecimento', booleano: true },
   { campo: 'De', parametro: 'de' },
   { campo: 'Ate', parametro: 'ate' }

@@ -139,6 +139,29 @@
       </div>
     </div>
 
+    <!-- Tipo da contratação: nova ou alteração de contratação vigente (só no painel interno) -->
+    <div class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">Nova contratação ou alteração de contratação vigente</h2>
+      <p class="text-xs text-gray-500 italic mb-4">Cada processo conta uma vez, pelo tipo informado no cadastro;
+      os concluídos entram na conta. Clique num número para ver os processos na lista.</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <a *ngFor="let c of porTipoContratacao" routerLink="/analises/processos/lista"
+           [queryParams]="lista({ TipoContratacao: c.Chave, IncluirConcluidos: true })"
+           [title]="'Ver os processos: ' + c.Chave"
+           class="block border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
+          <p class="text-xs text-gray-500">{{ c.Chave }}</p>
+          <p class="text-2xl font-bold text-gray-900">{{ c.Quantidade }}
+            <span class="text-sm font-normal text-gray-600">({{ percentual(c.Quantidade, painel.TotalAtivos) }})</span></p>
+          <div class="h-2 bg-gray-100 rounded-full overflow-hidden mt-2">
+            <div class="h-2 rounded-full"
+                 [class.bg-blue-500]="c.Chave !== tipoNaoInformado"
+                 [class.bg-gray-400]="c.Chave === tipoNaoInformado"
+                 [style.width.%]="proporcao(c.Quantidade, porTipoContratacao)"></div>
+          </div>
+        </a>
+      </div>
+    </div>
+
     <!-- Riscos da contratação: o maior nível de cada processo -->
     <div class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Maior risco da contratação</h2>

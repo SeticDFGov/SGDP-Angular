@@ -35,6 +35,16 @@ export const CATEGORIA_SEM_OBJETO = 'Sem objeto / Indefinido';
 export const HOSPEDAGENS_CETIC = ['Sim', 'Não', 'Parcialmente', 'Não aplicável (SaaS)'] as const;
 
 /**
+ * Se o processo é de uma contratação nova ou de alteração de uma contratação vigente
+ * (espelha CtrDominios.TipoContratacao). Nulo = não informado. Estatística só do painel
+ * interno: o painel público não recebe o tipo.
+ */
+export const TIPOS_CONTRATACAO = ['Nova contratação', 'Alteração de contratação vigente'] as const;
+
+/** Chave da contagem do painel para os processos sem o tipo (não é valor gravável). */
+export const TIPO_CONTRATACAO_NAO_INFORMADO = 'Não informado';
+
+/**
  * Situação derivada do processo (nunca gravada: o backend calcula a partir das
  * datas do trâmite e da restituição). A ordem é a da precedência do cálculo:
  * a assinatura do contrato vence tudo (`Concluído`, o processo sai da lista e
@@ -250,6 +260,8 @@ export interface CtrProcessoForm {
   ValorEstimado?: number | null;
   /** Um dos HOSPEDAGENS_CETIC; nulo = não informado. */
   HospedagemCetic?: string | null;
+  /** Um dos TIPOS_CONTRATACAO; nulo = não informado. No PUT, nulo limpa. */
+  TipoContratacao?: string | null;
   /** A solução usará a rede GDFNet; nulo = não informado. */
   UsaGdfnet?: boolean | null;
   ChegadaSgdi?: string | null;
@@ -397,6 +409,8 @@ export interface CtrProcessoFiltro {
    * contínua" manda o órgão comunicante e "Comunicações do TCDF" manda TCDF.
    */
   Origem?: string | null;
+  /** Um de TIPOS_CONTRATACAO ou TIPO_CONTRATACAO_NAO_INFORMADO (os sem o tipo). */
+  TipoContratacao?: string | null;
   /** true = só os que aguardam esclarecimento; false = só os sem pendência. */
   EsclarecimentoPendente?: boolean | null;
   /**
@@ -538,6 +552,8 @@ export interface CtrPainel {
    */
   PorNivelRiscoDeclarado: CtrContagem[];
   PorCategoria: CtrContagem[];
+  /** Os dois TIPOS_CONTRATACAO + TIPO_CONTRATACAO_NAO_INFORMADO, sempre presentes. */
+  PorTipoContratacao: CtrContagem[];
   PorOrgao: CtrContagem[];
   TemposMedios: CtrTemposMedios;
   /** Ativos fora de Concluído, Análise concluída e Restituído parados há LimiteDias ou mais. */

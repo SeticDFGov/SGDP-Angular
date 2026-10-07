@@ -49,6 +49,25 @@
     </div>
 
     <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-tipo-contratacao">Tipo da contratação <span class="text-red-600">*</span></label>
+      <select id="ctr-tipo-contratacao" [(ngModel)]="form.TipoContratacao" name="ctr-tipo-contratacao"
+              [attr.aria-describedby]="submetido && errTipoContratacao ? 'ctr-tipo-contratacao-erro ctr-tipo-contratacao-ajuda' : 'ctr-tipo-contratacao-ajuda'"
+              [attr.aria-invalid]="submetido && errTipoContratacao ? 'true' : null"
+              [attr.data-erro]="submetido && errTipoContratacao ? 'sim' : null"
+              aria-required="true"
+              class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-500]="submetido && errTipoContratacao"
+              [class.border-gray-300]="!(submetido && errTipoContratacao)">
+        <option [ngValue]="''" disabled>Escolha o tipo</option>
+        <option *ngFor="let t of tiposContratacao" [ngValue]="t">{{ t }}</option>
+        <option [ngValue]="null">Não informado</option>
+      </select>
+      <p *ngIf="submetido && errTipoContratacao" id="ctr-tipo-contratacao-erro" class="text-xs text-red-600 mt-1">{{ errTipoContratacao }}</p>
+      <p id="ctr-tipo-contratacao-ajuda" class="text-xs text-gray-500 italic mt-1">Alteração de contratação vigente:
+      aditivo, prorrogação, acréscimo ou outra mudança num contrato que já existe.</p>
+    </div>
+
+    <div>
       <label class="block text-sm font-semibold mb-1" for="ctr-orgao-nome">{{ form.Origem === origemTcdf ? 'Órgão auditado' : 'Órgão comunicante' }} <span class="text-red-600">*</span></label>
       <input id="ctr-orgao-nome" type="text" [(ngModel)]="form.OrgaoNome" name="ctr-orgao-nome" maxlength="200"
              placeholder="Nome completo do órgão ou entidade"
