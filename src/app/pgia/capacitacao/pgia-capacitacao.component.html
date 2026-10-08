@@ -20,9 +20,7 @@
   <!-- Unidade sem órgão PGIA -->
   <div *ngIf="!loading && !isAuditoria && !orgao" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
-      A sua unidade ainda não está vinculada a um órgão do PGIA.
-      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
-      Depois disso, esta página é liberada para preenchimento.
+      A sua unidade ainda não está vinculada a um órgão do PGIA. Peça à SGDI para fazer o vínculo.
     </div>
   </div>
 
@@ -46,7 +44,7 @@
             <option value="">Escolha uma pessoa do órgão</option>
             <option *ngFor="let p of pessoas" [value]="p.UserId">{{ p.Nome }}{{ p.Matricula ? ' · mat. ' + p.Matricula : '' }}</option>
           </select>
-          <p *ngIf="!emEdicao" class="text-xs text-gray-500 italic mt-1">Não encontrou o nome? Peça à pessoa que acesse o SGDP e escolha a unidade do seu órgão.</p>
+          <p *ngIf="!emEdicao" class="text-xs text-gray-500 italic mt-1">Não encontrou o nome? Peça à SGDI para vincular a pessoa ao seu órgão.</p>
           <p *ngIf="emEdicao" class="text-xs text-gray-500 italic mt-1">Pessoa e trilha identificam o registro e não mudam. Para outra combinação, cancele e registre uma nova.</p>
         </div>
         <div>

@@ -1,7 +1,8 @@
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService, PapeisPgia, Perfis } from '../../auth/services/auth';
 import { UserProfile } from '../../../api/auth/interface';
 import { NotificationService } from '../../core/services/notification.service';
@@ -11,8 +12,9 @@ import { GRUPOS_QUESITOS, ROMANOS } from './quesitos';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
 import { acompanharSecao } from '../shared/secao-rota';
 import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin, of } from 'rxjs';
 import { PgiaDocumentoService } from '../services/pgia-documento.service';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 import {
   BASES_LEGAIS_LGPD,
   ESCOPOS_DADOS,
@@ -27,16 +29,22 @@ import {
   PROBABILIDADES_CGDF,
   PROBABILIDADES_OUTROS,
   PgiaChecklist,
+  PgiaClassificacao,
+  PgiaClassificacaoForm,
   PgiaDocumento,
   PgiaRiscoOutroForm,
   PgiaDesignacao,
   PgiaOrgao,
   PgiaSistema,
+  PgiaSistemaBaseForm,
   PgiaSistemaCreateForm,
   STATUS_AIA,
   TECNOLOGIAS,
   TIPOS_SISTEMA
 } from '../../../api/pgia/interface';
+
+/** O servidor aceita no máximo 20 riscos no grupo "Outros" de cada classificação. */
+export const MAXIMO_OUTROS_RISCOS = 20;
 
 @Component({
   selector: 'app-pgia-sistemas',
@@ -114,6 +122,7 @@ export class PgiaSistemasComponent implements OnInit {
   probabilidadesOutros = PROBABILIDADES_OUTROS;
   consequenciasOutros = CONSEQUENCIAS_OUTROS;
   outrosRiscos: PgiaRiscoOutroForm[] = [];
+  readonly maximoOutrosRiscos = MAXIMO_OUTROS_RISCOS;
   /** Linha cujo par probabilidade×consequência é realçado na matriz. */
   riscoDestacado: number | null = null;
   matrizAberta = false;
@@ -129,6 +138,22 @@ export class PgiaSistemasComponent implements OnInit {
   classForm = this.novaClassificacao();
   submetido = false;
   salvando = false;
+
+  // ── Edição (`/pgia/sistemas/cadastro?sistema={id}`) ───────────────────────
+  /** Sistema pedido no endereço; nulo é o cadastro de um sistema novo. */
+  idPedido: number | null = null;
+  /** Sistema carregado para edição (com o questionário da classificação vigente). */
+  emEdicao: PgiaSistema | null = null;
+  carregandoEdicao = false;
+  erroEdicao: string | null = null;
+  /** Id cuja carga está em andamento: resposta de um pedido antigo é descartada. */
+  private idEmCarga: number | null = null;
+  /** Retrato do questionário carregado: comparado para saber se é preciso reclassificar. */
+  private questionarioOriginal = '';
+  /** Retrato dos dados do inventário gravados: sem mudança, o PUT não é refeito. */
+  private dadosGravados = '';
+
+  private route = inject(ActivatedRoute);
 
   // ── AIA por sistema (Alto Risco) ──────────────────────────────────────────
   statusAia = STATUS_AIA;
@@ -149,7 +174,16 @@ export class PgiaSistemasComponent implements OnInit {
     private documentoService: PgiaDocumentoService
   ) {
     // A seção vem do parâmetro da rota; o componente é reaproveitado na troca.
-    acompanharSecao(secao => this.secao = secao);
+    acompanharSecao(secao => {
+      this.secao = secao;
+      this.sincronizarEdicao();
+    });
+    // Editar um sistema: o cadastro abre com `?sistema={id}`.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe(parametros => {
+      const id = Number(parametros.get('sistema'));
+      this.idPedido = Number.isInteger(id) && id > 0 ? id : null;
+      this.sincronizarEdicao();
+    });
   }
 
   ngOnInit(): void {
@@ -242,12 +276,150 @@ export class PgiaSistemasComponent implements OnInit {
           this.carregarSistemas();
         }
         this.loading = false;
+        this.sincronizarEdicao();
       },
-      error: () => {
-        this.notificationService.error('Não foi possível carregar os dados do órgão.');
+      error: (erro) => {
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível carregar os dados do órgão.'));
         this.loading = false;
       }
     });
+  }
+
+  // ── Modo de edição ────────────────────────────────────────────────────────
+
+  get modoEdicao(): boolean {
+    return this.idPedido !== null;
+  }
+
+  /**
+   * Põe o cadastro no modo que o endereço pede: carrega o sistema do `?sistema=`
+   * ou, sem ele, volta ao formulário vazio de um sistema novo.
+   */
+  private sincronizarEdicao(): void {
+    if (this.secao !== 'cadastro') return;
+    if (this.idPedido === null) {
+      if (this.emEdicao || this.idEmCarga !== null || this.erroEdicao) this.limparFormulario();
+      return;
+    }
+    if (this.loading || !this.orgao || !this.podeEditar) return;
+    if (this.emEdicao?.Id === this.idPedido || this.idEmCarga === this.idPedido) return;
+    this.carregarEdicao(this.idPedido);
+  }
+
+  private carregarEdicao(id: number): void {
+    this.limparFormulario();
+    this.idEmCarga = id;
+    this.carregandoEdicao = true;
+    forkJoin({
+      sistema: this.pgiaSistemaService.getSistema(id),
+      classificacoes: this.pgiaSistemaService.listarClassificacoes(id)
+    }).subscribe({
+      next: ({ sistema, classificacoes }) => {
+        if (this.idEmCarga !== id) return;
+        this.idEmCarga = null;
+        this.carregandoEdicao = false;
+        // O histórico vem do mais recente para o mais antigo: o primeiro é o vigente
+        this.preencherEdicao(sistema, classificacoes[0] ?? null);
+      },
+      error: (erro) => {
+        if (this.idEmCarga !== id) return;
+        this.idEmCarga = null;
+        this.carregandoEdicao = false;
+        this.erroEdicao = mensagemDoErro(erro, 'Não foi possível carregar o sistema para edição.');
+      }
+    });
+  }
+
+  private preencherEdicao(sistema: PgiaSistema, vigente: PgiaClassificacao | null): void {
+    this.emEdicao = sistema;
+    this.form = {
+      Denominacao: sistema.Denominacao ?? '',
+      Finalidade: sistema.Finalidade ?? '',
+      OrigemRegistro: sistema.OrigemRegistro,
+      OrigemRegistroDescricao: sistema.OrigemRegistroDescricao ?? '',
+      TipoSistema: sistema.TipoSistema,
+      Tecnologia: sistema.Tecnologia,
+      StatusCicloVida: sistema.StatusCicloVida,
+      DataImplantacao: sistema.DataImplantacao ?? '',
+      EscopoDados: sistema.EscopoDados,
+      AfetaCidadao: sistema.AfetaCidadao,
+      NaturezaDecisoes: sistema.NaturezaDecisoes ?? '',
+      EfeitosCidadao: sistema.EfeitosCidadao ?? '',
+      BaseLegalLgpd: sistema.BaseLegalLgpd ?? 'Execução de políticas públicas',
+      CategoriasDadosPessoais: sistema.CategoriasDadosPessoais ?? '',
+      FinalidadeTratamentoDados: sistema.FinalidadeTratamentoDados ?? '',
+      MedidasSeguranca: sistema.MedidasSeguranca ?? '',
+      InteroperavelPadroesSgdi: sistema.InteroperavelPadroesSgdi,
+      JustificativaNaoRedundancia: sistema.JustificativaNaoRedundancia ?? '',
+      DataAnaliseSgtic: sistema.DataAnaliseSgtic ?? '',
+      ParecerSgtic: sistema.ParecerSgtic ?? '',
+      SupervisaoHumanaDescricao: sistema.SupervisaoHumanaDescricao ?? '',
+      AvisoInteracaoIa: sistema.AvisoInteracaoIa,
+      IdentificadorAutenticidade: sistema.IdentificadorAutenticidade,
+      ProcessoSei: sistema.ProcessoSei ?? '',
+      ComunicadoSgdiEm: sistema.ComunicadoSgdiEm ?? ''
+    };
+
+    // As respostas da classificação vigente vêm marcadas, com os "nenhuma".
+    // Linha anterior ao questionário agrupado não tem os "nenhuma": o grupo
+    // fica sem resposta e a pessoa precisa responder de novo.
+    const checklist = vigente?.Checklist;
+    const listas = [checklist?.Q15 ?? [], checklist?.Q16 ?? [], checklist?.Q17 ?? []];
+    const nenhumas = [!!checklist?.Q15Nenhuma, !!checklist?.Q16Nenhuma, !!checklist?.Q17Nenhuma];
+    this.respostasGrupos = GRUPOS_QUESITOS.map((g, gi) => {
+      const marcados = g.quesitos.map(q => listas[gi].includes(q.inciso));
+      // Incisos e "nenhuma" juntos não valem: ficam os incisos
+      return { marcados, nenhuma: nenhumas[gi] && !marcados.some(m => m) };
+    });
+    // Os riscos do grupo "Outros" são copiados para a nova classificação
+    this.outrosRiscos = (vigente?.OutrosRiscos ?? []).map(r => ({
+      DescricaoRisco: r.DescricaoRisco ?? '',
+      AcaoMitigacao: r.AcaoMitigacao ?? '',
+      ResponsavelNome: r.ResponsavelNome ?? '',
+      ResponsavelEmail: r.ResponsavelEmail ?? '',
+      Probabilidade: r.Probabilidade ?? '',
+      Consequencia: r.Consequencia ?? ''
+    }));
+    this.riscoDestacado = null;
+    this.classForm = { Motivo: 'Revisão periódica', DataClassificacao: '', Justificativa: '' };
+    this.submetido = false;
+    this.questionarioOriginal = JSON.stringify(this.montarQuestionario());
+    this.dadosGravados = JSON.stringify(this.montarDadosInventario());
+  }
+
+  /** Volta ao formulário vazio de um sistema novo. */
+  private limparFormulario(): void {
+    this.emEdicao = null;
+    this.idEmCarga = null;
+    this.carregandoEdicao = false;
+    this.erroEdicao = null;
+    this.submetido = false;
+    this.form = this.novoForm();
+    this.classForm = this.novaClassificacao();
+    this.respostasGrupos = this.novasRespostas();
+    this.outrosRiscos = [];
+    this.riscoDestacado = null;
+    this.questionarioOriginal = '';
+    this.dadosGravados = '';
+  }
+
+  /** Na edição, o questionário mudou em relação à classificação vigente. */
+  get questionarioMudou(): boolean {
+    if (!this.emEdicao) return false;
+    return JSON.stringify(this.montarQuestionario()) !== this.questionarioOriginal;
+  }
+
+  /**
+   * Motivo, data e justificativa só valem para uma classificação nova: no
+   * cadastro, sempre; na edição, só quando o questionário mudou.
+   */
+  get pedeDadosDaClassificacao(): boolean {
+    return !this.emEdicao || this.questionarioMudou;
+  }
+
+  /** Grupo sem resposta gravada (linha anterior ao questionário agrupado). */
+  grupoSemRespostaNaEdicao(indiceGrupo: number): boolean {
+    return !!this.emEdicao && !this.grupoRespondido(indiceGrupo);
   }
 
   /** Carrega a página 1 e substitui a lista. */
@@ -260,7 +432,8 @@ export class PgiaSistemasComponent implements OnInit {
         this.totalPaginas = pagina.TotalPages ?? 1;
         this.totalItens = pagina.TotalItems ?? this.sistemas.length;
       },
-      error: () => this.notificationService.error('Não foi possível carregar os sistemas do inventário.')
+      error: (erro) => this.notificationService.error(
+        mensagemDoErro(erro, 'Não foi possível carregar os sistemas do inventário.'))
     });
   }
 
@@ -280,9 +453,9 @@ export class PgiaSistemasComponent implements OnInit {
         this.totalItens = pagina.TotalItems ?? this.totalItens;
         this.carregandoMais = false;
       },
-      error: () => {
+      error: (erro) => {
         this.carregandoMais = false;
-        this.notificationService.error('Não foi possível carregar os sistemas do inventário.');
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível carregar os sistemas do inventário.'));
       }
     });
   }
@@ -356,9 +529,10 @@ export class PgiaSistemasComponent implements OnInit {
     this.carregandoAias = true;
     this.pgiaSistemaService.listarAias(s.Id).subscribe({
       next: (lista) => { this.aias = lista; this.carregandoAias = false; },
-      error: () => {
+      error: (erro) => {
         this.carregandoAias = false;
-        this.notificationService.error('Não foi possível carregar as avaliações de impacto deste sistema.');
+        this.notificationService.error(
+          mensagemDoErro(erro, 'Não foi possível carregar as avaliações de impacto deste sistema.'));
       }
     });
   }
@@ -447,9 +621,9 @@ export class PgiaSistemasComponent implements OnInit {
         this.aiaForm = this.novaAia();
         this.pgiaSistemaService.listarAias(sistemaId).subscribe({ next: (lista) => this.aias = lista });
       },
-      error: () => {
+      error: (erro) => {
         this.salvandoAia = false;
-        this.notificationService.error('Não foi possível salvar a avaliação de impacto.');
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível salvar a avaliação de impacto.'));
       }
     });
   }
@@ -468,8 +642,12 @@ export class PgiaSistemasComponent implements OnInit {
   get errNaoRedundancia(): boolean { return this.submetido && this.mostraNaoRedundancia && !this.form.JustificativaNaoRedundancia.trim(); }
   get errSupervisao(): boolean { return this.submetido && !this.form.SupervisaoHumanaDescricao.trim(); }
   get errAvisoIa(): boolean { return this.submetido && this.form.AvisoInteracaoIa === null; }
-  get errDataClassificacao(): boolean { return this.submetido && !this.classForm.DataClassificacao; }
-  get errJustificativa(): boolean { return this.submetido && !this.classForm.Justificativa.trim(); }
+  get errDataClassificacao(): boolean {
+    return this.submetido && this.pedeDadosDaClassificacao && !this.classForm.DataClassificacao;
+  }
+  get errJustificativa(): boolean {
+    return this.submetido && this.pedeDadosDaClassificacao && !this.classForm.Justificativa.trim();
+  }
 
   private formValido(): boolean {
     return !this.errDenominacao && !this.errFinalidade && !this.errOrigemDescricao && !this.errDataImplantacao
@@ -479,6 +657,7 @@ export class PgiaSistemasComponent implements OnInit {
       && !this.errDataClassificacao && !this.errJustificativa
       && this.respostasGrupos.every((_, i) => this.grupoRespondido(i))
       && this.outrosSatisfeito
+      && this.outrosRiscos.length <= MAXIMO_OUTROS_RISCOS
       && this.outrosRiscosValidos();
   }
 
@@ -519,7 +698,13 @@ export class PgiaSistemasComponent implements OnInit {
     };
   }
 
+  /** Chegou ao máximo de riscos que o servidor aceita numa classificação. */
+  get noLimiteDeRiscos(): boolean {
+    return this.outrosRiscos.length >= MAXIMO_OUTROS_RISCOS;
+  }
+
   adicionarRiscoOutro(): void {
+    if (this.noLimiteDeRiscos) return;
     this.outrosRiscos = [...this.outrosRiscos, this.novoRiscoOutro()];
     this.riscoDestacado = this.outrosRiscos.length - 1;
   }
@@ -671,7 +856,8 @@ export class PgiaSistemasComponent implements OnInit {
     return v ? v : null;
   }
 
-  private montarPayload(): PgiaSistemaCreateForm {
+  /** Dados do inventário (o corpo do PUT; no cadastro, a base do POST). */
+  private montarDadosInventario(): PgiaSistemaBaseForm {
     return {
       Denominacao: this.form.Denominacao.trim(),
       Finalidade: this.form.Finalidade.trim(),
@@ -697,25 +883,43 @@ export class PgiaSistemasComponent implements OnInit {
       AvisoInteracaoIa: this.form.AvisoInteracaoIa,
       IdentificadorAutenticidade: this.form.IdentificadorAutenticidade,
       ProcessoSei: this.textoOuNulo(this.form.ProcessoSei),
-      ComunicadoSgdiEm: this.form.ComunicadoSgdiEm || null,
-      Classificacao: {
-        Checklist: this.montarChecklist(),
-        Motivo: this.classForm.Motivo,
-        DataClassificacao: this.classForm.DataClassificacao,
-        Justificativa: this.classForm.Justificativa.trim(),
-        OutrosRiscos: this.outrosRiscos.map(r => ({
-          DescricaoRisco: r.DescricaoRisco.trim(),
-          AcaoMitigacao: r.AcaoMitigacao.trim(),
-          ResponsavelNome: r.ResponsavelNome.trim(),
-          ResponsavelEmail: r.ResponsavelEmail.trim(),
-          Probabilidade: r.Probabilidade,
-          Consequencia: r.Consequencia
-        }))
-      }
+      ComunicadoSgdiEm: this.form.ComunicadoSgdiEm || null
     };
   }
 
+  /** As respostas do questionário e os riscos do grupo "Outros", como vão ao servidor. */
+  private montarQuestionario(): Pick<PgiaClassificacaoForm, 'Checklist' | 'OutrosRiscos'> {
+    return {
+      Checklist: this.montarChecklist(),
+      OutrosRiscos: this.outrosRiscos.map(r => ({
+        DescricaoRisco: r.DescricaoRisco.trim(),
+        AcaoMitigacao: r.AcaoMitigacao.trim(),
+        ResponsavelNome: r.ResponsavelNome.trim(),
+        ResponsavelEmail: r.ResponsavelEmail.trim(),
+        Probabilidade: r.Probabilidade,
+        Consequencia: r.Consequencia
+      }))
+    };
+  }
+
+  private montarClassificacao(): PgiaClassificacaoForm {
+    return {
+      ...this.montarQuestionario(),
+      Motivo: this.classForm.Motivo,
+      DataClassificacao: this.classForm.DataClassificacao,
+      Justificativa: this.classForm.Justificativa.trim()
+    };
+  }
+
+  private montarPayload(): PgiaSistemaCreateForm {
+    return { ...this.montarDadosInventario(), Classificacao: this.montarClassificacao() };
+  }
+
   salvarSistema(): void {
+    if (this.emEdicao) {
+      this.salvarEdicao(this.emEdicao);
+      return;
+    }
     if (!this.orgao) return;
     this.submetido = true;
     if (!this.formValido()) {
@@ -726,22 +930,73 @@ export class PgiaSistemasComponent implements OnInit {
     this.pgiaSistemaService.criarSistema(this.orgao.Id, this.montarPayload()).subscribe({
       next: () => {
         this.salvando = false;
-        this.submetido = false;
-        this.form = this.novoForm();
-        this.classForm = this.novaClassificacao();
-        this.respostasGrupos = this.novasRespostas();
-        this.outrosRiscos = [];
-        this.riscoDestacado = null;
+        this.limparFormulario();
         this.carregarSistemas();
         // Sem resultado no aviso: a classificação é competência da SGDI.
         this.notificationService.success('Sistema incluído no inventário. Ele já aparece na lista.');
         // Cada seção tem a sua página: depois de salvar, mostrar a lista.
         this.router.navigate(['/pgia/sistemas/lista']);
       },
-      error: () => {
+      error: (erro) => {
         this.salvando = false;
-        this.notificationService.error('Não foi possível salvar o sistema no inventário.');
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível salvar o sistema no inventário.'));
       }
     });
+  }
+
+  /**
+   * Edição: os dados do inventário vão no PUT (só quando mudaram) e, só se o
+   * questionário mudou, a reclassificação no POST da classificação. A ordem
+   * importa: a mudança de fase é conferida contra a homologação de agora, e a
+   * reclassificação abre uma homologação nova.
+   */
+  private salvarEdicao(sistema: PgiaSistema): void {
+    this.submetido = true;
+    if (!this.formValido()) {
+      this.notificationService.warning('Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.');
+      return;
+    }
+    const dados = this.montarDadosInventario();
+    const dadosJson = JSON.stringify(dados);
+    const reclassificar = this.questionarioMudou;
+    const atualizar$: Observable<PgiaSistema | null> = dadosJson !== this.dadosGravados
+      ? this.pgiaSistemaService.atualizarSistema(sistema.Id, dados)
+      : of(null);
+
+    this.salvando = true;
+    atualizar$.subscribe({
+      next: (atualizado) => {
+        if (atualizado) {
+          // Gravado: se a reclassificação falhar, o próximo envio não refaz o PUT
+          this.dadosGravados = dadosJson;
+          this.emEdicao = atualizado;
+        }
+        if (!reclassificar) {
+          this.concluirEdicao('Alterações salvas.');
+          return;
+        }
+        this.pgiaSistemaService.reclassificar(sistema.Id, this.montarClassificacao()).subscribe({
+          next: () => this.concluirEdicao('Alterações salvas, com a nova classificação.'),
+          error: (erro) => {
+            this.salvando = false;
+            this.notificationService.error(mensagemDoErro(erro, atualizado
+              ? 'Os dados do sistema foram salvos, mas não foi possível registrar a nova classificação.'
+              : 'Não foi possível registrar a nova classificação.'));
+          }
+        });
+      },
+      error: (erro) => {
+        this.salvando = false;
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível salvar as alterações do sistema.'));
+      }
+    });
+  }
+
+  private concluirEdicao(aviso: string): void {
+    this.salvando = false;
+    this.limparFormulario();
+    this.carregarSistemas();
+    this.notificationService.success(aviso);
+    this.router.navigate(['/pgia/sistemas/lista']);
   }
 }

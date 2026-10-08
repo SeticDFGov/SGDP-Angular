@@ -22,6 +22,7 @@ import {
   PgiaRelatorioSemestral,
   PgiaSistema
 } from '../../../api/pgia/interface';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 
 @Component({
   selector: 'app-pgia-relatorios',
@@ -119,14 +120,14 @@ export class PgiaRelatoriosComponent implements OnInit {
         if (meu.Orgao) {
           this.sistemaService.listarSistemas(meu.Orgao.Id, 1, 200).subscribe({
             next: (pagina) => this.sistemas = pagina.Items ?? [],
-            error: () => this.notificationService.error('Não foi possível carregar os sistemas do órgão.')
+            error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os sistemas do órgão.'))
           });
           this.carregarRelatorios();
         }
         this.loading = false;
       },
-      error: () => {
-        this.notificationService.error('Não foi possível carregar os dados do órgão.');
+      error: (err) => {
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os dados do órgão.'));
         this.loading = false;
       }
     });
@@ -146,9 +147,9 @@ export class PgiaRelatoriosComponent implements OnInit {
     this.carregandoIndicadores = true;
     this.operacaoService.listarIndicadores(Number(this.sistemaSelecionadoId)).subscribe({
       next: (lista) => { this.indicadores = lista; this.carregandoIndicadores = false; },
-      error: () => {
+      error: (err) => {
         this.carregandoIndicadores = false;
-        this.notificationService.error('Não foi possível carregar os indicadores do sistema.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os indicadores do sistema.'));
       }
     });
   }
@@ -212,9 +213,9 @@ export class PgiaRelatoriosComponent implements OnInit {
         this.cancelarEdicaoIndicador();
         this.carregarIndicadores();
       },
-      error: () => {
+      error: (err) => {
         this.salvandoIndicador = false;
-        this.notificationService.error('Não foi possível salvar o indicador.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar o indicador.'));
       }
     });
   }
@@ -225,7 +226,7 @@ export class PgiaRelatoriosComponent implements OnInit {
     if (!this.orgao) return;
     this.operacaoService.listarRelatoriosSemestrais(this.orgao.Id).subscribe({
       next: (lista) => this.relatorios = lista,
-      error: () => this.notificationService.error('Não foi possível carregar os relatórios semestrais.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os relatórios semestrais.'))
     });
   }
 
@@ -247,9 +248,9 @@ export class PgiaRelatoriosComponent implements OnInit {
         this.notificationService.success('Relatório do período gerado. Confira o conteúdo antes de enviar à SGDI.');
         this.carregarRelatorios();
       },
-      error: () => {
+      error: (err) => {
         this.gerando = false;
-        this.notificationService.error('Não foi possível gerar o relatório do período.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível gerar o relatório do período.'));
       }
     });
   }
@@ -265,9 +266,9 @@ export class PgiaRelatoriosComponent implements OnInit {
     this.carregandoDetalhe = true;
     this.operacaoService.getRelatorioSemestral(r.Id).subscribe({
       next: (completo) => { this.detalhe = completo; this.carregandoDetalhe = false; },
-      error: () => {
+      error: (err) => {
         this.carregandoDetalhe = false;
-        this.notificationService.error('Não foi possível carregar o conteúdo do relatório.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar o conteúdo do relatório.'));
       }
     });
   }
@@ -285,9 +286,9 @@ export class PgiaRelatoriosComponent implements OnInit {
         link.click();
         URL.revokeObjectURL(url);
       },
-      error: () => {
+      error: (err) => {
         this.baixandoPdf = false;
-        this.notificationService.error('Não foi possível baixar o PDF do relatório.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível baixar o PDF do relatório.'));
       }
     });
   }
@@ -342,9 +343,9 @@ export class PgiaRelatoriosComponent implements OnInit {
         this.carregarRelatorios();
         this.notificationService.success('Envio registrado. A SGDI acompanha o cumprimento do prazo.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoEnvio = false;
-        this.notificationService.error('Não foi possível registrar o envio do relatório.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar o envio do relatório.'));
       }
     });
   }

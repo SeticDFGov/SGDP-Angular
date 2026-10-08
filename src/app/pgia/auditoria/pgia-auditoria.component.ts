@@ -7,6 +7,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PgiaGovernancaService } from '../services/pgia-governanca.service';
 import { PgiaAuditoria } from '../../../api/pgia/interface';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 
 /** Campos que a entidade auditora edita em cada auditoria designada. */
 interface EdicaoParecer {
@@ -65,7 +66,7 @@ export class PgiaAuditoriaComponent implements OnInit {
           this.submetido[a.Id] = false;
         });
       },
-      error: () => this.notificationService.error('Não foi possível carregar as auditorias designadas a você.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as auditorias designadas a você.'))
     });
   }
 
@@ -112,9 +113,9 @@ export class PgiaAuditoriaComponent implements OnInit {
         this.notificationService.success('Parecer entregue à SGDI. Obrigado.');
         this.carregar();
       },
-      error: () => {
+      error: (err) => {
         this.entregandoId = null;
-        this.notificationService.error('Não foi possível entregar o parecer.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível entregar o parecer.'));
       }
     });
   }

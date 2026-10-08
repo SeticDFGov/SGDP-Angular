@@ -9,6 +9,7 @@ import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
 import { PgiaOrgao, PgiaSolicitacaoOrgao } from '../../../api/pgia/interface';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 
 @Component({
   selector: 'app-pgia-solicitacoes',
@@ -67,8 +68,8 @@ export class PgiaSolicitacoesComponent implements OnInit {
         }
         this.loading = false;
       },
-      error: () => {
-        this.notificationService.error('Não foi possível carregar os dados do órgão.');
+      error: (err) => {
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os dados do órgão.'));
         this.loading = false;
       }
     });
@@ -79,9 +80,9 @@ export class PgiaSolicitacoesComponent implements OnInit {
     this.carregandoSolicitacoes = true;
     this.operacaoService.listarSolicitacoes(this.orgao.Id).subscribe({
       next: (lista) => { this.solicitacoes = lista; this.carregandoSolicitacoes = false; },
-      error: () => {
+      error: (err) => {
         this.carregandoSolicitacoes = false;
-        this.notificationService.error('Não foi possível carregar as solicitações do cidadão.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as solicitações do cidadão.'));
       }
     });
   }
@@ -117,9 +118,9 @@ export class PgiaSolicitacoesComponent implements OnInit {
         this.carregarSolicitacoes();
         this.notificationService.success('Pedido marcado como em análise. O cidadão vê essa situação pelo protocolo.');
       },
-      error: () => {
+      error: (err) => {
         this.acaoEmCursoId = null;
-        this.notificationService.error('Não foi possível atualizar a situação do pedido.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível atualizar a situação do pedido.'));
       }
     });
   }
@@ -132,9 +133,9 @@ export class PgiaSolicitacoesComponent implements OnInit {
         this.carregarSolicitacoes();
         this.notificationService.success('Pedido encaminhado ao Encarregado de Dados do órgão.');
       },
-      error: () => {
+      error: (err) => {
         this.acaoEmCursoId = null;
-        this.notificationService.error('Não foi possível encaminhar o pedido.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível encaminhar o pedido.'));
       }
     });
   }
@@ -155,9 +156,9 @@ export class PgiaSolicitacoesComponent implements OnInit {
         this.notificationService.success(
           `Resposta enviada. Ela já fica visível para o cidadão pelo protocolo ${s.Protocolo}.`);
       },
-      error: () => {
+      error: (err) => {
         this.salvandoResposta = false;
-        this.notificationService.error('Não foi possível enviar a resposta.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível enviar a resposta.'));
       }
     });
   }

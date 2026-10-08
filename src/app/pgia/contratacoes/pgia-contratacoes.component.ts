@@ -14,6 +14,12 @@ import { acompanharSecao } from '../shared/secao-rota';
 import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
 import { Observable } from 'rxjs';
 import { PgiaDocumentoService } from '../services/pgia-documento.service';
+import { mensagemDoErro } from '../shared/mensagem-erro';
+
+/** Mensagens do servidor para as regras do art. 37 que a tela confere antes de enviar. */
+const MSG_ADITIVO =
+  'Instrumento revisado que envolve IA exige informar o termo aditivo com a cláusula de vedação de treinamento (arts. 21 e 37).';
+const MSG_DATA_ADITIVO = 'Informe a data do termo aditivo (arts. 21 e 37).';
 import {
   PgiaDocumento,
   ENVOLVE_IA,
@@ -48,11 +54,16 @@ export class PgiaContratacoesComponent implements OnInit {
   sistemas: PgiaSistema[] = [];
 
   statusContrato = STATUS_CONTRATO;
+  readonly msgAditivo = MSG_ADITIVO;
+  readonly msgDataAditivo = MSG_DATA_ADITIVO;
   tiposInstrumento = TIPOS_INSTRUMENTO_LEGADO;
   envolveIa = ENVOLVE_IA;
 
   // ── Contratos ─────────────────────────────────────────────────────────────
   contratos: PgiaContrato[] = [];
+  /** Todas as autorizações de treinamento que a lista central devolveu. */
+  private todasAutorizacoesTreinamento: PgiaAutorizacao[] = [];
+  /** Opções do select: as que amparam o contrato, mais a já vinculada (se não amparar mais). */
   autorizacoesTreinamento: PgiaAutorizacao[] = [];
   contratoForm = this.novoContrato();
   contratoEmEdicao: PgiaContrato | null = null;
@@ -169,24 +180,32 @@ export class PgiaContratacoesComponent implements OnInit {
         if (meu.Orgao) {
           this.sistemaService.listarSistemas(meu.Orgao.Id, 1, 200).subscribe({
             next: (pagina) => this.sistemas = pagina.Items ?? [],
-            error: () => this.notificationService.error('Não foi possível carregar os sistemas do órgão.')
+            error: (erro) => this.notificationService.error(
+              mensagemDoErro(erro, 'Não foi possível carregar os sistemas do órgão.'))
           });
           this.carregarContratos();
           this.carregarLegados();
         }
         this.loading = false;
+        this.montarOpcoesAutorizacao();
       },
-      error: () => {
-        this.notificationService.error('Não foi possível carregar os dados do órgão.');
+      error: (erro) => {
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível carregar os dados do órgão.'));
         this.loading = false;
       }
     });
 
     this.governancaService.listarAutorizacoes().subscribe({
-      next: (lista) => this.autorizacoesTreinamento = lista.filter(
-        a => a.Tipo === 'Uso de dados do GDF para treinamento pelo fornecedor'),
+      next: (lista) => {
+        this.todasAutorizacoesTreinamento = lista.filter(
+          a => a.Tipo === 'Uso de dados do GDF para treinamento pelo fornecedor');
+        this.montarOpcoesAutorizacao();
+      },
       // Papéis de órgão podem não enxergar a lista central: não vale um erro na tela.
-      error: () => this.autorizacoesTreinamento = []
+      error: () => {
+        this.todasAutorizacoesTreinamento = [];
+        this.montarOpcoesAutorizacao();
+      }
     });
   }
 
@@ -194,7 +213,7 @@ export class PgiaContratacoesComponent implements OnInit {
     if (!this.orgao) return;
     this.operacaoService.listarContratos(this.orgao.Id).subscribe({
       next: (lista) => this.contratos = lista,
-      error: () => this.notificationService.error('Não foi possível carregar os contratos de IA.')
+      error: (erro) => this.notificationService.error(mensagemDoErro(erro, 'Não foi possível carregar os contratos de IA.'))
     });
   }
 
@@ -202,7 +221,8 @@ export class PgiaContratacoesComponent implements OnInit {
     if (!this.orgao) return;
     this.operacaoService.listarLegados(this.orgao.Id).subscribe({
       next: (lista) => this.legados = lista,
-      error: () => this.notificationService.error('Não foi possível carregar os instrumentos anteriores ao decreto.')
+      error: (erro) => this.notificationService.error(
+        mensagemDoErro(erro, 'Não foi possível carregar os instrumentos anteriores ao decreto.'))
     });
   }
 
@@ -246,6 +266,47 @@ export class PgiaContratacoesComponent implements OnInit {
     return !this.contratoForm.ClausulaVedacaoTreinamento;
   }
 
+  // ── Autorização excepcional de treinamento (art. 21) ──────────────────────
+
+  /**
+   * A mesma regra do servidor: a autorização só ampara o contrato se for do
+   * mesmo órgão, estiver ativa e dentro da vigência. Devolve o motivo, ou nulo.
+   */
+  problemaDaAutorizacao(a: PgiaAutorizacao): string | null {
+    if (this.orgao && a.OrgaoId !== this.orgao.Id)
+      return 'A autorização de treinamento é de outro órgão e não ampara este contrato (art. 21).';
+    if (!a.Ativo) return 'A autorização de treinamento vinculada está revogada (art. 21).';
+    if (a.VigenciaFim && a.VigenciaFim.slice(0, 10) < this.hoje())
+      return 'A autorização de treinamento vinculada está com a vigência vencida (art. 21).';
+    return null;
+  }
+
+  /** Hoje, no fuso do navegador, como data pura (aaaa-mm-dd). */
+  private hoje(): string {
+    const d = new Date();
+    const dois = (n: number) => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + dois(d.getMonth() + 1) + '-' + dois(d.getDate());
+  }
+
+  /**
+   * Recalcula as opções do select (campo, não getter: um array novo a cada
+   * verificação de mudanças quebraria o ngFor). A autorização já vinculada
+   * que deixou de amparar o contrato continua na lista, para a tela explicar.
+   */
+  private montarOpcoesAutorizacao(): void {
+    const vinculada = this.contratoForm.AutorizacaoTreinamentoId;
+    this.autorizacoesTreinamento = this.todasAutorizacoesTreinamento.filter(
+      a => !this.problemaDaAutorizacao(a) || a.Id === vinculada);
+  }
+
+  /** Motivo pelo qual a autorização escolhida não ampara o contrato (nulo se ampara). */
+  get errAutorizacaoInvalida(): string | null {
+    if (!this.exigeAutorizacaoTreinamento || !this.contratoForm.AutorizacaoTreinamentoId) return null;
+    const escolhida = this.todasAutorizacoesTreinamento.find(
+      a => a.Id === Number(this.contratoForm.AutorizacaoTreinamentoId));
+    return escolhida ? this.problemaDaAutorizacao(escolhida) : null;
+  }
+
   // ── Validação do contrato ─────────────────────────────────────────────────
 
   get errNumero(): boolean { return this.contratoSubmetido && !this.contratoForm.NumeroContrato.trim(); }
@@ -272,7 +333,8 @@ export class PgiaContratacoesComponent implements OnInit {
     return !this.errNumero && !this.errSei && !this.errObjeto && !this.errFornecedor
       && !this.errPdtic && !this.errAutorizacao && !this.errAuditoriaIndependente
       && !this.errSlaDesempenho && !this.errSlaAcuracia && !this.errSlaEquidade
-      && !this.errSlaDisponibilidade && !this.errSlaPenalidades && !this.errHomologacao;
+      && !this.errSlaDisponibilidade && !this.errSlaPenalidades && !this.errHomologacao
+      && !this.errAutorizacaoInvalida;
   }
 
   // ── Homologação técnica da SGDI (metadados do documento) ─────────────────
@@ -280,6 +342,8 @@ export class PgiaContratacoesComponent implements OnInit {
   homologacaoSei = '';
   homologacaoNome = '';
   registrandoHomologacao = false;
+  /** Tentou registrar sem a identificação do documento (o servidor exige o nome). */
+  homologacaoSemNome = false;
 
   registrarHomologacao(): void {
     const sistemaId = this.contratoForm.SistemaIaId ? Number(this.contratoForm.SistemaIaId) : null;
@@ -287,8 +351,10 @@ export class PgiaContratacoesComponent implements OnInit {
       this.notificationService.warning('Vincule o sistema antes de registrar a homologação técnica.');
       return;
     }
-    if (!this.homologacaoSei.trim() && !this.homologacaoNome.trim()) {
-      this.notificationService.warning('Informe o processo SEI ou a identificação do documento da homologação.');
+    // O servidor exige o nome do documento; o processo SEI é opcional
+    this.homologacaoSemNome = !this.homologacaoNome.trim();
+    if (this.homologacaoSemNome) {
+      this.notificationService.warning('Informe a identificação do documento da homologação.');
       return;
     }
     this.registrandoHomologacao = true;
@@ -302,11 +368,11 @@ export class PgiaContratacoesComponent implements OnInit {
         this.contratoForm.HomologacaoSgdiDocId = doc.Id;
         this.homologacaoSei = '';
         this.homologacaoNome = '';
-        this.notificationService.success(`Homologação registrada (doc #${doc.Id}). Agora salve o contrato.`);
+        this.notificationService.success('Homologação registrada. Agora anexe o arquivo e salve o contrato.');
       },
-      error: () => {
+      error: (erro) => {
         this.registrandoHomologacao = false;
-        this.notificationService.error('Não foi possível registrar a homologação técnica.');
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível registrar a homologação técnica.'));
       }
     });
   }
@@ -342,6 +408,8 @@ export class PgiaContratacoesComponent implements OnInit {
       SlaPenalidades: c.SlaPenalidades ?? '',
       ConformeGuiaContratacoes: c.ConformeGuiaContratacoes
     };
+    this.homologacaoSemNome = false;
+    this.montarOpcoesAutorizacao();
   }
 
   cancelarEdicaoContrato(): void {
@@ -350,13 +418,16 @@ export class PgiaContratacoesComponent implements OnInit {
     this.contratoForm = this.novoContrato();
     this.homologacaoSei = '';
     this.homologacaoNome = '';
+    this.homologacaoSemNome = false;
+    this.montarOpcoesAutorizacao();
   }
 
   salvarContrato(): void {
     if (!this.orgao) return;
     this.contratoSubmetido = true;
     if (!this.contratoValido()) {
-      this.notificationService.warning('Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.');
+      this.notificationService.warning(this.errAutorizacaoInvalida
+        ?? 'Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.');
       return;
     }
     const payload: PgiaContratoForm = {
@@ -397,9 +468,9 @@ export class PgiaContratacoesComponent implements OnInit {
         this.cancelarEdicaoContrato();
         this.carregarContratos();
       },
-      error: () => {
+      error: (erro) => {
         this.salvandoContrato = false;
-        this.notificationService.error('Não foi possível salvar o contrato.');
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível salvar o contrato.'));
       }
     });
   }
@@ -430,6 +501,18 @@ export class PgiaContratacoesComponent implements OnInit {
   }
 
   get errLegadoDescricao(): boolean { return this.legadoSubmetido && !this.legadoForm.Descricao.trim(); }
+
+  /** Art. 37: revisado e envolvendo IA, precisa dizer se recebeu o aditivo do art. 21. */
+  get errLegadoAditivo(): boolean {
+    return this.legadoSubmetido && this.legadoForm.Revisado && this.legadoEnvolveIa
+      && this.legadoForm.AditivoClausulaTreinamento === null;
+  }
+
+  /** Com o aditivo, a data dele é obrigatória. */
+  get errLegadoDataAditivo(): boolean {
+    return this.legadoSubmetido && this.legadoEnvolveIa
+      && this.legadoForm.AditivoClausulaTreinamento === true && !this.legadoForm.DataAditivo;
+  }
 
   pendente(l: PgiaLegado): boolean {
     return l.EnvolveIa !== 'Não' && !l.Revisado;
@@ -464,8 +547,10 @@ export class PgiaContratacoesComponent implements OnInit {
   salvarLegado(): void {
     if (!this.orgao) return;
     this.legadoSubmetido = true;
-    if (this.errLegadoDescricao) {
-      this.notificationService.warning('Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.');
+    if (this.errLegadoDescricao || this.errLegadoAditivo || this.errLegadoDataAditivo) {
+      this.notificationService.warning(this.errLegadoDescricao
+        ? 'Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.'
+        : (this.errLegadoAditivo ? MSG_ADITIVO : MSG_DATA_ADITIVO));
       return;
     }
     const payload: PgiaLegadoForm = {
@@ -495,9 +580,9 @@ export class PgiaContratacoesComponent implements OnInit {
         this.cancelarEdicaoLegado();
         this.carregarLegados();
       },
-      error: () => {
+      error: (erro) => {
         this.salvandoLegado = false;
-        this.notificationService.error('Não foi possível salvar o instrumento.');
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível salvar o instrumento.'));
       }
     });
   }

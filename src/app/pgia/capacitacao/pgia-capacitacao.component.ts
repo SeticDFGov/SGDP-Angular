@@ -20,6 +20,7 @@ import {
   STATUS_CAPACITACAO,
   TRILHAS_CAPACITACAO
 } from '../../../api/pgia/interface';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 
 @Component({
   selector: 'app-pgia-capacitacao',
@@ -110,8 +111,8 @@ export class PgiaCapacitacaoComponent implements OnInit {
         }
         this.loading = false;
       },
-      error: () => {
-        this.notificationService.error('Não foi possível carregar os dados do órgão.');
+      error: (err) => {
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os dados do órgão.'));
         this.loading = false;
       }
     });
@@ -121,7 +122,7 @@ export class PgiaCapacitacaoComponent implements OnInit {
     if (!this.orgao) return;
     this.orgaoService.listarPessoas(this.orgao.Id).subscribe({
       next: (lista) => this.pessoas = lista,
-      error: () => this.notificationService.error('Não foi possível carregar as pessoas do órgão.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as pessoas do órgão.'))
     });
   }
 
@@ -129,7 +130,7 @@ export class PgiaCapacitacaoComponent implements OnInit {
     if (!this.orgao) return;
     this.operacaoService.listarCapacitacoes(this.orgao.Id).subscribe({
       next: (lista) => this.capacitacoes = lista,
-      error: () => this.notificationService.error('Não foi possível carregar os registros de capacitação.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os registros de capacitação.'))
     });
   }
 
@@ -206,9 +207,9 @@ export class PgiaCapacitacaoComponent implements OnInit {
         this.cancelarEdicao();
         this.carregarCapacitacoes();
       },
-      error: () => {
+      error: (err) => {
         this.salvando = false;
-        this.notificationService.error('Não foi possível salvar o registro de capacitação.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar o registro de capacitação.'));
       }
     });
   }

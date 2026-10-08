@@ -7,6 +7,14 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
 import { PgiaRegistroUso, PgiaUsoFontes } from '../../../api/pgia/interface';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { mensagemDoErro } from '../shared/mensagem-erro';
+
+/** Data de hoje no fuso do navegador, no formato do input de data (aaaa-mm-dd). */
+function hojeIso(): string {
+  const d = new Date();
+  const dois = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+}
 
 /**
  * Registro de uso de IA (art. 13, IV). É a única tela do PGIA aberta a qualquer
@@ -42,6 +50,8 @@ export class PgiaUsoComponent implements OnInit {
   revisaoConfirmada = false;
   submetido = false;
   salvando = false;
+  /** Limite do campo de data: o uso não pode ser depois de hoje. */
+  readonly hoje = hojeIso();
 
   constructor(
     private authService: AuthService,
@@ -71,9 +81,9 @@ export class PgiaUsoComponent implements OnInit {
           this.carregarMeusRegistros();
         }
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.notificationService.error('Não foi possível carregar os sistemas e plataformas disponíveis.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os sistemas e plataformas disponíveis.'));
       }
     });
   }
@@ -86,7 +96,7 @@ export class PgiaUsoComponent implements OnInit {
         this.totalPaginas = pagina.TotalPages ?? 1;
         this.totalItens = pagina.TotalItems ?? this.meusRegistros.length;
       },
-      error: () => this.notificationService.error('Não foi possível carregar os seus registros de uso.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os seus registros de uso.'))
     });
   }
 
@@ -105,21 +115,27 @@ export class PgiaUsoComponent implements OnInit {
         this.totalItens = pagina.TotalItems ?? this.totalItens;
         this.carregandoMais = false;
       },
-      error: () => {
+      error: (err) => {
         this.carregandoMais = false;
-        this.notificationService.error('Não foi possível carregar os seus registros de uso.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os seus registros de uso.'));
       }
     });
   }
 
   get errFonte(): boolean { return this.submetido && !this.fonteEscolhida; }
   get errData(): boolean { return this.submetido && !this.dataUso; }
+  /** Datas no formato aaaa-mm-dd comparam como texto. */
+  get errDataFutura(): boolean { return !!this.dataUso && this.dataUso > this.hoje; }
   get errProduto(): boolean { return this.submetido && !this.produtoRef.trim(); }
 
   registrarUso(): void {
     this.submetido = true;
     if (this.errFonte || this.errData || this.errProduto) {
       this.notificationService.warning('Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.');
+      return;
+    }
+    if (this.errDataFutura) {
+      this.notificationService.warning('A data não pode ser depois de hoje.');
       return;
     }
     if (!this.revisaoConfirmada) {
@@ -149,9 +165,9 @@ export class PgiaUsoComponent implements OnInit {
         this.carregarMeusRegistros();
         this.notificationService.success('Uso registrado. Obrigado por manter a rastreabilidade.');
       },
-      error: () => {
+      error: (err) => {
         this.salvando = false;
-        this.notificationService.error('Não foi possível registrar o uso.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar o uso.'));
       }
     });
   }

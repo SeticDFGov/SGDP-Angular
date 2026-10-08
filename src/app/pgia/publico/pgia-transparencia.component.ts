@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PgiaPublicoService } from '../services/pgia-publico.service';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 import {
   PgiaRegistroPublicoItem,
   PgiaSolicitacaoPublica,
@@ -35,6 +36,13 @@ export class PgiaTransparenciaComponent implements OnInit {
   erroRegistro = false;
 
   // ── Pedido do cidadão ─────────────────────────────────────────────────────
+  /**
+   * Todos os sistemas publicados, para o select do pedido. A lista da tela é
+   * paginada (20 por vez); esta é carregada à parte, em páginas do tamanho
+   * máximo do servidor. Enquanto não chega (ou se falhar), o select usa a lista
+   * da tela.
+   */
+  sistemasDoPedido: PgiaRegistroPublicoItem[] | null = null;
   form = this.novoForm();
   submetido = false;
   enviando = false;
@@ -50,6 +58,32 @@ export class PgiaTransparenciaComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregarRegistro();
+    this.carregarSistemasDoPedido();
+  }
+
+  /** Teto de itens por página do `GET api/pgia/publico/registro`. */
+  private static readonly TAMANHO_PAGINA_PEDIDO = 100;
+
+  /** Lê o registro inteiro, uma página por vez, em sequência. */
+  private carregarSistemasDoPedido(pagina = 1, acumulado: PgiaRegistroPublicoItem[] = []): void {
+    this.publicoService.listarRegistroPublico(pagina, PgiaTransparenciaComponent.TAMANHO_PAGINA_PEDIDO).subscribe({
+      next: (resposta) => {
+        const itens = acumulado.concat(resposta.Items ?? []);
+        const total = resposta.TotalPages ?? 1;
+        if (pagina < total && (resposta.Items ?? []).length > 0) {
+          this.carregarSistemasDoPedido(pagina + 1, itens);
+        } else {
+          this.sistemasDoPedido = itens;
+        }
+      },
+      // Sem aviso: o select continua com os sistemas já mostrados na tela.
+      error: () => {}
+    });
+  }
+
+  /** Opções do select do pedido. */
+  get opcoesDoPedido(): PgiaRegistroPublicoItem[] {
+    return this.sistemasDoPedido ?? this.sistemas;
   }
 
   private novoForm() {
@@ -162,9 +196,10 @@ export class PgiaTransparenciaComponent implements OnInit {
         // Handler de clique: só roda no browser.
         setTimeout(() => this.caixaProtocolo?.nativeElement?.scrollIntoView({ behavior: 'smooth' }));
       },
-      error: () => {
+      error: (err) => {
         this.enviando = false;
-        this.mensagemAviso = 'Não foi possível enviar o seu pedido agora. Tente de novo em alguns minutos.';
+        this.mensagemAviso = mensagemDoErro(err,
+          'Não foi possível enviar o seu pedido agora. Tente de novo em alguns minutos.');
       }
     });
   }
@@ -172,7 +207,9 @@ export class PgiaTransparenciaComponent implements OnInit {
   // ── Acompanhamento ────────────────────────────────────────────────────────
 
   consultarProtocolo(): void {
-    const protocolo = this.protocoloConsulta.trim();
+    // O protocolo é gerado em maiúsculas; quem digita pode usar minúsculas ou espaços.
+    const protocolo = this.protocoloConsulta.trim().toUpperCase();
+    this.protocoloConsulta = protocolo;
     this.consulta = null;
     this.naoEncontrado = false;
     this.erroConsulta = false;

@@ -20,9 +20,7 @@
   <!-- Unidade sem órgão PGIA -->
   <div *ngIf="!loading && !isAuditoria && !orgao" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
-      A sua unidade ainda não está vinculada a um órgão do PGIA.
-      Fale com a equipe da SGDI para cadastrar o órgão e vincular a sua unidade.
-      Depois disso, esta página é liberada para preenchimento.
+      A sua unidade ainda não está vinculada a um órgão do PGIA. Peça à SGDI para fazer o vínculo.
     </div>
   </div>
 
@@ -67,10 +65,17 @@
                         [ngClass]="badgeHomologacao(s.SituacaoHomologacao)">{{ s.SituacaoHomologacao || '-' }}</span>
                 </td>
                 <td class="px-3 py-2 text-right">
-                  <button *ngIf="temAia(s) && podeEditar" (click)="alternarAia(s)"
-                          class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50 whitespace-nowrap">
-                    {{ sistemaAiaAberto?.Id === s.Id ? 'Fechar AIA' : 'Avaliação de impacto' }}
-                  </button>
+                  <div *ngIf="podeEditar" class="flex gap-2 justify-end flex-wrap">
+                    <a routerLink="/pgia/sistemas/cadastro" [queryParams]="{ sistema: s.Id }"
+                       [attr.aria-label]="'Editar o sistema ' + s.Denominacao"
+                       class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50 whitespace-nowrap">
+                      Editar
+                    </a>
+                    <button *ngIf="temAia(s)" (click)="alternarAia(s)"
+                            class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50 whitespace-nowrap">
+                      {{ sistemaAiaAberto?.Id === s.Id ? 'Fechar AIA' : 'Avaliação de impacto' }}
+                    </button>
+                  </div>
                 </td>
               </tr>
 
@@ -263,16 +268,29 @@
     </div>
 
     <!-- Sem Responsável de IA vigente não há quem assine o registro do inventário -->
-    <div *ngIf="secao === 'cadastro' && !responsavelVigente" class="bg-white rounded-lg shadow p-6 mb-5">
+    <div *ngIf="secao === 'cadastro' && !modoEdicao && !responsavelVigente" class="bg-white rounded-lg shadow p-6 mb-5">
       <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
         Antes de cadastrar sistemas, conclua a etapa 1 da trilha: designe e comunique o
         Responsável de IA do órgão (art. 10). O registro do inventário fica assinado por ele.
       </div>
     </div>
 
-    <!-- Card: cadastro -->
-    <div *ngIf="secao === 'cadastro' && podeCadastrar" class="bg-white rounded-lg shadow p-6 mb-5">
-      <h2 class="text-base font-semibold text-blue-900 mb-1">Cadastrar sistema no inventário</h2>
+    <!-- Edição: carregando o sistema ou falha ao carregar -->
+    <div *ngIf="secao === 'cadastro' && modoEdicao && podeEditar && !emEdicao" class="bg-white rounded-lg shadow p-6 mb-5">
+      <p *ngIf="carregandoEdicao || !erroEdicao" class="text-sm text-gray-500" role="status">Carregando o sistema...</p>
+      <div *ngIf="!carregandoEdicao && erroEdicao" role="alert"
+           class="border-l-4 border-red-500 bg-red-50 p-4 text-sm leading-relaxed rounded-r-md">
+        {{ erroEdicao }}
+      </div>
+      <a *ngIf="!carregandoEdicao && erroEdicao" routerLink="/pgia/sistemas/lista"
+         class="inline-block mt-4 text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+        Voltar à lista
+      </a>
+    </div>
+
+    <!-- Card: cadastro (ou edição, com `?sistema={id}`) -->
+    <div *ngIf="secao === 'cadastro' && (modoEdicao ? (podeEditar && emEdicao) : podeCadastrar)" class="bg-white rounded-lg shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-1">{{ emEdicao ? 'Editar sistema' : 'Cadastrar sistema no inventário' }}</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Preencha com atenção: parte destas informações vai ao Registro Público, no Portal da
       Transparência (art. 24). Os campos com asterisco (<span class="text-red-600">*</span>) são obrigatórios.</p>
 
@@ -490,12 +508,20 @@
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Agora, responda ao questionário. Em cada grupo, marque as
       situações que se aplicam ao sistema ou escolha "Nenhuma das alternativas acima". Os três grupos precisam ser
       respondidos. As respostas alimentam a avaliação da SGDI.</p>
+      <p *ngIf="emEdicao" class="text-xs text-gray-500 italic mb-4">As respostas registradas para este sistema já vêm marcadas.
+      Se você mudar alguma resposta ou algum risco do grupo Outros, informe no fim do questionário o motivo, a data e a
+      justificativa da nova classificação.</p>
 
       <div *ngFor="let g of grupos; let gi = index"
+           role="group" [attr.aria-labelledby]="'grupo-titulo-' + gi"
+           [attr.aria-describedby]="errGrupo(gi) ? 'grupo-erro-' + gi : (grupoSemRespostaNaEdicao(gi) ? 'grupo-sem-resposta-' + gi : null)"
            class="border rounded-lg p-4 mb-4 bg-gray-50"
            [class.border-red-500]="errGrupo(gi)"
            [class.border-gray-200]="!errGrupo(gi)">
-        <h3 class="text-sm font-semibold text-gray-900 mb-2">{{ g.rotulo }}</h3>
+        <h3 [id]="'grupo-titulo-' + gi" class="text-sm font-semibold text-gray-900 mb-2">{{ g.rotulo }}</h3>
+        <p *ngIf="grupoSemRespostaNaEdicao(gi) && !errGrupo(gi)" [id]="'grupo-sem-resposta-' + gi"
+           class="text-xs text-gray-500 italic mb-2">Este grupo está sem resposta: marque as situações que se aplicam ou
+          "Nenhuma das alternativas acima".</p>
 
         <label *ngFor="let q of g.quesitos; let i = index" class="flex items-start gap-2 text-sm py-1 leading-relaxed">
           <input type="checkbox" class="mt-1"
@@ -514,7 +540,7 @@
           <span class="font-semibold">Nenhuma das alternativas acima</span>
         </label>
 
-        <p *ngIf="errGrupo(gi)" class="text-xs text-red-600 mt-2">
+        <p *ngIf="errGrupo(gi)" [id]="'grupo-erro-' + gi" class="text-xs text-red-600 mt-2">
           Responda este grupo: marque as situações que se aplicam ou "Nenhuma das alternativas acima".
         </p>
       </div>
@@ -589,7 +615,7 @@
              (focusin)="destacarRisco(i)">
           <div class="flex items-center justify-between gap-2 mb-2">
             <h4 class="text-sm font-semibold text-gray-900">Risco {{ i + 1 }}</h4>
-            <button type="button" (click)="removerRiscoOutro(i)"
+            <button type="button" (click)="removerRiscoOutro(i)" [attr.aria-label]="'Remover o risco ' + (i + 1)"
                     class="text-xs text-red-700 border border-red-300 rounded px-2 py-1 hover:bg-red-50">
               Remover
             </button>
@@ -597,41 +623,47 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div class="md:col-span-2">
-              <label class="block text-sm font-semibold mb-1">Descrição do risco <span class="text-red-600">*</span></label>
-              <textarea rows="2" [(ngModel)]="r.DescricaoRisco" [name]="'ro-desc-' + i" placeholder="O que pode dar errado?"
+              <label [attr.for]="'ro-desc-' + i" class="block text-sm font-semibold mb-1">Descrição do risco <span class="text-red-600">*</span></label>
+              <textarea [id]="'ro-desc-' + i" rows="2" [(ngModel)]="r.DescricaoRisco" [name]="'ro-desc-' + i"
+                        [attr.aria-invalid]="errRiscoDescricao(i) ? true : null" placeholder="O que pode dar errado?"
                         class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         [class.border-red-500]="errRiscoDescricao(i)"
                         [class.bg-red-50]="errRiscoDescricao(i)"
                         [class.border-gray-300]="!errRiscoDescricao(i)"></textarea>
             </div>
             <div class="md:col-span-2">
-              <label class="block text-sm font-semibold mb-1">Ação de mitigação <span class="text-red-600">*</span></label>
-              <textarea rows="2" [(ngModel)]="r.AcaoMitigacao" [name]="'ro-acao-' + i" placeholder="O que o órgão vai fazer para reduzir esse risco?"
+              <label [attr.for]="'ro-acao-' + i" class="block text-sm font-semibold mb-1">Ação de mitigação <span class="text-red-600">*</span></label>
+              <textarea [id]="'ro-acao-' + i" rows="2" [(ngModel)]="r.AcaoMitigacao" [name]="'ro-acao-' + i"
+                        [attr.aria-invalid]="errRiscoMitigacao(i) ? true : null" placeholder="O que o órgão vai fazer para reduzir esse risco?"
                         class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         [class.border-red-500]="errRiscoMitigacao(i)"
                         [class.bg-red-50]="errRiscoMitigacao(i)"
                         [class.border-gray-300]="!errRiscoMitigacao(i)"></textarea>
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Responsável no órgão <span class="text-red-600">*</span></label>
-              <input type="text" [(ngModel)]="r.ResponsavelNome" [name]="'ro-nome-' + i" placeholder="Nome de quem acompanha a ação"
+              <label [attr.for]="'ro-nome-' + i" class="block text-sm font-semibold mb-1">Responsável no órgão <span class="text-red-600">*</span></label>
+              <input [id]="'ro-nome-' + i" type="text" [(ngModel)]="r.ResponsavelNome" [name]="'ro-nome-' + i"
+                     [attr.aria-invalid]="errRiscoNome(i) ? true : null" placeholder="Nome de quem acompanha a ação"
                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                      [class.border-red-500]="errRiscoNome(i)"
                      [class.bg-red-50]="errRiscoNome(i)"
                      [class.border-gray-300]="!errRiscoNome(i)">
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">E-mail do responsável <span class="text-red-600">*</span></label>
-              <input type="email" [(ngModel)]="r.ResponsavelEmail" [name]="'ro-email-' + i" placeholder="nome.sobrenome@orgao.df.gov.br"
+              <label [attr.for]="'ro-email-' + i" class="block text-sm font-semibold mb-1">E-mail do responsável <span class="text-red-600">*</span></label>
+              <input [id]="'ro-email-' + i" type="email" [(ngModel)]="r.ResponsavelEmail" [name]="'ro-email-' + i"
+                     [attr.aria-invalid]="errRiscoEmail(i) ? true : null"
+                     [attr.aria-describedby]="errRiscoEmail(i) ? 'ro-email-erro-' + i : null" placeholder="nome.sobrenome@orgao.df.gov.br"
                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                      [class.border-red-500]="errRiscoEmail(i)"
                      [class.bg-red-50]="errRiscoEmail(i)"
                      [class.border-gray-300]="!errRiscoEmail(i)">
-              <p *ngIf="errRiscoEmail(i)" class="text-xs text-red-600 mt-1">Informe um e-mail válido, como nome@orgao.df.gov.br.</p>
+              <p *ngIf="errRiscoEmail(i)" [id]="'ro-email-erro-' + i" class="text-xs text-red-600 mt-1">Informe um e-mail válido, como nome@orgao.df.gov.br.</p>
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Probabilidade <span class="text-red-600">*</span></label>
-              <select [(ngModel)]="r.Probabilidade" [name]="'ro-prob-' + i" (ngModelChange)="destacarRisco(i)"
+              <label [attr.for]="'ro-prob-' + i" class="block text-sm font-semibold mb-1">Probabilidade <span class="text-red-600">*</span></label>
+              <select [id]="'ro-prob-' + i" [(ngModel)]="r.Probabilidade" [name]="'ro-prob-' + i"
+                      [attr.aria-invalid]="errRiscoProbabilidade(i) ? true : null" (ngModelChange)="destacarRisco(i)"
                       class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       [class.border-red-500]="errRiscoProbabilidade(i)"
                       [class.border-gray-300]="!errRiscoProbabilidade(i)">
@@ -640,8 +672,9 @@
               </select>
             </div>
             <div>
-              <label class="block text-sm font-semibold mb-1">Consequência ou impacto <span class="text-red-600">*</span></label>
-              <select [(ngModel)]="r.Consequencia" [name]="'ro-cons-' + i" (ngModelChange)="destacarRisco(i)"
+              <label [attr.for]="'ro-cons-' + i" class="block text-sm font-semibold mb-1">Consequência ou impacto <span class="text-red-600">*</span></label>
+              <select [id]="'ro-cons-' + i" [(ngModel)]="r.Consequencia" [name]="'ro-cons-' + i"
+                      [attr.aria-invalid]="errRiscoConsequencia(i) ? true : null" (ngModelChange)="destacarRisco(i)"
                       class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       [class.border-red-500]="errRiscoConsequencia(i)"
                       [class.border-gray-300]="!errRiscoConsequencia(i)">
@@ -652,14 +685,22 @@
           </div>
         </div>
 
-        <button type="button" (click)="adicionarRiscoOutro()"
-                class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+        <button type="button" (click)="adicionarRiscoOutro()" [disabled]="noLimiteDeRiscos"
+                aria-describedby="ro-limite"
+                class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed">
           Adicionar risco
         </button>
         <p *ngIf="outrosRiscos.length === 0" class="text-xs text-gray-500 italic mt-2">Nenhum risco adicionado.</p>
+        <p id="ro-limite" class="text-xs text-gray-500 italic mt-2">
+          <ng-container *ngIf="!noLimiteDeRiscos">Cada classificação aceita até {{ maximoOutrosRiscos }} riscos.</ng-container>
+          <ng-container *ngIf="noLimiteDeRiscos">Você chegou ao limite de {{ maximoOutrosRiscos }} riscos por classificação.
+          Para incluir outro, remova um dos riscos acima.</ng-container>
+        </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      <p *ngIf="emEdicao && questionarioMudou" class="text-sm text-gray-600 mt-4 leading-relaxed">Você mudou o questionário.
+      Informe o motivo, a data e a justificativa da nova classificação.</p>
+      <div *ngIf="pedeDadosDaClassificacao" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div>
           <label for="s-motivo" class="block text-sm font-semibold mb-1">Motivo da classificação <span class="text-red-600">*</span></label>
           <select id="s-motivo" [(ngModel)]="classForm.Motivo" name="s-motivo"
@@ -670,6 +711,7 @@
         <div>
           <label for="s-dtclass" class="block text-sm font-semibold mb-1">Data da classificação <span class="text-red-600">*</span></label>
           <input id="s-dtclass" type="date" [(ngModel)]="classForm.DataClassificacao" name="s-dtclass"
+                 [attr.aria-invalid]="errDataClassificacao ? true : null"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errDataClassificacao"
                  [class.border-gray-300]="!errDataClassificacao">
@@ -677,6 +719,7 @@
         <div class="md:col-span-2">
           <label for="s-just" class="block text-sm font-semibold mb-1">Justificativa <span class="text-red-600">*</span></label>
           <textarea id="s-just" rows="3" [(ngModel)]="classForm.Justificativa" name="s-just" placeholder="Explique, com suas palavras, por que o sistema foi descrito assim."
+                    [attr.aria-invalid]="errJustificativa ? true : null"
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errJustificativa"
                     [class.bg-red-50]="errJustificativa"
@@ -686,11 +729,18 @@
 
       <div class="mt-4 flex items-center gap-3 flex-wrap">
         <button (click)="salvarSistema()" [disabled]="salvando || !questionarioPronto"
+                aria-describedby="s-salvar-dica"
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-          {{ salvando ? 'Salvando...' : 'Salvar sistema no inventário' }}
+          {{ salvando ? 'Salvando...' : (emEdicao ? 'Salvar alterações' : 'Salvar sistema no inventário') }}
         </button>
-        <span *ngIf="faltaNoQuestionario" class="text-xs text-gray-500 italic">{{ faltaNoQuestionario }}</span>
-        <span *ngIf="!faltaNoQuestionario" class="text-xs text-gray-500 italic">O registro fica assinado por {{ user?.Nome }}, Responsável de IA da {{ orgao.Sigla }}.</span>
+        <a *ngIf="emEdicao" routerLink="/pgia/sistemas/lista"
+           class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50">
+          Cancelar
+        </a>
+        <span id="s-salvar-dica" class="text-xs text-gray-500 italic">
+          <ng-container *ngIf="faltaNoQuestionario">{{ faltaNoQuestionario }}</ng-container>
+          <ng-container *ngIf="!faltaNoQuestionario && responsavelVigente">O registro fica assinado por {{ responsavelVigente.AgenteNome }}, Responsável de IA da {{ orgao.Sigla }}.</ng-container>
+        </span>
       </div>
     </div>
 

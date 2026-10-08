@@ -21,6 +21,7 @@ import {
   PgiaUsoFonteSistema,
   SITUACOES_NAO_CONFORMIDADE
 } from '../../../api/pgia/interface';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 
 @Component({
   selector: 'app-pgia-incidentes',
@@ -36,6 +37,8 @@ export class PgiaIncidentesComponent implements OnInit {
 
   // Usabilidade por papel; a autorização real é do backend.
   podeEditar = false;
+  /** Papel de órgão (sem ser admin): não altera não conformidade da supervisão da SGDI. */
+  isPapelOrgao = false;
   isAuditoria = false;
   modoConsulta = false;
   /**
@@ -104,6 +107,7 @@ export class PgiaIncidentesComponent implements OnInit {
       this.isAuditoria = papel === PapeisPgia.Auditoria && !isAdmin;
       this.semPapel = !papel && !isAdmin;
       this.podeEditar = isAdmin || papel === PapeisPgia.Orgao;
+      this.isPapelOrgao = papel === PapeisPgia.Orgao && !isAdmin;
       this.modoConsulta = !this.podeEditar && !this.semPapel;
       if (this.isAuditoria) {
         // A área da auditoria externa chega na fase de auditorias técnicas;
@@ -172,9 +176,9 @@ export class PgiaIncidentesComponent implements OnInit {
         this.sistemas = fontes.Sistemas;
         this.loading = false;
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.notificationService.error('Não foi possível carregar os sistemas do órgão.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os sistemas do órgão.'));
       }
     });
   }
@@ -196,8 +200,8 @@ export class PgiaIncidentesComponent implements OnInit {
         }
         this.loading = false;
       },
-      error: () => {
-        this.notificationService.error('Não foi possível carregar os dados do órgão.');
+      error: (err) => {
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os dados do órgão.'));
         this.loading = false;
       }
     });
@@ -207,7 +211,7 @@ export class PgiaIncidentesComponent implements OnInit {
     if (!this.orgao) return;
     this.sistemaService.listarSistemas(this.orgao.Id, 1, 200).subscribe({
       next: (pagina) => this.sistemas = pagina.Items ?? [],
-      error: () => this.notificationService.error('Não foi possível carregar os sistemas do órgão.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os sistemas do órgão.'))
     });
   }
 
@@ -216,9 +220,9 @@ export class PgiaIncidentesComponent implements OnInit {
     this.carregandoIncidentes = true;
     this.operacaoService.listarIncidentesDoOrgao(this.orgao.Id).subscribe({
       next: (lista) => { this.incidentes = lista; this.carregandoIncidentes = false; },
-      error: () => {
+      error: (err) => {
         this.carregandoIncidentes = false;
-        this.notificationService.error('Não foi possível carregar os incidentes do órgão.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os incidentes do órgão.'));
       }
     });
   }
@@ -227,7 +231,7 @@ export class PgiaIncidentesComponent implements OnInit {
     if (!this.orgao) return;
     this.operacaoService.listarNaoConformidadesDoOrgao(this.orgao.Id).subscribe({
       next: (lista) => this.naoConformidades = lista,
-      error: () => this.notificationService.error('Não foi possível carregar as não conformidades.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as não conformidades.'))
     });
   }
 
@@ -295,9 +299,9 @@ export class PgiaIncidentesComponent implements OnInit {
         this.carregarIncidentes();
         this.notificationService.success('Aviso enviado ao Responsável de IA do seu órgão. Obrigado por comunicar.');
       },
-      error: () => {
+      error: (err) => {
         this.enviandoAviso = false;
-        this.notificationService.error('Não foi possível enviar o aviso.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível enviar o aviso.'));
       }
     });
   }
@@ -339,9 +343,9 @@ export class PgiaIncidentesComponent implements OnInit {
         this.carregarIncidentes();
         this.notificationService.success('Incidente comunicado à SGDI pelo processo SEI informado. Acompanhe a apuração por aqui.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoIncidente = false;
-        this.notificationService.error('Não foi possível comunicar o incidente.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível comunicar o incidente.'));
       }
     });
   }
@@ -385,9 +389,9 @@ export class PgiaIncidentesComponent implements OnInit {
         this.carregarIncidentes();
         this.notificationService.success('Incidente comunicado à SGDI pelo processo SEI informado. Acompanhe a apuração por aqui.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoComunicacao = false;
-        this.notificationService.error('Não foi possível comunicar o incidente.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível comunicar o incidente.'));
       }
     });
   }
@@ -406,9 +410,9 @@ export class PgiaIncidentesComponent implements OnInit {
         this.carregarIncidentes();
         this.notificationService.success('Medidas atualizadas. Elas entram no relatório semestral (art. 32, II).');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoMedidas = false;
-        this.notificationService.error('Não foi possível salvar as medidas.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar as medidas.'));
       }
     });
   }
@@ -439,11 +443,19 @@ export class PgiaIncidentesComponent implements OnInit {
         this.carregarNaoConformidades();
         this.notificationService.success('Não conformidade registrada. Ela já aparece na lista.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoNc = false;
-        this.notificationService.error('Não foi possível registrar a não conformidade.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar a não conformidade.'));
       }
     });
+  }
+
+  /**
+   * O achado da supervisão da SGDI é tratado pelo órgão central: o servidor
+   * recusa a alteração pelo papel de órgão. As de origem SGTIC seguem com ele.
+   */
+  podeAtualizarNc(nc: PgiaNaoConformidade): boolean {
+    return this.podeEditar && !(this.isPapelOrgao && nc.Origem === 'Supervisão da SGDI');
   }
 
   editarNaoConformidade(nc: PgiaNaoConformidade): void {
@@ -476,9 +488,9 @@ export class PgiaIncidentesComponent implements OnInit {
         this.carregarNaoConformidades();
         this.notificationService.success('Não conformidade atualizada.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoEdicaoNc = false;
-        this.notificationService.error('Não foi possível atualizar a não conformidade.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível atualizar a não conformidade.'));
       }
     });
   }

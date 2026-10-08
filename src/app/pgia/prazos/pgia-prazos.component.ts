@@ -7,6 +7,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PgiaOrgaoService } from '../services/pgia-orgao.service';
 import { PgiaOrgao, PgiaPrazo } from '../../../api/pgia/interface';
 import { CitaDecretoDirective } from '../shared/cita-decreto.directive';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 
 @Component({
   selector: 'app-pgia-prazos',
@@ -21,6 +22,8 @@ export class PgiaPrazosComponent implements OnInit {
   prazosCentrais: PgiaPrazo[] = [];
   veCentrais = false;
   podeMarcar = false;
+  /** Só a SGDI e o admin registram as obrigações da própria SGDI (o servidor recusa os demais). */
+  podeMarcarCentral = false;
   isAuditoria = false;
 
   // edição de cumprimento
@@ -41,6 +44,7 @@ export class PgiaPrazosComponent implements OnInit {
       this.isAuditoria = papel === PapeisPgia.Auditoria && !isAdmin;
       this.veCentrais = isAdmin || papel === PapeisPgia.Sgdi || papel === PapeisPgia.Cgtic;
       this.podeMarcar = isAdmin || papel === PapeisPgia.Orgao || papel === PapeisPgia.Sgdi;
+      this.podeMarcarCentral = isAdmin || papel === PapeisPgia.Sgdi;
       if (this.isAuditoria) {
         // O backend nega prazos ao papel de auditoria na fase 0; evita os GETs
         this.loading = false;
@@ -69,8 +73,8 @@ export class PgiaPrazosComponent implements OnInit {
           });
         }
       },
-      error: () => {
-        this.notificationService.error('Não foi possível carregar os prazos.');
+      error: (err) => {
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os prazos.'));
         this.loading = false;
       }
     });
@@ -83,6 +87,20 @@ export class PgiaPrazosComponent implements OnInit {
       case 'Vencida': return 'bg-red-100 text-red-800';
       default: return 'bg-blue-100 text-blue-800'; // No prazo
     }
+  }
+
+  /**
+   * Obrigação da própria SGDI. Entre as linhas centrais (sem órgão), as que começam
+   * com "SGDI:" são dela; as demais são linhas-modelo, copiadas para cada órgão na
+   * adesão, e cada órgão registra o cumprimento na sua cópia. É a mesma regra do
+   * servidor (PgiaAdminService, na criação do órgão).
+   */
+  ehObrigacaoDaSgdi(prazo: PgiaPrazo): boolean {
+    return prazo.OrgaoId === null && prazo.Obrigacao.startsWith('SGDI:');
+  }
+
+  get temCentralMarcavel(): boolean {
+    return this.podeMarcarCentral && this.prazosCentrais.some(p => this.ehObrigacaoDaSgdi(p));
   }
 
   iniciarMarcacao(prazo: PgiaPrazo): void {
@@ -105,9 +123,9 @@ export class PgiaPrazosComponent implements OnInit {
         this.notificationService.success('Cumprimento registrado.');
         this.carregar();
       },
-      error: () => {
+      error: (err) => {
         this.salvando = false;
-        this.notificationService.error('Não foi possível registrar o cumprimento.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar o cumprimento.'));
       }
     });
   }
