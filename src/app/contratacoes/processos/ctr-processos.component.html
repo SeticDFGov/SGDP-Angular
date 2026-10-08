@@ -124,6 +124,15 @@
           </select>
         </div>
         <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-tipo-contratacao">Tipo da contratação</label>
+          <select id="ctr-f-tipo-contratacao" [(ngModel)]="filtro.TipoContratacao" name="ctr-f-tipo-contratacao" (ngModelChange)="buscar()"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todos</option>
+            <option *ngFor="let t of tiposContratacao" [value]="t">{{ t }}</option>
+            <option [value]="tipoNaoInformado">Não informado</option>
+          </select>
+        </div>
+        <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-esclarecimento">Esclarecimento ao órgão</label>
           <select id="ctr-f-esclarecimento" [(ngModel)]="filtro.EsclarecimentoPendente" name="ctr-f-esclarecimento" (ngModelChange)="buscar()"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">

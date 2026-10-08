@@ -61,6 +61,7 @@ export class CtrProcessoService {
     acrescentar('EtapaPlanejamento', filtro.EtapaPlanejamento);
     acrescentar('Criticidade', filtro.Criticidade);
     acrescentar('Origem', filtro.Origem);
+    acrescentar('TipoContratacao', filtro.TipoContratacao);
     acrescentar('EsclarecimentoPendente', filtro.EsclarecimentoPendente);
     // Maior nível dos riscos da contratação: valor fora do domínio devolve lista vazia.
     acrescentar('NivelRiscoDeclarado', filtro.NivelRiscoDeclarado);

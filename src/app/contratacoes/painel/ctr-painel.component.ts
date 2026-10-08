@@ -11,7 +11,12 @@ import {
   badgeSituacao,
   corDiasSemMovimento
 } from '../shared/ctr-rotulos';
-import { CtrContagem, CtrPainel, CtrProcessoFiltro } from '../../../api/contratacoes/interface';
+import {
+  CtrContagem,
+  CtrPainel,
+  CtrProcessoFiltro,
+  TIPO_CONTRATACAO_NAO_INFORMADO
+} from '../../../api/contratacoes/interface';
 import { NotificationService } from '../../core/services/notification.service';
 import { CtrIncorporarComponent } from '../publico/ctr-incorporar.component';
 import { CAMINHO_PAINEL_PUBLICO, copiarTexto } from '../publico/painel-publico';
@@ -84,6 +89,22 @@ export class CtrPainelComponent implements OnInit {
    */
   get porNivelRiscoDeclarado(): CtrContagem[] {
     return this.painel?.PorNivelRiscoDeclarado ?? [];
+  }
+
+  /**
+   * Nova contratação, alteração de contratação vigente e "Não informado", sempre
+   * presentes, na ordem do servidor (quantidade desc, empate pela ordem do domínio).
+   */
+  get porTipoContratacao(): CtrContagem[] {
+    return this.painel?.PorTipoContratacao ?? [];
+  }
+
+  readonly tipoNaoInformado = TIPO_CONTRATACAO_NAO_INFORMADO;
+
+  /** Parte do total, em porcentagem inteira ("0%" sem processos). */
+  percentual(quantidade: number, total: number): string {
+    if (!total) return '0%';
+    return `${Math.round((quantidade / total) * 100)}%`;
   }
 
   /** Links já montados, um por filtro (ver `lista`). */

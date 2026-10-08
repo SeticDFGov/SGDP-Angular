@@ -111,6 +111,7 @@ export class CtrProcessoEditarComponent implements OnInit {
       CategoriaObjeto: processo.CategoriaObjeto,
       ValorEstimado: processo.ValorEstimado ?? null,
       HospedagemCetic: processo.HospedagemCetic ?? null,
+      TipoContratacao: processo.TipoContratacao ?? null,
       UsaGdfnet: processo.UsaGdfnet ?? null,
       ChegadaSgdi: processo.ChegadaSgdi ?? null,
       ChegadaSubgd: processo.ChegadaSubgd ?? null,

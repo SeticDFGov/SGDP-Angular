@@ -20,7 +20,8 @@ import {
   HOSPEDAGENS_CETIC,
   ORIGEM_PADRAO,
   ORIGEM_TCDF,
-  REGEX_NUMERO_SEI
+  REGEX_NUMERO_SEI,
+  TIPOS_CONTRATACAO
 } from '../../../api/contratacoes/interface';
 import {
   CRITERIOS_CRITICIDADE,
@@ -95,6 +96,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
   categorias = CATEGORIAS_OBJETO;
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
   hospedagens = HOSPEDAGENS_CETIC;
+  tiposContratacao = TIPOS_CONTRATACAO;
   areasTecnicas = AREAS_TECNICAS;
   formatarReais = formatarReais;
   /** Os sete critérios do art. 11, § 3º, da IN, com as respostas possíveis. */
@@ -135,6 +137,8 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       NumeroProcesso: '', NumeroSeiFormulario: null, OrgaoNome: '', OrgaoSigla: '', ComplementoArea: null,
       Objeto: '', CategoriaObjeto: 'Sem objeto / Indefinido',
       ValorEstimado: null, HospedagemCetic: null, UsaGdfnet: null,
+      // Vazio = ainda não escolhido (obrigatório); nulo = "Não informado", escolhido de propósito
+      TipoContratacao: '',
       ChegadaSgdi: null, ChegadaSubgd: null, ChegadaUgtic: null, UgticNaoSeAplica: false,
       RetornoGabSgdi: null, RetornoOrgao: null, RetornoOrgaoNaoSeAplica: false,
       AnaliseTecnicaEncaminhadaEm: null, AnaliseTecnicaArea: null,
@@ -356,6 +360,15 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     return (this.form.Objeto || '').trim() ? null : 'Descreva o objeto da contratação.';
   }
 
+  /**
+   * Obrigatório escolher: um dos tipos ou "Não informado" (nulo). Só o vazio, o processo
+   * novo antes da escolha, é recusado. O processo gravado sem tipo chega como nulo e já
+   * aparece em "Não informado".
+   */
+  get errTipoContratacao(): string | null {
+    return this.form.TipoContratacao === '' ? 'Escolha o tipo da contratação (ou "Não informado").' : null;
+  }
+
   get errCategoria(): string | null {
     return (this.form.CategoriaObjeto || '').trim() ? null : 'Escolha a categoria do objeto.';
   }
@@ -466,7 +479,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
 
   get formValido(): boolean {
     return !this.errNumero && !this.errNumeroSeiFormulario && !this.errOrgaoNome && !this.errOrgaoSigla
-      && !this.errObjeto && !this.errCategoria && !this.errValor
+      && !this.errObjeto && !this.errCategoria && !this.errTipoContratacao && !this.errValor
       && !this.errEsclarecimentoDescricao && !this.errAnaliseTecnicaArea
       && this.errDatas.length === 0;
   }
@@ -482,7 +495,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
    */
   get problemas(): string[] {
     const itens = [
-      this.errNumero, this.errCategoria, this.errOrgaoNome, this.errOrgaoSigla, this.errObjeto, this.errValor,
+      this.errNumero, this.errCategoria, this.errTipoContratacao, this.errOrgaoNome, this.errOrgaoSigla, this.errObjeto, this.errValor,
       this.errNumeroSeiFormulario
     ].filter((e): e is string => !!e);
     itens.push(...this.risco.problemas);
@@ -552,6 +565,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       CategoriaObjeto: this.form.CategoriaObjeto,
       ValorEstimado: lerReais(this.valorTexto) ?? null,
       HospedagemCetic: this.form.HospedagemCetic || null,
+      TipoContratacao: this.form.TipoContratacao || null,
       UsaGdfnet: this.form.UsaGdfnet ?? null,
       ChegadaSgdi: this.form.ChegadaSgdi || null,
       ChegadaSubgd: this.form.ChegadaSubgd || null,

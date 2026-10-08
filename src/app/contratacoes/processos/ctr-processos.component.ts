@@ -33,6 +33,8 @@ import {
   ETAPAS,
   ETAPA_ASSINATURA,
   ETAPAS_PLANEJAMENTO,
+  TIPO_CONTRATACAO_NAO_INFORMADO,
+  TIPOS_CONTRATACAO,
   NIVEIS_RISCO,
   SEM_RISCOS_DECLARADOS,
   SITUACOES
@@ -51,7 +53,7 @@ interface FiltroAtivo {
  * não a pedem mais).
  */
 const CAMPOS_AVANCADOS: (keyof CtrProcessoFiltro)[] = [
-  'Categoria', 'Sigla', 'EtapaPlanejamento', 'EsclarecimentoPendente', 'IncluirConcluidos', 'De', 'Ate'
+  'Categoria', 'Sigla', 'EtapaPlanejamento', 'TipoContratacao', 'EsclarecimentoPendente', 'IncluirConcluidos', 'De', 'Ate'
 ];
 
 /** A situação dos processos com contrato assinado (fora da lista por padrão). */
@@ -109,6 +111,8 @@ export class CtrProcessosComponent implements OnInit {
   etapas = ETAPAS;
   readonly etapaAssinatura = ETAPA_ASSINATURA;
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
+  tiposContratacao = TIPOS_CONTRATACAO;
+  readonly tipoNaoInformado = TIPO_CONTRATACAO_NAO_INFORMADO;
   criticidades = CRITICIDADES;
   niveisRisco = NIVEIS_RISCO;
   readonly semRiscosDeclarados = SEM_RISCOS_DECLARADOS;
@@ -116,7 +120,7 @@ export class CtrProcessosComponent implements OnInit {
   private static filtroVazio(): CtrProcessoFiltro {
     return {
       Filtro: '', Categoria: '', Situacao: '', Sigla: '', De: '', Ate: '',
-      EtapaPlanejamento: '', Criticidade: '', EsclarecimentoPendente: null,
+      EtapaPlanejamento: '', TipoContratacao: '', Criticidade: '', EsclarecimentoPendente: null,
       NivelRiscoDeclarado: '', IncluirConcluidos: false
     };
   }
@@ -288,6 +292,12 @@ export class CtrProcessosComponent implements OnInit {
     if (f.Sigla) ativos.push({ campo: 'Sigla', rotulo: `Órgão: ${f.Sigla}` });
     if (f.Criticidade) ativos.push({ campo: 'Criticidade', rotulo: `Criticidade: ${f.Criticidade}` });
     if (f.EtapaPlanejamento) ativos.push({ campo: 'EtapaPlanejamento', rotulo: `Etapa: ${f.EtapaPlanejamento}` });
+    if (f.TipoContratacao) {
+      ativos.push({
+        campo: 'TipoContratacao',
+        rotulo: f.TipoContratacao === this.tipoNaoInformado ? 'Tipo da contratação não informado' : f.TipoContratacao
+      });
+    }
     if (f.EsclarecimentoPendente !== null && f.EsclarecimentoPendente !== undefined) {
       ativos.push({
         campo: 'EsclarecimentoPendente',
