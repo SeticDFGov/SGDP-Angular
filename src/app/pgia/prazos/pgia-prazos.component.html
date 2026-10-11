@@ -18,8 +18,7 @@
 
   <div *ngIf="!loading && !isAuditoria && !orgao && !veCentrais" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
-      A sua unidade ainda não está vinculada a um órgão do PGIA.
-      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
+      A sua unidade ainda não está vinculada a um órgão do PGIA. Peça à SGDI para fazer o vínculo.
     </div>
   </div>
 
@@ -68,7 +67,8 @@
   <div *ngIf="!loading && veCentrais" class="bg-white rounded-lg shadow p-6 mb-5">
     <h2 class="text-base font-semibold text-blue-900 mb-1">Obrigações centrais</h2>
     <p class="text-sm text-gray-600 mb-4 leading-relaxed">Linhas-modelo instanciadas para cada órgão na adesão e obrigações
-    da própria SGDI (Guia de Contratações de IA e Relatório Anual).</p>
+    da própria SGDI (Guia de Contratações de IA e Relatório Anual). As linhas-modelo servem de referência: cada órgão
+    registra o cumprimento na cópia dele. Aqui se registram só as obrigações da SGDI.</p>
 
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -79,20 +79,23 @@
             <th class="px-3 py-2">Data-limite</th>
             <th class="px-3 py-2">Situação</th>
             <th class="px-3 py-2">Cumprida em</th>
-            <th class="px-3 py-2" *ngIf="podeMarcar"></th>
+            <th class="px-3 py-2" *ngIf="temCentralMarcavel"><span class="sr-only">Ações</span></th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let p of prazosCentrais" class="border-b border-gray-200">
-            <td class="px-3 py-2">{{ p.Obrigacao }}</td>
+            <td class="px-3 py-2">
+              {{ p.Obrigacao }}
+              <span *ngIf="!ehObrigacaoDaSgdi(p)" class="block text-xs text-gray-500 italic">Linha-modelo: cada órgão registra a sua cópia.</span>
+            </td>
             <td class="px-3 py-2 text-gray-500">{{ p.BaseLegal }}</td>
             <td class="px-3 py-2">{{ p.DataLimite | date:'dd/MM/yyyy':'UTC' }}</td>
             <td class="px-3 py-2">
               <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeClasse(p.Situacao)">{{ p.Situacao }}</span>
             </td>
             <td class="px-3 py-2">{{ p.CumpridoEm ? (p.CumpridoEm | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
-            <td class="px-3 py-2 text-right" *ngIf="podeMarcar">
-              <button (click)="iniciarMarcacao(p)"
+            <td class="px-3 py-2 text-right" *ngIf="temCentralMarcavel">
+              <button *ngIf="ehObrigacaoDaSgdi(p)" (click)="iniciarMarcacao(p)"
                       class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
                 Registrar cumprimento
               </button>

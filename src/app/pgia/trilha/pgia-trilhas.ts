@@ -324,7 +324,7 @@ const TRILHA_SGDI: TrilhaPgia = {
         {
           titulo: 'Avalie a fila de homologação',
           rota: '/pgia/sgdi/fila',
-          oQueFazer: 'Aprove ou vete com parecer os sistemas de risco Baixo e Moderado. Os de Alto Risco seguem para o CGTIC.',
+          oQueFazer: 'Aprove ou vete com parecer os sistemas de risco Baixo e Moderado. Os de Alto Risco e de Risco Excessivo seguem para o CGTIC.',
           baseLegal: 'arts. 8º, V e 25, II, b',
           status: 'fila-sgdi'
         }
@@ -424,7 +424,7 @@ const TRILHA_CGTIC: TrilhaPgia = {
           status: 'casos-cgtic'
         },
         {
-          titulo: 'Registre a deliberação com a ata',
+          titulo: 'Registre a deliberação e anexe a ata',
           rota: '/pgia/cgtic/deliberacoes',
           oQueFazer: 'Registre a decisão tomada em reunião e anexe a ata.',
           baseLegal: 'art. 7º'

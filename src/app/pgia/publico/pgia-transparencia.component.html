@@ -87,9 +87,9 @@
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   [class.border-red-500]="errSistema" [class.border-gray-300]="!errSistema">
             <option [ngValue]="null">Escolha na lista de sistemas publicados</option>
-            <option *ngFor="let s of sistemas" [ngValue]="s.Id">{{ s.Denominacao }}, {{ s.OrgaoNome }}</option>
+            <option *ngFor="let s of opcoesDoPedido" [ngValue]="s.Id">{{ s.Denominacao }}, {{ s.OrgaoNome }}</option>
           </select>
-          <p class="text-xs text-gray-500 italic mt-1">A lista vem do Registro Público de Sistemas de IA, no Portal da Transparência.</p>
+          <p class="text-xs text-gray-500 italic mt-1">A lista traz todos os sistemas de IA que os órgãos do GDF já publicaram.</p>
         </div>
 
         <div class="md:col-span-2 rounded-md p-2 -m-2" [class.bg-red-50]="errTipo">
@@ -104,29 +104,30 @@
 
         <div>
           <label for="c-nome" class="block text-sm font-semibold mb-1">3. Seu nome <span class="text-red-600">*</span></label>
-          <input id="c-nome" type="text" [(ngModel)]="form.SolicitanteNome" name="c-nome"
+          <input id="c-nome" type="text" [(ngModel)]="form.SolicitanteNome" name="c-nome" maxlength="200"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errNome" [class.bg-red-50]="errNome" [class.border-gray-300]="!errNome">
         </div>
         <div>
           <label for="c-contato" class="block text-sm font-semibold mb-1">4. Como responder a você? <span class="text-red-600">*</span></label>
-          <input id="c-contato" type="text" [(ngModel)]="form.SolicitanteContato" name="c-contato" placeholder="Informe um e-mail ou um telefone"
+          <input id="c-contato" type="text" [(ngModel)]="form.SolicitanteContato" name="c-contato" maxlength="200" placeholder="Informe um e-mail ou um telefone"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                  [class.border-red-500]="errContato" [class.bg-red-50]="errContato" [class.border-gray-300]="!errContato">
         </div>
         <div class="md:col-span-2">
           <label for="c-decisao" class="block text-sm font-semibold mb-1">5. Qual foi a decisão?
             <span class="text-yellow-700 text-xs font-semibold">se você pediu revisão ou contestou</span></label>
-          <input id="c-decisao" type="text" [(ngModel)]="form.ReferenciaDecisao" name="c-decisao"
+          <input id="c-decisao" type="text" [(ngModel)]="form.ReferenciaDecisao" name="c-decisao" maxlength="300"
                  placeholder="Se souber, informe o número do protocolo ou a data da decisão."
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div class="md:col-span-2">
           <label for="c-desc" class="block text-sm font-semibold mb-1">6. Conte o que aconteceu <span class="text-red-600">*</span></label>
-          <textarea id="c-desc" rows="4" [(ngModel)]="form.Descricao" name="c-desc" placeholder="Escreva com suas palavras."
+          <textarea id="c-desc" rows="4" [(ngModel)]="form.Descricao" name="c-desc" maxlength="4000" placeholder="Escreva com suas palavras."
                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     [class.border-red-500]="errDescricao" [class.bg-red-50]="errDescricao"
                     [class.border-gray-300]="!errDescricao"></textarea>
+          <p class="text-xs text-gray-500 italic mt-1">Até 4.000 caracteres ({{ form.Descricao.length }} usados).</p>
         </div>
       </div>
 

@@ -540,11 +540,10 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Apta a dados pessoais e sigilosos? <span class="text-red-600">*</span></label>
-          <div class="flex gap-4 text-sm mt-1">
-            <label class="flex items-center gap-2"><input type="radio" name="apta" [value]="true" [(ngModel)]="plataformaForm.AptaDadosPessoaisSigilosos"> Sim</label>
-            <label class="flex items-center gap-2"><input type="radio" name="apta" [value]="false" [(ngModel)]="plataformaForm.AptaDadosPessoaisSigilosos"> Não</label>
-          </div>
+          <span class="block text-sm font-semibold mb-1">Apta a dados pessoais e sigilosos?</span>
+          <p class="text-sm mt-2">{{ aptaPelaSituacao(plataformaForm.StatusHomologacao) ? 'Sim' : 'Não' }}</p>
+          <p class="text-xs text-gray-500 italic mt-1">Segue a situação escolhida: só "Homologada apta a dados pessoais e
+          sigilosos" libera esses dados. Para mudar, troque a situação.</p>
         </div>
         <div>
           <label for="pl-ato" class="block text-sm font-semibold mb-1">Ato de homologação</label>
@@ -594,10 +593,10 @@
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgePlataforma(p.StatusHomologacao)">{{ p.StatusHomologacao }}</span>
               </td>
-              <td class="px-3 py-2">{{ p.AptaDadosPessoaisSigilosos ? 'apta' : 'não apta' }}</td>
+              <td class="px-3 py-2">{{ aptaPelaSituacao(p.StatusHomologacao) ? 'apta' : 'não apta' }}</td>
               <td class="px-3 py-2">{{ p.PublicadaRelacaoEm ? (p.PublicadaRelacaoEm | date:'dd/MM/yyyy':'UTC') : '-' }}</td>
               <td class="px-3 py-2 text-right">
-                <button (click)="editarPlataforma(p)"
+                <button (click)="editarPlataforma(p)" [attr.aria-label]="'Editar a plataforma ' + p.Nome"
                         class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
                   Editar
                 </button>
@@ -756,7 +755,8 @@
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">A Avaliação de Impacto Algorítmico (AIA) dos sistemas de Alto Risco
       precisa ser publicada no Portal da Transparência antes de o sistema entrar em funcionamento (art. 16, § 1º).
       Registre aqui a publicação e vincule a deliberação do CGTIC que aprovou o caso. As avaliações mostradas são as do
-      sistema escolhido abaixo.</p>
+      sistema escolhido abaixo, e a lista de deliberações traz só as do comitê sobre esse sistema que decidem a homologação
+      dele (classificação como Alto Risco ou aprovação de aquisição de Alto Risco).</p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <ng-container *ngTemplateOutlet="seletorOrgaoSistema"></ng-container>
@@ -812,6 +812,8 @@
                 {{ d.DataDeliberacao | date:'dd/MM/yyyy':'UTC' }} · {{ d.Tipo }} · {{ d.Resultado }}
               </option>
             </select>
+            <p *ngIf="deliberacoesDoSistema.length === 0" class="text-xs text-gray-500 italic mt-1">Ainda não há deliberação do
+            CGTIC sobre este sistema que decida a homologação dele.</p>
           </div>
           <button (click)="vincularDeliberacao(a)" [disabled]="vinculandoDeliberacao"
                   class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-2 hover:bg-blue-50 disabled:opacity-50">
@@ -1018,6 +1020,11 @@
       e na periodicidade que o CGTIC definir (art. 34). Designe a entidade auditora e o usuário dela que vai entregar o
       parecer. Depois do encerramento, publique o resultado no Portal da Transparência.</p>
 
+      <div *ngIf="auditoriaEmEdicao" class="border-l-4 border-blue-500 bg-blue-50 p-4 text-sm leading-relaxed rounded-r-md mb-4" role="status">
+        Editando a auditoria de <strong>{{ auditoriaEmEdicao.SistemaDenominacao }}</strong> ({{ auditoriaEmEdicao.OrgaoSigla }}).
+        Altere o que for preciso ou anexe o relatório e clique em "Salvar alterações".
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="au-sistema" class="block text-sm font-semibold mb-1">Sistema auditado <span class="text-red-600">*</span></label>
@@ -1069,25 +1076,36 @@
         </div>
         <div>
           <label for="au-inicio" class="block text-sm font-semibold mb-1">Início dos trabalhos <span class="text-red-600">*</span></label>
-          <input id="au-inicio" type="date" [(ngModel)]="auditoriaForm.DataInicio" name="au-inicio"
+          <input id="au-inicio" type="date" [(ngModel)]="auditoriaForm.DataInicio" name="au-inicio" required
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 [class.border-red-500]="errAuditoriaInicio" [class.border-gray-300]="!errAuditoriaInicio">
+                 [attr.aria-invalid]="errAuditoriaInicio ? 'true' : null"
+                 [attr.aria-describedby]="errAuditoriaInicio ? 'au-inicio-erro' : null"
+                 [class.border-red-500]="errAuditoriaInicio" [class.bg-red-50]="errAuditoriaInicio"
+                 [class.border-gray-300]="!errAuditoriaInicio">
+          <p *ngIf="errAuditoriaInicio" id="au-inicio-erro" class="text-xs text-red-600 mt-1">Informe o início dos trabalhos.</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1">Relatório da auditoria</label>
-          <app-pgia-anexo
-            [documentoId]="auditoriaForm.DocumentoId"
-            [criarDocumento]="criarDocumentoAuditoria"
-            (documentoCriado)="aoCriarDocumentoAuditoria($event)">
-          </app-pgia-anexo>
-          <p class="text-xs text-gray-500 italic mt-1">Escolha o sistema antes de anexar. O relatório também pode ser anexado depois, editando a auditoria.</p>
+          <ng-container *ngFor="let versao of [versaoAnexoAuditoria]">
+            <app-pgia-anexo
+              [documentoId]="auditoriaForm.DocumentoId"
+              [criarDocumento]="criarDocumentoAuditoria"
+              (documentoCriado)="aoCriarDocumentoAuditoria($event)">
+            </app-pgia-anexo>
+          </ng-container>
+          <p class="text-xs text-gray-500 italic mt-1">Escolha o sistema antes de anexar. O relatório também pode ser anexado depois:
+          use "Editar" na auditoria designada, anexe o arquivo e salve.</p>
         </div>
       </div>
 
       <div class="mt-4">
         <button (click)="criarAuditoria()" [disabled]="salvandoAuditoria"
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
-          {{ salvandoAuditoria ? 'Salvando...' : 'Designar auditoria' }}
+          {{ salvandoAuditoria ? 'Salvando...' : (auditoriaEmEdicao ? 'Salvar alterações' : 'Designar auditoria') }}
+        </button>
+        <button *ngIf="auditoriaEmEdicao" (click)="cancelarEdicaoAuditoria()"
+                class="bg-white text-blue-700 border border-blue-600 text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-50 ml-2">
+          Cancelar edição
         </button>
       </div>
 
@@ -1103,6 +1121,14 @@
             <span class="text-gray-500" *ngIf="a.AuditorNome"> · {{ a.AuditorNome }}</span><br>
             <span class="text-gray-500">Início {{ a.DataInicio | date:'dd/MM/yyyy':'UTC' }}</span>
             <span class="text-gray-500" *ngIf="a.DataFim"> · encerramento {{ a.DataFim | date:'dd/MM/yyyy':'UTC' }}</span>
+            <span class="text-gray-500" *ngIf="a.DocumentoId"> · relatório anexado</span>
+          </div>
+          <div class="mb-3">
+            <button (click)="editarAuditoria(a)"
+                    [attr.aria-label]="(auditoriaEmEdicao?.Id === a.Id ? 'Cancelar a edição da auditoria de ' : 'Editar a auditoria de ') + a.SistemaDenominacao"
+                    class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
+              {{ auditoriaEmEdicao?.Id === a.Id ? 'Cancelar edição' : 'Editar' }}
+            </button>
           </div>
 
           <div *ngIf="a.Parecer" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md mb-3">
@@ -1370,8 +1396,9 @@
     <div *ngIf="secao === 'autorizacoes'" class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Autorizações excepcionais</h2>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">Duas situações só acontecem com autorização expressa: usar plataforma
-      pública de IA generativa com dados que não são públicos (art. 20) e deixar o fornecedor treinar modelos com dados do GDF
-      (art. 21). Registre aqui cada autorização, com a justificativa e o prazo de validade.</p>
+      pública de IA generativa com dados que não são públicos (art. 18, § 2º) e deixar o fornecedor treinar modelos com dados do GDF
+      (art. 21). Registre aqui cada autorização, com a justificativa e o prazo de validade. Quando a exceção deixar de valer,
+      use "Encerrar" na lista.</p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -1486,10 +1513,15 @@
               <td class="px-3 py-2">{{ a.DataAutorizacao | date:'dd/MM/yyyy':'UTC' }}</td>
               <td class="px-3 py-2">{{ a.VigenciaFim ? (a.VigenciaFim | date:'dd/MM/yyyy':'UTC') : 'sem prazo' }}</td>
               <td class="px-3 py-2">{{ a.Ativo ? 'ativa' : 'encerrada' }}</td>
-              <td class="px-3 py-2 text-right">
-                <button (click)="editarAutorizacao(a)"
+              <td class="px-3 py-2 text-right whitespace-nowrap">
+                <button (click)="editarAutorizacao(a)" [attr.aria-label]="'Editar a autorização de ' + a.OrgaoSigla"
                         class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
                   Editar
+                </button>
+                <button *ngIf="a.Ativo" (click)="encerrarAutorizacao(a)" [disabled]="encerrandoAutorizacaoId === a.Id"
+                        [attr.aria-label]="'Encerrar a autorização de ' + a.OrgaoSigla"
+                        class="text-sm text-red-700 border border-red-300 rounded px-3 py-1 hover:bg-red-50 disabled:opacity-50 ml-2">
+                  {{ encerrandoAutorizacaoId === a.Id ? 'Encerrando...' : 'Encerrar' }}
                 </button>
               </td>
             </tr>

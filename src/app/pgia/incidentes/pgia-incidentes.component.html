@@ -20,9 +20,7 @@
   <!-- Unidade sem órgão PGIA -->
   <div *ngIf="!loading && !isAuditoria && semOrgao" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
-      A sua unidade ainda não está vinculada a um órgão do PGIA.
-      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
-      Depois disso, esta página é liberada para preenchimento.
+      A sua unidade ainda não está vinculada a um órgão do PGIA. Peça à SGDI para fazer o vínculo.
     </div>
   </div>
 
@@ -364,14 +362,15 @@
                   <span class="px-2 py-0.5 rounded-full text-xs font-semibold" [ngClass]="badgeNaoConformidade(nc.Situacao)">{{ nc.Situacao }}</span>
                 </td>
                 <td class="px-3 py-2 text-right" *ngIf="podeEditar">
-                  <button (click)="editarNaoConformidade(nc)"
+                  <button *ngIf="podeAtualizarNc(nc)" (click)="editarNaoConformidade(nc)"
                           class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
                     {{ ncEmEdicao?.Id === nc.Id ? 'Cancelar' : 'Atualizar' }}
                   </button>
+                  <span *ngIf="!podeAtualizarNc(nc)" class="text-xs text-gray-500 italic">Tratada pela SGDI</span>
                 </td>
               </tr>
 
-              <tr *ngIf="podeEditar && ncEmEdicao?.Id === nc.Id" class="border-b border-gray-200 bg-gray-50">
+              <tr *ngIf="podeAtualizarNc(nc) && ncEmEdicao?.Id === nc.Id" class="border-b border-gray-200 bg-gray-50">
                 <td [attr.colspan]="5" class="px-3 py-4">
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
@@ -419,6 +418,8 @@
   <!-- Incidente de outro órgão: fora do bloco "sem órgão" para alcançar também
        quem não tem órgão vinculado (F11); abre a página pública em nova aba (F10). -->
   <p *ngIf="!loading && !isAuditoria && secao === 'aviso'" class="text-xs text-gray-600 italic mt-3">Presenciou um problema com um sistema de IA de outro órgão?
-    <a routerLink="/transparencia-ia" target="_blank" rel="noopener" class="text-blue-700 underline">Registre pela página pública de transparência.</a>
+    Para um incidente, fale com o Responsável de IA do órgão dono do sistema.
+    Se o sistema estiver publicado, você também pode pedir informações sobre ele na
+    <a routerLink="/transparencia-ia" target="_blank" rel="noopener" class="text-blue-700 underline">página pública de transparência</a>.
   </p>
 </div>

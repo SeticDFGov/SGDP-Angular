@@ -17,6 +17,8 @@ import { PgiaTrilhaEstadoService } from '../trilha/pgia-trilha-estado.service';
 import { PedidosAcessoFilaComponent } from '../../core/acessos/pedidos-acesso-fila.component';
 import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
 import { PgiaDocumentoService } from '../services/pgia-documento.service';
+import { mensagemDoErro } from '../shared/mensagem-erro';
+import { OPCOES_PAPEL_PGIA, rotuloCurtoPapelPgia } from '../../core/acessos/papeis-pgia';
 import {
   PgiaDocumento,
   AUTORIZADA_POR,
@@ -119,12 +121,13 @@ export class PgiaSgdiComponent implements OnInit {
 
   // ── Pessoas e acessos ─────────────────────────────────────────────────────
   vinculos = VINCULOS;
-  papeisPgia = [
-    { valor: PapeisPgia.Orgao, rotulo: 'Órgão responsável' },
-    { valor: PapeisPgia.Sgdi, rotulo: 'Governança central (SGDI)' },
-    { valor: PapeisPgia.Cgtic, rotulo: 'Comitê (CGTIC)' },
-    { valor: PapeisPgia.Auditoria, rotulo: 'Auditoria externa' }
-  ];
+  /**
+   * Papéis com os mesmos nomes da fila de pedidos e da gestão de acessos
+   * (fonte única em `core/acessos/papeis-pgia.ts`). A opção nula fica no
+   * próprio select ("Sem papel no PGIA"): no pré-cadastro, nulo mantém o
+   * papel de quem já existe, e o acesso de agente se libera à parte.
+   */
+  papeisPgia = OPCOES_PAPEL_PGIA.filter(p => p.valor !== null);
   filtroPessoas = '';
   filtroOrgaoId: number | null = null;
   pessoas: PgiaPessoaAcesso[] = [];
@@ -204,6 +207,13 @@ export class PgiaSgdiComponent implements OnInit {
   auditoriaForm = this.novaAuditoriaForm();
   auditoriaSubmetida = false;
   salvandoAuditoria = false;
+  /** Auditoria designada aberta no formulário para edição (null = designar nova). */
+  auditoriaEmEdicao: PgiaAuditoria | null = null;
+  /**
+   * Muda a cada troca do que está no formulário: recria o componente de anexo,
+   * que guarda o arquivo enviado e não pode mostrá-lo em outra auditoria.
+   */
+  versaoAnexoAuditoria = 0;
   publicacaoAuditoria: Record<number, { PublicadoPortal: boolean; DataPublicacao: string; Url: string }> = {};
   publicandoAuditoriaId: number | null = null;
 
@@ -230,6 +240,7 @@ export class PgiaSgdiComponent implements OnInit {
   autorizacaoEmEdicao: PgiaAutorizacao | null = null;
   autorizacaoSubmetida = false;
   salvandoAutorizacao = false;
+  encerrandoAutorizacaoId: number | null = null;
 
   constructor(
     private authService: AuthService,
@@ -276,11 +287,11 @@ export class PgiaSgdiComponent implements OnInit {
     this.carregarAuditorias();
     this.governancaService.listarSistemasGovernanca().subscribe({
       next: (lista) => this.todosSistemas = lista,
-      error: () => this.notificationService.error('Não foi possível carregar a lista de sistemas.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar a lista de sistemas.'))
     });
     this.governancaService.listarAuditores().subscribe({
       next: (lista) => this.auditores = lista,
-      error: () => this.notificationService.error('Não foi possível carregar os usuários das entidades auditoras.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os usuários das entidades auditoras.'))
     });
     this.carregarDeliberacoes();
     this.orgaoService.listarOrgaos().subscribe({
@@ -290,7 +301,7 @@ export class PgiaSgdiComponent implements OnInit {
         this.todosOrgaos = lista;
         this.orgaos = lista.filter(o => o.Ativo);
       },
-      error: () => this.notificationService.error('Não foi possível carregar a lista de órgãos.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar a lista de órgãos.'))
     });
   }
 
@@ -355,9 +366,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.unidades = lista;
         this.carregandoUnidades = false;
       },
-      error: () => {
+      error: (err) => {
         this.carregandoUnidades = false;
-        this.notificationService.error('Não foi possível carregar as unidades do SGDP.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as unidades do SGDP.'));
       }
     });
   }
@@ -388,9 +399,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.aoTrocarOrgaoDados();
         this.notificationService.success(`Órgão ${criado.Sigla} cadastrado.`);
       },
-      error: () => {
+      error: (err) => {
         this.salvandoNovoOrgao = false;
-        this.notificationService.error('Não foi possível cadastrar o órgão.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível cadastrar o órgão.'));
       }
     });
   }
@@ -445,9 +456,9 @@ export class PgiaSgdiComponent implements OnInit {
         aplica(this.todosOrgaos);
         this.notificationService.success('Dados do órgão salvos.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoDados = false;
-        this.notificationService.error('Não foi possível salvar os dados do órgão.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar os dados do órgão.'));
       }
     });
   }
@@ -472,12 +483,12 @@ export class PgiaSgdiComponent implements OnInit {
         this.buscouPessoas = true;
       },
       // Falha de busca não é "ninguém encontrado": a tela precisa dizer qual dos dois é.
-      error: () => {
+      error: (err) => {
         this.pessoas = [];
         this.buscandoPessoas = false;
         this.buscouPessoas = true;
         this.erroPessoas = true;
-        this.notificationService.error('Não foi possível buscar as pessoas.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível buscar as pessoas.'));
       }
     });
   }
@@ -541,9 +552,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.filtroOrgaoId = null;
         this.buscarPessoas();
       },
-      error: () => {
+      error: (err) => {
         this.salvandoPreCadastro = false;
-        this.notificationService.error('Não foi possível cadastrar a pessoa.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível cadastrar a pessoa.'));
       }
     });
   }
@@ -594,9 +605,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.pessoaEmAcesso = null;
         this.notificationService.success(`Acesso de ${pessoa.Nome} atualizado.`);
       },
-      error: () => {
+      error: (err) => {
         this.salvandoVinculo = false;
-        this.notificationService.error('Não foi possível salvar o acesso desta pessoa.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar o acesso desta pessoa.'));
       }
     });
   }
@@ -623,9 +634,9 @@ export class PgiaSgdiComponent implements OnInit {
           ? `${pessoa.Nome} já pode registrar uso de IA e avisar incidentes.`
           : `Acesso de ${pessoa.Nome} ao PGIA retirado.`);
       },
-      error: () => {
+      error: (err) => {
         this.alternandoAcessoModulo = null;
-        this.notificationService.error('Não foi possível alterar o acesso desta pessoa ao PGIA.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível alterar o acesso desta pessoa ao PGIA.'));
       }
     });
   }
@@ -633,7 +644,7 @@ export class PgiaSgdiComponent implements OnInit {
   /** Rótulo amigável do papel PGIA na tabela (F12); token cru como fallback. */
   rotuloPapel(papel: string | null): string {
     if (!papel) return 'sem papel';
-    return this.papeisPgia.find(p => p.valor === papel)?.rotulo ?? papel;
+    return rotuloCurtoPapelPgia(papel);
   }
 
   abrirCadastroPessoa(pessoa: PgiaPessoaAcesso): void {
@@ -665,9 +676,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.pessoaEmCadastro = null;
         this.notificationService.success(`Cadastro de ${pessoa.Nome} atualizado.`);
       },
-      error: () => {
+      error: (err) => {
         this.salvandoInfo = false;
-        this.notificationService.error('Não foi possível salvar o cadastro desta pessoa.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar o cadastro desta pessoa.'));
       }
     });
   }
@@ -684,16 +695,16 @@ export class PgiaSgdiComponent implements OnInit {
     this.carregandoFilaCgtic = true;
     this.governancaService.listarHomologacoes('Aguardando avaliação da SGDI').subscribe({
       next: (lista) => { this.filaSgdi = lista; this.carregandoFilaSgdi = false; },
-      error: () => {
+      error: (err) => {
         this.carregandoFilaSgdi = false;
-        this.notificationService.error('Não foi possível carregar a fila de homologação da SGDI.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar a fila de homologação da SGDI.'));
       }
     });
     this.governancaService.listarHomologacoes('Aguardando deliberação do CGTIC').subscribe({
       next: (lista) => { this.filaCgtic = lista; this.carregandoFilaCgtic = false; },
-      error: () => {
+      error: (err) => {
         this.carregandoFilaCgtic = false;
-        this.notificationService.error('Não foi possível carregar a fila delegada ao CGTIC.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar a fila delegada ao CGTIC.'));
       }
     });
   }
@@ -733,9 +744,9 @@ export class PgiaSgdiComponent implements OnInit {
           : `Sistema ${item.Sistema.Denominacao} vetado. O órgão já vê o parecer no inventário.`);
         this.carregarFilas();
       },
-      error: () => {
+      error: (err) => {
         this.avaliando = false;
-        this.notificationService.error('Não foi possível registrar a avaliação.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar a avaliação.'));
       }
     });
   }
@@ -767,7 +778,7 @@ export class PgiaSgdiComponent implements OnInit {
   carregarPlataformas(): void {
     this.governancaService.listarPlataformas().subscribe({
       next: (lista) => this.plataformas = lista,
-      error: () => this.notificationService.error('Não foi possível carregar as plataformas.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as plataformas.'))
     });
   }
 
@@ -807,28 +818,39 @@ export class PgiaSgdiComponent implements OnInit {
       // Endereço e data do ato não estão neste formulário; preserva o que já existe.
       Url: this.plataformaEmEdicao?.Url ?? null,
       StatusHomologacao: this.plataformaForm.StatusHomologacao,
-      AptaDadosPessoaisSigilosos: this.plataformaForm.AptaDadosPessoaisSigilosos,
+      // Deriva da situação: o domínio do servidor já tem a situação própria
+      // "Homologada apta a dados pessoais e sigilosos"; a pergunta Sim/Não à parte
+      // saiu da tela porque podia contradizer a situação escolhida.
+      AptaDadosPessoaisSigilosos: this.aptaPelaSituacao(this.plataformaForm.StatusHomologacao),
       AtoHomologacao: this.plataformaForm.AtoHomologacao.trim() || null,
       DataAto: this.plataformaEmEdicao?.DataAto ?? null,
       PublicadaRelacaoEm: this.plataformaForm.PublicadaRelacaoEm || null,
       DiretrizesUso: this.plataformaForm.DiretrizesUso.trim() || null
     };
     this.salvandoPlataforma = true;
+    const editando = !!this.plataformaEmEdicao;
     const chamada = this.plataformaEmEdicao
       ? this.governancaService.atualizarPlataforma(this.plataformaEmEdicao.Id, payload)
       : this.governancaService.criarPlataforma(payload);
     chamada.subscribe({
       next: () => {
         this.salvandoPlataforma = false;
-        this.notificationService.success('Plataforma registrada. A relação pública será atualizada com este item.');
+        this.notificationService.success(editando
+          ? 'Plataforma atualizada.'
+          : 'Plataforma registrada. A relação pública será atualizada com este item.');
         this.cancelarEdicaoPlataforma();
         this.carregarPlataformas();
       },
-      error: () => {
+      error: (err) => {
         this.salvandoPlataforma = false;
-        this.notificationService.error('Não foi possível salvar a plataforma.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar a plataforma.'));
       }
     });
+  }
+
+  /** Só a situação "Homologada apta a dados pessoais e sigilosos" libera esses dados. */
+  aptaPelaSituacao(status: string): boolean {
+    return status === 'Homologada apta a dados pessoais e sigilosos';
   }
 
   badgePlataforma(status: string): string {
@@ -853,9 +875,9 @@ export class PgiaSgdiComponent implements OnInit {
     this.carregandoSistemas = true;
     this.sistemaService.listarSistemas(this.orgaoSelecionadoId, 1, 200).subscribe({
       next: (pagina) => { this.sistemasDoOrgao = pagina.Items ?? []; this.carregandoSistemas = false; },
-      error: () => {
+      error: (err) => {
         this.carregandoSistemas = false;
-        this.notificationService.error('Não foi possível carregar os sistemas do órgão.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os sistemas do órgão.'));
       }
     });
   }
@@ -896,9 +918,9 @@ export class PgiaSgdiComponent implements OnInit {
         });
         this.carregandoAias = false;
       },
-      error: () => {
+      error: (err) => {
         this.carregandoAias = false;
-        this.notificationService.error('Não foi possível carregar as avaliações de impacto do sistema.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as avaliações de impacto do sistema.'));
       }
     });
   }
@@ -936,9 +958,9 @@ export class PgiaSgdiComponent implements OnInit {
           });
         }
       },
-      error: () => {
+      error: (err) => {
         this.publicandoRegistro = false;
-        this.notificationService.error('Não foi possível registrar a publicação.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar a publicação.'));
       }
     });
   }
@@ -946,15 +968,27 @@ export class PgiaSgdiComponent implements OnInit {
   carregarDeliberacoes(): void {
     this.governancaService.listarDeliberacoes().subscribe({
       next: (lista) => this.deliberacoes = lista,
-      error: () => this.notificationService.error('Não foi possível carregar as deliberações do CGTIC.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as deliberações do CGTIC.'))
     });
   }
 
-  /** Deliberações sem objeto específico ou já ligadas ao sistema em tela. */
+  /**
+   * Só as deliberações que o servidor aceita vincular à AIA: as do sistema em
+   * tela e dos tipos que decidem a homologação dele (art. 16, § 1º). A regra é a
+   * de `VincularDeliberacaoAiaAsync` (PgiaDominios.TipoDeliberacao.DecidemHomologacao);
+   * deliberação geral ou de outro assunto é recusada lá.
+   */
   get deliberacoesDoSistema(): PgiaDeliberacao[] {
     const id = this.sistemaSelecionado?.Id ?? null;
-    return this.deliberacoes.filter(d => d.SistemaIaId === null || d.SistemaIaId === id);
+    if (id === null) return [];
+    return this.deliberacoes.filter(d => d.SistemaIaId === id
+      && PgiaSgdiComponent.TIPOS_DELIBERACAO_HOMOLOGACAO.includes(d.Tipo));
   }
+
+  private static readonly TIPOS_DELIBERACAO_HOMOLOGACAO = [
+    'Classificação de sistema como Alto Risco',
+    'Aprovação de aquisição de Alto Risco'
+  ];
 
   publicarAia(aia: PgiaAia): void {
     const dados = this.publicacao[aia.Id];
@@ -970,9 +1004,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.notificationService.success('Publicação da avaliação de impacto registrada.');
         this.carregarAias();
       },
-      error: () => {
+      error: (err) => {
         this.publicandoAia = false;
-        this.notificationService.error('Não foi possível registrar a publicação da avaliação de impacto.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar a publicação da avaliação de impacto.'));
       }
     });
   }
@@ -990,9 +1024,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.notificationService.success('Deliberação do CGTIC vinculada à avaliação de impacto.');
         this.carregarAias();
       },
-      error: () => {
+      error: (err) => {
         this.vinculandoDeliberacao = false;
-        this.notificationService.error('Não foi possível vincular a deliberação.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível vincular a deliberação.'));
       }
     });
   }
@@ -1013,7 +1047,7 @@ export class PgiaSgdiComponent implements OnInit {
   carregarIncidentes(): void {
     this.operacaoService.listarIncidentesComunicados().subscribe({
       next: (lista) => this.incidentes = lista,
-      error: () => this.notificationService.error('Não foi possível carregar os incidentes comunicados.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os incidentes comunicados.'))
     });
   }
 
@@ -1086,11 +1120,11 @@ export class PgiaSgdiComponent implements OnInit {
             this.aoTrocarIncidente();
           }
         });
-        this.notificationService.success('Apuração registrada. O órgão comunicante será notificado.');
+        this.notificationService.success('Apuração registrada. O órgão comunicante vê o resultado na tela de acompanhamento dos incidentes dele.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoApuracao = false;
-        this.notificationService.error('Não foi possível registrar a apuração.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar a apuração.'));
       }
     });
   }
@@ -1108,9 +1142,9 @@ export class PgiaSgdiComponent implements OnInit {
     this.carregandoRelatorios = true;
     this.operacaoService.listarRelatoriosSemestrais(Number(this.orgaoRelatoriosId)).subscribe({
       next: (lista) => { this.relatoriosSemestrais = lista; this.carregandoRelatorios = false; },
-      error: () => {
+      error: (err) => {
         this.carregandoRelatorios = false;
-        this.notificationService.error('Não foi possível carregar os relatórios semestrais do órgão.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os relatórios semestrais do órgão.'));
       }
     });
   }
@@ -1151,9 +1185,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.aoTrocarOrgaoRelatorios();
         this.notificationService.success('Situação do relatório atualizada.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoSituacao = false;
-        this.notificationService.error('Não foi possível atualizar a situação do relatório.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível atualizar a situação do relatório.'));
       }
     });
   }
@@ -1183,7 +1217,7 @@ export class PgiaSgdiComponent implements OnInit {
   carregarRelatoriosAnuais(): void {
     this.governancaService.listarRelatoriosAnuais().subscribe({
       next: (lista) => this.relatoriosAnuais = lista,
-      error: () => this.notificationService.error('Não foi possível carregar os relatórios anuais.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os relatórios anuais.'))
     });
   }
 
@@ -1238,9 +1272,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.cancelarEdicaoAnual();
         this.carregarRelatoriosAnuais();
       },
-      error: () => {
+      error: (err) => {
         this.salvandoAnual = false;
-        this.notificationService.error('Não foi possível salvar o relatório anual.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar o relatório anual.'));
       }
     });
   }
@@ -1300,7 +1334,7 @@ export class PgiaSgdiComponent implements OnInit {
           };
         });
       },
-      error: () => this.notificationService.error('Não foi possível carregar as auditorias técnicas.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as auditorias técnicas.'))
     });
   }
 
@@ -1308,10 +1342,48 @@ export class PgiaSgdiComponent implements OnInit {
   get errAuditoriaEntidade(): boolean { return this.auditoriaSubmetida && !this.auditoriaForm.EntidadeAuditora.trim(); }
   get errAuditoriaInicio(): boolean { return this.auditoriaSubmetida && !this.auditoriaForm.DataInicio; }
 
+  /**
+   * Abre a auditoria designada no formulário de cima, para corrigir a designação
+   * ou anexar o relatório depois (o PUT aceita o DocumentoId). Clicar de novo na
+   * mesma auditoria fecha a edição.
+   */
+  editarAuditoria(a: PgiaAuditoria): void {
+    if (this.auditoriaEmEdicao?.Id === a.Id) {
+      this.cancelarEdicaoAuditoria();
+      return;
+    }
+    this.auditoriaEmEdicao = a;
+    this.auditoriaSubmetida = false;
+    this.auditoriaForm = {
+      SistemaIaId: a.SistemaIaId,
+      Tipo: a.Tipo,
+      EntidadeAuditora: a.EntidadeAuditora,
+      AuditorUserId: a.AuditorUserId ?? '',
+      ExternaFornecedor: a.ExternaFornecedor,
+      ApoioFapdf: a.ApoioFapdf,
+      DataInicio: a.DataInicio ?? '',
+      DocumentoId: a.DocumentoId ?? null
+    };
+    this.versaoAnexoAuditoria++;
+    if (typeof document !== 'undefined') {
+      // Leva a pessoa ao formulário, com o foco no primeiro campo.
+      setTimeout(() => document.getElementById('au-sistema')?.focus());
+    }
+  }
+
+  cancelarEdicaoAuditoria(): void {
+    this.auditoriaEmEdicao = null;
+    this.auditoriaSubmetida = false;
+    this.auditoriaForm = this.novaAuditoriaForm();
+    this.versaoAnexoAuditoria++;
+  }
+
   criarAuditoria(): void {
     this.auditoriaSubmetida = true;
     if (this.errAuditoriaSistema || this.errAuditoriaEntidade || this.errAuditoriaInicio) {
-      this.notificationService.warning('Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.');
+      this.notificationService.warning(this.errAuditoriaInicio && !this.errAuditoriaSistema && !this.errAuditoriaEntidade
+        ? 'Informe o início dos trabalhos da auditoria.'
+        : 'Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.');
       return;
     }
     const payload: PgiaAuditoriaForm = {
@@ -1325,17 +1397,24 @@ export class PgiaSgdiComponent implements OnInit {
       DocumentoId: this.auditoriaForm.DocumentoId
     };
     this.salvandoAuditoria = true;
-    this.governancaService.criarAuditoria(payload).subscribe({
+    const editando = this.auditoriaEmEdicao;
+    const chamada = editando
+      ? this.governancaService.atualizarAuditoria(editando.Id, payload)
+      : this.governancaService.criarAuditoria(payload);
+    chamada.subscribe({
       next: () => {
         this.salvandoAuditoria = false;
-        this.auditoriaForm = this.novaAuditoriaForm();
-        this.auditoriaSubmetida = false;
+        this.cancelarEdicaoAuditoria();
         this.carregarAuditorias();
-        this.notificationService.success('Auditoria designada. A entidade auditora já vê o caso na área dela.');
+        this.notificationService.success(editando
+          ? 'Auditoria atualizada.'
+          : 'Auditoria designada. A entidade auditora já vê o caso na área dela.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoAuditoria = false;
-        this.notificationService.error('Não foi possível designar a auditoria.');
+        this.notificationService.error(mensagemDoErro(err, editando
+          ? 'Não foi possível salvar a auditoria.'
+          : 'Não foi possível designar a auditoria.'));
       }
     });
   }
@@ -1354,9 +1433,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.carregarAuditorias();
         this.notificationService.success('Publicação do resultado registrada.');
       },
-      error: () => {
+      error: (err) => {
         this.publicandoAuditoriaId = null;
-        this.notificationService.error('Não foi possível registrar a publicação do resultado.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar a publicação do resultado.'));
       }
     });
   }
@@ -1374,7 +1453,7 @@ export class PgiaSgdiComponent implements OnInit {
   carregarNaoConformidades(): void {
     this.operacaoService.listarTodasNaoConformidades().subscribe({
       next: (lista) => this.naoConformidades = lista,
-      error: () => this.notificationService.error('Não foi possível carregar as não conformidades.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as não conformidades.'))
     });
   }
 
@@ -1412,9 +1491,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.carregarNaoConformidades();
         this.notificationService.success('Não conformidade registrada. O órgão já a vê na área dele.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoNc = false;
-        this.notificationService.error('Não foi possível registrar a não conformidade.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar a não conformidade.'));
       }
     });
   }
@@ -1449,9 +1528,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.carregarNaoConformidades();
         this.notificationService.success('Não conformidade atualizada.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoEdicaoNc = false;
-        this.notificationService.error('Não foi possível atualizar a não conformidade.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível atualizar a não conformidade.'));
       }
     });
   }
@@ -1474,7 +1553,7 @@ export class PgiaSgdiComponent implements OnInit {
   carregarNormas(): void {
     this.governancaService.listarNormas().subscribe({
       next: (lista) => this.normas = lista,
-      error: () => this.notificationService.error('Não foi possível carregar as normas complementares.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as normas complementares.'))
     });
   }
 
@@ -1530,9 +1609,9 @@ export class PgiaSgdiComponent implements OnInit {
         this.cancelarEdicaoNorma();
         this.carregarNormas();
       },
-      error: () => {
+      error: (err) => {
         this.salvandoNorma = false;
-        this.notificationService.error('Não foi possível salvar a norma complementar.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar a norma complementar.'));
       }
     });
   }
@@ -1556,7 +1635,7 @@ export class PgiaSgdiComponent implements OnInit {
   carregarAutorizacoes(): void {
     this.governancaService.listarAutorizacoes().subscribe({
       next: (lista) => this.autorizacoes = lista,
-      error: () => this.notificationService.error('Não foi possível carregar as autorizações excepcionais.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as autorizações excepcionais.'))
     });
   }
 
@@ -1613,8 +1692,12 @@ export class PgiaSgdiComponent implements OnInit {
       VigenciaFim: this.autorizacaoForm.VigenciaFim || null
     };
     this.salvandoAutorizacao = true;
+    // Na edição, o PUT regrava todos os campos: o contrato (que esta tela não
+    // mostra) e a situação vão como estavam, senão o contrato se perderia e uma
+    // autorização encerrada voltaria a valer só por ter sido editada.
     const chamada = this.autorizacaoEmEdicao
-      ? this.governancaService.atualizarAutorizacao(this.autorizacaoEmEdicao.Id, payload)
+      ? this.governancaService.atualizarAutorizacao(this.autorizacaoEmEdicao.Id,
+          this.comSituacao(payload, this.autorizacaoEmEdicao, this.autorizacaoEmEdicao.Ativo))
       : this.governancaService.criarAutorizacao(payload);
     chamada.subscribe({
       next: () => {
@@ -1623,9 +1706,52 @@ export class PgiaSgdiComponent implements OnInit {
         this.cancelarEdicaoAutorizacao();
         this.carregarAutorizacoes();
       },
-      error: () => {
+      error: (err) => {
         this.salvandoAutorizacao = false;
-        this.notificationService.error('Não foi possível salvar a autorização.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar a autorização.'));
+      }
+    });
+  }
+
+  /** Corpo do PUT da autorização: os dados mais o contrato e a situação (Ativo). */
+  private comSituacao(payload: PgiaAutorizacaoForm, original: PgiaAutorizacao, ativo: boolean)
+    : PgiaAutorizacaoForm & { Ativo: boolean } {
+    return { ...payload, ContratoId: original.ContratoId ?? null, Ativo: ativo };
+  }
+
+  /**
+   * Encerra uma autorização ativa (a exceção deixa de valer). O PUT do servidor
+   * regrava todos os campos, então vai a autorização como está, com Ativo falso.
+   */
+  encerrarAutorizacao(a: PgiaAutorizacao): void {
+    if (!a.Ativo || this.encerrandoAutorizacaoId !== null) return;
+    if (typeof window !== 'undefined'
+        && !window.confirm(`Encerrar a autorização de ${a.OrgaoSigla} (${a.Tipo})? A exceção deixa de valer a partir de agora.`)) {
+      return;
+    }
+    const corpo: PgiaAutorizacaoForm = {
+      Tipo: a.Tipo,
+      OrgaoId: a.OrgaoId,
+      PlataformaId: a.PlataformaId,
+      Justificativa: a.Justificativa,
+      AvaliacaoRiscosDocId: a.AvaliacaoRiscosDocId,
+      AutorizadaPor: a.AutorizadaPor,
+      DeliberacaoCgticId: a.DeliberacaoCgticId,
+      DataAutorizacao: a.DataAutorizacao,
+      VigenciaFim: a.VigenciaFim
+    };
+    this.encerrandoAutorizacaoId = a.Id;
+    this.governancaService.atualizarAutorizacao(a.Id, this.comSituacao(corpo, a, false)).subscribe({
+      next: () => {
+        this.encerrandoAutorizacaoId = null;
+        // A autorização encerrada não pode continuar aberta no formulário como ativa.
+        if (this.autorizacaoEmEdicao?.Id === a.Id) this.cancelarEdicaoAutorizacao();
+        this.notificationService.success(`Autorização de ${a.OrgaoSigla} encerrada.`);
+        this.carregarAutorizacoes();
+      },
+      error: (err) => {
+        this.encerrandoAutorizacaoId = null;
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível encerrar a autorização.'));
       }
     });
   }

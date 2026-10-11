@@ -235,4 +235,13 @@ export class PgiaGovernancaService {
   listarAuditores(): Observable<PgiaAuditor[]> {
     return this.http.get<PgiaAuditor[]>(`${this.apiUrl}/auditores`, { headers: this.getHeaders() });
   }
+
+  /**
+   * Anexa (ou troca) a ata de uma deliberação já registrada. O documento é
+   * central e já precisa ter o arquivo; devolve a deliberação atualizada.
+   */
+  anexarAtaDeliberacao(id: number, documentoId: number): Observable<PgiaDeliberacao> {
+    return this.http.put<PgiaDeliberacao>(`${this.apiUrl}/deliberacao/${id}/ata`,
+      { DocumentoId: documentoId }, { headers: this.getHeaders() });
+  }
 }

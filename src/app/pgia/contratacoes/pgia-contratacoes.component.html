@@ -20,9 +20,7 @@
   <!-- Unidade sem órgão PGIA -->
   <div *ngIf="!loading && !isAuditoria && !orgao" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
-      A sua unidade ainda não está vinculada a um órgão do PGIA.
-      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
-      Depois disso, esta página é liberada para preenchimento.
+      A sua unidade ainda não está vinculada a um órgão do PGIA. Peça à SGDI para fazer o vínculo.
     </div>
   </div>
 
@@ -94,14 +92,21 @@
         <div *ngIf="exigeAutorizacaoTreinamento">
           <label for="ct-autorizacao" class="block text-sm font-semibold mb-1">Autorização excepcional de treinamento <span class="text-red-600">*</span></label>
           <select id="ct-autorizacao" [(ngModel)]="contratoForm.AutorizacaoTreinamentoId" name="ct-autorizacao"
+                  [attr.aria-invalid]="errAutorizacao || errAutorizacaoInvalida ? true : null"
+                  [attr.aria-describedby]="errAutorizacaoInvalida ? 'ct-autorizacao-erro' : null"
                   class="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  [class.border-red-500]="errAutorizacao" [class.border-gray-300]="!errAutorizacao">
+                  [class.border-red-500]="errAutorizacao || errAutorizacaoInvalida"
+                  [class.border-gray-300]="!errAutorizacao && !errAutorizacaoInvalida">
             <option [ngValue]="null">Escolha a autorização</option>
             <option *ngFor="let a of autorizacoesTreinamento" [ngValue]="a.Id">
-              {{ a.OrgaoSigla }} · {{ a.DataAutorizacao | date:'dd/MM/yyyy':'UTC' }}
+              {{ a.OrgaoSigla }} · {{ a.DataAutorizacao | date:'dd/MM/yyyy':'UTC' }}{{ problemaDaAutorizacao(a) ? ' (não ampara mais o contrato)' : '' }}
             </option>
           </select>
-          <p class="text-xs text-gray-500 italic mt-1">A SGDI registra as autorizações. Se a sua não aparece, peça o registro antes de salvar.</p>
+          <p *ngIf="errAutorizacaoInvalida" id="ct-autorizacao-erro" class="text-xs font-semibold text-red-700 mt-1">
+            {{ errAutorizacaoInvalida }} Escolha outra autorização ou inclua a cláusula de vedação no contrato.
+          </p>
+          <p class="text-xs text-gray-500 italic mt-1">A lista traz as autorizações do órgão que estão em vigor. A SGDI registra
+          as autorizações: se a sua não aparece, peça o registro antes de salvar.</p>
         </div>
 
         <div *ngIf="exigePdtic">
@@ -120,11 +125,17 @@
         <h3 class="text-sm font-semibold text-gray-900 mb-1">Homologação técnica da SGDI (art. 25, II)
           <span class="text-red-600">*</span></h3>
         <p class="text-xs text-gray-500 italic mb-3">O contrato de Risco Moderado só é aceito com a homologação técnica registrada.
-        O arquivo em si é anexado no documento gerado aqui; o processo SEI também comprova a homologação.</p>
+        Primeiro registre o documento da homologação; depois, anexe o arquivo nele. O processo SEI também comprova a homologação.</p>
 
         <div *ngIf="contratoForm.HomologacaoSgdiDocId" class="border-l-4 border-green-600 bg-green-50 p-3 text-sm leading-relaxed rounded-r-md">
-          Homologação registrada (doc #{{ contratoForm.HomologacaoSgdiDocId }}).
+          Homologação registrada (documento nº {{ contratoForm.HomologacaoSgdiDocId }}).
           <button (click)="limparHomologacao()" class="text-blue-700 font-semibold underline ml-1">Registrar outra</button>
+        </div>
+
+        <div *ngIf="contratoForm.HomologacaoSgdiDocId" class="mt-3">
+          <p class="block text-sm font-semibold mb-1">Arquivo da homologação</p>
+          <app-pgia-anexo [documentoId]="contratoForm.HomologacaoSgdiDocId"></app-pgia-anexo>
+          <p class="text-xs text-gray-500 italic mt-1">Anexe o parecer ou o documento da homologação técnica. Depois, salve o contrato.</p>
         </div>
 
         <div *ngIf="!contratoForm.HomologacaoSgdiDocId">
@@ -132,14 +143,17 @@
             <div>
               <label for="ct-homosei" class="block text-sm font-semibold mb-1">Processo SEI da homologação</label>
               <input id="ct-homosei" type="text" [(ngModel)]="homologacaoSei" name="ct-homosei" placeholder="00060-00088888/2026-45" maxlength="25"
-                     class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                     [class.border-red-500]="errHomologacao" [class.border-gray-300]="!errHomologacao">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
-              <label for="ct-homonome" class="block text-sm font-semibold mb-1">Identificação do documento</label>
+              <label for="ct-homonome" class="block text-sm font-semibold mb-1">Identificação do documento <span class="text-red-600">*</span></label>
               <input id="ct-homonome" type="text" [(ngModel)]="homologacaoNome" name="ct-homonome" placeholder="Por exemplo: parecer técnico nº 12/2026, SGDI"
+                     [attr.aria-invalid]="homologacaoSemNome || errHomologacao ? true : null"
+                     [attr.aria-describedby]="homologacaoSemNome ? 'ct-homonome-erro' : (errHomologacao ? 'ct-homologacao-erro' : null)"
                      class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                     [class.border-red-500]="errHomologacao" [class.border-gray-300]="!errHomologacao">
+                     [class.border-red-500]="homologacaoSemNome || errHomologacao"
+                     [class.border-gray-300]="!homologacaoSemNome && !errHomologacao">
+              <p *ngIf="homologacaoSemNome" id="ct-homonome-erro" class="text-xs text-red-600 mt-1">Informe a identificação do documento.</p>
             </div>
           </div>
           <div class="mt-3">
@@ -148,7 +162,7 @@
               {{ registrandoHomologacao ? 'Registrando...' : 'Registrar homologação' }}
             </button>
           </div>
-          <div *ngIf="errHomologacao" class="text-xs font-semibold text-red-700 mt-2">
+          <div *ngIf="errHomologacao" id="ct-homologacao-erro" class="text-xs font-semibold text-red-700 mt-2">
             Registre a homologação técnica antes de salvar o contrato.
           </div>
         </div>
@@ -353,8 +367,8 @@
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Revisado e adequado? <span class="text-red-600">*</span></label>
-          <div class="flex gap-4 text-sm mt-1">
+          <label id="lg-revisado-rotulo" class="block text-sm font-semibold mb-1">Revisado e adequado? <span class="text-red-600">*</span></label>
+          <div class="flex gap-4 text-sm mt-1" role="radiogroup" aria-labelledby="lg-revisado-rotulo">
             <label class="flex items-center gap-2"><input type="radio" name="lg-revisado" [value]="true" [(ngModel)]="legadoForm.Revisado"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="lg-revisado" [value]="false" [(ngModel)]="legadoForm.Revisado"> Não</label>
           </div>
@@ -364,19 +378,28 @@
           <input id="lg-dtrevisao" type="date" [(ngModel)]="legadoForm.DataRevisao" name="lg-dtrevisao"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
-        <div *ngIf="legadoEnvolveIa">
-          <label class="block text-sm font-semibold mb-1">Termo aditivo com cláusula de treinamento?
+        <div *ngIf="legadoEnvolveIa" class="rounded-md p-2 -m-2" [class.bg-red-50]="errLegadoAditivo">
+          <label id="lg-aditivo-rotulo" class="block text-sm font-semibold mb-1">Termo aditivo com cláusula de treinamento?
             <span class="text-yellow-700 text-xs font-semibold">responda porque envolve IA</span></label>
-          <div class="flex gap-4 text-sm mt-1">
+          <div class="flex gap-4 text-sm mt-1" role="radiogroup" aria-labelledby="lg-aditivo-rotulo"
+               [attr.aria-invalid]="errLegadoAditivo ? true : null"
+               [attr.aria-describedby]="errLegadoAditivo ? 'lg-aditivo-erro' : null">
             <label class="flex items-center gap-2"><input type="radio" name="lg-aditivo" [value]="true" [(ngModel)]="legadoForm.AditivoClausulaTreinamento"> Sim</label>
             <label class="flex items-center gap-2"><input type="radio" name="lg-aditivo" [value]="false" [(ngModel)]="legadoForm.AditivoClausulaTreinamento"> Não</label>
           </div>
-          <p class="text-xs text-gray-500 italic mt-1">Arts. 21 e 37.</p>
+          <p *ngIf="errLegadoAditivo" id="lg-aditivo-erro" class="text-xs font-semibold text-red-700 mt-1">{{ msgAditivo }}</p>
+          <p class="text-xs text-gray-500 italic mt-1">Obrigatório quando o instrumento já foi revisado (arts. 21 e 37).</p>
         </div>
         <div *ngIf="legadoEnvolveIa">
-          <label for="lg-dtaditivo" class="block text-sm font-semibold mb-1">Data do aditivo</label>
+          <label for="lg-dtaditivo" class="block text-sm font-semibold mb-1">Data do aditivo
+            <span *ngIf="legadoForm.AditivoClausulaTreinamento === true" class="text-red-600">*</span></label>
           <input id="lg-dtaditivo" type="date" [(ngModel)]="legadoForm.DataAditivo" name="lg-dtaditivo"
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                 [attr.aria-invalid]="errLegadoDataAditivo ? true : null"
+                 [attr.aria-describedby]="errLegadoDataAditivo ? 'lg-dtaditivo-erro' : null"
+                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 [class.border-red-500]="errLegadoDataAditivo"
+                 [class.border-gray-300]="!errLegadoDataAditivo">
+          <p *ngIf="errLegadoDataAditivo" id="lg-dtaditivo-erro" class="text-xs font-semibold text-red-700 mt-1">{{ msgDataAditivo }}</p>
         </div>
         <div>
           <label for="lg-sei" class="block text-sm font-semibold mb-1">Processo SEI</label>

@@ -24,6 +24,7 @@ import {
   PRAZO_DESIGNACAO,
   VINCULOS
 } from '../../../api/pgia/interface';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 
 @Component({
   selector: 'app-pgia-orgao-etapa1',
@@ -160,8 +161,8 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
         }
         this.loading = false;
       },
-      error: () => {
-        this.notificationService.error('Não foi possível carregar os dados do órgão.');
+      error: (err) => {
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os dados do órgão.'));
         this.loading = false;
       }
     });
@@ -171,7 +172,7 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
     if (!this.orgao) return;
     this.pgiaOrgaoService.listarPessoas(this.orgao.Id).subscribe({
       next: (pessoas) => this.pessoas = pessoas,
-      error: () => this.notificationService.error('Não foi possível carregar as pessoas do órgão.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as pessoas do órgão.'))
     });
   }
 
@@ -207,9 +208,9 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
         this.dadosSubmetido = false;
         this.notificationService.success('Dados do órgão salvos.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoDados = false;
-        this.notificationService.error('Não foi possível salvar os dados do órgão.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar os dados do órgão.'));
       }
     });
   }
@@ -239,9 +240,9 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
         this.pessoaEmEdicao = null;
         this.carregarPessoas();
       },
-      error: () => {
+      error: (err) => {
         this.salvandoInfo = false;
-        this.notificationService.error('Não foi possível salvar os dados da pessoa.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar os dados da pessoa.'));
       }
     });
   }
@@ -276,9 +277,9 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
         this.carregarHistoricos();
         this.notificationService.success('Designação salva. A comunicação à SGDI foi registrada no processo SEI informado.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoRia = false;
-        this.notificationService.error('Não foi possível salvar a designação.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar a designação.'));
       }
     });
   }
@@ -302,9 +303,9 @@ export class PgiaOrgaoEtapa1Component implements OnInit {
         this.carregarHistoricos();
         this.notificationService.success('Designação do Encarregado de Dados salva e comunicada.');
       },
-      error: () => {
+      error: (err) => {
         this.salvandoDpo = false;
-        this.notificationService.error('Não foi possível salvar a designação.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível salvar a designação.'));
       }
     });
   }

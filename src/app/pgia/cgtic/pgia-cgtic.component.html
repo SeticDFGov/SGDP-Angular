@@ -104,10 +104,13 @@
         </div>
         <div>
           <label for="de-data" class="block text-sm font-semibold mb-1">Data da deliberação <span class="text-red-600">*</span></label>
-          <input id="de-data" type="date" [(ngModel)]="form.DataDeliberacao" name="de-data"
+          <input id="de-data" type="date" [(ngModel)]="form.DataDeliberacao" name="de-data" [max]="hoje"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 [class.border-red-500]="errData"
-                 [class.border-gray-300]="!errData">
+                 [attr.aria-invalid]="errData || errDataFutura ? true : null"
+                 [attr.aria-describedby]="errDataFutura ? 'de-data-erro' : null"
+                 [class.border-red-500]="errData || errDataFutura"
+                 [class.border-gray-300]="!errData && !errDataFutura">
+          <p *ngIf="errDataFutura" id="de-data-erro" class="text-xs text-red-600 mt-1">A data não pode ser depois de hoje.</p>
         </div>
         <div class="rounded-md p-2 -m-2" [class.bg-red-50]="errResultado">
           <label class="block text-sm font-semibold mb-1">Resultado <span class="text-red-600">*</span></label>
@@ -136,7 +139,7 @@
                  [class.border-gray-300]="!errEmenta">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Ata da reunião (PDF)</label>
+          <label class="block text-sm font-semibold mb-1">Ata da reunião</label>
           <app-pgia-anexo
             [documentoId]="form.DocumentoId"
             [criarDocumento]="criarDocumentoAta"
@@ -186,8 +189,10 @@
               <td class="px-3 py-2 w-72">
                 <app-pgia-anexo
                   [documentoId]="d.DocumentoId ?? null"
-                  avisoSemDocumento="Esta deliberação ainda não tem documento para anexar a ata.">
+                  [criarDocumento]="criarDocumentoAta"
+                  (enviado)="aoEnviarAtaRegistrada(d, $event)">
                 </app-pgia-anexo>
+                <p *ngIf="vinculandoAta === d.Id" class="text-xs text-gray-500 italic mt-1">Vinculando a ata à deliberação...</p>
               </td>
             </tr>
             <tr *ngIf="deliberacoes.length === 0">
@@ -210,7 +215,7 @@
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
           {{ baixandoPdf ? 'Preparando...' : 'Baixar relatório (PDF)' }}
         </button>
-        <p class="text-xs text-gray-500 italic mt-1">O arquivo traz os mesmos casos e deliberações mostrados nesta tela.</p>
+        <p class="text-xs text-gray-500 italic mt-1">O arquivo traz todos os casos e deliberações do comitê, sem o filtro escolhido nesta tela.</p>
       </div>
 
       <div *ngIf="carregandoHistorico" class="text-sm text-gray-500 py-2">Carregando...</div>
@@ -336,7 +341,7 @@
                 </td>
               </tr>
               <tr *ngIf="historico.OutrasDeliberacoes.length === 0">
-                <td colspan="4" class="px-3 py-4 text-center text-gray-500">Nenhuma outra deliberação registrada.</td>
+                <td colspan="5" class="px-3 py-4 text-center text-gray-500">Nenhuma outra deliberação registrada.</td>
               </tr>
             </tbody>
           </table>

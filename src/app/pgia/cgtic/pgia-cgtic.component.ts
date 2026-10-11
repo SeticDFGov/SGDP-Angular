@@ -12,11 +12,13 @@ import { acompanharSecao } from '../shared/secao-rota';
 import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
 import { Observable } from 'rxjs';
 import { PgiaDocumentoService } from '../services/pgia-documento.service';
+import { mensagemDoErro } from '../shared/mensagem-erro';
 import {
   PgiaCgticCasoHistorico,
   PgiaCgticHistoricoResponse,
   PgiaDeliberacao,
   PgiaDocumento,
+  PgiaDocumentoArquivo,
   PgiaDeliberacaoForm,
   PgiaHomologacaoPendente,
   RESULTADOS_DELIBERACAO,
@@ -34,6 +36,13 @@ const ROTULOS_TIPO: Record<string, string> = {
   'Aprovação do Guia de Contratações': 'Aprovação do Guia de Contratações (art. 26)',
   'Suspensão de sistema': 'Suspensão de sistema (art. 30, parágrafo único)'
 };
+
+/** Data de hoje no fuso do navegador, no formato do input de data (aaaa-mm-dd). */
+function hojeIso(): string {
+  const d = new Date();
+  const dois = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+}
 
 /** Tipos de deliberação que fazem o backend mudar a situação de homologação do sistema. */
 const TIPOS_QUE_MUDAM_HOMOLOGACAO: string[] = [
@@ -71,6 +80,10 @@ export class PgiaCgticComponent implements OnInit {
   form = this.novoForm();
   submetido = false;
   salvando = false;
+  /** Limite do campo de data: a deliberação não pode ser depois de hoje. */
+  readonly hoje = hojeIso();
+  /** Deliberação cuja ata está sendo vinculada (rota própria, depois do envio). */
+  vinculandoAta: number | null = null;
 
   // Histórico de decisões (relatório de auditoria do comitê)
   historico: PgiaCgticHistoricoResponse | null = null;
@@ -134,6 +147,30 @@ export class PgiaCgticComponent implements OnInit {
     this.form.DocumentoId = documento.Id;
   }
 
+  /**
+   * Deliberação já registrada: o arquivo sobe num documento central e, se esse
+   * documento ainda não é o da deliberação, a rota da ata faz o vínculo. Trocar
+   * o arquivo de uma ata já vinculada só substitui o binário (nada a vincular).
+   * Usa o `enviado`, e não o `documentoCriado`, para que um novo envio depois
+   * de uma falha no vínculo tente vincular de novo.
+   */
+  aoEnviarAtaRegistrada(deliberacao: PgiaDeliberacao, arquivo: PgiaDocumentoArquivo): void {
+    if (!arquivo?.DocumentoId || deliberacao.DocumentoId === arquivo.DocumentoId) return;
+    this.vinculandoAta = deliberacao.Id;
+    this.governancaService.anexarAtaDeliberacao(deliberacao.Id, arquivo.DocumentoId).subscribe({
+      next: (atualizada) => {
+        this.vinculandoAta = null;
+        deliberacao.DocumentoId = atualizada?.DocumentoId ?? arquivo.DocumentoId;
+        this.notificationService.success('Ata vinculada à deliberação.');
+      },
+      error: (err) => {
+        this.vinculandoAta = null;
+        this.notificationService.error(mensagemDoErro(err,
+          'O arquivo foi enviado, mas não foi possível vinculá-lo à deliberação. Envie o arquivo de novo.'));
+      }
+    });
+  }
+
   private novoForm() {
     return {
       Tipo: 'Classificação de sistema como Alto Risco' as string,
@@ -150,9 +187,9 @@ export class PgiaCgticComponent implements OnInit {
     this.carregandoFila = true;
     this.governancaService.listarHomologacoes('Aguardando deliberação do CGTIC').subscribe({
       next: (lista) => { this.fila = lista; this.carregandoFila = false; },
-      error: () => {
+      error: (err) => {
         this.carregandoFila = false;
-        this.notificationService.error('Não foi possível carregar os casos delegados ao comitê.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar os casos delegados ao comitê.'));
       }
     });
   }
@@ -160,7 +197,7 @@ export class PgiaCgticComponent implements OnInit {
   carregarSistemas(): void {
     this.governancaService.listarSistemasGovernanca().subscribe({
       next: (lista) => this.todosSistemas = lista,
-      error: () => this.notificationService.error('Não foi possível carregar a lista de sistemas.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar a lista de sistemas.'))
     });
   }
 
@@ -173,7 +210,7 @@ export class PgiaCgticComponent implements OnInit {
   carregarDeliberacoes(): void {
     this.governancaService.listarDeliberacoes().subscribe({
       next: (lista) => this.deliberacoes = lista,
-      error: () => this.notificationService.error('Não foi possível carregar as deliberações registradas.')
+      error: (err) => this.notificationService.error(mensagemDoErro(err, 'Não foi possível carregar as deliberações registradas.'))
     });
   }
 
@@ -259,9 +296,9 @@ export class PgiaCgticComponent implements OnInit {
         link.click();
         URL.revokeObjectURL(url);
       },
-      error: () => {
+      error: (err) => {
         this.baixandoPdf = false;
-        this.notificationService.error('Não foi possível baixar o relatório em PDF.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível baixar o relatório em PDF.'));
       }
     });
   }
@@ -290,6 +327,8 @@ export class PgiaCgticComponent implements OnInit {
   }
 
   get errData(): boolean { return this.submetido && !this.form.DataDeliberacao; }
+  /** Datas no formato aaaa-mm-dd comparam como texto. */
+  get errDataFutura(): boolean { return !!this.form.DataDeliberacao && this.form.DataDeliberacao > this.hoje; }
   get errResultado(): boolean { return this.submetido && !this.form.Resultado; }
   get errNumeroAto(): boolean { return this.submetido && this.ehResolucao && !this.form.NumeroAto.trim(); }
   get errEmenta(): boolean { return this.submetido && this.ehResolucao && !this.form.Ementa.trim(); }
@@ -298,6 +337,10 @@ export class PgiaCgticComponent implements OnInit {
     this.submetido = true;
     if (this.errData || this.errResultado || this.errNumeroAto || this.errEmenta) {
       this.notificationService.warning('Alguns campos obrigatórios ficaram em branco. Eles estão destacados em vermelho.');
+      return;
+    }
+    if (this.errDataFutura) {
+      this.notificationService.warning('A data não pode ser depois de hoje.');
       return;
     }
     const sistemaId = this.form.SistemaIaId ? Number(this.form.SistemaIaId) : null;
@@ -326,7 +369,7 @@ export class PgiaCgticComponent implements OnInit {
         // A área carrega uma vez por entrada: sem isto o Histórico ficaria
         // com a situação antiga do caso (e divergente do PDF, gerado na hora)
         this.carregarHistorico();
-        const base = 'Deliberação registrada. Os órgãos interessados serão notificados.';
+        const base = 'Deliberação registrada.';
         let mensagem = base;
         if (tipoMudaHomologacao && veioDaFila) {
           mensagem = emDiligencia
@@ -335,9 +378,9 @@ export class PgiaCgticComponent implements OnInit {
         }
         this.notificationService.success(mensagem);
       },
-      error: () => {
+      error: (err) => {
         this.salvando = false;
-        this.notificationService.error('Não foi possível registrar a deliberação.');
+        this.notificationService.error(mensagemDoErro(err, 'Não foi possível registrar a deliberação.'));
       }
     });
   }

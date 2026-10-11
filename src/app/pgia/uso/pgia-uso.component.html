@@ -13,9 +13,7 @@
   <!-- Unidade sem órgão PGIA -->
   <div *ngIf="!loading && !temOrgao" class="bg-white rounded-lg shadow p-6">
     <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
-      A sua unidade ainda não está vinculada a um órgão do PGIA.
-      Peça ao administrador do sistema para cadastrar o órgão e vincular a sua unidade.
-      Depois disso, esta página é liberada para preenchimento.
+      A sua unidade ainda não está vinculada a um órgão do PGIA. Peça à SGDI para fazer o vínculo.
     </div>
   </div>
 
@@ -46,10 +44,13 @@
         </div>
         <div>
           <label for="uso-data" class="block text-sm font-semibold mb-1">Data do uso <span class="text-red-600">*</span></label>
-          <input id="uso-data" type="date" [(ngModel)]="dataUso" name="uso-data"
+          <input id="uso-data" type="date" [(ngModel)]="dataUso" name="uso-data" [max]="hoje"
                  class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 [class.border-red-500]="errData"
-                 [class.border-gray-300]="!errData">
+                 [attr.aria-invalid]="errData || errDataFutura ? true : null"
+                 [attr.aria-describedby]="errDataFutura ? 'uso-data-erro' : null"
+                 [class.border-red-500]="errData || errDataFutura"
+                 [class.border-gray-300]="!errData && !errDataFutura">
+          <p *ngIf="errDataFutura" id="uso-data-erro" class="text-xs text-red-600 mt-1">A data não pode ser depois de hoje.</p>
         </div>
         <div class="md:col-span-2">
           <label for="uso-produto" class="block text-sm font-semibold mb-1">Em qual documento ou produto? <span class="text-red-600">*</span></label>

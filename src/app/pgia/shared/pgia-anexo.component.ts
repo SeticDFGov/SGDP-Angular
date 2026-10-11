@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { PgiaDocumento, PgiaDocumentoArquivo } from '../../../api/pgia/interface';
@@ -10,6 +10,7 @@ import {
   tamanhoLegivel,
   validarArquivo
 } from '../services/pgia-documento.service';
+import { mensagemDoErro } from './mensagem-erro';
 
 /**
  * Anexo de um documento do PGIA: escolher o arquivo, enviar e baixar.
@@ -24,7 +25,7 @@ import {
   imports: [CommonModule],
   templateUrl: './pgia-anexo.component.html'
 })
-export class PgiaAnexoComponent {
+export class PgiaAnexoComponent implements OnChanges {
   /** Documento dono do arquivo. Sem ele, o envio fica indisponível. */
   @Input() documentoId: number | null = null;
   /** Anexo já enviado, quando a tela souber os dados dele. */
@@ -50,6 +51,18 @@ export class PgiaAnexoComponent {
     private documentoService: PgiaDocumentoService,
     private notificationService: NotificationService
   ) {}
+
+  /**
+   * A tela trocou de documento (salvou e limpou o formulário, ou abriu outro
+   * registro): os dados do arquivo enviado aqui eram do documento anterior e
+   * não podem continuar na tela, senão o registro novo pareceria já ter anexo.
+   */
+  ngOnChanges(mudancas: SimpleChanges): void {
+    if (mudancas['documentoId'] && !mudancas['arquivo']
+        && this.arquivo && this.arquivo.DocumentoId !== this.documentoId) {
+      this.arquivo = null;
+    }
+  }
 
   /**
    * Havendo documento, já se oferece baixar: o arquivo pode ter sido anexado
@@ -95,10 +108,10 @@ export class PgiaAnexoComponent {
           this.documentoId = documento.Id;
           this.subir(arquivo, input, documento);
         },
-        error: () => {
+        error: (err) => {
           this.enviando = false;
           input.value = '';
-          this.notificationService.error('Não foi possível preparar o documento para o anexo.');
+          this.notificationService.error(mensagemDoErro(err, 'Não foi possível preparar o documento para o anexo.'));
         }
       });
       return;
@@ -130,12 +143,12 @@ export class PgiaAnexoComponent {
         this.enviado.emit(this.arquivo);
         this.notificationService.success('Arquivo anexado.');
       },
-      error: () => {
+      error: (err) => {
         this.enviando = false;
         input.value = '';
-        this.notificationService.error(documentoNovo
+        this.notificationService.error(mensagemDoErro(err, documentoNovo
           ? 'O documento foi preparado, mas o arquivo não subiu. Tente enviar de novo.'
-          : 'Não foi possível enviar o arquivo.');
+          : 'Não foi possível enviar o arquivo.'));
       }
     });
   }
