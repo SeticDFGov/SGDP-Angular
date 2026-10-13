@@ -1,16 +1,16 @@
 <div citaIn class="tela-pgia max-w-7xl mx-auto">
 
-  <!-- ── As duas listas: processos de supervisão contínua e comunicações do TCDF ── -->
+  <!-- ── As três listas: supervisão contínua, comunicações do TCDF e anteriores ao regime ── -->
   <div *ngIf="ehLista" class="bg-white rounded-lg shadow p-6">
     <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
       <div class="flex-1 min-w-0">
-        <ng-container *ngIf="!ehListaTcdf">
+        <ng-container *ngIf="!ehListaTcdf && !ehListaAnteriores">
           <h2 class="text-base font-semibold text-blue-900 mb-1">Processos de supervisão contínua</h2>
           <p class="text-sm text-gray-600">Cada linha é um processo SEI de contratação de TIC que o órgão comunicante
           mandou para análise e que percorre SGDI, SUBGD e UGTIC até voltar ao gabinete e ao órgão. A lista vem por
           criticidade (Alta, Média, Baixa e por fim os sem criticidade) e, dentro dela, pela chegada mais recente na
-          SGDI. Os concluídos (contrato assinado) ficam na relação do painel. As contratações que chegaram por
-          comunicação do TCDF estão na aba ao lado.</p>
+          SGDI. Os de contrato assinado ficam na relação do painel. As contratações que chegaram por comunicação do TCDF
+          e as anteriores ao regime estão nas abas ao lado.</p>
         </ng-container>
         <ng-container *ngIf="ehListaTcdf">
           <h2 class="text-base font-semibold text-blue-900 mb-1">Comunicações do TCDF</h2>
@@ -19,6 +19,13 @@
           do processo de comunicação do TCDF. Mesma ordem e mesmos filtros da lista dos processos de supervisão
           contínua.</p>
         </ng-container>
+        <ng-container *ngIf="ehListaAnteriores">
+          <h2 class="text-base font-semibold text-blue-900 mb-1">Contratações anteriores ao regime</h2>
+          <p class="text-sm text-gray-600">Contratações que chegaram à SGDI quando ainda era autorização e que já têm
+          contrato assinado. São registros históricos: ficam fora dos números da supervisão contínua (o painel tem um
+          bloco próprio para eles) e do painel público. Um processo da supervisão com contrato assinado também pode ser
+          marcado como anterior ao regime, na página dele.</p>
+        </ng-container>
       </div>
       <div class="flex items-center gap-2 whitespace-nowrap">
         <button (click)="exportarCsv()" [disabled]="exportando" title="Baixa a lista filtrada em planilha (CSV)"
@@ -26,7 +33,7 @@
           <span class="material-icons text-base leading-none" aria-hidden="true">download</span>
           {{ exportando ? 'Gerando...' : 'Exportar CSV' }}
         </button>
-        <a *ngIf="!ehListaTcdf" routerLink="/analises/processos/novo"
+        <a *ngIf="!ehListaTcdf && !ehListaAnteriores" routerLink="/analises/processos/novo"
            class="inline-flex items-center gap-1 bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">
           <span class="material-icons text-base leading-none" aria-hidden="true">add</span>
           Novo processo
@@ -35,6 +42,11 @@
            class="inline-flex items-center gap-1 bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">
           <span class="material-icons text-base leading-none" aria-hidden="true">add</span>
           Registrar comunicação do TCDF
+        </a>
+        <a *ngIf="ehListaAnteriores" [routerLink]="'/analises/processos/' + secaoRegistrarAnterior"
+           class="inline-flex items-center gap-1 bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">
+          <span class="material-icons text-base leading-none" aria-hidden="true">add</span>
+          Registrar contratação anterior ao regime
         </a>
       </div>
     </div>
@@ -49,8 +61,9 @@
               class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700">Buscar</button>
     </div>
 
+    <!-- Categoria (as três listas) e, na supervisão e no TCDF, situação, criticidade e "Mais filtros" -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3 items-end">
-      <div>
+      <div *ngIf="!ehListaAnteriores">
         <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-situacao">Situação</label>
         <select id="ctr-f-situacao" [(ngModel)]="filtro.Situacao" name="ctr-f-situacao" (ngModelChange)="buscar()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -58,7 +71,7 @@
           <option *ngFor="let s of situacoes" [value]="s">{{ s }}</option>
         </select>
       </div>
-      <div>
+      <div *ngIf="!ehListaAnteriores">
         <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-criticidade">Criticidade</label>
         <select id="ctr-f-criticidade" [(ngModel)]="filtro.Criticidade" name="ctr-f-criticidade" (ngModelChange)="buscar()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -67,16 +80,21 @@
         </select>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-nivel-risco">Maior risco da contratação</label>
-        <select id="ctr-f-nivel-risco" [(ngModel)]="filtro.NivelRiscoDeclarado" name="ctr-f-nivel-risco" (ngModelChange)="buscar()"
-                title="Pelo maior nível entre os riscos da contratação registrados no processo"
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-categoria">Categoria do objeto</label>
+        <select id="ctr-f-categoria" [(ngModel)]="filtro.Categoria" name="ctr-f-categoria" (ngModelChange)="buscar()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Todos</option>
-          <option *ngFor="let n of niveisRisco" [value]="n">{{ n }}</option>
-          <option [value]="semRiscosDeclarados">{{ semRiscosDeclarados }}</option>
+          <option value="">Todas</option>
+          <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
         </select>
       </div>
-      <div>
+      <!-- Na lista dos registros históricos a sigla fica à mostra (não há "Mais filtros") -->
+      <div *ngIf="ehListaAnteriores">
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-sigla">Sigla do órgão</label>
+        <input id="ctr-f-sigla" type="text" [(ngModel)]="filtro.Sigla" name="ctr-f-sigla" list="ctr-siglas-filtro"
+               placeholder="Todas" (keyup.enter)="buscar()" (change)="buscar()"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm uppercase bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div *ngIf="!ehListaAnteriores">
         <button type="button" (click)="filtrosAbertos = !filtrosAbertos" [attr.aria-expanded]="filtrosAbertos"
                 class="w-full inline-flex items-center justify-center gap-1 text-sm text-gray-700 border border-gray-300 bg-white rounded-md px-3 py-2 hover:bg-gray-50">
           <span class="material-icons text-base leading-none" aria-hidden="true">tune</span>
@@ -87,16 +105,21 @@
         </button>
       </div>
     </div>
+    <datalist id="ctr-siglas-filtro">
+      <option *ngFor="let s of siglas" [value]="s"></option>
+    </datalist>
 
     <!-- Mais filtros -->
-    <div *ngIf="filtrosAbertos" class="border border-gray-200 bg-gray-50 rounded-lg p-4 mb-3">
+    <div *ngIf="filtrosAbertos && !ehListaAnteriores" class="border border-gray-200 bg-gray-50 rounded-lg p-4 mb-3">
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-categoria">Categoria do objeto</label>
-          <select id="ctr-f-categoria" [(ngModel)]="filtro.Categoria" name="ctr-f-categoria" (ngModelChange)="buscar()"
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-nivel-risco">Maior risco da contratação</label>
+          <select id="ctr-f-nivel-risco" [(ngModel)]="filtro.NivelRiscoDeclarado" name="ctr-f-nivel-risco" (ngModelChange)="buscar()"
+                  title="Pelo maior nível entre os riscos da contratação registrados no processo"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Todas</option>
-            <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+            <option value="">Todos</option>
+            <option *ngFor="let n of niveisRisco" [value]="n">{{ n }}</option>
+            <option [value]="semRiscosDeclarados">{{ semRiscosDeclarados }}</option>
           </select>
         </div>
         <div>
@@ -104,15 +127,12 @@
           <input id="ctr-f-sigla" type="text" [(ngModel)]="filtro.Sigla" name="ctr-f-sigla" list="ctr-siglas-filtro"
                  placeholder="Todas" (keyup.enter)="buscar()" (change)="buscar()"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm uppercase bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <datalist id="ctr-siglas-filtro">
-            <option *ngFor="let s of siglas" [value]="s"></option>
-          </datalist>
         </div>
         <div class="flex items-end">
           <label class="flex items-center gap-2 text-sm text-gray-700 py-2">
             <input id="ctr-f-concluidos" type="checkbox" [(ngModel)]="filtro.IncluirConcluidos" name="ctr-f-concluidos"
                    (ngModelChange)="buscar()" class="rounded border-gray-300">
-            <span>Incluir os concluídos (contrato assinado)</span>
+            <span>Incluir os de contrato assinado</span>
           </label>
         </div>
         <div>
@@ -130,15 +150,6 @@
             <option value="">Todos</option>
             <option *ngFor="let t of tiposContratacao" [value]="t">{{ t }}</option>
             <option [value]="tipoNaoInformado">Não informado</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1" for="ctr-f-esclarecimento">Esclarecimento ao órgão</label>
-          <select id="ctr-f-esclarecimento" [(ngModel)]="filtro.EsclarecimentoPendente" name="ctr-f-esclarecimento" (ngModelChange)="buscar()"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option [ngValue]="null">Todos</option>
-            <option [ngValue]="true">Só os que aguardam esclarecimento</option>
-            <option [ngValue]="false">Sem esclarecimento pendente</option>
           </select>
         </div>
         <div>
@@ -175,12 +186,14 @@
 
     <ng-container *ngIf="!carregando && !erroCarregar">
       <p *ngIf="totalItens > 0" class="text-sm text-gray-600 mb-2">
-        <strong>{{ totalItens }}</strong> {{ totalItens === 1 ? 'processo encontrado' : 'processos encontrados' }}<span
+        <strong>{{ totalItens }}</strong> {{ ehListaAnteriores
+          ? (totalItens === 1 ? 'contratação encontrada' : 'contratações encontradas')
+          : (totalItens === 1 ? 'processo encontrado' : 'processos encontrados') }}<span
         *ngIf="processos.length < totalItens">, mostrando {{ processos.length }}</span>.
       </p>
 
       <!-- Nenhum processo cadastrado ainda -->
-      <div *ngIf="semNenhumProcesso && !ehListaTcdf" class="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+      <div *ngIf="semNenhumProcesso && !ehListaTcdf && !ehListaAnteriores" class="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
         <span class="material-icons text-4xl text-gray-300" aria-hidden="true">folder_open</span>
         <p class="text-sm text-gray-700 mt-2">Ainda não há processos cadastrados.</p>
         <p class="text-xs text-gray-500 italic mt-1">Cadastre um processo ou traga a planilha de acompanhamento da equipe.</p>
@@ -202,6 +215,16 @@
              class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">Registrar comunicação do TCDF</a>
         </div>
       </div>
+      <div *ngIf="semNenhumProcesso && ehListaAnteriores" class="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+        <span class="material-icons text-4xl text-gray-300" aria-hidden="true">history</span>
+        <p class="text-sm text-gray-700 mt-2">Ainda não há contratações anteriores ao regime registradas.</p>
+        <p class="text-xs text-gray-500 italic mt-1">Registre uma contratação que chegou à SGDI no tempo da autorização e
+        já tem contrato assinado, ou marque como anterior ao regime um processo com contrato assinado, na página dele.</p>
+        <div class="mt-4 flex items-center justify-center gap-3">
+          <a [routerLink]="'/analises/processos/' + secaoRegistrarAnterior"
+             class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-md hover:bg-blue-700">Registrar contratação anterior ao regime</a>
+        </div>
+      </div>
 
       <!-- Filtro que não encontra nada -->
       <div *ngIf="processos.length === 0 && !semNenhumProcesso" class="text-center py-8 text-sm text-gray-500">
@@ -209,18 +232,18 @@
         <button type="button" (click)="limparFiltros()" class="mt-2 text-blue-700 hover:underline">Limpar os filtros</button>
       </div>
 
-      <div *ngIf="processos.length > 0" class="overflow-x-auto" tabindex="0" role="region"
+      <!-- Supervisão contínua e comunicações do TCDF -->
+      <div *ngIf="processos.length > 0 && !ehListaAnteriores" class="overflow-x-auto" tabindex="0" role="region"
            [attr.aria-label]="ehListaTcdf ? 'Tabela das comunicações do TCDF' : 'Tabela dos processos de supervisão contínua'">
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-blue-50 text-blue-900 text-left text-xs">
               <th scope="col" class="px-3 py-2">{{ ehListaTcdf ? 'Processo de comunicação e órgão auditado' : 'Processo e órgão' }}</th>
               <th scope="col" class="px-3 py-2">Objeto</th>
-              <th scope="col" class="px-3 py-2">Status</th>
+              <th scope="col" class="px-3 py-2">Categoria</th>
               <th scope="col" class="px-3 py-2">Situação</th>
-              <th scope="col" class="px-3 py-2">Parado há</th>
+              <th scope="col" class="px-3 py-2">Última movimentação</th>
               <th scope="col" class="px-3 py-2">Criticidade</th>
-              <th scope="col" class="px-3 py-2">Maior risco</th>
               <th scope="col" class="px-3 py-2" aria-label="Ações"></th>
             </tr>
           </thead>
@@ -231,84 +254,99 @@
                    class="whitespace-nowrap font-semibold text-blue-800 underline">{{ p.NumeroProcesso }}</a>
                 <span class="block mt-0.5 font-semibold text-gray-900">{{ p.OrgaoSigla }}</span>
                 <span class="block text-xs text-gray-500">{{ p.OrgaoNome }}</span>
-                <span *ngIf="p.ComplementoArea" class="block text-xs text-gray-500 italic">{{ p.ComplementoArea }}</span>
               </td>
-              <td class="px-3 py-2">
-                <span class="block w-64 truncate" [title]="p.Objeto">{{ p.Objeto }}</span>
-                <span class="block text-xs text-gray-500 mt-0.5">{{ p.CategoriaObjeto }}</span>
-              </td>
-              <td class="px-3 py-2">
-                <!-- STATUS: pela regra de conclusão do módulo (contrato assinado = Concluída).
-                     Quebra em duas linhas para a tabela caber em 1366 px sem rolagem -->
-                <span class="inline-block px-2 py-0.5 rounded-md text-xs font-semibold"
-                      [ngClass]="badgeStatusSupervisao(p.StatusSupervisao)">{{ p.StatusSupervisao }}</span>
-              </td>
+              <td class="px-3 py-2 break-words">{{ p.Objeto }}</td>
+              <td class="px-3 py-2 text-gray-700">{{ p.CategoriaObjeto }}</td>
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeSituacao(p.Situacao)">{{ p.Situacao }}</span>
-                <!-- Sinal paralelo ao trâmite: a situação acima não muda -->
-                <span *ngIf="p.EsclarecimentoPendente"
-                      class="block w-fit mt-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"
-                      [title]="p.EsclarecimentoDescricao || ''">
-                  Aguardando esclarecimento há {{ p.DiasEsclarecimentoPendente }} dia(s)
-                </span>
-                <!-- No lugar da data do retorno ao órgão, quando a etapa é dispensada -->
-                <span *ngIf="p.RetornoOrgaoNaoSeAplica" class="block text-xs text-gray-500 mt-1">
-                  retorno ao órgão: não se aplica
-                </span>
-                <span *ngIf="!p.RetornoOrgaoNaoSeAplica && p.RetornoOrgao" class="block text-xs text-gray-500 mt-1">
-                  retorno ao órgão: {{ p.RetornoOrgao | date:'dd/MM/yyyy':'UTC' }}
-                </span>
-                <span *ngIf="p.DataAssinaturaContrato" class="block text-xs text-green-800 mt-1">
-                  contrato assinado em {{ p.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}
-                </span>
-                <!-- Análise técnica: na área, com ou sem retorno -->
-                <span *ngIf="p.AnaliseTecnicaEncaminhadaEm" class="block text-xs text-gray-600 mt-1">
-                  análise técnica na {{ p.AnaliseTecnicaArea }}: {{ p.AnaliseTecnicaRetornoEm
-                    ? ('retornou em ' + (p.AnaliseTecnicaRetornoEm | date:'dd/MM/yyyy':'UTC'))
-                    : ('desde ' + (p.AnaliseTecnicaEncaminhadaEm | date:'dd/MM/yyyy':'UTC')) }}
+                <span *ngIf="p.SituacaoDesde" class="block text-xs text-gray-500 mt-1">
+                  desde {{ p.SituacaoDesde | date:'dd/MM/yyyy':'UTC' }}
                 </span>
                 <!-- Manifestações ao TCDF: quantas e o estágio da mais recente -->
                 <span *ngIf="p.TotalManifestacoes > 0" class="block text-xs text-gray-600 mt-1">
-                  TCDF: {{ p.TotalManifestacoes }} manifestação(ões)<ng-container
+                  TCDF: {{ p.TotalManifestacoes }} {{ p.TotalManifestacoes === 1 ? 'manifestação' : 'manifestações' }}<ng-container
                   *ngIf="p.UltimoEstagioTcdf">, {{ p.UltimoEstagioTcdf }}</ng-container>
                 </span>
               </td>
               <td class="px-3 py-2 whitespace-nowrap">
-                <span [ngClass]="corDiasSemMovimento(p.DiasSemMovimento)">{{ p.DiasSemMovimento }} dia(s)</span>
-                <span class="block text-xs text-gray-500">
-                  {{ p.UltimaMovimentacao ? ('desde ' + (p.UltimaMovimentacao | date:'dd/MM/yyyy':'UTC')) : 'sem datas de trâmite' }}
-                </span>
+                <ng-container *ngIf="p.UltimaMovimentacao">
+                  <span class="text-gray-800">{{ p.UltimaMovimentacao | date:'dd/MM/yyyy':'UTC' }}</span>
+                  <!-- Cor de alerta só enquanto a SGDI ainda age (fora das situações terminais) -->
+                  <span class="block text-xs" [ngClass]="corUltimaMovimentacao(p.DiasSemMovimento, p.Situacao)">
+                    {{ textoHaDias(p.DiasSemMovimento) }}
+                  </span>
+                </ng-container>
+                <span *ngIf="!p.UltimaMovimentacao" class="text-xs text-gray-500 italic">sem datas</span>
               </td>
               <td class="px-3 py-2">
                 <span *ngIf="p.Criticidade" class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                       [ngClass]="badgeCriticidade(p.Criticidade)"
                       title="Criticidade da contratação (art. 11 da IN)">{{ p.Criticidade }}</span>
                 <span *ngIf="!p.Criticidade" class="text-xs text-gray-500 italic">sem criticidade</span>
-                <!-- Pontos dos critérios e a composição (só os que pontuaram); sem eles a
-                     criticidade veio de antes da regra automática -->
-                <span *ngIf="p.PontosCriticidade != null" class="block text-xs text-gray-500 mt-1">{{ p.PontosCriticidade }} ponto(s)</span>
-                <span *ngIf="resumoComposicao(p.PontosPorCriterio, p.CriteriosCriticidade)" class="block text-xs text-gray-500">
-                  {{ resumoComposicao(p.PontosPorCriterio, p.CriteriosCriticidade) }}
-                </span>
-                <span *ngIf="p.EtapaPlanejamento" class="block text-xs text-gray-500 mt-1"
-                      [title]="rotuloEtapaPlanejamento(p.EtapaPlanejamento)">Etapa: {{ p.EtapaPlanejamento }}</span>
-              </td>
-              <td class="px-3 py-2">
-                <span *ngIf="p.NivelMaximoRiscoDeclarado"
-                      class="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                      [ngClass]="badgeNivelRisco(p.NivelMaximoRiscoDeclarado)"
-                      title="Maior nível entre os riscos da contratação, pelo mapa de riscos da CGDF">{{ p.NivelMaximoRiscoDeclarado }}</span>
-                <span *ngIf="!p.NivelMaximoRiscoDeclarado" class="text-xs text-gray-500 italic">sem riscos</span>
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <div class="inline-flex items-center gap-1">
-                  <a [routerLink]="['/analises/processos/editar', p.Id]"
-                     class="text-xs font-semibold text-blue-700 border border-blue-200 rounded-md px-2 py-1 hover:bg-blue-50">Abrir</a>
-                  <button (click)="abrirCheckpoint(p)" title="Registrar a chegada ou o retorno numa etapa do trâmite"
+                  <a [routerLink]="['/analises/processos/editar', p.Id]" title="Abrir o processo"
+                     [attr.aria-label]="'Abrir o processo ' + p.NumeroProcesso"
+                     class="text-blue-700 rounded-md p-1 hover:bg-blue-50 leading-none">
+                    <span class="material-icons text-lg leading-none" aria-hidden="true">visibility</span>
+                  </a>
+                  <button type="button" (click)="abrirCheckpoint(p)" title="Registrar andamento"
                           [attr.aria-label]="'Registrar andamento do processo ' + p.NumeroProcesso"
-                          class="text-xs font-semibold text-blue-700 border border-blue-200 rounded-md px-2 py-1 hover:bg-blue-50">Andamento</button>
-                  <button (click)="excluir(p)" [attr.aria-label]="'Excluir o processo ' + p.NumeroProcesso" title="Excluir o processo"
+                          class="text-blue-700 rounded-md p-1 hover:bg-blue-50 leading-none">
+                    <span class="material-icons text-lg leading-none" aria-hidden="true">edit_calendar</span>
+                  </button>
+                  <button type="button" (click)="excluir(p)" title="Excluir o processo"
+                          [attr.aria-label]="'Excluir o processo ' + p.NumeroProcesso"
+                          class="text-red-600 rounded-md p-1 hover:bg-red-50 leading-none">
+                    <span class="material-icons text-lg leading-none" aria-hidden="true">delete_outline</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Contratações anteriores ao regime (registros históricos) -->
+      <div *ngIf="processos.length > 0 && ehListaAnteriores" class="overflow-x-auto" tabindex="0" role="region"
+           aria-label="Tabela das contratações anteriores ao regime">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-blue-50 text-blue-900 text-left text-xs">
+              <th scope="col" class="px-3 py-2">Processo e órgão</th>
+              <th scope="col" class="px-3 py-2">Objeto</th>
+              <th scope="col" class="px-3 py-2">Categoria</th>
+              <th scope="col" class="px-3 py-2">Contrato</th>
+              <th scope="col" class="px-3 py-2" aria-label="Ações"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of processos" class="border-b border-gray-200 align-top hover:bg-gray-50">
+              <td class="px-3 py-2">
+                <a [routerLink]="['/analises/processos/editar', p.Id]"
+                   class="whitespace-nowrap font-semibold text-blue-800 underline">{{ p.NumeroProcesso }}</a>
+                <span class="block mt-0.5 font-semibold text-gray-900">{{ p.OrgaoSigla }}</span>
+                <span class="block text-xs text-gray-500">{{ p.OrgaoNome }}</span>
+              </td>
+              <td class="px-3 py-2 break-words">{{ p.Objeto }}</td>
+              <td class="px-3 py-2 text-gray-700">{{ p.CategoriaObjeto }}</td>
+              <td class="px-3 py-2 whitespace-nowrap">
+                <span class="text-gray-800">{{ p.NumeroContrato ? ('nº ' + p.NumeroContrato) : '-' }}</span>
+                <span *ngIf="p.DataAssinaturaContrato" class="block text-xs text-gray-500">
+                  assinado em {{ p.DataAssinaturaContrato | date:'dd/MM/yyyy':'UTC' }}
+                </span>
+              </td>
+              <td class="px-3 py-2 text-right whitespace-nowrap">
+                <div class="inline-flex items-center gap-1">
+                  <a [routerLink]="['/analises/processos/editar', p.Id]" title="Abrir a contratação"
+                     [attr.aria-label]="'Abrir a contratação do processo ' + p.NumeroProcesso"
+                     class="text-blue-700 rounded-md p-1 hover:bg-blue-50 leading-none">
+                    <span class="material-icons text-lg leading-none" aria-hidden="true">visibility</span>
+                  </a>
+                  <button type="button" (click)="excluir(p)" title="Excluir a contratação"
+                          [attr.aria-label]="'Excluir a contratação do processo ' + p.NumeroProcesso"
                           class="text-red-600 rounded-md p-1 hover:bg-red-50 leading-none">
                     <span class="material-icons text-lg leading-none" aria-hidden="true">delete_outline</span>
                   </button>
@@ -344,6 +382,23 @@
     ></app-ctr-processo-form>
   </div>
 
+  <!-- ── Registrar contratação anterior ao regime (formulário curto) ──────── -->
+  <div *ngIf="secao === secaoRegistrarAnterior" class="bg-white rounded-lg shadow p-6 max-w-5xl mx-auto">
+    <h2 class="text-base font-semibold text-blue-900 mb-1">Registrar contratação anterior ao regime</h2>
+    <p class="text-sm text-gray-600 mb-6">Para a contratação que chegou à SGDI quando ainda era autorização e que já
+    tem contrato assinado. É um registro histórico: não tem criticidade, riscos, esclarecimentos, análise técnica nem
+    nota informativa, e fica fora dos números da supervisão contínua.</p>
+
+    <app-ctr-anterior-regime-form
+      [siglas]="siglas"
+      [salvando]="salvando"
+      rotuloSalvar="Registrar contratação"
+      [rotaCancelar]="'/analises/processos/' + secaoListaAnteriores"
+      (salvar)="criarAnterior($event)"
+      (cancelar)="irParaLista(secaoListaAnteriores)"
+    ></app-ctr-anterior-regime-form>
+  </div>
+
   <!-- ── Modal: registrar andamento em uma etapa ───────────────────────── -->
   <div *ngIf="ehLista && processoCheckpoint"
        class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
@@ -361,10 +416,29 @@
       <label class="block text-sm font-semibold mb-1" for="ctr-cp-data">Data</label>
       <input id="ctr-cp-data" type="date" [(ngModel)]="checkpointData" name="ctr-cp-data"
              [disabled]="checkpointLimpar || (etapaAceitaNaoSeAplica && checkpointNaoSeAplica)"
+             [attr.aria-invalid]="errCheckpoint ? 'true' : null"
+             [attr.aria-describedby]="errCheckpoint ? 'ctr-cp-erro ctr-cp-data-ajuda' : 'ctr-cp-data-ajuda'"
              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
-      <p class="text-xs text-gray-500 italic mt-1">Vem preenchida com a data de hoje; troque se a chegada foi em outro dia.</p>
-      <p *ngIf="checkpointEtapa === etapaAssinatura" class="text-xs text-green-800 mt-1">Com esta data o processo fica
-      Concluído: sai da lista e passa para a relação de concluídos do painel.</p>
+      <p id="ctr-cp-data-ajuda" class="text-xs text-gray-500 italic mt-1">Vem preenchida com a data de hoje; troque se o
+      andamento foi em outro dia.</p>
+      <p *ngIf="checkpointEtapa === etapaAssinatura" class="text-xs text-green-800 mt-1">Com esta data a situação passa a
+      Contrato assinado: o processo sai da lista e passa para a relação dos contratos assinados, no painel.</p>
+      <p *ngIf="checkpointEtapa === etapaNota && !checkpointLimpar" class="text-xs text-teal-800 mt-1">Com esta data a
+      situação passa a Nota informativa enviada: a análise da SGDI termina e fica faltando só a assinatura do
+      contrato.</p>
+
+      <!-- Nota informativa: o documento SEI da nota, opcional -->
+      <ng-container *ngIf="checkpointEtapa === etapaNota">
+        <label class="block text-sm font-semibold mb-1 mt-3" for="ctr-cp-documento">Nº do documento SEI da nota informativa</label>
+        <input id="ctr-cp-documento" type="text" maxlength="25" [(ngModel)]="checkpointDocumento" name="ctr-cp-documento"
+               [disabled]="checkpointLimpar" placeholder="Ex.: 213807905"
+               [attr.aria-invalid]="errCheckpointDocumento ? 'true' : null"
+               [attr.aria-describedby]="errCheckpointDocumento ? 'ctr-cp-documento-erro ctr-cp-documento-ajuda' : 'ctr-cp-documento-ajuda'"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
+        <p *ngIf="errCheckpointDocumento" id="ctr-cp-documento-erro" class="text-xs text-red-600 mt-1">{{ errCheckpointDocumento }}</p>
+        <p id="ctr-cp-documento-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional, até 25 caracteres, do jeito
+        que estiver no SEI. Limpar a data limpa o documento.</p>
+      </ng-container>
 
       <label *ngIf="etapaAceitaNaoSeAplica" class="flex items-center gap-2 mt-3 text-sm">
         <input type="checkbox" [ngModel]="checkpointNaoSeAplica" name="ctr-cp-na"
@@ -377,10 +451,10 @@
         <span>Limpar a data desta etapa</span>
       </label>
 
-      <p *ngIf="errCheckpoint" class="text-xs text-red-600 mt-3">{{ errCheckpoint }}</p>
+      <p *ngIf="errCheckpoint" id="ctr-cp-erro" class="text-xs text-red-600 mt-3">{{ errCheckpoint }}</p>
 
       <div class="mt-5 flex items-center gap-3">
-        <button (click)="salvarCheckpoint()" [disabled]="salvandoCheckpoint || !!errCheckpoint"
+        <button (click)="salvarCheckpoint()" [disabled]="salvandoCheckpoint || !!errCheckpoint || !!errCheckpointDocumento"
                 class="bg-blue-600 text-white text-sm font-semibold py-2 px-5 rounded-md hover:bg-blue-700 disabled:opacity-50">
           {{ salvandoCheckpoint ? 'Salvando...' : 'Salvar' }}
         </button>

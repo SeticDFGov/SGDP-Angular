@@ -47,16 +47,20 @@ export const TIPOS_CONTRATACAO = ['Nova contratação', 'Alteração de contrata
 export const TIPO_CONTRATACAO_NAO_INFORMADO = 'Não informado';
 
 /**
- * Situação derivada do processo (nunca gravada: o backend calcula a partir das
- * datas do trâmite e da restituição). A ordem é a da precedência do cálculo:
- * a assinatura do contrato vence tudo (`Concluído`, o processo sai da lista e
- * vai para a relação de concluídos do painel); a devolução ao órgão é
- * `Análise concluída`.
+ * Situação derivada do processo (nunca gravada: o servidor calcula a partir das datas).
+ * A ordem é a da prioridade do cálculo (a primeira que se aplica vale): a assinatura do
+ * contrato vence tudo; a nota informativa encerra a análise da SGDI; o retorno ao órgão é
+ * "Análise concluída"; o pedido de esclarecimento sem resposta e o encaminhamento técnico
+ * sem retorno vêm antes das chegadas. O processo traz também a data do fato que define a
+ * situação (`SituacaoDesde`).
  */
 export const SITUACOES = [
-  'Concluído',
-  'Restituído',
+  'Contrato assinado',
+  'Restituído ao órgão',
+  'Nota informativa enviada',
   'Análise concluída',
+  'Esclarecimentos solicitados',
+  'Aguardando análise técnica',
   'Retornado ao Gab SGDI',
   'Em análise na UGTIC',
   'Em análise na SUBGD',
@@ -64,10 +68,26 @@ export const SITUACOES = [
   'Sem movimentação'
 ] as const;
 
+/** A situação dos processos com contrato assinado (fora da lista por padrão). */
+export const SITUACAO_CONTRATO_ASSINADO = 'Contrato assinado';
+
 /**
- * Etapas do trâmite, na ordem cronológica; chave do PUT de checkpoint. A última é
- * a assinatura do contrato: fora da cronologia das outras cinco (o TCDF também
- * analisa contrato já assinado), mas é a data que conclui o processo.
+ * Situações em que a SGDI não age mais: ficam fora dos gargalos do painel, e a
+ * "Última movimentação" delas não tem cor de alerta (os dias passam esperando o órgão).
+ */
+export const SITUACOES_TERMINAIS: readonly string[] = [
+  'Contrato assinado',
+  'Restituído ao órgão',
+  'Nota informativa enviada',
+  'Análise concluída'
+];
+
+/**
+ * Etapas do trâmite, na ordem cronológica; chave do PUT de checkpoint. As duas últimas
+ * ficam fora da cronologia das cinco primeiras: a nota informativa (aviso ao órgão de que
+ * o processo entrou no portfólio; encerra a análise da SGDI e só não pode ser anterior à
+ * chegada na SGDI) e a assinatura do contrato (o TCDF também analisa contrato já
+ * assinado), que é a data que conclui o processo.
  */
 export const ETAPAS = [
   { valor: 'ChegadaSgdi', rotulo: 'Chegada da análise · SGDI' },
@@ -75,11 +95,15 @@ export const ETAPAS = [
   { valor: 'ChegadaUgtic', rotulo: 'Chegada da análise · UGTIC' },
   { valor: 'RetornoGabSgdi', rotulo: 'Retorno ao Gab SGDI' },
   { valor: 'RetornoOrgao', rotulo: 'Retorno ao órgão comunicante' },
+  { valor: 'NotaInformativa', rotulo: 'Nota informativa enviada' },
   { valor: 'AssinaturaContrato', rotulo: 'Assinatura do Contrato' }
 ] as const;
 
 /** A etapa que conclui o processo (não aceita "não se aplica"). */
 export const ETAPA_ASSINATURA = 'AssinaturaContrato';
+
+/** A etapa da nota informativa: no checkpoint aceita também o nº do documento SEI. */
+export const ETAPA_NOTA_INFORMATIVA = 'NotaInformativa';
 
 /** Situação da contratação no Portfólio Estratégico (incisos I e II do despacho). */
 export const SITUACOES_PORTFOLIO = [
@@ -130,14 +154,23 @@ export const STATUS_TCDF = [
   'Edital revogado'
 ] as const;
 
-/** Como a contratação chegou à SGDI. */
-export const ORIGENS = ['Órgão comunicante', 'TCDF'] as const;
+/**
+ * Como a contratação chegou à SGDI. "Anterior ao regime" são os registros históricos:
+ * contratações que chegaram quando ainda era autorização e já têm contrato assinado.
+ */
+export const ORIGENS = ['Órgão comunicante', 'TCDF', 'Anterior ao regime'] as const;
 
 /** Origem assumida quando o campo vem vazio (default da coluna). */
 export const ORIGEM_PADRAO = 'Órgão comunicante';
 
 /** Origem dos processos que nascem de análise interna do próprio Tribunal. */
 export const ORIGEM_TCDF = 'TCDF';
+
+/**
+ * Origem dos registros históricos (contratações anteriores ao regime de supervisão
+ * contínua): sub-aba própria, formulário curto, fora das estatísticas da supervisão.
+ */
+export const ORIGEM_ANTERIOR_REGIME = 'Anterior ao regime';
 
 /**
  * Área técnica para onde a SGDI encaminha o processo para análise técnica (espelha
@@ -147,12 +180,6 @@ export const AREAS_TECNICAS = [
   { valor: 'SUBSIS', rotulo: 'SUBSIS (Subsecretaria de Sistemas)' },
   { valor: 'SUBINFRA', rotulo: 'SUBINFRA (Subsecretaria de Infraestrutura)' }
 ] as const;
-
-/**
- * Status da contratação na supervisão contínua (coluna STATUS das listas), derivado no
- * servidor pela regra de conclusão do módulo: contrato assinado = "Concluída".
- */
-export const STATUS_SUPERVISAO = ['Em regime de supervisão', 'Concluída'] as const;
 
 /** Resultado da análise e providência adotada (inciso I do despacho). */
 export const RESULTADOS_ANALISE = [
@@ -275,6 +302,18 @@ export interface CtrProcessoForm {
   /** Nem todo processo é devolvido ao órgão: com a data preenchida é recusado. */
   RetornoOrgaoNaoSeAplica: boolean;
   /**
+   * Envio da nota informativa ao órgão (o processo entrou no portfólio e a SGDI só vai
+   * acompanhar): encerra a análise da SGDI. Não pode ser futura nem anterior à chegada na
+   * SGDI. Conta como movimentação.
+   */
+  NotaInformativaEnviadaEm?: string | null;
+  /** Nº do documento SEI da nota (texto livre, até 25); só existe com a data. */
+  NotaInformativaDocumentoSei?: string | null;
+  /** Nº do contrato (até 60). Obrigatório nos registros anteriores ao regime. */
+  NumeroContrato?: string | null;
+  /** Nº do documento SEI da autorização dada pela SGDI no regime anterior (até 25). */
+  AutorizacaoDocumentoSei?: string | null;
+  /**
    * Análise técnica (desde 2026-09-24), fora da cronologia do trâmite: a data do
    * encaminhamento exige a área; o retorno exige o encaminhamento e não pode ser
    * anterior a ele; nada no futuro. No PUT os quatro seguem o corpo (nulo limpa).
@@ -288,8 +327,8 @@ export interface CtrProcessoForm {
   /** Sigla de ETAPAS_PLANEJAMENTO; continua registrada depois da assinatura. */
   EtapaPlanejamento?: string | null;
   /**
-   * A data final do trâmite: preenchida, o processo fica `Concluído` (sai da
-   * lista e vai para a relação de concluídos do painel). Não pode ser futura.
+   * A data final do trâmite: preenchida, a situação é "Contrato assinado" (o processo
+   * sai da lista e vai para a relação do painel). Não pode ser futura.
    */
   DataAssinaturaContrato?: string | null;
   /**
@@ -306,7 +345,10 @@ export interface CtrProcessoForm {
    * pergunta nova.
    */
   CriteriosCriticidade?: Record<string, string> | null;
-  /** Opcional no DTO: vazia = "Órgão comunicante". */
+  /**
+   * Opcional no DTO: vazia = "Órgão comunicante". "Anterior ao regime" é o registro
+   * histórico, criado pelo formulário curto ou marcado pela rota própria.
+   */
   Origem?: string | null;
   /** Pedido de esclarecimento ao órgão: a data exige a descrição. */
   EsclarecimentoSolicitadoEm?: string | null;
@@ -342,10 +384,10 @@ export interface CtrProcessoForm {
  */
 export interface CtrProcesso extends Omit<CtrProcessoForm, 'ClassificacaoRisco'> {
   Id: number;
-  /** Derivada no backend, nunca gravada. `Concluído` = contrato assinado. */
+  /** Derivada no backend, nunca gravada: uma das SITUACOES. */
   Situacao: string;
-  /** Derivado (um de STATUS_SUPERVISAO): "Concluída" com o contrato assinado. */
-  StatusSupervisao: string;
+  /** Data pura do fato que define a situação ("desde 03/10/2026"); nula sem data. */
+  SituacaoDesde?: string | null;
   /** Derivado: soma dos pontos das respostas aos critérios (nunca negativa); nulo sem respostas. */
   PontosCriticidade?: number | null;
   /**
@@ -356,10 +398,11 @@ export interface CtrProcesso extends Omit<CtrProcessoForm, 'ClassificacaoRisco'>
   /** Derivado: a resposta à pergunta anterior do II, enquanto ninguém responde à nova. */
   RespostaPerguntaAnteriorII?: string | null;
   /**
-   * Sinal paralelo ao trâmite (não muda a situação): há pedido de
-   * esclarecimento sem resposta. Derivados no backend, nunca gravados.
+   * Há pedido de esclarecimento sem resposta (desde 2026-10-13 é também a situação
+   * "Esclarecimentos solicitados", quando nenhuma de prioridade maior se aplica).
+   * Derivados no servidor; os dias de espera aparecem na ficha.
    */
-  EsclarecimentoPendente: boolean;
+  EsclarecimentoPendente?: boolean;
   DiasEsclarecimentoPendente?: number | null;
   UltimaMovimentacao?: string | null;
   DiasSemMovimento: number;
@@ -381,11 +424,23 @@ export interface CtrCheckpointForm {
   Etapa: string;
   /** Nula limpa o checkpoint. */
   Data?: string | null;
+  /** Só na etapa NotaInformativa: o nº do documento SEI da nota (até 25). */
+  DocumentoSei?: string | null;
   /**
    * Vale para ChegadaUgtic **e** RetornoOrgao: true limpa a data e marca "não
    * se aplica"; informar a data desmarca o flag. Nas demais etapas é recusado.
    */
   NaoSeAplica?: boolean;
+}
+
+/**
+ * Marcar ou desmarcar um processo como registro histórico
+ * (PUT processo/{id}/anterior-ao-regime). Marcar exige o contrato assinado e o nº do
+ * contrato (o que vier aqui completa o que falta); desmarcar devolve à supervisão.
+ */
+export interface CtrAnteriorRegimeForm {
+  Anterior: boolean;
+  NumeroContrato?: string | null;
 }
 
 /** Filtros da listagem (query string de GET processo e GET processo/exportar). */
@@ -400,21 +455,20 @@ export interface CtrProcessoFiltro {
   De?: string | null;
   Ate?: string | null;
   /**
-   * true traz também os `Concluído` (contrato assinado), que por padrão ficam
-   * fora da lista e do CSV. O filtro por situação `Concluído` também os traz.
+   * true traz também os de contrato assinado, que por padrão ficam fora da lista e do
+   * CSV. O filtro pela situação "Contrato assinado" também os traz.
    */
   IncluirConcluidos?: boolean | null;
   EtapaPlanejamento?: string | null;
   Criticidade?: string | null;
   /**
-   * Um de ORIGENS. Desde 2026-09-24 é a sub-aba que escolhe: "Processos de supervisão
-   * contínua" manda o órgão comunicante e "Comunicações do TCDF" manda TCDF.
+   * Um de ORIGENS. É a sub-aba que escolhe: "Processos de supervisão contínua" manda o
+   * órgão comunicante, "Comunicações do TCDF" manda TCDF e "Contratações anteriores ao
+   * regime" manda "Anterior ao regime".
    */
   Origem?: string | null;
   /** Um de TIPOS_CONTRATACAO ou TIPO_CONTRATACAO_NAO_INFORMADO (os sem o tipo). */
   TipoContratacao?: string | null;
-  /** true = só os que aguardam esclarecimento; false = só os sem pendência. */
-  EsclarecimentoPendente?: boolean | null;
   /**
    * Nível MÁXIMO dos riscos da contratação: um dos NIVEIS_RISCO ou
    * SEM_RISCOS_DECLARADOS. Fora do domínio = lista vazia.
@@ -537,17 +591,28 @@ export interface CtrTemposMedios {
   ChegadaParaAssinatura?: number | null;
 }
 
+/** Bloco dos registros históricos (contratações anteriores ao regime) no painel interno. */
+export interface CtrPainelHistoricos {
+  Total: number;
+  PorCategoria: CtrContagem[];
+  PorOrgao: CtrContagem[];
+}
+
+/**
+ * Painel interno. Desde 2026-10-13 as estatísticas são só da supervisão contínua
+ * (órgão comunicante e TCDF): os registros anteriores ao regime têm o bloco próprio.
+ */
 export interface CtrPainel {
   TotalAtivos: number;
   LimiteDias: number;
-  /** As oito situações sempre presentes, mesmo com zero. */
+  /** As onze situações sempre presentes, mesmo com zero. */
   PorSituacao: CtrContagem[];
-  /** Ativos com contrato assinado (situação `Concluído`). */
+  /** Ativos com contrato assinado. */
   TotalConcluidos: number;
-  /** Relação de concluídos: assinatura mais recente primeiro, no máximo 50. */
+  /** Relação dos de contrato assinado: assinatura mais recente primeiro, no máximo 50. */
   Concluidos: CtrProcesso[];
-  /** Ativos com pedido de esclarecimento ainda sem resposta. */
-  TotalEsclarecimentoPendente: number;
+  /** O servidor ainda pode mandar; a tela não mostra mais (a situação nova cobre). */
+  TotalEsclarecimentoPendente?: number;
   /**
    * Os 4 NIVEIS_RISCO (pelo nível máximo de cada processo) + SEM_RISCOS_DECLARADOS,
    * sempre presentes (quantidade desc, empate pela ordem do domínio).
@@ -558,8 +623,10 @@ export interface CtrPainel {
   PorTipoContratacao: CtrContagem[];
   PorOrgao: CtrContagem[];
   TemposMedios: CtrTemposMedios;
-  /** Ativos fora de Concluído, Análise concluída e Restituído parados há LimiteDias ou mais. */
+  /** Ativos fora das SITUACOES_TERMINAIS parados há LimiteDias ou mais. */
   Gargalos: CtrProcesso[];
+  /** Os registros históricos (ausente na resposta anterior a 2026-10-13). */
+  Historicos?: CtrPainelHistoricos | null;
 }
 
 // ── Painel público (GET api/contratacoes/publico/painel, anônimo) ───────────

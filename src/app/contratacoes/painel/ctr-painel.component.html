@@ -26,11 +26,12 @@
   <app-ctr-incorporar *ngIf="incorporarAberto" (fechar)="incorporarAberto = false"></app-ctr-incorporar>
 
   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-950 leading-relaxed mb-4">
-    Panorama das análises em andamento: onde os processos estão, quanto tempo levam entre as instâncias e quais estão
-    parados. Os números consideram só os processos ativos; os concluídos (contrato assinado) entram nas contagens e têm
-    a própria relação. Clique num número para abrir a lista já filtrada. Os números juntam os processos de supervisão
-    contínua e as comunicações do TCDF; o clique abre a lista dos processos de supervisão contínua, e as comunicações
-    do TCDF ficam na aba própria, em Processos.
+    Panorama da supervisão contínua: onde os processos estão, quanto tempo levam entre as instâncias e quais estão
+    parados. Os números são só da supervisão contínua (os processos de supervisão contínua e as comunicações do TCDF,
+    somados); os de contrato assinado entram nas contagens e têm a própria relação. As contratações anteriores ao regime
+    ficam fora desses números e têm o bloco próprio, no fim da página. Clique num número para abrir a lista já filtrada:
+    o clique abre a lista dos processos de supervisão contínua, e as comunicações do TCDF ficam na aba própria, em
+    Processos.
   </div>
 
   <div *ngIf="carregando" class="text-center py-8 text-gray-500">Carregando...</div>
@@ -46,7 +47,7 @@
       <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
           <h2 class="text-base font-semibold text-blue-900 mb-1">Processos por situação</h2>
-          <p class="text-sm text-gray-600"><strong>{{ painel.TotalAtivos }}</strong> processo(s) em acompanhamento.</p>
+          <p class="text-sm text-gray-600"><strong>{{ painel.TotalAtivos }}</strong> processo(s) em supervisão contínua.</p>
         </div>
         <a routerLink="/analises/processos/lista" class="text-sm text-blue-700 underline">Ver todos na lista</a>
       </div>
@@ -62,57 +63,43 @@
         </a>
       </div>
 
-      <div class="mt-5 pt-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-5">
-        <!-- Concluídos: contrato assinado, a data final do trâmite -->
-        <div>
-          <h3 class="text-sm font-semibold text-blue-900 mb-2">Concluídos (contrato assinado)</h3>
-          <a routerLink="/analises/processos/lista" [queryParams]="lista({ Situacao: 'Concluído' })"
-             class="inline-flex items-end gap-2 underline">
-            <span class="text-2xl font-bold text-green-700">{{ painel.TotalConcluidos }}</span>
-            <span class="text-sm text-blue-700">ver na lista</span>
-          </a>
-          <p class="text-xs text-gray-500 italic mt-1">Com a data de assinatura do contrato o processo sai da lista e
-          entra na relação de concluídos, logo abaixo.</p>
-        </div>
-
-        <!-- Esclarecimentos: sinal paralelo, não entra nas situações acima -->
-        <div>
-          <h3 class="text-sm font-semibold text-blue-900 mb-2">Aguardando esclarecimento do órgão</h3>
-          <a routerLink="/analises/processos/lista" [queryParams]="lista({ EsclarecimentoPendente: true })"
-             class="inline-flex items-end gap-2 underline">
-            <span class="text-2xl font-bold text-amber-700">{{ painel.TotalEsclarecimentoPendente }}</span>
-            <span class="text-sm text-blue-700">ver na lista</span>
-          </a>
-          <p class="text-xs text-gray-500 italic mt-1">Pedido de esclarecimento ainda sem resposta. A situação do trâmite
-          não muda por causa disso.</p>
-        </div>
+      <div class="mt-5 pt-4 border-t border-gray-200">
+        <!-- Contrato assinado: a data final do trâmite -->
+        <h3 class="text-sm font-semibold text-blue-900 mb-2">Contratos assinados</h3>
+        <a routerLink="/analises/processos/lista" [queryParams]="lista({ Situacao: contratoAssinado })"
+           class="inline-flex items-end gap-2 underline">
+          <span class="text-2xl font-bold text-green-700">{{ painel.TotalConcluidos }}</span>
+          <span class="text-sm text-blue-700">ver na lista</span>
+        </a>
+        <p class="text-xs text-gray-500 italic mt-1">Com a data de assinatura do contrato o processo sai da lista e
+        entra na relação dos contratos assinados, logo abaixo.</p>
       </div>
     </div>
 
-    <!-- Relação de concluídos: contrato assinado -->
+    <!-- Relação dos contratos assinados -->
     <div class="bg-white rounded-lg shadow p-6 mb-5">
       <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
-          <h2 class="text-base font-semibold text-blue-900 mb-1">Processos concluídos</h2>
-          <p class="text-sm text-gray-600">Contrato assinado: a data final do trâmite. Os de assinatura mais recente
-          primeiro, até 50; a lista filtrada por Concluído traz todos.</p>
+          <h2 class="text-base font-semibold text-blue-900 mb-1">Processos com contrato assinado</h2>
+          <p class="text-sm text-gray-600">A assinatura do contrato é a data final do trâmite. Os de assinatura mais
+          recente primeiro, até 50; a lista filtrada pela situação Contrato assinado traz todos.</p>
         </div>
-        <a routerLink="/analises/processos/lista" [queryParams]="lista({ Situacao: 'Concluído' })"
+        <a routerLink="/analises/processos/lista" [queryParams]="lista({ Situacao: contratoAssinado })"
            class="text-sm text-blue-700 underline">Ver todos na lista</a>
       </div>
 
-      <div *ngIf="painel.Concluidos.length === 0" class="text-sm text-gray-500">Nenhum processo concluído ainda.</div>
+      <div *ngIf="painel.Concluidos.length === 0" class="text-sm text-gray-500">Nenhum processo com contrato assinado ainda.</div>
 
       <div *ngIf="painel.Concluidos.length > 0" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-blue-50 text-blue-900 text-left text-xs">
-              <th class="px-3 py-2">Processo</th>
-              <th class="px-3 py-2">Órgão</th>
-              <th class="px-3 py-2">Objeto</th>
-              <th class="px-3 py-2">Criticidade</th>
-              <th class="px-3 py-2">Contrato assinado em</th>
-              <th class="px-3 py-2" aria-label="Ações"></th>
+              <th scope="col" class="px-3 py-2">Processo</th>
+              <th scope="col" class="px-3 py-2">Órgão</th>
+              <th scope="col" class="px-3 py-2">Objeto</th>
+              <th scope="col" class="px-3 py-2">Criticidade</th>
+              <th scope="col" class="px-3 py-2">Contrato assinado em</th>
+              <th scope="col" class="px-3 py-2" aria-label="Ações"></th>
             </tr>
           </thead>
           <tbody>
@@ -143,7 +130,7 @@
     <div class="bg-white rounded-lg shadow p-6 mb-5">
       <h2 class="text-base font-semibold text-blue-900 mb-1">Nova contratação ou alteração de contratação vigente</h2>
       <p class="text-xs text-gray-500 italic mb-4">Cada processo conta uma vez, pelo tipo informado no cadastro;
-      os concluídos entram na conta. Clique num número para ver os processos na lista.</p>
+      os de contrato assinado entram na conta. Clique num número para ver os processos na lista.</p>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <a *ngFor="let c of porTipoContratacao" routerLink="/analises/processos/lista"
            [queryParams]="lista({ TipoContratacao: c.Chave, IncluirConcluidos: true })"
@@ -263,8 +250,8 @@
         <div>
           <h2 class="text-base font-semibold text-blue-900 mb-1">Processos parados</h2>
           <p class="text-sm text-gray-600">Processos ainda em análise sem movimentação há
-          <strong>{{ painel.LimiteDias }} dia(s)</strong> ou mais. Concluídos, os de análise concluída e os restituídos
-          ficam de fora.</p>
+          <strong>{{ painel.LimiteDias }} dia(s)</strong> ou mais. As situações em que a SGDI não age mais (Contrato
+          assinado, Restituído ao órgão, Nota informativa enviada e Análise concluída) ficam de fora.</p>
         </div>
         <div class="flex items-end gap-2">
           <div>
@@ -286,12 +273,12 @@
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-blue-50 text-blue-900 text-left text-xs">
-              <th class="px-3 py-2">Processo</th>
-              <th class="px-3 py-2">Órgão</th>
-              <th class="px-3 py-2">Situação</th>
-              <th class="px-3 py-2">Última movimentação</th>
-              <th class="px-3 py-2">Parado há</th>
-              <th class="px-3 py-2" aria-label="Ações"></th>
+              <th scope="col" class="px-3 py-2">Processo</th>
+              <th scope="col" class="px-3 py-2">Órgão</th>
+              <th scope="col" class="px-3 py-2">Situação</th>
+              <th scope="col" class="px-3 py-2">Última movimentação</th>
+              <th scope="col" class="px-3 py-2">Parado há</th>
+              <th scope="col" class="px-3 py-2" aria-label="Ações"></th>
             </tr>
           </thead>
           <tbody>
@@ -319,6 +306,56 @@
           </tbody>
         </table>
       </div>
+    </div>
+
+    <!-- Registros históricos: fora das estatísticas da supervisão, com o bloco próprio -->
+    <div class="bg-white rounded-lg shadow p-6 mt-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+        <div>
+          <h2 class="text-base font-semibold text-blue-900 mb-1">Contratações anteriores ao regime</h2>
+          <p class="text-sm text-gray-600">Registros históricos: contratações que chegaram à SGDI quando ainda era
+          autorização e já têm contrato assinado. Não entram nos números acima nem no painel público.</p>
+        </div>
+        <a [routerLink]="rotaAnteriores" class="inline-flex items-end gap-2 underline"
+           [title]="'Ver as contratações anteriores ao regime'">
+          <span class="text-2xl font-bold text-gray-900">{{ historicos.Total }}</span>
+          <span class="text-sm text-blue-700">ver na lista</span>
+        </a>
+      </div>
+
+      <div *ngIf="historicos.Total > 0" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+          <h3 class="text-sm font-semibold text-blue-900 mb-3">Por categoria do objeto</h3>
+          <a *ngFor="let c of historicos.PorCategoria" [routerLink]="rotaAnteriores"
+             [queryParams]="lista({ Categoria: c.Chave })"
+             class="block mb-2 rounded-md hover:bg-gray-50">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-700">{{ c.Chave }}</span>
+              <span class="font-semibold text-gray-900">{{ c.Quantidade }}</span>
+            </div>
+            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-2 bg-gray-400 rounded-full"
+                   [style.width.%]="proporcao(c.Quantidade, historicos.PorCategoria)"></div>
+            </div>
+          </a>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-blue-900 mb-3">Por órgão</h3>
+          <a *ngFor="let c of historicos.PorOrgao" [routerLink]="rotaAnteriores"
+             [queryParams]="lista({ Sigla: c.Chave })"
+             class="block mb-2 rounded-md hover:bg-gray-50">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-700">{{ c.Chave }}</span>
+              <span class="font-semibold text-gray-900">{{ c.Quantidade }}</span>
+            </div>
+            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-2 bg-gray-400 rounded-full"
+                   [style.width.%]="proporcao(c.Quantidade, historicos.PorOrgao)"></div>
+            </div>
+          </a>
+        </div>
+      </div>
+      <p *ngIf="historicos.Total === 0" class="text-sm text-gray-500">Nenhuma contratação anterior ao regime registrada.</p>
     </div>
 
   </ng-container>

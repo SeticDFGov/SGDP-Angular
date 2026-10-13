@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { AuthService } from '../../auth/services/auth';
 import {
+  CtrAnteriorRegimeForm,
   CtrCheckpointForm,
   CtrManifestacao,
   CtrPagedResponse,
@@ -62,7 +63,6 @@ export class CtrProcessoService {
     acrescentar('Criticidade', filtro.Criticidade);
     acrescentar('Origem', filtro.Origem);
     acrescentar('TipoContratacao', filtro.TipoContratacao);
-    acrescentar('EsclarecimentoPendente', filtro.EsclarecimentoPendente);
     // Maior nível dos riscos da contratação: valor fora do domínio devolve lista vazia.
     acrescentar('NivelRiscoDeclarado', filtro.NivelRiscoDeclarado);
     acrescentar('OrderBy', filtro.OrderBy);
@@ -116,6 +116,15 @@ export class CtrProcessoService {
   /** Registro rápido de chegada/retorno numa etapa (ou limpeza da data). */
   registrarCheckpoint(id: number, form: CtrCheckpointForm): Observable<CtrProcesso> {
     return this.http.put<CtrProcesso>(`${this.apiUrl}/processo/${id}/checkpoint`, form,
+      { headers: this.getHeaders() });
+  }
+
+  /**
+   * Marca o processo como registro histórico (contratação anterior ao regime) ou o
+   * devolve à supervisão contínua. Devolve o processo atualizado.
+   */
+  definirAnteriorAoRegime(id: number, form: CtrAnteriorRegimeForm): Observable<CtrProcesso> {
+    return this.http.put<CtrProcesso>(`${this.apiUrl}/processo/${id}/anterior-ao-regime`, form,
       { headers: this.getHeaders() });
   }
 

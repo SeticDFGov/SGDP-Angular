@@ -280,7 +280,7 @@
 <section class="mt-8 pt-4 border-t border-gray-200">
   <ng-container *ngTemplateOutlet="cabecalho; context: {
     icone: 'timeline', titulo: 'Tramitação',
-    ajuda: 'Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; as datas preenchidas seguem o caminho SGDI, SUBGD, UGTIC, Gab SGDI e órgão. A assinatura do contrato é a data final: com ela o processo fica Concluído.' }"></ng-container>
+    ajuda: 'Preencha as datas que já aconteceram. Etapa pulada pode ficar em branco; as datas preenchidas seguem o caminho SGDI, SUBGD, UGTIC, Gab SGDI e órgão. A assinatura do contrato é a data final: com ela a situação passa a Contrato assinado.' }"></ng-container>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div *ngFor="let c of checkpoints; let n = index">
@@ -294,7 +294,7 @@
                          || (c.campo === 'RetornoOrgao' && form.RetornoOrgaoNaoSeAplica)"
              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
       <p *ngIf="c.campo === campoAssinatura && form.DataAssinaturaContrato" class="text-xs text-green-800 mt-1">
-        Ao salvar, o processo fica Concluído: sai da lista e passa para a relação de concluídos do painel.
+        Ao salvar, a situação passa a Contrato assinado: o processo sai da lista e passa para a relação do painel.
       </p>
       <label *ngIf="c.campo === 'ChegadaUgtic'" class="flex items-center gap-2 mt-2 text-sm">
         <input type="checkbox" [ngModel]="form.UgticNaoSeAplica" name="ctr-ugtic-na"
@@ -310,13 +310,53 @@
       </label>
       <p class="text-xs text-gray-500 italic mt-1">{{ c.ajuda }}</p>
     </div>
+
+    <div>
+      <label class="block text-sm font-semibold mb-1" for="ctr-numero-contrato">Nº do contrato</label>
+      <input id="ctr-numero-contrato" type="text" maxlength="60" [(ngModel)]="form.NumeroContrato" name="ctr-numero-contrato"
+             placeholder="Ex.: 12/2026" aria-describedby="ctr-numero-contrato-ajuda"
+             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <p id="ctr-numero-contrato-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional, até 60 caracteres. É pedido
+      ao marcar o processo como anterior ao regime.</p>
+    </div>
   </div>
+
+  <!-- Nota informativa: avisa ao órgão que o processo entrou no portfólio; encerra a análise da SGDI -->
+  <fieldset class="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+    <legend class="px-1 text-sm font-semibold text-blue-900">Nota informativa ao órgão</legend>
+    <p class="text-xs text-gray-500 italic mb-3">A nota avisa ao órgão que o processo foi incluído no portfólio e que a
+    SGDI só vai acompanhar. Com a data, a situação passa a Nota informativa enviada: a análise da SGDI termina e fica
+    faltando só a assinatura do contrato.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-nota-enviada-em">Nota informativa enviada em</label>
+        <input id="ctr-nota-enviada-em" type="date" [ngModel]="form.NotaInformativaEnviadaEm" name="ctr-nota-enviada-em"
+               (ngModelChange)="aoTrocarNotaInformativa($event)" aria-describedby="ctr-nota-enviada-ajuda"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <p id="ctr-nota-enviada-ajuda" class="text-xs text-gray-500 italic mt-1">Não pode ser futura nem anterior à
+        chegada na SGDI. Limpar esta data apaga o nº do documento.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold mb-1" for="ctr-nota-documento">Nº do documento SEI da nota informativa</label>
+        <input id="ctr-nota-documento" type="text" maxlength="25" [(ngModel)]="form.NotaInformativaDocumentoSei"
+               name="ctr-nota-documento" [disabled]="!form.NotaInformativaEnviadaEm"
+               aria-describedby="ctr-nota-documento-ajuda" placeholder="Ex.: 213807905"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
+        <p id="ctr-nota-documento-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional, até 25 caracteres, do jeito
+        que estiver no SEI. Fica disponível depois de informar a data.</p>
+      </div>
+    </div>
+  </fieldset>
 
   <!-- Análise técnica: encaminhamento a uma área técnica e o retorno dela (fora da cronologia) -->
   <fieldset class="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
     <legend class="px-1 text-sm font-semibold text-blue-900">Encaminhamento para análise técnica</legend>
     <p class="text-xs text-gray-500 italic mb-3">Quando o processo vai a uma área técnica, registre a data e a área; na
-    volta, a data do retorno e um resumo curto do que ela respondeu. Tudo é opcional e não muda a situação do trâmite.</p>
+    volta, a data do retorno e um resumo curto do que ela respondeu. Tudo é opcional. Enquanto a área não responde, a
+    situação é Aguardando análise técnica (a não ser que outra de prioridade maior se aplique, como a nota informativa
+    ou o retorno ao órgão).</p>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
@@ -375,7 +415,7 @@
 <section class="mt-8 pt-4 border-t border-gray-200">
   <ng-container *ngTemplateOutlet="cabecalho; context: {
     icone: 'forum', titulo: 'Esclarecimentos ao órgão comunicante',
-    ajuda: 'Quando a SGDI pede esclarecimentos ao órgão, registre aqui. Enquanto não houver a data da resposta, o processo aparece sinalizado na lista. A situação do trâmite não muda por causa disso.' }"></ng-container>
+    ajuda: 'Quando a SGDI pede esclarecimentos ao órgão, registre aqui. Enquanto não houver a data da resposta, a situação é Esclarecimentos solicitados (a não ser que outra de prioridade maior se aplique, como a nota informativa ou o retorno ao órgão).' }"></ng-container>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div>
@@ -416,7 +456,7 @@
       <input id="ctr-esclarecimento-resposta" type="date" [(ngModel)]="form.EsclarecimentoRespondidoEm" name="ctr-esclarecimento-resposta"
              [disabled]="!form.EsclarecimentoSolicitadoEm"
              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500">
-      <p class="text-xs text-gray-500 italic mt-1">Preenchida, a sinalização sai da lista. Não pode ser anterior ao pedido.</p>
+      <p class="text-xs text-gray-500 italic mt-1">Preenchida, o processo sai da situação Esclarecimentos solicitados. Não pode ser anterior ao pedido.</p>
     </div>
   </div>
 </section>
