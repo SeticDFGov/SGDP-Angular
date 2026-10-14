@@ -4,7 +4,7 @@ import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Params, RouterModule } from '@angular/router';
 import { CtrProcessoService } from '../services/ctr-processo.service';
-import { parametrosDaLista } from '../shared/ctr-filtro-lista';
+import { SECAO_LISTA_ANTERIORES, parametrosDaLista } from '../shared/ctr-filtro-lista';
 import {
   badgeCriticidade,
   badgeNivelRisco,
@@ -14,7 +14,9 @@ import {
 import {
   CtrContagem,
   CtrPainel,
+  CtrPainelHistoricos,
   CtrProcessoFiltro,
+  SITUACAO_CONTRATO_ASSINADO,
   TIPO_CONTRATACAO_NAO_INFORMADO
 } from '../../../api/contratacoes/interface';
 import { NotificationService } from '../../core/services/notification.service';
@@ -23,9 +25,10 @@ import { CAMINHO_PAINEL_PUBLICO, copiarTexto } from '../publico/painel-publico';
 
 /**
  * Painel da área: contagens por situação, maior risco da contratação, categoria
- * e órgão, a relação de concluídos (contrato assinado), tempos médios entre as
- * instâncias e a lista de processos parados (gargalos). Cada contagem abre a
- * lista de processos já filtrada.
+ * e órgão, a relação dos contratos assinados, tempos médios entre as instâncias e a
+ * lista de processos parados (gargalos), só da supervisão contínua; e, à parte, o
+ * bloco das contratações anteriores ao regime (registros históricos). Cada contagem
+ * abre a lista já filtrada.
  *
  * Os números vêm prontos do backend, sobre os mesmos processos ativos da
  * listagem; nada é recalculado aqui.
@@ -100,6 +103,19 @@ export class CtrPainelComponent implements OnInit {
   }
 
   readonly tipoNaoInformado = TIPO_CONTRATACAO_NAO_INFORMADO;
+  readonly contratoAssinado = SITUACAO_CONTRATO_ASSINADO;
+  /** A sub-aba dos registros históricos, para onde o bloco deles leva. */
+  readonly rotaAnteriores = `/analises/processos/${SECAO_LISTA_ANTERIORES}`;
+
+  private static readonly semHistoricos: CtrPainelHistoricos = { Total: 0, PorCategoria: [], PorOrgao: [] };
+
+  /**
+   * O bloco das contratações anteriores ao regime (registros históricos). Sem ele na
+   * resposta (servidor anterior), o bloco mostra zero.
+   */
+  get historicos(): CtrPainelHistoricos {
+    return this.painel?.Historicos ?? CtrPainelComponent.semHistoricos;
+  }
 
   /** Parte do total, em porcentagem inteira ("0%" sem processos). */
   percentual(quantidade: number, total: number): string {

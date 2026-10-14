@@ -112,7 +112,7 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     { campo: 'ChegadaUgtic', rotulo: 'Chegada da análise · UGTIC', ajuda: 'Quando seguiu para a UGTIC. Marque "não se aplica" se a etapa foi pulada.' },
     { campo: 'RetornoGabSgdi', rotulo: 'Retorno ao Gab SGDI', ajuda: 'Quando o processo voltou ao gabinete da SGDI.' },
     { campo: 'RetornoOrgao', rotulo: 'Retorno ao órgão comunicante', ajuda: 'Quando o processo foi devolvido ao órgão de origem. Marque "não se aplica" quando o processo não é devolvido.' },
-    { campo: CAMPO_ASSINATURA, rotulo: 'Assinatura do Contrato', ajuda: 'Quando o contrato foi assinado. É a data final: preenchida, o processo fica Concluído, sai da lista e passa para a relação de concluídos do painel. Pode ser anterior às outras datas (o Tribunal também analisa contrato já assinado); só não pode ser futura.' }
+    { campo: CAMPO_ASSINATURA, rotulo: 'Assinatura do Contrato', ajuda: 'Quando o contrato foi assinado. É a data final: preenchida, a situação passa a Contrato assinado e o processo sai da lista (vai para a relação do painel). Pode ser anterior às outras datas (o Tribunal também analisa contrato já assinado); só não pode ser futura.' }
   ];
 
   form: CtrProcessoForm = CtrProcessoFormComponent.vazio();
@@ -141,6 +141,8 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       TipoContratacao: '',
       ChegadaSgdi: null, ChegadaSubgd: null, ChegadaUgtic: null, UgticNaoSeAplica: false,
       RetornoGabSgdi: null, RetornoOrgao: null, RetornoOrgaoNaoSeAplica: false,
+      NotaInformativaEnviadaEm: null, NotaInformativaDocumentoSei: null,
+      NumeroContrato: null, AutorizacaoDocumentoSei: null,
       AnaliseTecnicaEncaminhadaEm: null, AnaliseTecnicaArea: null,
       AnaliseTecnicaRetornoEm: null, AnaliseTecnicaRetornoResumo: null,
       EtapaPlanejamento: null, DataAssinaturaContrato: null, Criticidade: null,
@@ -302,6 +304,12 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
     }
   }
 
+  /** O documento da nota só existe com a data: limpar a data limpa o documento (CHECK do servidor). */
+  aoTrocarNotaInformativa(valor: string): void {
+    this.form.NotaInformativaEnviadaEm = valor || null;
+    if (!this.form.NotaInformativaEnviadaEm) this.form.NotaInformativaDocumentoSei = null;
+  }
+
   /** O resumo acompanha a data do retorno: limpar a data limpa o resumo. */
   aoTrocarRetornoTecnico(valor: string): void {
     this.form.AnaliseTecnicaRetornoEm = valor || null;
@@ -443,6 +451,17 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       erros.push('A data de assinatura do contrato está no futuro.');
     }
 
+    // Nota informativa: fora da cronologia das cinco etapas; só não pode ser futura nem
+    // anterior à chegada na SGDI (quando houver)
+    const nota = this.form.NotaInformativaEnviadaEm ?? null;
+    if (nota) {
+      if (nota > hoje) erros.push('A data de envio da nota informativa está no futuro.');
+      const chegada = this.form.ChegadaSgdi ?? null;
+      if (chegada && nota < chegada) {
+        erros.push(`A nota informativa (${this.brasileira(nota)}) não pode ser anterior à chegada na SGDI (${this.brasileira(chegada)}).`);
+      }
+    }
+
     // Esclarecimento: sinal paralelo ao trâmite, com cronologia própria.
     const pedido = this.form.EsclarecimentoSolicitadoEm ?? null;
     const resposta = this.form.EsclarecimentoRespondidoEm ?? null;
@@ -574,6 +593,13 @@ export class CtrProcessoFormComponent implements OnChanges, AfterViewChecked {
       RetornoGabSgdi: this.form.RetornoGabSgdi || null,
       RetornoOrgao: this.form.RetornoOrgaoNaoSeAplica ? null : (this.form.RetornoOrgao || null),
       RetornoOrgaoNaoSeAplica: this.form.RetornoOrgaoNaoSeAplica,
+      // Nota informativa: o documento só vai com a data
+      NotaInformativaEnviadaEm: this.form.NotaInformativaEnviadaEm || null,
+      NotaInformativaDocumentoSei: this.form.NotaInformativaEnviadaEm
+        ? this.texto(this.form.NotaInformativaDocumentoSei) : null,
+      NumeroContrato: this.texto(this.form.NumeroContrato),
+      // A autorização do regime anterior não aparece aqui: vai como veio
+      AutorizacaoDocumentoSei: this.texto(this.form.AutorizacaoDocumentoSei),
       // Análise técnica: sem encaminhamento não vai nada; o resumo acompanha a data do retorno
       AnaliseTecnicaEncaminhadaEm: this.form.AnaliseTecnicaEncaminhadaEm || null,
       AnaliseTecnicaArea: encaminhado ? (this.form.AnaliseTecnicaArea || null) : null,

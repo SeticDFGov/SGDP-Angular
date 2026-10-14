@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CtrProcesso } from '../../../api/contratacoes/interface';
+import { situacaoTerminal } from './ctr-rotulos';
 
 /** Uma etapa do trâmite, como a linha do tempo mostra. */
 interface EtapaTramite {
@@ -15,8 +16,8 @@ interface EtapaTramite {
 
 /**
  * Linha do tempo do trâmite de um processo: SGDI, SUBGD, UGTIC, Gab SGDI,
- * órgão comunicante e, por fim, a assinatura do contrato (a data que conclui
- * o processo), com a data de cada etapa, as dispensadas ("não se aplica") e
+ * órgão comunicante, a nota informativa (quando enviada) e, por fim, a assinatura do
+ * contrato (a data que conclui o processo), com a data de cada etapa, as dispensadas ("não se aplica") e
  * onde o processo está agora. Só apresentação: as datas e a situação vêm
  * prontas do servidor (a situação é derivada lá).
  */
@@ -70,9 +71,14 @@ export class CtrTramiteComponent implements OnChanges {
       },
       { rotulo: 'Contrato', acao: 'assinado em', data: p.DataAssinaturaContrato ?? null, naoSeAplica: false, atual: false }
     ];
-    // Onde o processo está: a última etapa com data, enquanto ele não terminou
-    // (concluído, análise concluída ou restituído não "está" em etapa nenhuma).
-    const terminou = p.Situacao === 'Concluído' || p.Situacao === 'Análise concluída' || p.Restituido;
+    // A nota informativa só aparece quando foi enviada (nem todo processo a tem), antes do contrato
+    if (p.NotaInformativaEnviadaEm) {
+      etapas.splice(etapas.length - 1, 0,
+        { rotulo: 'Nota informativa', acao: 'enviada em', data: p.NotaInformativaEnviadaEm, naoSeAplica: false, atual: false });
+    }
+    // Onde o processo está: a última etapa com data, enquanto a SGDI ainda age (nas
+    // situações terminais e no restituído o processo não "está" em etapa nenhuma).
+    const terminou = situacaoTerminal(p.Situacao) || p.Restituido;
     const ultima = etapas.map(e => !!e.data).lastIndexOf(true);
     if (!terminou && ultima >= 0) etapas[ultima].atual = true;
     return etapas;

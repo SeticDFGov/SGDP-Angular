@@ -107,10 +107,12 @@ export const MODULOS: ModuloSgdp[] = [
     abas: [
       {
         rotulo: 'Processos', rota: '/analises/processos/lista', prefixos: ['/analises/processos'], icone: 'folder_open',
-        // Duas listas pela origem (2026-09-24): as comunicações do TCDF têm a sua
+        // Três listas pela origem: as comunicações do TCDF (2026-09-24) e os registros
+        // históricos (2026-10-13) têm a sua
         filhos: [
           { rotulo: 'Processos de supervisão contínua', rota: '/analises/processos/lista' },
           { rotulo: 'Comunicações do TCDF', rota: '/analises/processos/comunicacoes-tcdf' },
+          { rotulo: 'Contratações anteriores ao regime', rota: '/analises/processos/anteriores-ao-regime' },
           { rotulo: 'Novo processo', rota: '/analises/processos/novo' }
         ]
       },

@@ -5,23 +5,24 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { acompanharSecao } from '../../pgia/shared/secao-rota';
+import { mensagemDoErro } from '../../pgia/shared/mensagem-erro';
 import { CtrProcessoService } from '../services/ctr-processo.service';
 import { CtrProcessoFormComponent } from '../shared/ctr-processo-form.component';
+import { CtrAnteriorRegimeFormComponent } from '../shared/ctr-anterior-regime-form.component';
 import {
+  SECAO_LISTA_ANTERIORES,
   SECAO_LISTA_SUPERVISAO,
   SECAO_LISTA_TCDF,
+  SECAO_REGISTRAR_ANTERIOR,
   filtroDosParametros,
   origemDaSecao,
   parametrosDaLista
 } from '../shared/ctr-filtro-lista';
 import {
   badgeCriticidade,
-  badgeNivelRisco,
   badgeSituacao,
-  badgeStatusSupervisao,
-  corDiasSemMovimento,
-  resumoComposicao,
-  rotuloEtapaPlanejamento
+  corUltimaMovimentacao,
+  textoHaDias
 } from '../shared/ctr-rotulos';
 import {
   CATEGORIAS_OBJETO,
@@ -32,11 +33,13 @@ import {
   CtrProcessoForm,
   ETAPAS,
   ETAPA_ASSINATURA,
+  ETAPA_NOTA_INFORMATIVA,
   ETAPAS_PLANEJAMENTO,
   TIPO_CONTRATACAO_NAO_INFORMADO,
   TIPOS_CONTRATACAO,
   NIVEIS_RISCO,
   SEM_RISCOS_DECLARADOS,
+  SITUACAO_CONTRATO_ASSINADO,
   SITUACOES
 } from '../../../api/contratacoes/interface';
 import { DialogoDirective } from '../../core/acessibilidade/dialogo.directive';
@@ -50,22 +53,25 @@ interface FiltroAtivo {
 /**
  * Filtros que ficam em "Mais filtros" (os demais estão sempre à mostra). A origem
  * saiu em 2026-09-24 (é a sub-aba que a escolhe), e a restituição também (as telas
- * não a pedem mais).
+ * não a pedem mais). Em 2026-10-13 a categoria subiu para a barra principal, o maior
+ * risco desceu para cá e o esclarecimento saiu (a situação nova cobre).
  */
 const CAMPOS_AVANCADOS: (keyof CtrProcessoFiltro)[] = [
-  'Categoria', 'Sigla', 'EtapaPlanejamento', 'TipoContratacao', 'EsclarecimentoPendente', 'IncluirConcluidos', 'De', 'Ate'
+  'NivelRiscoDeclarado', 'Sigla', 'EtapaPlanejamento', 'TipoContratacao', 'IncluirConcluidos', 'De', 'Ate'
 ];
 
-/** A situação dos processos com contrato assinado (fora da lista por padrão). */
-const SITUACAO_CONCLUIDO = 'Concluído';
+/** Os filtros que a lista dos registros históricos usa (os outros não se aplicam a ela). */
+const CAMPOS_ANTERIORES: (keyof CtrProcessoFiltro)[] = ['Filtro', 'Categoria', 'Sigla'];
 
 /**
- * Área "Processos": as duas listas com busca e filtros e a página de cadastro. Uma
- * seção por página (`/analises/processos/:secao`), como no PGIA. Desde 2026-09-24 são
- * duas listas, sub-abas de Processos, separadas pela origem: "Processos de supervisão
- * contínua" (`lista`, os que vieram do órgão comunicante) e "Comunicações do TCDF"
- * (`comunicacoes-tcdf`, os que nasceram de uma comunicação do Tribunal), cada uma com os
- * mesmos filtros.
+ * Área "Processos": as três listas com busca e filtros e as páginas de cadastro. Uma
+ * seção por página (`/analises/processos/:secao`), como no PGIA. As listas são sub-abas
+ * de Processos, separadas pela origem: "Processos de supervisão contínua" (`lista`, os que
+ * vieram do órgão comunicante), "Comunicações do TCDF" (`comunicacoes-tcdf`, os que
+ * nasceram de uma comunicação do Tribunal), com os mesmos filtros, e "Contratações
+ * anteriores ao regime" (`anteriores-ao-regime`, os registros históricos), com a busca, a
+ * categoria e a sigla. O registro histórico tem o formulário curto próprio
+ * (`registrar-anterior`).
  *
  * Os filtros da lista valem assim que escolhidos (a busca por texto, no Enter
  * ou no botão) e ficam gravados na URL: voltar de um processo, recarregar ou
@@ -74,7 +80,10 @@ const SITUACAO_CONCLUIDO = 'Concluído';
 @Component({
   selector: 'app-ctr-processos',
   standalone: true,
-  imports: [CitaInDirective, DialogoDirective, CommonModule, FormsModule, RouterModule, CtrProcessoFormComponent],
+  imports: [
+    CitaInDirective, DialogoDirective, CommonModule, FormsModule, RouterModule, CtrProcessoFormComponent,
+    CtrAnteriorRegimeFormComponent
+  ],
   templateUrl: './ctr-processos.component.html'
 })
 export class CtrProcessosComponent implements OnInit {
@@ -98,8 +107,8 @@ export class CtrProcessosComponent implements OnInit {
   /** Cópia dos filtros da consulta que está na tela (congelada a cada aplicação). */
   private filtroAplicado: CtrProcessoFiltro = {};
   /**
-   * Qual das duas listas está carregada: cada uma é buscada quando a seção dela abre,
-   * e trocar de lista busca a outra, com os filtros da URL dela.
+   * Qual das listas está carregada: cada uma é buscada quando a seção dela abre, e
+   * trocar de lista busca a outra, com os filtros da URL dela.
    */
   private listaCarregada: string | null = null;
   /** Painel "Mais filtros" aberto. */
@@ -110,6 +119,8 @@ export class CtrProcessosComponent implements OnInit {
   situacoes = SITUACOES;
   etapas = ETAPAS;
   readonly etapaAssinatura = ETAPA_ASSINATURA;
+  readonly etapaNota = ETAPA_NOTA_INFORMATIVA;
+  readonly secaoRegistrarAnterior = SECAO_REGISTRAR_ANTERIOR;
   etapasPlanejamento = ETAPAS_PLANEJAMENTO;
   tiposContratacao = TIPOS_CONTRATACAO;
   readonly tipoNaoInformado = TIPO_CONTRATACAO_NAO_INFORMADO;
@@ -120,28 +131,35 @@ export class CtrProcessosComponent implements OnInit {
   private static filtroVazio(): CtrProcessoFiltro {
     return {
       Filtro: '', Categoria: '', Situacao: '', Sigla: '', De: '', Ate: '',
-      EtapaPlanejamento: '', TipoContratacao: '', Criticidade: '', EsclarecimentoPendente: null,
+      EtapaPlanejamento: '', TipoContratacao: '', Criticidade: '',
       NivelRiscoDeclarado: '', IncluirConcluidos: false
     };
   }
 
-  /** A seção mostra uma das duas listas (e não o cadastro). */
+  /** A seção mostra uma das três listas (e não um cadastro). */
   get ehLista(): boolean {
     return origemDaSecao(this.secao) !== null;
   }
 
-  /** A lista das comunicações do TCDF (a outra é a dos processos de supervisão contínua). */
+  /** A lista das comunicações do TCDF. */
   get ehListaTcdf(): boolean {
     return this.secao === SECAO_LISTA_TCDF;
+  }
+
+  /** A lista dos registros históricos (contratações anteriores ao regime). */
+  get ehListaAnteriores(): boolean {
+    return this.secao === SECAO_LISTA_ANTERIORES;
   }
 
   // Cadastro
   salvando = false;
 
-  // Modal de checkpoint ("Registrar chegada")
+  // Modal de checkpoint ("Registrar andamento")
   processoCheckpoint: CtrProcesso | null = null;
   checkpointEtapa: string = ETAPAS[0].valor;
   checkpointData = '';
+  /** Nº do documento SEI da nota informativa (só na etapa da nota). */
+  checkpointDocumento = '';
   checkpointNaoSeAplica = false;
   checkpointLimpar = false;
   salvandoCheckpoint = false;
@@ -149,12 +167,9 @@ export class CtrProcessosComponent implements OnInit {
   exportando = false;
 
   badgeSituacao = badgeSituacao;
-  badgeStatusSupervisao = badgeStatusSupervisao;
   badgeCriticidade = badgeCriticidade;
-  badgeNivelRisco = badgeNivelRisco;
-  corDiasSemMovimento = corDiasSemMovimento;
-  resumoComposicao = resumoComposicao;
-  rotuloEtapaPlanejamento = rotuloEtapaPlanejamento;
+  corUltimaMovimentacao = corUltimaMovimentacao;
+  textoHaDias = textoHaDias;
 
   constructor(
     private processoService: CtrProcessoService,
@@ -167,13 +182,14 @@ export class CtrProcessosComponent implements OnInit {
       // O modal é da lista: trocar de seção (inclusive pelo histórico) o fecha.
       this.fecharCheckpoint();
       // A lista só é buscada quando é ela que está na tela: a mensagem de erro
-      // dela mora na própria seção e ficaria muda em "Novo processo". Ao abrir
-      // uma lista (ou trocar de uma para a outra), os filtros vêm da URL dela
-      // (volta de um processo, link do painel); voltar do cadastro para a mesma
-      // lista não busca de novo.
+      // dela mora na própria seção e ficaria muda nos cadastros. Ao abrir uma
+      // lista (ou trocar de uma para outra), os filtros vêm da URL dela (volta de
+      // um processo, link do painel); voltar do cadastro para a mesma lista não
+      // busca de novo.
       if (this.ehLista && this.listaCarregada !== secao) {
-        this.filtro = { ...CtrProcessosComponent.filtroVazio(), ...filtroDosParametros(this.route.snapshot.queryParamMap) };
-        this.filtrosAbertos = this.filtrosAvancadosAtivos(this.filtro) > 0;
+        const daUrl = filtroDosParametros(this.route.snapshot.queryParamMap);
+        this.filtro = { ...CtrProcessosComponent.filtroVazio(), ...this.soDaLista(daUrl) };
+        this.filtrosAbertos = !this.ehListaAnteriores && this.filtrosAvancadosAtivos(this.filtro) > 0;
         this.processos = [];
         this.buscar();
       }
@@ -193,18 +209,38 @@ export class CtrProcessosComponent implements OnInit {
     });
   }
 
+  /** Na lista dos registros históricos só valem a busca, a categoria e a sigla. */
+  private soDaLista(filtro: Partial<CtrProcessoFiltro>): Partial<CtrProcessoFiltro> {
+    if (!this.ehListaAnteriores) return filtro;
+    const saida: Partial<CtrProcessoFiltro> = {};
+    for (const campo of CAMPOS_ANTERIORES) {
+      if (filtro[campo] !== undefined) (saida as Record<string, unknown>)[campo] = filtro[campo];
+    }
+    return saida;
+  }
+
   /** Os filtros como estão digitados na tela, normalizados. */
   private filtroDigitado(): CtrProcessoFiltro {
-    return {
+    const filtro: CtrProcessoFiltro = {
       ...this.filtro,
       Filtro: (this.filtro.Filtro || '').trim() || null,
       // A sigla é gravada em caixa alta: mandar assim evita filtro que não casa.
       Sigla: (this.filtro.Sigla || '').trim().toUpperCase() || null,
-      // Só vai quando marcado: desmarcado é o padrão (concluídos fora)
+      // Só vai quando marcado: desmarcado é o padrão (contrato assinado fora)
       IncluirConcluidos: this.filtro.IncluirConcluidos ? true : null,
       // A origem é a da lista aberta (sub-aba), nunca um filtro da tela
       Origem: origemDaSecao(this.secao)
     };
+    if (!this.ehListaAnteriores) return filtro;
+    return { Filtro: filtro.Filtro, Categoria: filtro.Categoria || null, Sigla: filtro.Sigla, Origem: filtro.Origem };
+  }
+
+  /**
+   * O que vai ao servidor: os registros históricos têm todos o contrato assinado, que a
+   * lista esconde por padrão; nessa sub-aba eles sempre vêm (sem ir para a URL).
+   */
+  private consulta(filtro: CtrProcessoFiltro): CtrProcessoFiltro {
+    return this.ehListaAnteriores ? { ...filtro, IncluirConcluidos: true } : filtro;
   }
 
   buscar(): void {
@@ -217,7 +253,7 @@ export class CtrProcessosComponent implements OnInit {
     this.gravarFiltrosNaUrl();
     this.carregando = true;
     this.erroCarregar = null;
-    this.processoService.listar({ ...this.filtroAplicado, Page: 1, PageSize: this.tamanhoPagina }).subscribe({
+    this.processoService.listar({ ...this.consulta(this.filtroAplicado), Page: 1, PageSize: this.tamanhoPagina }).subscribe({
       next: pagina => {
         this.processos = pagina.Items ?? [];
         this.paginaAtual = pagina.CurrentPage ?? 1;
@@ -225,9 +261,9 @@ export class CtrProcessosComponent implements OnInit {
         this.totalItens = pagina.TotalItems ?? this.processos.length;
         this.carregando = false;
       },
-      error: () => {
+      error: erro => {
         this.carregando = false;
-        this.erroCarregar = 'Não foi possível carregar os processos. Tente de novo em instantes.';
+        this.erroCarregar = mensagemDoErro(erro, 'Não foi possível carregar os processos. Tente de novo em instantes.');
       }
     });
   }
@@ -279,7 +315,9 @@ export class CtrProcessosComponent implements OnInit {
     const data = (valor: string) => this.brasileira(valor);
     if (f.Filtro) ativos.push({ campo: 'Filtro', rotulo: `Busca: "${f.Filtro}"` });
     if (f.Situacao) ativos.push({ campo: 'Situacao', rotulo: `Situação: ${f.Situacao}` });
-    if (f.IncluirConcluidos) ativos.push({ campo: 'IncluirConcluidos', rotulo: 'Incluindo os concluídos' });
+    if (f.Criticidade) ativos.push({ campo: 'Criticidade', rotulo: `Criticidade: ${f.Criticidade}` });
+    if (f.Categoria) ativos.push({ campo: 'Categoria', rotulo: `Categoria: ${f.Categoria}` });
+    if (f.IncluirConcluidos) ativos.push({ campo: 'IncluirConcluidos', rotulo: 'Incluindo os de contrato assinado' });
     if (f.NivelRiscoDeclarado) {
       ativos.push({
         campo: 'NivelRiscoDeclarado',
@@ -288,20 +326,12 @@ export class CtrProcessosComponent implements OnInit {
           : `Maior risco: ${f.NivelRiscoDeclarado}`
       });
     }
-    if (f.Categoria) ativos.push({ campo: 'Categoria', rotulo: `Categoria: ${f.Categoria}` });
     if (f.Sigla) ativos.push({ campo: 'Sigla', rotulo: `Órgão: ${f.Sigla}` });
-    if (f.Criticidade) ativos.push({ campo: 'Criticidade', rotulo: `Criticidade: ${f.Criticidade}` });
     if (f.EtapaPlanejamento) ativos.push({ campo: 'EtapaPlanejamento', rotulo: `Etapa: ${f.EtapaPlanejamento}` });
     if (f.TipoContratacao) {
       ativos.push({
         campo: 'TipoContratacao',
         rotulo: f.TipoContratacao === this.tipoNaoInformado ? 'Tipo da contratação não informado' : f.TipoContratacao
-      });
-    }
-    if (f.EsclarecimentoPendente !== null && f.EsclarecimentoPendente !== undefined) {
-      ativos.push({
-        campo: 'EsclarecimentoPendente',
-        rotulo: f.EsclarecimentoPendente ? 'Aguardando esclarecimento' : 'Sem esclarecimento pendente'
       });
     }
     if (f.De) ativos.push({ campo: 'De', rotulo: `Chegada na SGDI a partir de ${data(f.De)}` });
@@ -311,10 +341,7 @@ export class CtrProcessosComponent implements OnInit {
 
   /** Tira um filtro (a etiqueta) e busca de novo. */
   removerFiltro(campo: keyof CtrProcessoFiltro): void {
-    (this.filtro as Record<string, unknown>)[campo] =
-      campo === 'EsclarecimentoPendente' ? null
-      : campo === 'IncluirConcluidos' ? false
-      : '';
+    (this.filtro as Record<string, unknown>)[campo] = campo === 'IncluirConcluidos' ? false : '';
     this.buscar();
   }
 
@@ -331,7 +358,7 @@ export class CtrProcessosComponent implements OnInit {
     if (!this.temMais || this.carregandoMais) return;
     this.carregandoMais = true;
     this.processoService.listar({
-      ...this.filtroAplicado, Page: this.paginaAtual + 1, PageSize: this.tamanhoPagina
+      ...this.consulta(this.filtroAplicado), Page: this.paginaAtual + 1, PageSize: this.tamanhoPagina
     }).subscribe({
       next: pagina => {
         this.processos = [...this.processos, ...(pagina.Items ?? [])];
@@ -339,52 +366,60 @@ export class CtrProcessosComponent implements OnInit {
         this.totalPaginas = pagina.TotalPages ?? this.totalPaginas;
         this.carregandoMais = false;
       },
-      error: () => {
+      error: erro => {
         this.carregandoMais = false;
-        this.notificationService.error('Não foi possível carregar mais processos.');
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível carregar mais processos.'));
       }
     });
   }
 
+  /** Nome do arquivo baixado: cada lista baixa o próprio (o formato é o mesmo e reimporta igual). */
+  private get nomeCsv(): string {
+    if (this.ehListaTcdf) return 'supervisao-continua-comunicacoes-tcdf.csv';
+    if (this.ehListaAnteriores) return 'supervisao-continua-anteriores-ao-regime.csv';
+    return 'supervisao-continua-contratacoes.csv';
+  }
+
   exportarCsv(): void {
     this.exportando = true;
-    this.processoService.exportarCsv(this.filtroAplicado).subscribe({
+    this.processoService.exportarCsv(this.consulta(this.filtroAplicado)).subscribe({
       next: blob => {
         this.exportando = false;
         // Handler de clique: só roda no browser.
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        // Cada lista baixa o próprio arquivo (o formato é o mesmo e reimporta igual)
-        link.download = this.ehListaTcdf
-          ? 'supervisao-continua-comunicacoes-tcdf.csv'
-          : 'supervisao-continua-contratacoes.csv';
+        link.download = this.nomeCsv;
         link.click();
         // Revogar na hora corre com o início do download em alguns navegadores.
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       },
-      error: () => {
+      error: erro => {
         this.exportando = false;
-        this.notificationService.error('Não foi possível exportar a lista em CSV.');
+        this.notificationService.error(mensagemDoErro(erro, 'Não foi possível exportar a lista em CSV.'));
       }
     });
   }
 
   excluir(processo: CtrProcesso): void {
-    const confirmou = confirm(
-      `Excluir o processo ${processo.NumeroProcesso} (${processo.OrgaoSigla})?\n\n`
-      + 'Ele sai das listas e dos números do painel, junto com as manifestações dele. '
-      + 'O registro continua guardado para auditoria.'
+    const anterior = this.ehListaAnteriores;
+    const confirmou = confirm(anterior
+      ? `Excluir a contratação anterior ao regime do processo ${processo.NumeroProcesso} (${processo.OrgaoSigla})?\n\n`
+        + 'Ela sai desta lista e do bloco dos registros históricos do painel, junto com as manifestações dela. '
+        + 'O registro continua guardado para auditoria.'
+      : `Excluir o processo ${processo.NumeroProcesso} (${processo.OrgaoSigla})?\n\n`
+        + 'Ele sai das listas e dos números do painel, junto com as manifestações dele. '
+        + 'O registro continua guardado para auditoria.'
     );
     if (!confirmou) return;
 
     this.processoService.excluir(processo.Id).subscribe({
       next: () => {
-        this.notificationService.success('Processo excluído.');
+        this.notificationService.success(anterior ? 'Contratação excluída.' : 'Processo excluído.');
         this.processos = this.processos.filter(p => p.Id !== processo.Id);
         this.totalItens = Math.max(0, this.totalItens - 1);
       },
-      error: () => this.notificationService.error('Não foi possível excluir o processo.')
+      error: erro => this.notificationService.error(mensagemDoErro(erro, 'Não foi possível excluir o processo.'))
     });
   }
 
@@ -401,6 +436,7 @@ export class CtrProcessosComponent implements OnInit {
     this.processoCheckpoint = processo;
     this.checkpointEtapa = this.proximaEtapa(processo);
     this.checkpointData = this.hoje;
+    this.checkpointDocumento = processo.NotaInformativaDocumentoSei ?? '';
     this.checkpointNaoSeAplica = false;
     this.checkpointLimpar = false;
   }
@@ -409,14 +445,25 @@ export class CtrProcessosComponent implements OnInit {
     this.processoCheckpoint = null;
   }
 
-  /** Campo do processo que guarda a data de uma etapa (a assinatura tem nome próprio). */
+  /** Campo do processo que guarda a data de uma etapa (a nota e a assinatura têm nome próprio). */
   private static campoDaEtapa(etapa: string): keyof CtrProcesso {
-    return (etapa === ETAPA_ASSINATURA ? 'DataAssinaturaContrato' : etapa) as keyof CtrProcesso;
+    if (etapa === ETAPA_ASSINATURA) return 'DataAssinaturaContrato';
+    if (etapa === ETAPA_NOTA_INFORMATIVA) return 'NotaInformativaEnviadaEm';
+    return etapa as keyof CtrProcesso;
   }
 
-  /** Sugere a primeira etapa ainda em branco (etapa dispensada não conta). */
+  /** Etapas fora da cronologia das cinco do trâmite. */
+  private static foraDaCronologia(etapa: string): boolean {
+    return etapa === ETAPA_ASSINATURA || etapa === ETAPA_NOTA_INFORMATIVA;
+  }
+
+  /**
+   * Sugere a primeira etapa ainda em branco (etapa dispensada não conta). A nota
+   * informativa não é sugerida: nem todo processo a tem (ela é escolhida de propósito).
+   */
   private proximaEtapa(processo: CtrProcesso): string {
     for (const etapa of ETAPAS) {
+      if (etapa.valor === ETAPA_NOTA_INFORMATIVA) continue;
       if (etapa.valor === 'ChegadaUgtic' && processo.UgticNaoSeAplica) continue;
       if (etapa.valor === 'RetornoOrgao' && processo.RetornoOrgaoNaoSeAplica) continue;
       if (!processo[CtrProcessosComponent.campoDaEtapa(etapa.valor)]) return etapa.valor;
@@ -470,6 +517,12 @@ export class CtrProcessosComponent implements OnInit {
     this.checkpointNaoSeAplica = marcado;
   }
 
+  /** O documento da nota tem até 25 caracteres, como no servidor. */
+  get errCheckpointDocumento(): string | null {
+    if (this.checkpointEtapa !== ETAPA_NOTA_INFORMATIVA || this.checkpointLimpar) return null;
+    return this.checkpointDocumento.trim().length > 25 ? 'O nº do documento SEI tem até 25 caracteres.' : null;
+  }
+
   /**
    * Mesma cronologia do formulário completo, aplicada só à data que está sendo
    * registrada: ela não pode ser anterior às etapas anteriores já preenchidas
@@ -487,9 +540,17 @@ export class CtrProcessosComponent implements OnInit {
     // nem as outras contra ela (o TCDF também analisa contrato já assinado).
     if (this.checkpointEtapa === ETAPA_ASSINATURA) return null;
 
+    // A nota informativa só não pode ser anterior à chegada na SGDI.
+    if (this.checkpointEtapa === ETAPA_NOTA_INFORMATIVA) {
+      if (processo.ChegadaSgdi && this.checkpointData < processo.ChegadaSgdi) {
+        return `A nota informativa não pode ser anterior à chegada na SGDI (${this.brasileira(processo.ChegadaSgdi)}).`;
+      }
+      return null;
+    }
+
     const indice = ETAPAS.findIndex(e => e.valor === this.checkpointEtapa);
     for (let i = 0; i < ETAPAS.length; i++) {
-      if (i === indice || ETAPAS[i].valor === ETAPA_ASSINATURA) continue;
+      if (i === indice || CtrProcessosComponent.foraDaCronologia(ETAPAS[i].valor)) continue;
       const valor = processo[ETAPAS[i].valor as keyof CtrProcesso] as string | null | undefined;
       if (!valor) continue;
       if (i < indice && this.checkpointData < valor) {
@@ -500,11 +561,15 @@ export class CtrProcessosComponent implements OnInit {
       }
     }
 
-    // Mesma regra do formulário completo: a restituição não acontece antes da
-    // chegada na SGDI.
-    if (this.checkpointEtapa === 'ChegadaSgdi' && processo.RestituidoEm
-        && this.checkpointData > processo.RestituidoEm) {
-      return `A data não pode ser posterior à da restituição (${this.brasileira(processo.RestituidoEm)}).`;
+    if (this.checkpointEtapa === 'ChegadaSgdi') {
+      // A restituição registrada antes e a nota informativa não acontecem antes da
+      // chegada na SGDI.
+      if (processo.RestituidoEm && this.checkpointData > processo.RestituidoEm) {
+        return `A data não pode ser posterior à da restituição (${this.brasileira(processo.RestituidoEm)}).`;
+      }
+      if (processo.NotaInformativaEnviadaEm && this.checkpointData > processo.NotaInformativaEnviadaEm) {
+        return `A data não pode ser posterior à da nota informativa (${this.brasileira(processo.NotaInformativaEnviadaEm)}).`;
+      }
     }
 
     return null;
@@ -517,7 +582,7 @@ export class CtrProcessosComponent implements OnInit {
 
   salvarCheckpoint(): void {
     const processo = this.processoCheckpoint;
-    if (!processo || this.errCheckpoint) return;
+    if (!processo || this.errCheckpoint || this.errCheckpointDocumento) return;
 
     this.salvandoCheckpoint = true;
     const limpar = this.checkpointLimpar || (this.etapaAceitaNaoSeAplica && this.checkpointNaoSeAplica);
@@ -526,33 +591,38 @@ export class CtrProcessosComponent implements OnInit {
       Data: limpar ? null : this.checkpointData
     };
     // A chave só vai quando a etapa aceita "não se aplica" E há intenção: o
-    // servidor recusa qualquer valor não nulo nas outras três etapas (mandar
+    // servidor recusa qualquer valor não nulo nas outras etapas (mandar
     // `false` derrubava o primeiro uso do modal, que sugere ChegadaSgdi). E só
     // limpar a data não pode desmarcar o flag; aí a chave também é omitida.
     if (this.etapaAceitaNaoSeAplica && (this.checkpointNaoSeAplica || !this.checkpointLimpar)) {
       corpo.NaoSeAplica = this.checkpointNaoSeAplica;
     }
+    // O documento da nota só vai na etapa da nota, com a data (limpar a data limpa os dois)
+    if (this.checkpointEtapa === ETAPA_NOTA_INFORMATIVA && !limpar) {
+      corpo.DocumentoSei = this.checkpointDocumento.trim() || null;
+    }
     this.processoService.registrarCheckpoint(processo.Id, corpo).subscribe({
       next: atualizado => {
         this.salvandoCheckpoint = false;
         this.fecharCheckpoint();
-        // Concluído (contrato assinado) sai da lista, a menos que ela o inclua
-        const saiDaLista = atualizado.Situacao === SITUACAO_CONCLUIDO
-          && !this.filtroAplicado.IncluirConcluidos && this.filtroAplicado.Situacao !== SITUACAO_CONCLUIDO;
+        // Contrato assinado sai da lista, a menos que ela o inclua
+        const saiDaLista = atualizado.Situacao === SITUACAO_CONTRATO_ASSINADO
+          && !this.filtroAplicado.IncluirConcluidos && this.filtroAplicado.Situacao !== SITUACAO_CONTRATO_ASSINADO;
         if (saiDaLista) {
           this.processos = this.processos.filter(p => p.Id !== atualizado.Id);
           this.totalItens = Math.max(0, this.totalItens - 1);
           this.notificationService.success(
-            `Processo concluído: contrato assinado em ${this.brasileira(atualizado.DataAssinaturaContrato || '')}. `
-            + 'Ele passa para a relação de concluídos do painel.');
+            `Contrato assinado em ${this.brasileira(atualizado.DataAssinaturaContrato || '')}: o processo sai da lista `
+            + 'e passa para a relação dos contratos assinados, no painel.');
           return;
         }
         this.processos = this.processos.map(p => p.Id === atualizado.Id ? atualizado : p);
         this.notificationService.success('Andamento registrado.');
       },
-      error: () => {
+      error: erro => {
         this.salvandoCheckpoint = false;
-        this.notificationService.error('Não foi possível registrar o andamento. Confira se a data respeita a ordem das etapas.');
+        this.notificationService.error(mensagemDoErro(erro,
+          'Não foi possível registrar o andamento. Confira se a data respeita a ordem das etapas.'));
       }
     });
   }
@@ -567,21 +637,41 @@ export class CtrProcessosComponent implements OnInit {
         this.notificationService.success('Processo cadastrado.');
         this.router.navigate(['/analises/processos/editar', criado.Id]);
       },
-      error: () => {
+      error: erro => {
         this.salvando = false;
-        this.notificationService.error(
+        this.notificationService.error(mensagemDoErro(erro,
           'Não foi possível cadastrar. Confira se o número do processo já não está cadastrado, se as datas estão coerentes '
           + 'e se os riscos da contratação estão completos.'
-        );
+        ));
       }
     });
   }
 
-  /** "Cancelar" do cadastro: volta à lista dos processos de supervisão contínua. */
-  irParaLista(): void {
-    const lista = this.processoService.ultimaLista;
-    this.router.navigate([`/analises/processos/${SECAO_LISTA_SUPERVISAO}`], {
-      queryParams: lista?.secao === SECAO_LISTA_SUPERVISAO ? lista.params : {}
+  /** Registro de uma contratação anterior ao regime (formulário curto). */
+  criarAnterior(form: CtrProcessoForm): void {
+    this.salvando = true;
+    this.processoService.criar(form).subscribe({
+      next: criado => {
+        this.salvando = false;
+        this.notificationService.success('Contratação anterior ao regime registrada.');
+        this.router.navigate(['/analises/processos/editar', criado.Id]);
+      },
+      error: erro => {
+        this.salvando = false;
+        this.notificationService.error(mensagemDoErro(erro,
+          'Não foi possível registrar. Confira se o número do processo já não está cadastrado e se as datas estão coerentes.'
+        ));
+      }
     });
   }
+
+  /** "Cancelar" de um cadastro: volta à lista dele, com os filtros que estavam aplicados. */
+  irParaLista(secao: string = SECAO_LISTA_SUPERVISAO): void {
+    const lista = this.processoService.ultimaLista;
+    this.router.navigate([`/analises/processos/${secao}`], {
+      queryParams: lista?.secao === secao ? lista.params : {}
+    });
+  }
+
+  readonly secaoListaAnteriores = SECAO_LISTA_ANTERIORES;
 }

@@ -5,14 +5,21 @@
  * manifestação são derivados no backend (nunca gravados) e chegam prontos nos
  * DTOs.
  */
-import { ETAPAS_PLANEJAMENTO } from '../../../api/contratacoes/interface';
+import { ETAPAS_PLANEJAMENTO, SITUACOES_TERMINAIS } from '../../../api/contratacoes/interface';
 
-/** Badge da situação derivada do processo (`Concluído` = contrato assinado). */
+/**
+ * Selo da situação derivada do processo. Os quatro fins (a SGDI não age mais) em tons de
+ * verde, laranja e verde-azulado; as esperas por outra parte (esclarecimento do órgão,
+ * área técnica) em amarelo e roxo; as instâncias do trâmite em azul, índigo, ciano e âmbar.
+ */
 export function badgeSituacao(situacao: string | null | undefined): string {
   switch (situacao) {
-    case 'Concluído': return 'bg-green-100 text-green-800';
+    case 'Contrato assinado': return 'bg-green-100 text-green-800';
+    case 'Restituído ao órgão': return 'bg-orange-100 text-orange-800';
+    case 'Nota informativa enviada': return 'bg-teal-100 text-teal-800';
     case 'Análise concluída': return 'bg-emerald-100 text-emerald-800';
-    case 'Restituído': return 'bg-orange-100 text-orange-800';
+    case 'Esclarecimentos solicitados': return 'bg-yellow-100 text-yellow-800';
+    case 'Aguardando análise técnica': return 'bg-purple-100 text-purple-800';
     case 'Retornado ao Gab SGDI': return 'bg-blue-100 text-blue-800';
     case 'Em análise na UGTIC': return 'bg-indigo-100 text-indigo-800';
     case 'Em análise na SUBGD': return 'bg-cyan-100 text-cyan-800';
@@ -21,12 +28,24 @@ export function badgeSituacao(situacao: string | null | undefined): string {
   }
 }
 
+/** A situação é um dos quatro fins em que a SGDI não age mais. */
+export function situacaoTerminal(situacao: string | null | undefined): boolean {
+  return !!situacao && SITUACOES_TERMINAIS.includes(situacao);
+}
+
 /**
- * Badge do STATUS da contratação na supervisão contínua: "Concluída" (contrato
- * assinado) em verde, como a situação Concluído; "Em regime de supervisão" em azul.
+ * Cor da "Última movimentação": a de alerta de sempre, menos nas situações terminais
+ * (os dias passam esperando o órgão ou o contrato, não a SGDI).
  */
-export function badgeStatusSupervisao(status: string | null | undefined): string {
-  return status === 'Concluída' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800';
+export function corUltimaMovimentacao(dias: number | null | undefined, situacao: string | null | undefined): string {
+  return situacaoTerminal(situacao) ? 'text-gray-600' : corDiasSemMovimento(dias);
+}
+
+/** "hoje", "há 1 dia", "há 12 dias". */
+export function textoHaDias(dias: number | null | undefined): string {
+  const d = dias ?? 0;
+  if (d <= 0) return 'hoje';
+  return d === 1 ? 'há 1 dia' : `há ${d} dias`;
 }
 
 /**

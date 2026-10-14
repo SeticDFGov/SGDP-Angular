@@ -1,23 +1,35 @@
 import { ParamMap, Params } from '@angular/router';
-import { CtrProcessoFiltro, ORIGEM_PADRAO, ORIGEM_TCDF } from '../../../api/contratacoes/interface';
+import {
+  CtrProcessoFiltro,
+  ORIGEM_ANTERIOR_REGIME,
+  ORIGEM_PADRAO,
+  ORIGEM_TCDF
+} from '../../../api/contratacoes/interface';
 
 /**
- * As duas listas de processos (desde 2026-09-24), sub-abas de Processos, separadas pela
- * origem: `lista` são os processos de supervisão contínua (vindos do órgão comunicante) e
- * `comunicacoes-tcdf` os que nasceram de uma comunicação do TCDF.
+ * As três listas de processos, sub-abas de Processos, separadas pela origem: `lista` são
+ * os processos de supervisão contínua (vindos do órgão comunicante), `comunicacoes-tcdf`
+ * os que nasceram de uma comunicação do TCDF e `anteriores-ao-regime` os registros
+ * históricos (desde 2026-10-13).
  */
 export const SECAO_LISTA_SUPERVISAO = 'lista';
 export const SECAO_LISTA_TCDF = 'comunicacoes-tcdf';
+export const SECAO_LISTA_ANTERIORES = 'anteriores-ao-regime';
+/** O formulário curto do registro histórico. */
+export const SECAO_REGISTRAR_ANTERIOR = 'registrar-anterior';
 
 /** A seção da lista que mostra os processos dessa origem. */
 export function secaoDaLista(origem: string | null | undefined): string {
-  return origem === ORIGEM_TCDF ? SECAO_LISTA_TCDF : SECAO_LISTA_SUPERVISAO;
+  if (origem === ORIGEM_TCDF) return SECAO_LISTA_TCDF;
+  if (origem === ORIGEM_ANTERIOR_REGIME) return SECAO_LISTA_ANTERIORES;
+  return SECAO_LISTA_SUPERVISAO;
 }
 
 /** A origem que a seção da lista mostra; nulo quando a seção não é uma lista. */
 export function origemDaSecao(secao: string): string | null {
   if (secao === SECAO_LISTA_TCDF) return ORIGEM_TCDF;
   if (secao === SECAO_LISTA_SUPERVISAO) return ORIGEM_PADRAO;
+  if (secao === SECAO_LISTA_ANTERIORES) return ORIGEM_ANTERIOR_REGIME;
   return null;
 }
 
@@ -28,7 +40,8 @@ export function origemDaSecao(secao: string): string | null {
  * a página ou mandar o link a alguém mostra a mesma lista; o painel usa os mesmos
  * parâmetros para abrir a lista já filtrada. Nomes curtos e minúsculos, próprios da
  * tela (não são os da API). A origem não entra: é a sub-aba que a escolhe. A restituição
- * também saiu (2026-09-24): as telas não a pedem mais.
+ * também saiu (2026-09-24): as telas não a pedem mais. O esclarecimento saiu em
+ * 2026-10-13 (a situação "Esclarecimentos solicitados" cobre).
  */
 interface ParametroFiltro {
   campo: keyof CtrProcessoFiltro;
@@ -47,7 +60,6 @@ const PARAMETROS: ParametroFiltro[] = [
   { campo: 'Criticidade', parametro: 'criticidade' },
   { campo: 'EtapaPlanejamento', parametro: 'etapa' },
   { campo: 'TipoContratacao', parametro: 'tipo' },
-  { campo: 'EsclarecimentoPendente', parametro: 'esclarecimento', booleano: true },
   { campo: 'De', parametro: 'de' },
   { campo: 'Ate', parametro: 'ate' }
 ];

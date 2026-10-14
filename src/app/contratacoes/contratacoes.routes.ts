@@ -43,12 +43,15 @@ function tituloDaSecao(titulos: Readonly<Record<string, string>>): ResolveFn<str
 export const contratacoes_routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'processos/lista' },
 
-  // Duas listas separadas pela origem (2026-09-24): a dos processos de supervisão contínua e
-  // a das comunicações do TCDF; a primeira segue em `lista` (links antigos continuam valendo)
+  // Três listas separadas pela origem: a dos processos de supervisão contínua, a das
+  // comunicações do TCDF (2026-09-24) e a das contratações anteriores ao regime (2026-10-13,
+  // com o formulário curto próprio); a primeira segue em `lista` (links antigos continuam valendo)
   ...secoes('processos', CtrProcessosComponent, {
     'lista': 'Processos de supervisão contínua',
     'comunicacoes-tcdf': 'Comunicações do TCDF',
-    'novo': 'Novo processo'
+    'anteriores-ao-regime': 'Contratações anteriores ao regime',
+    'novo': 'Novo processo',
+    'registrar-anterior': 'Registrar contratação anterior ao regime'
   }),
   { path: 'processos/editar/:id', component: CtrProcessoEditarComponent, title: 'Processo', data: { prerender: false } },
 
