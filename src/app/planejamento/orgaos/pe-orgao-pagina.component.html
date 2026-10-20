@@ -106,8 +106,8 @@
             <span class="material-icons text-base" aria-hidden="true">arrow_back</span> Voltar à lista dos órgãos
           </a>
         </div>
-        <p class="text-xs text-gray-500 italic mt-2">O passo a passo do órgão abre só para ler, com as seções e os dados do PDTIC como o órgão
-          preencheu. O documento fica no passo do documento, com as versões em PDF.</p>
+        <p class="text-xs text-gray-500 italic mt-2">O passo a passo do órgão abre só para ler. O documento fica no passo do documento, com as
+          versões em PDF.</p>
       </div>
 
       <!-- O PDTIC e as versões -->
@@ -170,14 +170,13 @@
         <!-- O nível, com o histórico (F3: no modo livre, o histórico é o dos níveis escolhidos no modo definido) -->
         <ng-container *ngIf="!modoLivre">
           <h4 class="text-sm font-semibold text-gray-900 mt-4">Nível de maturidade: {{ r.Nivel.Nome || 'o padrão' }}</h4>
-          <p class="text-xs text-gray-600 mt-0.5">O nível diz os passos e os campos que o órgão preenche. Quem define é o administrador do
-            módulo.<ng-container *ngIf="r.Nivel.Padrao"> O órgão ainda não tem nível escolhido: vale o nível padrão.</ng-container></p>
+          <p class="text-xs text-gray-600 mt-0.5">Quem define é o administrador do módulo.<ng-container *ngIf="r.Nivel.Padrao"> O órgão ainda não tem nível escolhido: vale o
+            nível padrão.</ng-container></p>
         </ng-container>
         <ng-container *ngIf="modoLivre">
           <h4 class="text-sm font-semibold text-gray-900 mt-4">Nível alcançado: {{ textoNivelAlcancado }}</h4>
-          <p class="text-xs text-gray-600 mt-0.5">No modo livre, o nível do órgão é calculado pelo que o PDTIC tem. O que falta para o próximo
-            nível está no quadro "Nível do PDTIC", logo abaixo.<ng-container *ngIf="r.Nivel.Historico.length > 0"> O histórico mostra os níveis
-            escolhidos no modo definido, que ficam guardados.</ng-container></p>
+          <p class="text-xs text-gray-600 mt-0.5">O nível sai do que o PDTIC tem. O que falta para o próximo está no quadro "Nível do PDTIC",
+            abaixo.<ng-container *ngIf="r.Nivel.Historico.length > 0"> O histórico mostra os níveis escolhidos no modo definido.</ng-container></p>
         </ng-container>
         <button *ngIf="r.Nivel.Historico.length > 0" type="button" (click)="historicoAberto = !historicoAberto" [attr.aria-expanded]="historicoAberto"
                 [attr.aria-controls]="historicoAberto ? 'pe-org-historico-nivel' : null"
@@ -248,10 +247,9 @@
               </tbody>
             </table>
           </div>
-          <p class="text-xs text-gray-500 italic mt-2">Passo resolvido é o feito, o marcado como "não se aplica" ou o feito fora do sistema.<ng-container
-              *ngIf="andamentoPorObrigatorio"> A coluna conta os passos obrigatórios; os opcionais não são cobrados e aparecem embaixo,
-            quando o órgão fez algum.</ng-container> Aguardando é o passo que depende de outra coisa antes, como a deliberação do CGTIC ou a
-            publicação.</p>
+          <p class="text-xs text-gray-500 italic mt-2">Resolvido: passo feito, marcado como "não se aplica" ou feito fora do sistema.<ng-container
+              *ngIf="andamentoPorObrigatorio"> A coluna conta só os obrigatórios; os opcionais feitos aparecem embaixo.</ng-container>
+            Aguardando: passo que depende de outra etapa antes, como a deliberação do CGTIC ou a publicação.</p>
         </ng-container>
       </section>
 
@@ -262,7 +260,7 @@
         <ng-container *ngIf="r.Conformidade">
           <p class="text-sm text-gray-700 mt-1">
             {{ percentual }}<ng-container *ngIf="grupo as g">: {{ g.rotulo.toLowerCase() }} ({{ g.faixa }})</ng-container>.
-            O percentual conta os itens atendidos entre os que se aplicam ao órgão.
+            O percentual conta os itens atendidos entre os que se aplicam.
           </p>
           <ul class="mt-3 divide-y divide-gray-100 border border-gray-200 rounded-lg">
             <li *ngFor="let i of itensConformidade; trackBy: porChave" class="px-4 py-3 flex flex-col md:flex-row gap-2 md:gap-4">
@@ -319,8 +317,7 @@
       <!-- Aprovações e deliberações -->
       <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-org-aprovacoes">
         <h3 id="pe-org-aprovacoes" class="text-base font-semibold text-gray-900">Aprovações</h3>
-        <p class="text-xs text-gray-600 mt-0.5">As decisões registradas nos passos de aprovação: o comitê interno (SGTIC), o comitê que avalia o
-          acompanhamento e a autoridade máxima.</p>
+        <p class="text-xs text-gray-600 mt-0.5">As decisões de aprovação registradas nos passos do PDTIC.</p>
         <p *ngIf="r.Aprovacoes.length === 0" class="text-sm text-gray-700 mt-2">Nenhuma aprovação registrada ainda.</p>
         <div *ngIf="r.Aprovacoes.length > 0" class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: aprovações">
           <table class="w-full text-sm">

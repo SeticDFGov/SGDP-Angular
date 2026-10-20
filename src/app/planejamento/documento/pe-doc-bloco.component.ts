@@ -241,7 +241,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
   /** O texto da situação, à vista no editor ("Salvo às 14:32"). */
   get textoSituacao(): string {
     switch (this.situacaoSalvar) {
-      case 'pendente': return 'Mudanças ainda não salvas. O texto se salva sozinho em instantes.';
+      case 'pendente': return 'Mudanças ainda não salvas: o texto se salva em instantes.';
       case 'salvando': return 'Salvando...';
       case 'erro': return '';
       default: return this.salvoEm ? `Salvo às ${this.hora(this.salvoEm)}.` : 'Nenhuma mudança ainda.';
@@ -336,7 +336,7 @@ export class PeDocBlocoComponent implements OnChanges, AfterViewChecked, OnDestr
     const grupos = new Map<string, { chaves: string[]; passo: PassoLinkDoc | null; semLink: string }>();
     for (const chave of b.MarcadoresSemValor ?? []) {
       // O passo que o servidor indica no marcador do documento, com o número na trilha do órgão; sem a lista do
-      // documento, o do modelo inicial (as aprovações em 3.11 e 3.12, a publicação em 3.13) ou a seção (F2)
+      // documento, o do modelo inicial (as aprovações em 3.10 e 3.11, a publicação em 3.12) ou a seção (F2)
       const destino = destinoDoMarcador(chave, this.marcadores, this.marcadoresDoDocumento, this.passosPorChave, this.passosPorSecao);
       const id = destino.passo?.rota ?? destino.texto;
       const grupo = grupos.get(id) ?? { chaves: [], passo: destino.passo, semLink: destino.texto };

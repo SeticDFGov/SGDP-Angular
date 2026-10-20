@@ -281,9 +281,9 @@ export function resumoAndamento(andamento: PeAndamentoPdtic | null | undefined):
 /** Seções semeadas que a tela do passo lê (a decisão da aprovação, o envio e a publicação). */
 export const SECAO_APROVACAO_SGTIC = 'aprovacao_sgtic';
 export const SECAO_PUBLICACAO = 'publicacao';
-/** Avaliação do comitê (6.3 no Avançado): a decisão "revisar" abre a revisão. */
+/** Avaliação do comitê (6.1 no Avançado): a decisão "revisar" abre a revisão. */
 export const SECAO_AVALIACAO_COMITE = 'avaliacao_comite';
-/** Aprovação da autoridade máxima (7.4): a decisão "aprovado" deixa a equipe encerrar o PDTIC. */
+/** Aprovação da autoridade máxima (7.2): a decisão "aprovado" deixa a equipe encerrar o PDTIC. */
 export const SECAO_APROVACAO_AUTORIDADE = 'aprovacao_resultados_autoridade';
 
 /** Etapas da elaboração (1 a 3) e do acompanhamento (4 a 7), pela chave do modelo inicial. */
@@ -292,7 +292,7 @@ const ETAPAS_ACOMPANHAMENTO: ReadonlySet<string> = new Set(['plano-acompanhament
 
 /**
  * Onde o passo fica no caminho do PDTIC, para explicar por que ele só se lê:
- * elaboração (etapas 1 a 3), deliberação (3.12), publicação (3.13) ou
+ * elaboração (etapas 1 a 3), deliberação (3.11), publicação (3.12) ou
  * acompanhamento (etapas 4 a 7). Etapa de chave desconhecida vai pela posição.
  */
 export type GrupoPassoPdtic = 'elaboracao' | 'deliberacao' | 'publicacao' | 'acompanhamento';
@@ -394,7 +394,7 @@ export const TIPOS_PASSO_COM_SECOES: ReadonlySet<string> = new Set(['dados', 'co
 
 /**
  * Passos de dados que também mostram os fluxos do órgão (E6): o da metodologia
- * ("Descreva a metodologia e ajuste o fluxo", 1.5 no Avançado), pela chave no modelo.
+ * ("Descreva a metodologia e ajuste o fluxo", 1.3 no Avançado), pela chave no modelo.
  */
 const PASSOS_DE_DADOS_COM_FLUXOS: ReadonlySet<string> = new Set(['preparacao.metodologia']);
 
@@ -403,11 +403,11 @@ export function passoTemFluxos(passo: Pick<PePassoTrilha, 'Tipo' | 'Chave'> | nu
   return !!passo && (passo.Tipo === 'fluxo' || PASSOS_DE_DADOS_COM_FLUXOS.has(passo.Chave));
 }
 
-/** Seção do cronograma do plano de trabalho (1.9 no Avançado): com ela vazia, o passo sugere as linhas pelos fluxos. */
+/** Seção do cronograma do plano de trabalho (1.3 no Avançado): com ela vazia, o passo sugere as linhas pelos fluxos. */
 export const SECAO_CRONOGRAMA = 'cronograma_elaboracao';
 
 /**
- * Seção dos princípios e diretrizes (1.8 no Avançado). O PDTIC aberto no sistema já
+ * Seção dos princípios e diretrizes (1.5 no Avançado). O PDTIC aberto no sistema já
  * nasce com os princípios do art. 4º nela, como itens comuns do órgão (PD01 a PD11,
  * de origem `art4`, marcados como critério de priorização), e o passo nasce feito
  * (F2). Os PDTICs abertos antes disso e o registrado fora do sistema não os têm.
@@ -423,11 +423,9 @@ export const ORIGEM_ART4 = 'art4';
  */
 export function textoPrincipiosDoArt4(comCriterio: boolean): string {
   const criterio = comCriterio
-    ? ' Eles vêm marcados como critério de priorização: mude para "Não" os que o órgão não for usar para priorizar as necessidades.'
+    ? ' Todos vêm marcados como critério de priorização: mude para "Não" os que o órgão não for usar para priorizar as necessidades.'
     : '';
-  return 'Os princípios do art. 4º já vêm na tabela, como itens do órgão: confira cada um, ajuste o texto ou apague o que não servir '
-    + `e inclua os princípios e as diretrizes do próprio órgão, salvando cada um.${criterio} O passo fica feito quando as seções `
-    + 'obrigatórias estão preenchidas; os campos com asterisco são obrigatórios.';
+  return `Confira cada princípio do art. 4º, ajuste o texto ou apague o que não servir.${criterio}`;
 }
 
 /** Selo da classificação de risco do PGIA (Decreto nº 48.901/2026), nas cores do PGIA. */

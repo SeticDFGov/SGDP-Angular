@@ -216,7 +216,7 @@ export class PeCicloFechamentoComponent implements OnChanges, AfterViewChecked, 
   }
 
   get resumoPendencias(): string {
-    return `Para fechar ${this.oCiclo}, falta resolver ${plural(this.itens.length, 'pendência', 'pendências')}:`;
+    return `Para fechar ${this.oCiclo}, resolva ${plural(this.itens.length, 'pendência', 'pendências')}:`;
   }
 
   porChave(_: number, item: ItemPendencia): string {

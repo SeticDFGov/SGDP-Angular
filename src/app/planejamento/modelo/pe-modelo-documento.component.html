@@ -5,14 +5,14 @@
 
   <div *ngIf="pode === false && !erroPapel" class="bg-white rounded-lg shadow p-6">
     <h2 class="text-base font-semibold text-gray-900 mb-1">Modelos dos documentos</h2>
-    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem monta os modelos do documento
-      do PDTIC e dos relatórios do acompanhamento que os órgãos recebem. O documento do seu órgão fica no passo "Monte o documento e
-      confira a prévia", no passo a passo do órgão; os relatórios, nos passos do monitoramento e do fechamento.</p>
+    <p class="text-sm text-gray-700 leading-relaxed">Só o administrador do módulo monta os modelos do documento do PDTIC e dos
+      relatórios do acompanhamento. O documento do seu órgão fica no passo "Monte o documento e confira a prévia"; os relatórios, nos
+      passos do monitoramento e do fechamento.</p>
   </div>
 
   <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
     <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
-    <p class="mt-1">Sem ele, o modelo do documento não abre. Tente de novo em alguns instantes.</p>
+    <p class="mt-1">Sem ele, o modelo do documento não abre.</p>
     <button type="button" (click)="tentarDeNovo()"
             class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
       <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
@@ -25,8 +25,8 @@
     <div class="bg-white rounded-lg shadow p-6">
       <h2 class="text-base font-semibold text-gray-900 mb-1">Modelos dos documentos</h2>
       <p class="text-sm text-gray-700 leading-relaxed">
-        O mesmo motor monta três documentos: o do PDTIC, o relatório de acompanhamento (RA) de cada ciclo e o relatório de resultados
-        (RR), dos anexos XIV e XV do Guia de PDTIC. Escolha qual modelo editar.
+        Três documentos: o do PDTIC, o relatório de acompanhamento (RA) de cada ciclo e o relatório de resultados (RR), dos anexos
+        XIV e XV do Guia de PDTIC.
       </p>
 
       <!-- O seletor dos modelos (botões com aria-pressed) -->
@@ -42,27 +42,25 @@
       </div>
 
       <p *ngIf="tipo === 'pdtic'" class="text-sm text-gray-700 leading-relaxed mt-4">
-        Cada órgão monta o documento do PDTIC a partir deste modelo: os capítulos, os textos padrão e os blocos de dados (tabelas,
-        listas de ações e a matriz SWOT), que vêm dos passos do órgão. O órgão edita a cópia dele na prévia: muda os textos, renomeia
-        os capítulos e esconde os opcionais.
+        Os blocos de dados (tabelas, listas de ações e matriz SWOT) vêm dos passos do órgão. Na prévia, o órgão muda os textos,
+        renomeia os capítulos e esconde os opcionais.
       </p>
       <p *ngIf="tipo === 'ra'" class="text-sm text-gray-700 leading-relaxed mt-4">
-        O relatório de acompanhamento (Anexo XIV do guia) sai a cada ciclo: o sistema gera a minuta ao fechar o ciclo de monitoramento, e
-        a avaliação intermediária também tem o dela. Os blocos do acompanhamento trazem as ações do ciclo por situação, as metas por
-        resultado, os riscos que ocorreram e as medições. Num ciclo de monitoramento, os capítulos 4, 5 e 8 saem em branco, como pede o guia.
+        Sai a cada ciclo (Anexo XIV do guia): o sistema gera a minuta ao fechar o ciclo de monitoramento, e a avaliação intermediária
+        tem a dela. Os blocos do acompanhamento trazem as ações do ciclo por situação, as metas por resultado, os riscos que ocorreram
+        e as medições. Num ciclo de monitoramento, os capítulos 4, 5 e 8 saem em branco, como pede o guia.
       </p>
       <p *ngIf="tipo === 'rr'" class="text-sm text-gray-700 leading-relaxed mt-4">
-        O relatório de resultados (Anexo XV do guia) fecha o PDTIC: as metas alcançadas, não alcançadas e canceladas, os riscos de toda a
-        vigência, a execução orçamentária, as lições aprendidas e a conclusão. O comitê e a autoridade máxima o aprovam.
+        Fecha o PDTIC (Anexo XV do guia): metas alcançadas, não alcançadas e canceladas, riscos de toda a vigência, execução
+        orçamentária, lições aprendidas e conclusão. O comitê e a autoridade máxima o aprovam.
       </p>
       <ul class="mt-2 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
         <li>Toda mudança vale na hora e fica no histórico do modelo.</li>
-        <li>O texto que o órgão não editou acompanha o modelo. O que ele editou continua como está e ganha o aviso "o modelo mudou",
-          com a comparação e o botão para usar o texto novo.</li>
-        <li>O capítulo ligado a um passo some do documento do órgão em que o passo está desligado.</li>
+        <li>O texto que o órgão editou continua como está e ganha o aviso "o modelo mudou", com a comparação e o botão para usar o
+          texto novo.</li>
       </ul>
-      <p *ngIf="tipo === 'pdtic'" class="text-xs text-gray-500 italic mt-2">Os nove conteúdos mínimos do PDTIC (art. 12, § 2º) são capítulos
-        travados, com o cadeado: não se apagam, não ficam opcionais e o órgão não consegue escondê-los. O título e os blocos deles podem mudar.</p>
+      <p *ngIf="tipo === 'pdtic'" class="text-xs text-gray-500 italic mt-2">Os nove conteúdos mínimos (art. 12, § 2º) são capítulos travados, com
+        cadeado: não se apagam, não ficam opcionais e o órgão não os esconde. O título e os blocos deles podem mudar.</p>
       <div class="flex flex-wrap items-center gap-2 mt-4">
         <button type="button" (click)="novoCapitulo(null)" [disabled]="!modelo"
                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-blue-200 bg-white text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
@@ -88,7 +86,7 @@
           ele vira o dado do órgão. O marcador sem valor aparece em destaque na prévia (com o passo onde se preenche) e sai em branco no PDF.
         </p>
         <p *ngIf="!marcadoresDoServidor && modelo" class="text-xs text-gray-500 italic mt-1">A lista do servidor não veio: estes são os marcadores
-          da especificação do módulo.</p>
+          padrão do módulo.</p>
         <div class="mt-3 relative overflow-x-auto border border-gray-200 rounded-lg" tabindex="0" role="region" aria-label="Tabela: marcadores dos textos">
           <table class="w-full text-sm">
             <caption class="sr-only">Marcadores que os textos do documento podem usar, com o que cada um vira e um exemplo</caption>
@@ -119,7 +117,7 @@
     </div>
     <p *ngIf="semModeloDaTrilha && modelo" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
       O modelo do passo a passo não veio do servidor: os nomes das seções, dos temas e dos passos aparecem como chaves, e a escolha da seção
-      da tabela fica sem a lista. Recarregue a tela para tentar de novo.
+      da tabela fica sem a lista. Recarregue a tela.
     </p>
 
     <div *ngIf="modelo" class="flex flex-col lg:flex-row items-start gap-5">
@@ -206,12 +204,10 @@
 
         <p *ngIf="c.Travado" class="flex items-start gap-1.5 text-sm text-purple-800 leading-relaxed">
           <span class="material-icons text-base" aria-hidden="true">lock</span>
-          <span>Este capítulo é um dos nove conteúdos mínimos do PDTIC ({{ citacao(c) }}): não pode ser apagado nem ficar opcional, e o
-            órgão não consegue escondê-lo. O título e os blocos podem mudar.</span>
+          <span>Conteúdo mínimo do PDTIC ({{ citacao(c) }}): o título e os blocos podem mudar.</span>
         </p>
         <p *ngIf="c.PassoChave" class="text-sm text-gray-700 leading-relaxed">
-          Alimentado pelo passo "{{ tituloPasso(c.PassoChave) }}". Se o passo estiver desligado para o órgão, o capítulo some do
-          documento dele.
+          Alimentado pelo passo "{{ tituloPasso(c.PassoChave) }}".
         </p>
 
         <!-- Blocos -->
@@ -309,8 +305,8 @@
         Texto padrão<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
       </p>
       <p id="pe-md-texto-ajuda" class="text-xs text-gray-500 italic mb-1">
-        Os órgãos recebem este texto. Use os marcadores, como {{ exemploMarcador }}, para os dados de cada órgão ("Inserir marcador",
-        na barra). Linguagem simples: frases curtas e voz ativa.
+        Use marcadores, como {{ exemploMarcador }}, para os dados de cada órgão ("Inserir marcador", na barra). Frases curtas e
+        voz ativa.
       </p>
       <app-pe-editor-texto-rico [valor]="e.texto" idBase="pe-md-texto" idRotulo="pe-md-texto-rotulo" rotulo="texto padrão"
                                 descritores="pe-md-texto-ajuda" [marcadores]="marcadores" [obrigatorio]="true" [focarAoCarregar]="true"

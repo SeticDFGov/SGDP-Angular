@@ -1,8 +1,8 @@
 <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-publicacao-registro-titulo">
   <h2 id="pe-publicacao-registro-titulo" tabindex="-1" class="text-base font-semibold text-gray-900">Registro da publicação</h2>
   <p class="text-sm text-gray-700 leading-relaxed mt-1">
-    Depois da aprovação do CGTIC, o órgão publica o PDTIC: a íntegra no sítio do órgão e o resumo no Diário Oficial do Distrito Federal
-    (DODF). Com a publicação registrada, o PDTIC passa a valer e começa o acompanhamento (etapa 4).
+    Publique a íntegra no sítio do órgão e o resumo no Diário Oficial do Distrito Federal (DODF). Registrada a publicação, o PDTIC
+    passa a valer e começa o acompanhamento.
   </p>
 
   <!-- Antes da aprovação do CGTIC -->
@@ -26,17 +26,13 @@
     </div>
 
     <ng-container *ngIf="podePublicar; else quemPublica">
-      <ol class="mt-4 list-decimal ml-5 text-sm text-gray-700 space-y-1 leading-relaxed">
-        <li>Preencha acima a data da publicação e o endereço da íntegra na internet, e salve a seção.</li>
-        <li>Use "Registrar a publicação". O PDTIC passa a ser o vigente do órgão.</li>
-      </ol>
       <button type="button" (click)="abrirJanela()" [attr.aria-disabled]="publicando || null"
               class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
         <span class="material-icons text-base" aria-hidden="true">public</span> {{ publicando ? 'Registrando...' : 'Registrar a publicação' }}
       </button>
     </ng-container>
     <ng-template #quemPublica>
-      <p class="mt-4 text-sm text-gray-700">O PDTIC foi aprovado pelo CGTIC. Quem registra a publicação é a equipe do PDTIC.</p>
+      <p class="mt-4 text-sm text-gray-700">Quem registra a publicação é a equipe do PDTIC.</p>
     </ng-template>
   </ng-container>
 
@@ -63,8 +59,8 @@
       <h2 id="pe-publicacao-janela-titulo" class="text-lg font-bold text-gray-900">Registrar a publicação do PDTIC {{ pdtic.Versao }}?</h2>
     </div>
     <div id="pe-publicacao-janela-texto" class="px-6 py-4 text-sm text-gray-700 leading-relaxed">
-      <p>Com a publicação registrada, o PDTIC passa a ser o vigente do órgão, o PDF aprovado fica como o publicado e começa o
-        acompanhamento. Confira a data e o endereço da publicação antes.</p>
+      <p>O PDTIC passa a ser o vigente do órgão, o PDF aprovado fica como o publicado e começa o acompanhamento. Confira a data e o
+        endereço antes.</p>
     </div>
     <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
       <button type="button" (click)="fecharJanela()" [disabled]="publicando"

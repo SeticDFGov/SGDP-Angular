@@ -95,7 +95,7 @@ function formVazio(): FormInad {
 }
 
 /**
- * Notificações e inadimplências (E8; passo 4.4 do administrador e 3.1 da SGDI):
+ * Notificações e inadimplências (E8; passo 4.4 do administrador e 2.2 da SGDI):
  * o art. 11 do Decreto nº 48.899/2026 na tela.
  *
  * - A lista (GET inadimplencias, as em aberto primeiro, "Carregar mais"), com a
@@ -299,7 +299,7 @@ export class PeInadimplenciasComponent implements OnInit, AfterViewChecked {
         this.carregou = true;
         if (pagina > 1) this.pagina--;
         // 403: o interceptor já tirou a pessoa do módulo
-        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar as notificações e inadimplências. Tente de novo em alguns instantes.');
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar as notificações. Tente de novo.');
         if (mensagem !== null) this.erroLista = mensagem;
       }
     });

@@ -10,7 +10,7 @@
         <p class="font-semibold text-gray-900">Marcado como "não se aplica".</p>
         <p class="mt-1 whitespace-pre-line break-words"><span class="font-semibold">Por quê:</span> {{ m.Justificativa }}</p>
         <p class="text-xs text-gray-600 mt-1">Marcado em {{ quando }}.</p>
-        <p class="text-xs text-gray-600 mt-1">As seções abaixo não precisam ser preenchidas enquanto o passo estiver assim.</p>
+        <p class="text-xs text-gray-600 mt-1">As seções deste passo não precisam ser preenchidas.</p>
       </div>
     </div>
     <button *ngIf="podeEditar" type="button" [id]="idBase + '-desfazer'" (click)="desfazer()" [attr.aria-disabled]="gravando || null"
@@ -22,8 +22,8 @@
   <!-- Ainda não marcado -->
   <ng-template #naoMarcado>
     <p class="text-sm text-gray-700 leading-relaxed mt-1">
-      {{ modoLivre ? 'Este passo é opcional para o órgão.' : 'Este passo é opcional no nível do órgão.' }} Se ele não fizer sentido
-      para o órgão, a equipe do PDTIC marca "não se aplica" e diz por quê. O passo fica resolvido, e a SGDI vê a justificativa.
+      Se o passo não fizer sentido para o órgão, a equipe do PDTIC marca "não se aplica" e diz por quê. O passo fica resolvido, e a
+      SGDI vê a justificativa.
     </p>
     <ng-container *ngIf="podeEditar">
       <button *ngIf="!formAberto" type="button" [id]="idBase + '-marcar'" (click)="abrir()"

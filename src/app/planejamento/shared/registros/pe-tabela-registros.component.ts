@@ -142,7 +142,7 @@ export class PeTabelaRegistrosComponent implements OnChanges, AfterViewChecked {
       return;
     }
     const painel = this.painel;
-    this.confirmacao.perguntarDescarte('Há mudanças que ainda não foram salvas neste registro. Elas se perdem.', 'Fechar sem salvar', 'Fechar sem salvar?')
+    this.confirmacao.perguntarDescarte('Há mudanças não salvas neste registro. Se fechar, elas se perdem.', 'Fechar sem salvar', 'Fechar sem salvar?')
       .then(sim => {
         if (sim && this.painel === painel) this.fecharPainelSim();
       });

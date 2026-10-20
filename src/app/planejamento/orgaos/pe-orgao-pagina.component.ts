@@ -179,7 +179,7 @@ export class PeOrgaoPaginaComponent implements OnInit {
       error: erro => {
         this.carregando = false;
         // 403: o interceptor já tirou a pessoa do módulo
-        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a página do órgão. Tente de novo em alguns instantes.');
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a página do órgão. Tente de novo.');
         if (mensagem === null) return;
         this.carregado = null;
         if ((erro as { status?: number } | null)?.status === 404) this.naoEncontrado = true;

@@ -138,7 +138,7 @@ export function secaoDoMarcador(chave: string): string | null {
   return null;
 }
 
-/** Os passos do modelo inicial onde se preenchem as aprovações e a publicação (3.11, 3.12 e 3.13 no Avançado). */
+/** Os passos do modelo inicial onde se preenchem as aprovações e a publicação (3.10, 3.11 e 3.12 no Avançado). */
 const PASSO_APROVACAO_SGTIC = 'planejamento.aprovacao-sgtic';
 const PASSO_DELIBERACAO_CGTIC = 'planejamento.deliberacao-cgtic';
 const PASSO_PUBLICACAO = 'planejamento.publicacao';
@@ -163,7 +163,7 @@ export function ondeSePreencheMarcador(chave: string, lista: readonly PeDocMarca
 export interface DestinoMarcador {
   /** O passo da trilha à vista: o link "preencha no passo N.M". */
   passo: PassoLinkDoc | null;
-  /** Sem o link, o que a prévia diz ("o dado vem do passo 3.11."). */
+  /** Sem o link, o que a prévia diz ("o dado vem do passo 3.10."). */
   texto: string;
 }
 
@@ -468,10 +468,10 @@ export function rotuloTipoBloco(tipo: string | null | undefined): string {
 export function explicacaoTipoBloco(tipo: string | null | undefined): string {
   switch (tipo) {
     case 'texto': return 'Texto com formatação e marcadores. O órgão pode editar a cópia dele na prévia.';
-    case 'tabela_secao': return 'Os registros de uma seção do PDTIC, com as colunas escolhidas. No documento, a tabela só se lê: os dados se editam no passo da seção. Nos relatórios, a seção por ciclo mostra só os registros do ciclo do relatório.';
+    case 'tabela_secao': return 'Os registros de uma seção do PDTIC, com as colunas escolhidas. Os dados se editam no passo da seção, não no documento. Nos relatórios, a seção por ciclo mostra só os registros do ciclo do relatório.';
     case 'lista_tema': return 'As ações do plano marcadas com um tema, com o código e a situação de cada uma.';
     case 'matriz_swot': return 'O quadro com as forças, as fraquezas, as oportunidades e as ameaças da análise SWOT.';
-    case 'fluxo': return 'O desenho de um fluxo: o que o órgão adaptou ou, sem adaptação, o modelo do guia. O desenho sai sozinho, com a descrição em texto.';
+    case 'fluxo': return 'O desenho de um fluxo: o que o órgão adaptou ou, sem adaptação, o modelo do guia. Vem com a descrição em texto.';
     case 'acoes_por_situacao': return 'As ações do ciclo em grupos: em dia, atrasadas, não iniciadas e canceladas, com a execução física, a orçamentária e a observação de cada uma.';
     case 'metas_por_resultado': return 'As metas em grupos: alcançadas, não alcançadas e canceladas, com o motivo. No relatório de acompanhamento, vêm dos resultados intermediários da avaliação; no de resultados, do resultado de cada meta.';
     case 'riscos_ocorridos': return 'Os riscos que ocorreram: os do ciclo, no relatório de acompanhamento, e os de toda a vigência, no de resultados.';

@@ -163,8 +163,8 @@ export class PeGradeCicloComponent implements OnChanges, AfterViewChecked, OnDes
 
   get vazio(): string {
     return this.tipo === 'acoes'
-      ? 'O PDTIC ainda não tem ações. As ações se cadastram com as metas'
-      : 'O plano de monitoramento ainda não tem indicadores. Os indicadores se cadastram no plano de monitoramento';
+      ? 'O PDTIC ainda não tem ações. Cadastre-as com as metas'
+      : 'O plano de monitoramento ainda não tem indicadores. Cadastre-os';
   }
 
   get temAnterior(): boolean {

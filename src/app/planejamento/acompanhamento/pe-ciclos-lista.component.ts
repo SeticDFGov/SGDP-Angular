@@ -60,8 +60,6 @@ export class PeCiclosListaComponent implements OnChanges, AfterViewChecked, OnDe
   /** A equipe pode abrir uma avaliação agora (o passo aceita gravação e nenhuma está aberta). */
   @Input() podeAbrirAvaliacao = false;
   @Input() pdticId: number | null = null;
-  /** O que a equipe registra em cada ciclo, pelas seções que o nível do órgão tem (F2: no Básico, só a situação das ações). */
-  @Input() oQueSeRegistra = 'a situação das ações, as medições e os riscos que ocorreram';
   /** Pede para ver outro ciclo (a tela do passo troca o endereço). */
   @Output() readonly escolher = new EventEmitter<number>();
   /** A avaliação nova foi aberta (a tela busca os ciclos de novo e passa a mostrá-la). */
@@ -171,16 +169,14 @@ export class PeCiclosListaComponent implements OnChanges, AfterViewChecked, OnDe
 
   get explicacao(): string {
     return this.tipo === 'avaliacao'
-      ? 'A avaliação intermediária consolida os resultados no meio da vigência, compara com as metas e leva ao comitê, que decide seguir '
-        + 'com o PDTIC ou revisá-lo. A equipe abre uma avaliação quando o comitê pedir; só uma fica aberta por vez.'
-      : 'Os ciclos seguem a periodicidade do plano de monitoramento (trimestral, se o órgão não mudou). Em cada ciclo, a equipe registra '
-        + `${this.oQueSeRegistra} e fecha o ciclo até o prazo.`;
+      ? 'Abra uma avaliação quando o comitê pedir. Só uma fica aberta por vez.'
+      : 'Os ciclos seguem a periodicidade do plano de monitoramento (trimestral, se o órgão não mudou). Feche cada ciclo até o prazo.';
   }
 
   get vazio(): string {
     return this.tipo === 'avaliacao'
-      ? 'Nenhuma avaliação intermediária aberta ainda. Abra uma quando o comitê pedir.'
-      : 'Nenhum ciclo de monitoramento ainda. Os ciclos aparecem depois da publicação do PDTIC, pela vigência e pela periodicidade.';
+      ? 'Nenhuma avaliação aberta ainda. Abra uma quando o comitê pedir.'
+      : 'Nenhum ciclo ainda. Os ciclos aparecem depois da publicação do PDTIC, pela vigência e pela periodicidade.';
   }
 
   get rotuloCiclo(): string {
@@ -305,7 +301,7 @@ export class PeCiclosListaComponent implements OnChanges, AfterViewChecked, OnDe
         this.janela = false;
         // Um aviso só (F1, C21): a troca para a avaliação nova não é anunciada de novo, e o nome não repete "Avaliação"
         this.silenciarTroca = ciclo?.Id ?? null;
-        this.notificacoes.success(`"${ciclo?.Rotulo ?? this.rotulo.trim()}" foi aberta e está à vista. Preencha os resultados intermediários nos passos da avaliação.`);
+        this.notificacoes.success(`"${ciclo?.Rotulo ?? this.rotulo.trim()}" foi aberta e está à vista. Preencha os resultados intermediários no passo da avaliação.`);
         // O botão "Abrir uma avaliação" some com a avaliação aberta: o foco vai ao título da lista (F1, C11)
         this.focoPendente = `${this.idBase}-titulo`;
         this.abriu.emit(ciclo);

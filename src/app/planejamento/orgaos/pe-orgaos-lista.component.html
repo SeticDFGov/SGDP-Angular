@@ -3,9 +3,7 @@
   <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-xl font-bold text-gray-900">Página de cada órgão</h2>
     <p class="text-sm text-gray-700 leading-relaxed mt-1">
-      Escolha o órgão para ver tudo dele num lugar só: a situação e a versão do PDTIC, o andamento do passo a passo, o nível de maturidade, a
-      conformidade, o que o órgão marcou como "não se aplica", os comentários abertos, as aprovações e as deliberações, os documentos, os
-      ciclos de acompanhamento e as notificações da SGDI (art. 9º, IV, do Decreto nº 48.899/2026).
+      Abra a página de um órgão ou o passo a passo dele, só para ler.
     </p>
   </div>
 
@@ -43,7 +41,7 @@
           <span class="material-icons text-base" aria-hidden="true">filter_alt_off</span> Limpar a busca
         </button>
       </form>
-      <p class="text-xs text-gray-500 italic mt-2">A busca vale ao apertar Enter ou ao sair do campo, e fica no endereço da página.</p>
+      <p class="text-xs text-gray-500 italic mt-2">A busca vale com Enter ou ao sair do campo e fica no endereço da página.</p>
 
       <p *ngIf="carregando && !todos" role="status" class="text-sm text-gray-600 mt-4">Carregando os órgãos...</p>
       <div *ngIf="erro" role="alert" class="text-sm text-red-700 mt-4">

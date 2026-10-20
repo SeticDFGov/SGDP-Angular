@@ -118,7 +118,7 @@ export class PeLigacaoCampoComponent implements OnChanges, OnDestroy {
     const termo = this.busca.trim();
     const total = termo ? this.opcoes.filter(o => o.busca.includes(normalizar(termo))).length : this.opcoes.length;
     if (termo && total === 0) return 'Nada encontrado com essa busca.';
-    if (total > LIMITE_LISTA) return `Mostrando ${LIMITE_LISTA} de ${total}. Escreva mais da busca para achar o item.`;
+    if (total > LIMITE_LISTA) return `Mostrando ${LIMITE_LISTA} de ${total}. Refine a busca para achar o item.`;
     return total === 1 ? '1 item.' : `${total} itens.`;
   }
 
@@ -132,7 +132,7 @@ export class PeLigacaoCampoComponent implements OnChanges, OnDestroy {
           + 'Quem cadastra o PETIC-DF é o administrador do módulo.';
       }
       return 'Ainda não há itens: a lista vem do PETIC-DF vigente, e nenhuma versão foi aprovada pelo CGTIC. '
-        + 'Enquanto não houver versão vigente, a ligação com o PETIC-DF fica opcional.';
+        + 'Até lá, a ligação com o PETIC-DF é opcional.';
     }
     if (this.campo.Tipo === 'ligacao_catalogo' && catalogo === CATALOGO_PGIA) {
       return 'O órgão ainda não tem sistemas de IA no inventário do PGIA (Governança de IA).';

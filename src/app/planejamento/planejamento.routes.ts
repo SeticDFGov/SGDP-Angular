@@ -177,7 +177,7 @@ export const planejamento_routes: Routes = [
         canDeactivate: [confirmarSaida],
         data: { prerender: false }
       },
-      // E3: deliberações do CGTIC (fila, registro da decisão e histórico), uma tela por passo da Secretaria
+      // E3: deliberações do CGTIC (fila, registro da decisão e histórico); a fila e o registro são o mesmo passo da Secretaria
       {
         path: 'cgtic/recebidos',
         loadComponent: () => import('./cgtic/pe-deliberacoes.component').then(m => m.PeDeliberacoesComponent),
@@ -187,7 +187,7 @@ export const planejamento_routes: Routes = [
       {
         path: 'cgtic/deliberacao',
         loadComponent: () => import('./cgtic/pe-deliberacoes.component').then(m => m.PeDeliberacoesComponent),
-        title: 'Registre a deliberação do comitê',
+        title: 'Registro da deliberação',
         data: { prerender: false, modo: 'decisao' }
       },
       {

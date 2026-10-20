@@ -107,7 +107,7 @@ interface EdicaoBloco {
 }
 
 /**
- * Modelo do documento do PDTIC (passo 1.4 do administrador do módulo; só ele e o
+ * Modelo do documento do PDTIC (passo 1.3 do administrador do módulo, primeira tela; só ele e o
  * admin do SGDP): a árvore dos capítulos (subcapítulos embaixo do capítulo) à
  * esquerda e, à direita, o capítulo escolhido com os blocos dele.
  *
@@ -257,7 +257,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   private confirmarTrocaDeModelo(): Promise<boolean> {
     if (!this.temMudanca()) return Promise.resolve(true);
     return this.confirmacao.perguntarDescarte(
-      'Há mudanças no modelo que ainda não foram salvas. Se trocar de modelo agora, elas se perdem.', 'Trocar sem salvar', 'Trocar de modelo sem salvar?');
+      'Há mudanças não salvas no modelo. Se trocar de modelo, elas se perdem.', 'Trocar sem salvar', 'Trocar de modelo sem salvar?');
   }
 
   /** O tipo que se pede já foi confirmado no seletor (a troca pelo endereço, por fora, pergunta aqui). */
@@ -316,7 +316,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   }
 
   textoSaida(): string {
-    return 'Há mudanças no modelo do documento que ainda não foram salvas. Se sair agora, elas se perdem.';
+    return 'Há mudanças no modelo do documento não salvas. Se sair agora, elas se perdem.';
   }
 
   // ── Carga ─────────────────────────────────────────────────────────────────
@@ -540,7 +540,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
   private confirmarDescarteDoBloco(titulo = 'Descartar as mudanças do bloco?'): Promise<boolean> {
     if (!this.edicaoBloco || !this.blocoMudou()) return Promise.resolve(true);
     return this.confirmacao.perguntarDescarte(
-      'O bloco em edição tem mudanças que ainda não foram salvas. Elas se perdem.', 'Descartar as mudanças', titulo);
+      'O bloco em edição tem mudanças não salvas. Elas se perdem.', 'Descartar as mudanças', titulo);
   }
 
   private selecionarSim(c: PeDocModeloCapitulo): void {
@@ -868,7 +868,7 @@ export class PeModeloDocumentoComponent implements OnInit, AfterViewChecked {
       case 'texto': return docVazio(normalizarDocumento(e.rascunho)) ? ['Escreva o texto padrão.'] : [];
       case 'tabela_secao': {
         if (!e.secao) return ['Escolha a seção da tabela.'];
-        return !e.todasColunas && e.colunas.length === 0 ? ['Escolha ao menos uma coluna, ou use todas as colunas da planilha.'] : [];
+        return !e.todasColunas && e.colunas.length === 0 ? ['Escolha ao menos uma coluna, ou use as colunas marcadas para o documento.'] : [];
       }
       case 'lista_tema': return e.tema ? [] : ['Escolha o tema das ações.'];
       case 'fluxo': return e.fluxo.trim() ? [] : [this.fluxos.length ? 'Escolha o fluxo.' : 'Escreva a chave do fluxo.'];

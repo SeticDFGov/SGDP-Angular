@@ -2,15 +2,9 @@
 
   <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-xl font-bold text-gray-900">Painel dos órgãos</h2>
-    <!-- F3: o nome do nível muda com o modo, que chega com a resposta; ele fica num nó de texto só dele (o ng-container),
-         para a dica de norma do fim do parágrafo não ser refeita -->
     <p class="text-sm text-gray-700 leading-relaxed mt-1">
-      Os números de todos os órgãos, como estão agora: a situação do PDTIC de cada um,
-      <ng-container>{{ modoLivre ? 'o nível alcançado' : 'o nível de maturidade' }}</ng-container>, as necessidades e as metas ligadas
-      ao PETIC-DF, as ações, os riscos e os alertas. A SGDI coordena o monitoramento e a avaliação dos PDTICs (art. 9º, IV, do Decreto
-      nº 48.899/2026).
+      Os números de todos os órgãos, como estão agora<ng-container *ngIf="geradoEm"> (calculados em {{ geradoEm }})</ng-container>.
     </p>
-    <p *ngIf="geradoEm" class="text-xs text-gray-500 italic mt-2">Números calculados em {{ geradoEm }}.</p>
   </div>
 
   <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
@@ -56,8 +50,7 @@
           <span class="material-icons text-base" aria-hidden="true">filter_alt_off</span> Limpar os filtros
         </button>
       </div>
-      <p class="text-xs text-gray-500 italic mt-2">Os filtros valem na hora para todo o painel e ficam no endereço da página: dá para
-        voltar a eles ou mandar o link a alguém.</p>
+      <p class="text-xs text-gray-500 italic mt-2">Os filtros valem na hora para todo o painel e ficam no endereço da página.</p>
       <p *ngIf="carregando && painel" role="status" class="text-sm text-gray-600 mt-2">Atualizando o painel...</p>
     </div>
 
@@ -126,8 +119,8 @@
               </div>
             </li>
           </ul>
-          <p class="text-xs text-gray-500 italic mt-3">A inadimplência segue o art. 11 do Decreto nº 48.899/2026: notificação, prazo de 5 dias
-            úteis e o registro com o motivo. A marca sai do painel quando o órgão regulariza.</p>
+          <p class="text-xs text-gray-500 italic mt-3">A inadimplência segue o art. 11 do Decreto nº 48.899/2026: notificação, 5 dias úteis e registro
+            com o motivo. A marca sai quando o órgão regulariza.</p>
         </section>
 
         <!-- Os gráficos: HTML e SVG, cada um com a tabela equivalente -->

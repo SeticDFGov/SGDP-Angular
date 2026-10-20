@@ -10,9 +10,9 @@ import { proximaVersao, quandoPdtic } from '../shared/pe-pdtic-rotulos';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
 /**
- * encerrar-equipe: a autoridade máxima aprovou os resultados (7.4) · encerrar-admin:
+ * encerrar-equipe: a autoridade máxima aprovou os resultados (7.2) · encerrar-admin:
  * a vigência terminou (administrador do módulo e admin do SGDP, com o motivo) ·
- * revisao-avaliacao: o comitê decidiu revisar (6.3) · revisao-justificativa: o
+ * revisao-avaliacao: o comitê decidiu revisar (6.1) · revisao-justificativa: o
  * órgão sem o passo da avaliação do comitê (Básico), com a justificativa.
  */
 export type ModoAcaoPdtic = 'encerrar-equipe' | 'encerrar-admin' | 'revisao-avaliacao' | 'revisao-justificativa';
@@ -26,7 +26,7 @@ const MAX_TEXTO = 1000;
  * `DialogoDirective` (foco preso, Esc fecha, foco de volta ao botão):
  *
  * - encerrar: o PDTIC fica só para consulta; a equipe encerra depois da aprovação
- *   da autoridade máxima (7.4), e o administrador, com a vigência terminada, com o
+ *   da autoridade máxima (7.2), e o administrador, com a vigência terminada, com o
  *   motivo obrigatório;
  * - revisão: a janela diz o que vai e o que não vai para a versão nova; sem o passo
  *   da avaliação do comitê no nível do órgão, a justificativa é obrigatória.
@@ -132,7 +132,7 @@ export class PeAcaoPdticComponent implements AfterViewChecked {
         this.janela = false;
         this.notificacoes.success(this.encerrar
           ? `PDTIC ${this.pdtic.Versao} encerrado. Ele fica só para consulta.`
-          : `Revisão aberta: a versão ${pdtic?.Versao ?? this.versaoNova} está em elaboração, com os dados de hoje. A versão ${this.pdtic.Versao} segue valendo até o CGTIC aprovar a nova.`);
+          : `Revisão aberta: a versão ${pdtic?.Versao ?? this.versaoNova} está em elaboração. A versão ${this.pdtic.Versao} segue valendo até o CGTIC aprovar a nova.`);
         if (pdtic) this.concluiu.emit(pdtic);
       },
       error: erro => {

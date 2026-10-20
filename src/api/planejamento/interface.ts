@@ -237,7 +237,8 @@ export interface PePassoModelo {
   Chave: string;
   /** No imperativo. */
   Titulo: string;
-  OQueFazer: string;
+  /** Pode vir vazio ou nulo: o título do passo basta (revisão de 2026-10-20). */
+  OQueFazer: string | null;
   BaseLegal: string | null;
   /** Atividade do Guia de PDTIC ("1.1", "2.8 a 2.11", "Anexo X, item 19"). */
   ReferenciaGuia: string | null;
@@ -325,7 +326,8 @@ export interface PePassoTrilha {
   Id: number;
   Chave: string;
   Titulo: string;
-  OQueFazer: string;
+  /** Pode vir vazio ou nulo: o título do passo basta (revisão de 2026-10-20). */
+  OQueFazer: string | null;
   BaseLegal: string | null;
   ReferenciaGuia: string | null;
   Tipo: PeTipoPasso;
@@ -398,7 +400,8 @@ export interface PeEtapaForm {
 
 export interface PePassoForm {
   Titulo: string;
-  OQueFazer: string;
+  /** Pode vir vazio ou nulo: o título do passo basta (revisão de 2026-10-20). */
+  OQueFazer: string | null;
   BaseLegal: string | null;
   ReferenciaGuia: string | null;
   AceitaNaoSeAplica: boolean;
@@ -408,7 +411,8 @@ export interface PePassoForm {
 export interface PePassoNovoForm {
   EtapaId: number;
   Titulo: string;
-  OQueFazer: string;
+  /** Pode vir vazio ou nulo: o título do passo basta (revisão de 2026-10-20). */
+  OQueFazer: string | null;
   BaseLegal: string | null;
 }
 

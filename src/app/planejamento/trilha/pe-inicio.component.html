@@ -7,8 +7,8 @@
         <h2 class="text-xl font-bold text-gray-900">Visão geral</h2>
         <h3 class="text-base font-semibold text-gray-900 mt-3 mb-1">O que é a Governança Estratégica</h3>
         <p class="text-sm text-gray-700 leading-relaxed">
-          Este módulo organiza a governança de tecnologia da informação e comunicação (TIC) do Distrito Federal, como pede o
-          Decreto nº 48.900/2026. São três níveis, do mais geral ao mais específico:
+          Este módulo organiza a governança de tecnologia da informação e comunicação (TIC) do Distrito Federal (Decreto nº
+          48.900/2026), em três níveis, do mais geral ao mais específico:
         </p>
         <ul class="mt-2 text-sm text-gray-700 space-y-1.5 leading-relaxed">
           <li class="flex gap-2">
@@ -37,16 +37,16 @@
         <h3 class="text-sm font-semibold text-gray-900 mt-5 mb-1">O que cabe a você</h3>
         <p class="text-sm text-gray-700 leading-relaxed">{{ trilha.descricao }}</p>
         <ol class="mt-3 text-sm text-gray-600 list-decimal ml-5 space-y-1 leading-relaxed">
-          <li>As etapas estão numeradas na ordem em que o trabalho acontece. Comece pela etapa 1.</li>
-          <li>Cada passo mostra o que fazer, a base legal e, quando há, a atividade do Guia de PDTIC do SISP (o guia do governo
-            federal que o módulo segue). Passe o mouse sobre um artigo, ou chegue nele pelo teclado, para ler o texto da norma.</li>
-          <li>Dentro de cada passo, o botão "Próximo passo", no fim da tela, leva ao seguinte, sem precisar procurar em menus.</li>
-          <li *ngIf="e.perfil === 'orgao'">Cada passo mostra a situação: feito, pendente, com comentário aberto da SGDI, "não se
-            aplica", aguardando outra coisa antes (a deliberação do CGTIC ou a publicação, por exemplo), feito fora do sistema ou
-            opcional (o passo que não é exigido e ainda está vazio), sempre com o motivo escrito. Um passo fica feito quando as seções
-            obrigatórias dele estão preenchidas.</li>
-          <li *ngIf="e.perfil === 'orgao'">Quando a equipe do PDTIC revisa um passo da elaboração e o considera pronto, ela o marca como
-            validado pela equipe. A marca aparece ao lado da situação do passo.</li>
+          <li>Siga as etapas na ordem, a partir da 1.</li>
+          <li>Cada passo traz a base legal e, quando há, a atividade do Guia de PDTIC do SISP (o guia do governo federal que o módulo
+            segue). Passe o mouse sobre um artigo, ou chegue nele pelo teclado, para ler o texto da norma.</li>
+          <li>O botão "Próximo passo", no fim de cada passo, leva ao seguinte.</li>
+          <li *ngIf="e.perfil === 'orgao'">Cada passo mostra a situação, sempre com o motivo escrito: feito, pendente, com comentário
+            aberto da SGDI, "não se aplica", aguardando outra coisa antes (a deliberação do CGTIC ou a publicação, por exemplo), feito
+            fora do sistema ou opcional (não exigido e ainda vazio). O passo fica feito quando as seções obrigatórias estão
+            preenchidas.</li>
+          <li *ngIf="e.perfil === 'orgao'">A equipe do PDTIC marca como validado o passo da elaboração que revisou e considera pronto.
+            A marca aparece ao lado da situação.</li>
         </ol>
       </div>
 
@@ -79,12 +79,12 @@
           </div>
         </dl>
         <p *ngIf="e.trilhaOrgao && !modoLivre" class="text-xs text-gray-500 italic mt-3">
-          O nível de maturidade diz quais passos e campos o órgão preenche. Quem define o nível de cada órgão é o administrador
-          do módulo; a numeração dos passos segue a posição entre os passos que o nível liga.
+          O nível de maturidade define os passos e os campos que o órgão preenche; quem o define é o administrador do módulo. A
+          numeração segue a posição entre os passos que o nível liga.
         </p>
         <p *ngIf="e.trilhaOrgao && modoLivre" class="text-xs text-gray-500 italic mt-3">
-          Todo órgão começa pelo mínimo do decreto (o nível {{ nomeNivelBase }}). Os outros passos do Guia de PDTIC aparecem como
-          opcionais, e cada passo pode ser detalhado na forma de um nível mais alto. O nível alcançado é calculado pelo que o PDTIC tem.
+          Todo órgão começa pelo mínimo do decreto (nível {{ nomeNivelBase }}). Os outros passos do Guia de PDTIC são opcionais, e
+          cada passo pode ser detalhado na forma de um nível mais alto. O nível alcançado sai do que o PDTIC tem.
         </p>
         <p *ngIf="e.meuPapel?.Papel === 'pe_orgao_consulta' && !e.adminGeral" class="text-xs text-gray-500 italic mt-3">
           O papel de consulta só lê o PDTIC do seu órgão e baixa o documento e as planilhas.
@@ -108,22 +108,20 @@
           <ng-container *ngIf="ultimaEncerrada as u; else nuncaComecou">
             <p class="text-sm text-gray-700 leading-relaxed">
               O PDTIC {{ u.Versao }} do órgão {{ siglaOrgao }} foi {{ u.Situacao === 'substituido' ? 'substituído' : 'encerrado' }}<ng-container
-                *ngIf="u.EncerradoEm"> em {{ quando(u.EncerradoEm) }}</ng-container>, e nenhuma versão está em elaboração ou em vigor agora.
+                *ngIf="u.EncerradoEm"> em {{ quando(u.EncerradoEm) }}</ng-container>. Nenhuma versão está em elaboração ou em vigor.
               <ng-container *ngIf="paginaDoOrgao as pagina">As versões anteriores ficam na
-                <a [routerLink]="pagina" data-sem-dica class="font-semibold text-purple-700 underline">página do órgão {{ siglaOrgao }}</a>, para
-                consulta.</ng-container>
+                <a [routerLink]="pagina" data-sem-dica class="font-semibold text-purple-700 underline">página do órgão {{ siglaOrgao }}</a>.</ng-container>
             </p>
           </ng-container>
           <ng-template #nuncaComecou>
-            <p class="text-sm text-gray-700 leading-relaxed">O PDTIC do órgão {{ siglaOrgao }} ainda não foi começado neste sistema.</p>
+            <p class="text-sm text-gray-700 leading-relaxed">O PDTIC do órgão {{ siglaOrgao }} ainda não foi começado.</p>
           </ng-template>
           <p *ngIf="!podeAbrirPdtic" class="text-xs text-gray-500 italic mt-1">{{ quemAbre }}</p>
           <div *ngIf="podeAbrirPdtic || podeRegistrarExterno" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
             <div *ngIf="podeAbrirPdtic" class="rounded-lg border border-gray-200 px-4 py-3">
               <h3 class="text-sm font-semibold text-gray-900">{{ ultimaEncerrada ? 'Elaborar o PDTIC do novo ciclo no sistema' : 'Elaborar o PDTIC no sistema' }}</h3>
               <p class="text-sm text-gray-700 leading-relaxed mt-1">
-                O sistema abre a versão {{ versaoNova }} do PDTIC, em elaboração. A partir daí, cada passo guarda o que a equipe do PDTIC
-                preencher, e a situação dos passos aparece aqui.
+                O sistema abre a versão {{ versaoNova }}, em elaboração. A situação dos passos aparece aqui.
               </p>
               <button type="button" (click)="abrirPdtic()" [attr.aria-disabled]="abrindo || null"
                       class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
@@ -133,12 +131,11 @@
             <div *ngIf="podeRegistrarExterno" class="rounded-lg border border-gray-200 px-4 py-3">
               <h3 class="text-sm font-semibold text-gray-900">O PDTIC já foi aprovado fora do sistema?</h3>
               <p class="text-sm text-gray-700 leading-relaxed mt-1">
-                Registre o PDTIC aprovado e publicado, com o PDF, para acompanhar a execução por aqui. A elaboração não precisa ser
-                refeita.
+                Registre o PDTIC aprovado e publicado, com o PDF, para acompanhar a execução aqui, sem refazer a elaboração.
               </p>
               <button type="button" id="pe-inicio-externo" (click)="abrirFormExterno()"
                       class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                <span class="material-icons text-base" aria-hidden="true">inventory</span> Registrar um PDTIC aprovado fora do sistema
+                <span class="material-icons text-base" aria-hidden="true">inventory</span> Registrar o PDTIC aprovado
               </button>
             </div>
           </div>
@@ -152,10 +149,10 @@
             <span class="material-icons text-purple-700" aria-hidden="true">restart_alt</span>
             <div class="leading-relaxed">
               <p class="font-semibold text-purple-800">Revisão do PDTIC: versão {{ p.Versao }}, aberta a partir da {{ r.AnteriorVersao }}.</p>
-              <p class="mt-1">A versão {{ r.AnteriorVersao }} continua valendo{{ versoes && versoes.vigente.Situacao === 'em_acompanhamento' ? ', e o acompanhamento dela segue,' : '' }}
-                até o CGTIC aprovar a {{ p.Versao }}; depois disso, ela fica como substituída. A versão nova tem os dados de hoje e passa de
+              <p class="mt-1">A versão {{ r.AnteriorVersao }} continua valendo{{ versoes && versoes.vigente.Situacao === 'em_acompanhamento' ? ', com o acompanhamento,' : '' }}
+                até o CGTIC aprovar a {{ p.Versao }}; depois, fica como substituída. A versão nova tem os dados de hoje e passa de
                 novo pela aprovação do SGTIC, pelo envio ao CGTIC e pela publicação.<ng-container *ngIf="links.etapa2 as l"> O passo a passo
-                  dela recomeça no diagnóstico, no
+                  recomeça no diagnóstico, no
                   <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold text-purple-800 underline">passo {{ l.numero }}</a>.</ng-container></p>
               <button *ngIf="versoes as v" type="button" (click)="verVersao(v.vigente)"
                       class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
@@ -181,7 +178,7 @@
           <div *ngIf="p.Situacao === 'em_aprovacao'" class="mt-3 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <span class="material-icons text-amber-600" aria-hidden="true">hourglass_top</span>
             <p class="leading-relaxed"><strong>Enviado ao CGTIC em {{ quando(p.EnviadoEm) }}: aguardando a deliberação do comitê.</strong>
-              Enquanto isso, os passos da elaboração não mudam. O envio já valeu como a comunicação à SGDI.</p>
+              Os passos da elaboração não mudam enquanto isso. O envio vale como a comunicação à SGDI.</p>
           </div>
 
           <!-- Devolvido: o que ajustar e o caminho para enviar de novo -->
@@ -194,7 +191,7 @@
               <p class="font-semibold">O que o comitê pediu para ajustar</p>
               <p class="mt-1 whitespace-pre-line break-words leading-relaxed">{{ o }}</p>
             </div>
-            <p class="mt-2 leading-relaxed">O PDTIC voltou a ficar em edição. Ajuste os passos e envie de novo<ng-container *ngIf="links.envio as l"> no
+            <p class="mt-2 leading-relaxed">Ajuste os passos e envie de novo<ng-container *ngIf="links.envio as l"> no
               <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold underline">passo {{ l.numero }}</a></ng-container>.</p>
           </div>
 
@@ -220,7 +217,7 @@
           <div *ngIf="p.Situacao === 'encerrado'" class="mt-3 flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800">
             <span class="material-icons text-gray-500" aria-hidden="true">lock</span>
             <div class="leading-relaxed min-w-0">
-              <p><strong>PDTIC encerrado<ng-container *ngIf="p.EncerradoEm"> em {{ quando(p.EncerradoEm) }}</ng-container>.</strong> Ele fica só para consulta.</p>
+              <p><strong>PDTIC encerrado<ng-container *ngIf="p.EncerradoEm"> em {{ quando(p.EncerradoEm) }}</ng-container>.</strong> Fica só para consulta.</p>
               <p *ngIf="p.EncerramentoMotivo as m" class="mt-1 whitespace-pre-line break-words">Motivo: {{ m }}</p>
             </div>
           </div>
@@ -286,7 +283,7 @@
               cobrados: preencha os que o órgão quiser detalhar.</ng-container>
           </p>
           <p *ngIf="e.situacao?.erroAndamento" role="alert" class="text-sm text-red-700 mt-2">
-            Não foi possível conferir a situação dos passos agora. Os passos continuam abertos; tente de novo em alguns instantes.
+            Não foi possível conferir a situação dos passos. Tente de novo em alguns instantes.
           </p>
           <div class="flex flex-wrap gap-2 mt-4">
             <button type="button" (click)="baixarCompleta()" [attr.aria-disabled]="baixando || null"
@@ -303,9 +300,9 @@
 
           <!-- Revisão pelo passo da avaliação do comitê (quando ele está na trilha) -->
           <p *ngIf="revisaoPelaAvaliacao as l" class="text-sm text-gray-700 leading-relaxed mt-4">
-            Para mudar o PDTIC vigente, o comitê avalia no meio do caminho: com a decisão "revisar", registrada no
-            <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold text-purple-700 underline">passo {{ l.numero }}</a>,
-            a equipe abre a revisão, numa versão nova.
+            Para mudar o PDTIC vigente, registre a decisão "revisar" da avaliação do comitê, no
+            <a [routerLink]="l.rota" [queryParams]="{ passo: l.numero }" data-sem-dica class="font-semibold text-purple-700 underline">passo {{ l.numero }}</a>:
+            a equipe abre a revisão numa versão nova.
           </p>
         </ng-container>
 
@@ -369,7 +366,7 @@
             ? 'Revise a partir da etapa ' + (r.etapa + 1)
             : (e.orgaoVisto !== null ? 'Próximo passo do órgão' : 'Seu próximo passo') }}</p>
           <p class="text-lg font-bold mt-0.5">{{ r.numero }} · {{ r.titulo }}</p>
-          <p class="text-sm mt-1 leading-relaxed">{{ revisaoRecomeca ? textoRevisaoRecomeca : r.oQueFazer }}</p>
+          <p *ngIf="revisaoRecomeca || r.oQueFazer" class="text-sm mt-1 leading-relaxed">{{ revisaoRecomeca ? textoRevisaoRecomeca : r.oQueFazer }}</p>
           <p *ngIf="!revisaoRecomeca && status(r) as s" class="inline-flex items-center gap-1 mt-2 text-xs font-semibold bg-white text-purple-800 rounded-full px-2 py-0.5">
             {{ s.texto }}
           </p>
@@ -405,8 +402,7 @@
       <!-- E8: o acompanhamento de todos os órgãos (papéis globais e admin do SGDP) -->
       <div *ngIf="atalhosAcompanhamento as lista" class="bg-white rounded-lg shadow p-6">
         <h2 class="text-base font-semibold text-gray-900 mb-1">Acompanhamento dos órgãos</h2>
-        <p class="text-sm text-gray-600 leading-relaxed">O painel, a conformidade, a árvore do PETIC-DF, a página de cada órgão e as
-          notificações e inadimplências (art. 9º, IV, do Decreto nº 48.899/2026).</p>
+        <p class="text-sm text-gray-600 leading-relaxed">Monitoramento dos PDTICs pela SGDI (art. 9º, IV, do Decreto nº 48.899/2026).</p>
         <ul class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
           <li *ngFor="let a of lista">
             <!-- data-sem-dica: citação dentro de link não vira chip -->
@@ -425,8 +421,7 @@
       <!-- Referenciais do DF (e as deliberações, para os papéis globais) -->
       <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-base font-semibold text-gray-900 mb-1">Referenciais do DF</h2>
-        <p class="text-sm text-gray-600 leading-relaxed">Os princípios, o PETIC-DF e as diretrizes do ciclo valem para todos os órgãos.
-          Consulte sempre que precisar.</p>
+        <p class="text-sm text-gray-600 leading-relaxed">Valem para todos os órgãos.</p>
         <ul class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
           <li *ngFor="let a of atalhos">
             <!-- data-sem-dica: citação dentro de link não vira chip -->
@@ -495,7 +490,7 @@
     <span class="text-sm font-bold text-purple-700 w-10 shrink-0">{{ p.numero }}</span>
     <div class="flex-1 min-w-0">
       <p class="font-medium text-gray-900">{{ p.titulo }}</p>
-      <p class="text-xs text-gray-500 leading-relaxed">{{ p.oQueFazer }}</p>
+      <p *ngIf="p.oQueFazer" class="text-xs text-gray-500 leading-relaxed">{{ p.oQueFazer }}</p>
       <p *ngIf="p.baseLegal || p.guia" class="text-xs text-gray-500 mt-0.5">
         <ng-container *ngIf="p.baseLegal">Base legal: {{ p.baseLegal }}</ng-container>
         <ng-container *ngIf="p.baseLegal && p.guia"> · </ng-container>

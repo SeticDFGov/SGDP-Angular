@@ -15,7 +15,7 @@ interface LinkPasso {
   numero: string;
 }
 
-/** Os passos que a deliberação cita: o documento (3.10), o envio (3.11) e a publicação (3.13). */
+/** Os passos que a deliberação cita: o documento (3.9), o envio (3.10) e a publicação (3.12). */
 interface LinksDeliberacao {
   documento: LinkPasso | null;
   envio: LinkPasso | null;
@@ -23,7 +23,7 @@ interface LinksDeliberacao {
 }
 
 /**
- * Deliberação do CGTIC sobre o PDTIC (passo do tipo `deliberacao`, o 3.12 no
+ * Deliberação do CGTIC sobre o PDTIC (passo do tipo `deliberacao`, o 3.11 no
  * Avançado: "Acompanhe a deliberação do CGTIC", art. 5º). Só leitura: quem
  * registra a decisão é a Secretaria do CGTIC, na fila dela. A tela mostra, pela
  * situação do PDTIC e pela deliberação mais recente:

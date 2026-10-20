@@ -42,8 +42,14 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
   @Input() avisoLeitura: string | null = null;
   /** A tela já explica, no alto, por que só se lê (F1, C30): a seção não repete o aviso. */
   @Input() semAvisoLeitura = false;
-  /** Esconde o título (a tela já mostra o nome da seção). */
+  /**
+   * Esconde o título (a tela já mostra o nome da seção, ou a seção é a única do passo
+   * e o título do passo já diz). A ajuda da seção continua; o quadro fica com o nome
+   * de `rotuladoPor` (ou o da seção) e recebe o foco que iria ao título.
+   */
   @Input() semTitulo = false;
+  /** Com `semTitulo`: id do elemento que dá nome à região (o título do passo, por exemplo). */
+  @Input() rotuladoPor: string | null = null;
   /** Situação da seção para o dono (PDTIC: pelo nível do órgão): selo ao lado do título. */
   @Input() situacao: 'obrigatorio' | 'opcional' | null = null;
   /**
@@ -117,7 +123,7 @@ export class PeSecaoRegistrosComponent implements OnChanges, OnDestroy {
         this.dados = null;
         const status = (erro as { status?: number } | null)?.status;
         const padrao = status === 404
-          ? 'Esta seção não foi encontrada. Ela pode ter sido desligada ou apagada no modelo.'
+          ? 'Seção não encontrada: ela pode ter sido desligada ou apagada no modelo.'
           : 'Não foi possível carregar esta seção.';
         // 403: o interceptor já tirou a pessoa da tela
         this.erro = mensagemErroPe(erro, padrao);

@@ -1,8 +1,7 @@
 <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-deliberacao-titulo">
   <h2 id="pe-deliberacao-titulo" class="text-base font-semibold text-gray-900">Deliberação do CGTIC</h2>
   <p class="text-sm text-gray-700 leading-relaxed mt-1">
-    O CGTIC aprova o PDTIC de cada órgão (art. 5º). A Secretaria Executiva do comitê registra a decisão tomada em reunião: aprovado,
-    com o ato e a data, ou devolvido, com o que precisa ser ajustado. A decisão aparece aqui e na visão geral.
+    A Secretaria do CGTIC registra a decisão tomada em reunião: aprovado, com o ato e a data, ou devolvido, com o que ajustar.
   </p>
 
   <!-- Ainda não enviado -->
@@ -20,7 +19,7 @@
     <span class="material-icons text-amber-600" aria-hidden="true">hourglass_top</span>
     <div class="leading-relaxed">
       <p><strong>Aguardando a deliberação do CGTIC desde {{ quando(pdtic.EnviadoEm ?? deliberacao?.EnviadoEm) }}.</strong></p>
-      <p class="mt-1">Enquanto o comitê não decide, o PDTIC não muda. Quando a Secretaria do CGTIC registrar a decisão, ela aparece aqui.</p>
+      <p class="mt-1">Enquanto o comitê não decide, o PDTIC não muda.</p>
     </div>
   </div>
 
@@ -38,11 +37,10 @@
     </div>
     <p class="font-semibold mt-3">Como ajustar e enviar de novo</p>
     <ol class="list-decimal ml-5 mt-1 space-y-1 leading-relaxed">
-      <li>Ajuste o que foi pedido nos passos do PDTIC. O PDTIC voltou a ficar em edição.</li>
+      <li>Ajuste o que foi pedido: o PDTIC voltou a ficar em edição.</li>
       <li *ngIf="links.documento as d">Confira a prévia do documento no
         <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>.</li>
-      <li *ngIf="links.envio as e">Registre de novo a aprovação do SGTIC, com a data da nova decisão: a versão ajustada volta ao comitê
-        interno antes de ir ao CGTIC. Depois, envie de novo no
+      <li *ngIf="links.envio as e">Registre de novo a aprovação do SGTIC, com a data da nova decisão, e envie de novo no
         <a [routerLink]="e.rota" [queryParams]="{ passo: e.numero }" data-sem-dica class="font-semibold underline">passo {{ e.numero }}</a>.</li>
     </ol>
   </div>
@@ -62,7 +60,7 @@
 
   <!-- Aprovado fora do sistema -->
   <p *ngIf="externoSemDeliberacao" class="mt-4 text-sm text-gray-700 leading-relaxed">
-    Este PDTIC foi aprovado fora do sistema e registrado já aprovado. A aprovação informada no registro está no PDF do PDTIC.
+    PDTIC aprovado fora do sistema. A aprovação consta no PDF registrado.
   </p>
 
   <button *ngIf="pdf as f" type="button" (click)="baixarPdf()" [attr.aria-disabled]="baixando || null"

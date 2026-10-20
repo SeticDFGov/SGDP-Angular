@@ -202,10 +202,9 @@ export class PeNiveisComponent implements OnInit, AfterViewChecked {
     const pergunta = modo === 'livre'
       ? {
         titulo: 'Passar para o modo livre?',
-        texto: `Todo órgão passa a começar pelo mínimo do decreto (o nível ${base}): os outros passos do Guia aparecem como opcionais, `
-          + 'cada passo pode ser detalhado na forma de um nível mais alto, e o nível de cada órgão passa a ser calculado pelo que o PDTIC '
-          + 'tem. O nível escolhido para cada órgão fica guardado e volta a valer se o modo voltar a ser o definido. Nada do que os órgãos '
-          + 'preencheram se perde.',
+        texto: `Todo órgão passa a começar pelo mínimo do decreto (o nível ${base}), os outros passos do Guia aparecem como opcionais `
+          + 'e o nível de cada órgão passa a ser calculado pelo que o PDTIC tem. O nível escolhido para cada órgão fica guardado e volta '
+          + 'a valer se o modo voltar a ser o definido. Nada do que os órgãos preencheram se perde.',
         sim: 'Passar para o modo livre'
       }
       : {
@@ -225,8 +224,8 @@ export class PeNiveisComponent implements OnInit, AfterViewChecked {
           this.modo = resposta.ModoNiveis;
           this.modoEscolhido = this.modo;
           this.notificacoes.success(this.modo === 'livre'
-            ? 'Modo livre salvo: cada órgão começa pelo mínimo do decreto, e o nível é calculado pelo que o PDTIC tem.'
-            : 'Modo definido salvo: vale o nível que você escolhe para cada órgão.');
+            ? 'Modo livre salvo.'
+            : 'Modo definido salvo.');
           // A coluna dos órgãos muda de sentido com o modo; o foco volta ao título do quadro (os botões ficam)
           if (this.modo === 'livre') this.contarAlcancados();
           this.focoPendente = 'pe-niveis-modo-titulo';
@@ -350,7 +349,7 @@ export class PeNiveisComponent implements OnInit, AfterViewChecked {
         this.edicao = null;
         this.notificacoes.success(e.nivel
           ? `Nível "${nome}" atualizado.`
-          : `Nível "${nome}" criado. Ele começa sem passos ligados: diga o que ele pede no passo "Monte etapas, passos, seções e campos".`);
+          : `Nível "${nome}" criado. Defina o que ele pede no passo "Monte a estrutura do PDTIC".`);
         this.carregar();
       },
       error: erro => {
@@ -386,7 +385,7 @@ export class PeNiveisComponent implements OnInit, AfterViewChecked {
     // F3: no modo livre, o nível sai do cálculo do nível alcançado (e, se é o base, o próximo ativo passa a ser o base)
     const ehBase = nivel.Id === this.idPadrao;
     const texto = this.modoLivre
-      ? `Ele deixa de contar no cálculo do nível alcançado${ehBase ? ', e o próximo nível ativo passa a ser o mínimo do decreto, pelo qual todo órgão começa' : ''}.`
+      ? `Ele deixa de contar no cálculo do nível alcançado${ehBase ? ', e o próximo nível ativo passa a ser o mínimo do decreto' : ''}.`
       : `Ele deixa de ser oferecido para os órgãos.${aviso}`;
     this.confirmacao.perguntar({
       titulo: `Desativar o nível "${nivel.Nome}"?`,

@@ -320,7 +320,7 @@ export class PePessoasComponent implements OnInit, AfterViewChecked {
     this.pessoasService.definirPapel(pessoa.UserId, papel).subscribe({
       next: resposta => {
         this.dandoAcesso = false;
-        this.notificacoes.success(`Acesso à Governança Estratégica liberado para ${pessoa.Nome}, com o papel "${this.rotuloPapel(papel)}". Vale no próximo clique da pessoa.`);
+        this.notificacoes.success(`Acesso liberado para ${pessoa.Nome}, com o papel "${this.rotuloPapel(papel)}". Vale no próximo clique da pessoa.`);
         this.avisarSeSemOrgao(resposta, pessoa.Nome, papel);
         this.cancelarEscolha();
         this.candidatas = this.candidatas?.filter(c => c.UserId !== pessoa.UserId) ?? null;
@@ -355,7 +355,7 @@ export class PePessoasComponent implements OnInit, AfterViewChecked {
   /** Papel de órgão grava mesmo sem órgão: a resposta volta com `OrgaoId` nulo, e a tela avisa. */
   private avisarSeSemOrgao(resposta: PePessoa | null, nome: string, papel: string | null): void {
     if (!this.deOrgao(papel) || !resposta || resposta.OrgaoId !== null) return;
-    this.notificacoes.warning(`${nome} ficou sem órgão: a unidade da pessoa não está ligada a um órgão, e o papel de órgão só vale com órgão. A unidade é definida pela Administração do SGDP.`);
+    this.notificacoes.warning(`${nome} ficou sem órgão: a unidade da pessoa não está ligada a um órgão, e o papel de órgão exige um. A Administração do SGDP define a unidade.`);
   }
 
   private tratarErro(err: HttpErrorResponse, padrao: string): void {
@@ -363,7 +363,7 @@ export class PePessoasComponent implements OnInit, AfterViewChecked {
     if (err?.status === 403) return;
     const codigo = err?.error?.Code;
     if (err?.status === 409 || codigo === ErrosPlanejamento.AutoRebaixamento) {
-      this.notificacoes.warning('Você não pode tirar nem trocar o seu próprio papel de administrador do módulo. Assim o módulo nunca fica sem ninguém para administrá-lo. Se precisar, peça a outro administrador do módulo.');
+      this.notificacoes.warning('Você não pode tirar nem trocar o seu próprio papel de administrador do módulo, para o módulo não ficar sem administrador. Peça a outro administrador.');
       this.buscar(this.page);
       return;
     }

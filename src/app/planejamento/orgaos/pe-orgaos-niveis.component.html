@@ -5,13 +5,13 @@
 
   <div *ngIf="pode === false && !erroPapel" class="bg-white rounded-lg shadow p-6">
     <h2 class="text-base font-semibold text-gray-900 mb-1">Nível de cada órgão</h2>
-    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem acompanha o nível de maturidade
-      e os ajustes de cada órgão. Se você precisa mudar algo para um órgão, fale com ele.</p>
+    <p class="text-sm text-gray-700 leading-relaxed">Só o administrador do módulo acompanha o nível e os ajustes dos órgãos. Para mudar
+      algo, fale com ele.</p>
   </div>
 
   <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
     <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
-    <p class="mt-1">Sem ele, a lista de órgãos não abre. Tente de novo em alguns instantes.</p>
+    <p class="mt-1">Sem o papel, a lista de órgãos não abre. Tente de novo.</p>
     <button type="button" (click)="tentarDeNovo()"
             class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
       <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
@@ -36,14 +36,10 @@
       <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-base font-semibold text-gray-900 mb-1">Nível de cada órgão</h2>
         <!-- F3: o texto segue o modo dos níveis -->
-        <p *ngIf="!modoLivre" class="text-sm text-gray-700 leading-relaxed">O nível de maturidade diz o que o órgão preenche no PDTIC.
-          Escolha o nível de cada órgão com a justificativa; ela fica no histórico, que ajuda no Relatório de Maturidade (art. 9º, X, do
-          Decreto nº 48.899/2026). Enquanto você não escolhe, vale o nível padrão: o primeiro nível ativo da lista.</p>
-        <p *ngIf="modoLivre" class="text-sm text-gray-700 leading-relaxed">No modo livre, o nível de cada órgão é calculado pelo que o
-          PDTIC tem. Aqui você vê o nível que cada órgão alcançou e ajusta um passo, uma seção ou um campo só para um órgão, quando
-          precisar. O histórico mostra os níveis escolhidos no modo definido, que ficam guardados.</p>
-        <p class="text-xs text-gray-500 italic mt-2">{{ modoLivre ? 'Por cima do modo livre' : 'Por cima do nível' }}, dá para ajustar um
-          passo, uma seção ou um campo só para um órgão. Use "Ver como o órgão vê" para conferir o passo a passo que o órgão recebe.</p>
+        <p *ngIf="!modoLivre" class="text-sm text-gray-700 leading-relaxed">A justificativa da escolha fica no histórico e ajuda no Relatório de Maturidade
+          (art. 9º, X, do Decreto nº 48.899/2026). Sem escolha, vale o nível padrão: o primeiro nível ativo da lista.</p>
+        <p *ngIf="modoLivre" class="text-sm text-gray-700 leading-relaxed">O histórico mostra os níveis escolhidos no modo definido, que ficam guardados.</p>
+        <p class="text-xs text-gray-500 italic mt-2">Use "Ver como o órgão vê" para conferir o passo a passo que o órgão recebe.</p>
 
         <form (ngSubmit)="buscar()" class="flex flex-col md:flex-row md:items-end gap-3 mt-4">
           <div class="flex-1">
@@ -177,12 +173,11 @@
                 [attr.aria-describedby]="descritoresTroca('justificativa', 'pe-troca-justificativa-ajuda')"
                 class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 [ngClass]="erroTroca('justificativa') ? 'border-red-500' : 'border-gray-300'"></textarea>
-      <p id="pe-troca-justificativa-ajuda" class="text-xs text-gray-500 italic mt-1">Diga por que o órgão fica neste nível. A justificativa
-        fica no histórico do órgão.</p>
+      <p id="pe-troca-justificativa-ajuda" class="text-xs text-gray-500 italic mt-1">A justificativa fica no histórico do órgão.</p>
       <p *ngIf="erroTroca('justificativa') as e" id="pe-troca-justificativa-erro" class="text-xs text-red-600 mt-1">{{ e }}</p>
 
       <p class="text-xs text-gray-600 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 mt-4">O passo a passo do órgão muda na hora.
-        Nada do que o órgão já preencheu se perde: o que o nível novo não pede fica guardado e volta se o nível voltar.</p>
+        Nada se perde: o que o nível novo não pede fica guardado e volta se o nível voltar.</p>
 
       <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5">
         <button type="button" (click)="fecharTroca()" [disabled]="salvandoNivel"

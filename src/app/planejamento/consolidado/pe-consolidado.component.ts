@@ -37,7 +37,7 @@ function ligadoEmAlgumNivel(item: PePassoModelo | PeSecaoModelo): boolean {
 }
 
 /**
- * Planilhas consolidadas (passo 5.1 do administrador do módulo e 4.1 da equipe da
+ * Planilhas consolidadas (passo 4.5 do administrador do módulo e 1.4 da equipe da
  * SGDI; a Secretaria do CGTIC e o admin do SGDP também baixam): cada seção do
  * PDTIC com os registros de todos os PDTICs atuais, com as colunas do órgão,
  * sigla, nível, versão e situação do PDTIC antes dos campos (a união dos campos

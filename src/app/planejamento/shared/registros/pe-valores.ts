@@ -430,9 +430,8 @@ export function dicaDoCampo(campo: PeCampoRegistro): string {
       const texto = partes.join(', ');
       return c?.unidade ? `${texto} (${c.unidade}).` : `${texto}.`;
     }
-    case 'moeda': return 'Valor em reais, com os centavos depois da vírgula. Exemplo: 1.250,00.';
+    case 'moeda': return 'Em reais, com os centavos depois da vírgula. Exemplo: 1.250,00.';
     case 'percentual': return 'Um percentual de 0 a 100. Exemplo: 12,5.';
-    case 'lista_multipla': return 'Marque uma ou mais opções.';
     default: return '';
   }
 }
@@ -517,7 +516,7 @@ export function erroDoCampo(campo: PeCampoRegistro, valor: unknown, vinculos?: P
       return dataNaoFutura(campo) && String(valor) > hojeIso() ? 'A data não pode ser depois de hoje.' : null;
     case 'texto_rico':
       return JSON.stringify(docParaEnvio(valor)).length > MAX_CARACTERES_DOCUMENTO
-        ? 'O texto ficou grande demais para guardar. Tire uma parte dele (ou divida em mais de um registro).'
+        ? 'O texto ficou grande demais. Tire uma parte ou divida em mais de um registro.'
         : null;
     default:
       return null;
@@ -639,7 +638,7 @@ export function problemaDoArquivo(campo: PeCampoRegistro, arquivo: File): string
   const tipos = tiposDoArquivo(campo);
   const extensao = (arquivo.name.split('.').pop() ?? '').toLowerCase();
   const tipo = extensao === 'jpeg' ? 'jpg' : extensao;
-  if (!tipos.includes(tipo)) return `Este tipo de arquivo não serve aqui. Envie ${juntar(tipos.map(t => t.toUpperCase()))}.`;
+  if (!tipos.includes(tipo)) return `Tipo de arquivo não aceito. Envie ${juntar(tipos.map(t => t.toUpperCase()))}.`;
   if (arquivo.size === 0) return 'O arquivo está vazio.';
   const imagem = tipo === 'png' || tipo === 'jpg';
   const configurado = typeof campo.Config?.maxMb === 'number' && campo.Config.maxMb > 0 ? campo.Config.maxMb : MAX_MB_ARQUIVO;

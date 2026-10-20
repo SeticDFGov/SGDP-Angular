@@ -13,9 +13,9 @@
       <span class="material-icons text-amber-600" aria-hidden="true">person_off</span>
       <div class="text-sm leading-relaxed">
         <h1 class="text-base font-semibold">Você ainda não tem um papel na Governança Estratégica</h1>
-        <p class="mt-1">O seu acesso ao módulo está liberado, mas é o papel que diz o que você faz aqui: administrar o módulo,
-          acompanhar os órgãos pela SGDI, secretariar o CGTIC ou trabalhar no PDTIC do seu órgão.</p>
-        <p class="mt-1 font-semibold">Fale com o administrador do módulo para ele definir o seu papel.</p>
+        <p class="mt-1">O acesso está liberado, mas o papel diz o que você faz aqui: administrar o módulo, acompanhar os órgãos
+          pela SGDI, secretariar o CGTIC ou trabalhar no PDTIC do seu órgão.</p>
+        <p class="mt-1 font-semibold">Peça ao administrador do módulo para definir o seu papel.</p>
       </div>
     </div>
 
@@ -24,8 +24,8 @@
       <span class="material-icons text-amber-600" aria-hidden="true">domain_disabled</span>
       <div class="text-sm leading-relaxed">
         <h1 class="text-base font-semibold">A sua unidade não está ligada a um órgão</h1>
-        <p class="mt-1">O seu papel é de órgão, e o passo a passo do PDTIC depende do órgão: é por ele que o sistema sabe os passos
-          e os campos que você preenche. Enquanto a unidade não estiver ligada a um órgão, não há passo a passo para mostrar.</p>
+        <p class="mt-1">O passo a passo do PDTIC depende do órgão: é por ele que o sistema sabe os passos e os campos que você
+          preenche.</p>
         <p class="mt-1 font-semibold">Peça à Administração do SGDP que ligue a sua unidade a um órgão.</p>
       </div>
     </div>
@@ -35,7 +35,7 @@
       <span class="material-icons text-red-600" aria-hidden="true">error</span>
       <div class="text-sm leading-relaxed">
         <h1 class="text-base font-semibold">Não foi possível carregar o seu papel na Governança Estratégica</h1>
-        <p class="mt-1">Tente de novo em alguns instantes. Se o problema continuar, avise a equipe que administra o sistema.</p>
+        <p class="mt-1">Se o problema continuar, avise a equipe que administra o sistema.</p>
         <button type="button" (click)="tentarDeNovo()"
                 class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
           <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
@@ -48,7 +48,7 @@
       <span class="material-icons text-red-600" aria-hidden="true">error</span>
       <div class="text-sm leading-relaxed">
         <h1 class="text-base font-semibold">Não foi possível carregar o passo a passo do órgão</h1>
-        <p class="mt-1">{{ e.erroTrilha }} Tente de novo em alguns instantes. Se o problema continuar, avise a equipe que administra o sistema.</p>
+        <p class="mt-1">{{ e.erroTrilha }} Se o problema continuar, avise a equipe que administra o sistema.</p>
         <div class="flex flex-wrap gap-2 mt-3">
           <button type="button" (click)="tentarDeNovo()"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
@@ -69,11 +69,11 @@
       <p class="flex-1 leading-relaxed">
         <strong>Você está vendo o passo a passo do órgão {{ t.OrgaoSigla }} como ele vê.</strong>
         <!-- F3: no modo livre, os passos saem do mínimo do decreto, dos opcionais e das formas que o órgão escolheu -->
-        <ng-container *ngIf="modoLivre; else doNivel">É só para ler: no modo livre, os passos são os do mínimo do decreto (o nível
-          {{ t.NivelNome }}) mais os outros do Guia, como opcionais, com as formas que o órgão escolheu e os ajustes feitos para ele, e os
+        <ng-container *ngIf="modoLivre; else doNivel">É só para ler. No modo livre, os passos são os do mínimo do decreto (nível
+          {{ t.NivelNome }}) e os outros do Guia, como opcionais, com as formas que o órgão escolheu e os ajustes feitos para ele. Os
           dados são os do PDTIC dele.</ng-container>
-        <ng-template #doNivel>É só para ler: os passos, as seções e os campos saem do nível do órgão ({{ t.NivelNome }}<ng-container *ngIf="t.NivelPadrao">, o padrão</ng-container>)
-          e dos ajustes feitos para ele, e os dados são os do PDTIC dele.</ng-template>
+        <ng-template #doNivel>É só para ler. Os passos, as seções e os campos saem do nível do órgão ({{ t.NivelNome }}<ng-container *ngIf="t.NivelPadrao">, o padrão</ng-container>)
+          e dos ajustes feitos para ele. Os dados são os do PDTIC dele.</ng-template>
       </p>
       <button type="button" (click)="voltarParaMinhaTrilha()"
               class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-300 bg-white text-sm font-semibold text-amber-900 hover:bg-gray-50 whitespace-nowrap">
@@ -195,11 +195,21 @@
           </a>
         </div>
 
-        <!-- O que fazer neste passo -->
-        <div *ngIf="passoAtual" class="mt-3 rounded-lg bg-purple-50 border border-purple-200 px-4 py-3 flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 text-sm">
-          <p class="flex-1 text-gray-800 leading-relaxed">
-            <strong class="text-purple-800">O que fazer no passo {{ passoAtual.numero }}:</strong> {{ passoAtual.oQueFazer }}
-          </p>
+        <!-- O que fazer neste passo (sem o texto quando o título do passo basta; sem a caixa quando não há nada a mostrar) -->
+        <div *ngIf="passoAtual && temCaixaDoPasso(passoAtual)" class="mt-3 rounded-lg bg-purple-50 border border-purple-200 px-4 py-3 flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 text-sm">
+          <div class="flex-1">
+            <p *ngIf="passoAtual.oQueFazer" class="text-gray-800 leading-relaxed">
+              <strong class="text-purple-800">O que fazer no passo {{ passoAtual.numero }}:</strong> {{ passoAtual.oQueFazer }}
+            </p>
+            <!-- Passo com mais de uma tela: o link de cada uma (a aberta marcada) -->
+            <ul *ngIf="passoAtual.telas?.length" class="flex flex-wrap gap-2 mt-2" [attr.aria-label]="'Telas do passo ' + passoAtual.numero" data-sem-dica>
+              <li *ngFor="let t of passoAtual.telas">
+                <a [routerLink]="t.rota" [queryParams]="{ passo: passoAtual.numero }" [attr.aria-current]="rotaAtual === t.rota ? 'page' : null"
+                   class="inline-flex items-center px-3 py-1.5 rounded-full border text-sm transition-colors"
+                   [ngClass]="rotaAtual === t.rota ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'">{{ t.titulo }}</a>
+              </li>
+            </ul>
+          </div>
           <span *ngIf="passoAtual.baseLegal" class="text-xs text-gray-600">Base legal: {{ passoAtual.baseLegal }}</span>
           <span *ngIf="passoAtual.guia" class="text-xs text-gray-600">{{ guia(passoAtual) }}</span>
           <!-- O selo quebra a linha quando o texto é longo (sem isso, no celular, ele saía da tela, F1, A02) -->

@@ -2,14 +2,14 @@
   <!-- Recebe o foco depois da troca (as seções do passo vêm de novo) -->
   <h2 [id]="idBase + '-titulo'" tabindex="-1" class="text-base font-semibold text-gray-900">Forma deste passo</h2>
   <p class="text-sm text-gray-600 leading-relaxed mt-1">
-    Este passo pode ser preenchido do jeito mais simples, o mínimo do decreto, ou na forma de um nível mais completo, com mais
-    seções e campos. Use a forma que serve ao órgão: o nível alcançado conta o que o PDTIC tem.
+    Preencha o mínimo do decreto ou a forma de um nível mais completo, com mais seções e campos. O nível alcançado conta o
+    que o PDTIC tem.
   </p>
 
   <!-- Quem troca: o grupo de opções e o botão (a escolha só vale no botão) -->
   <ng-container *ngIf="podeTrocar; else soLeitura">
     <fieldset class="mt-3">
-      <legend class="text-sm font-semibold text-gray-800">Formas deste passo</legend>
+      <legend class="text-sm font-semibold text-gray-800">Formas disponíveis</legend>
       <div *ngFor="let o of opcoes; trackBy: porNivel" class="flex items-start gap-2 mt-2">
         <input type="radio" [id]="idOpcao(o)" [name]="idBase" [value]="o.nivelId" [checked]="escolhida === o.nivelId"
                (change)="escolher(o)" [attr.aria-describedby]="idOpcao(o) + '-descricao'"
@@ -38,7 +38,7 @@
       <ng-container *ngFor="let o of outras; let ultima = last; trackBy: porNivel">{{ o.nome }} ({{ o.descricao }}){{ ultima ? '.' : '; ' }}</ng-container>
     </p>
     <p class="text-xs text-gray-500 italic mt-2">
-      {{ semPdtic ? 'A equipe do PDTIC escolhe a forma depois de começar o PDTIC.' : 'Quem escolhe a forma é a equipe do PDTIC, enquanto o passo está em edição.' }}
+      {{ semPdtic ? 'Só a equipe do PDTIC escolhe a forma, depois de começar o PDTIC.' : 'Só a equipe do PDTIC escolhe a forma, com o passo em edição.' }}
     </p>
   </ng-template>
 

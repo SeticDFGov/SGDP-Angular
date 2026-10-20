@@ -7,7 +7,7 @@ import { PeFluxosService, PeFonteFluxos } from '../services/pe-fluxos.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 
 /**
- * Fluxos-modelo (passo 1.5 do administrador do módulo; só ele e o admin do
+ * Fluxos-modelo (passo 1.3 do administrador do módulo, segunda tela; só ele e o admin do
  * SGDP, pelo `meu-papel`): os fluxos do Guia de PDTIC que os órgãos copiam e
  * adaptam, no mesmo editor do órgão (o visual, de arrastar e soltar, e o em
  * lista: raias, passos, decisões, paralelos, documentos e o desenho). Os demais papéis veem um aviso e a tela
@@ -56,6 +56,6 @@ export class PeModeloFluxosComponent implements OnInit {
   }
 
   textoSaida(): string {
-    return 'Há mudanças no fluxo-modelo que ainda não foram salvas. Se sair agora, elas se perdem.';
+    return 'Há mudanças no fluxo-modelo não salvas. Se sair agora, elas se perdem.';
   }
 }

@@ -21,7 +21,7 @@ import { PeRegistrosService } from '../services/pe-registros.service';
 import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { BASE_PE } from '../trilha/pe-trilhas';
 
-/** fila: o que chegou (passo 1.1 da Secretaria do CGTIC) · decisao: registrar (2.1) · historico: consultar (3.1). */
+/** fila: o que chegou (passo 1.1 da Secretaria do CGTIC) · decisao: registrar (o mesmo passo, segunda tela) · historico: consultar (2.1). */
 export type ModoDeliberacoes = 'fila' | 'decisao' | 'historico';
 
 type Decisao = PeDecisaoForm['Decisao'];
@@ -64,8 +64,8 @@ const TIPOS: { valor: PeObjetoDeliberacao | ''; rotulo: string }[] = [
 ];
 
 /**
- * Deliberações do CGTIC (Secretaria Executiva do comitê, art. 9º), uma tela por
- * passo da trilha da Secretaria (a rota diz o modo):
+ * Deliberações do CGTIC (Secretaria Executiva do comitê, art. 9º), três telas
+ * (a rota diz o modo; a fila e o registro são o passo 1.1 da Secretaria):
  *
  * - fila: o que foi enviado e espera a decisão (o PETIC-DF e, desde a E7, os
  *   PDTICs dos órgãos), da mais antiga para a mais nova, com o filtro pelo tipo, o
@@ -303,7 +303,7 @@ export class PeDeliberacoesComponent implements OnInit, AfterViewChecked {
   }
 
   /**
-   * Abre o registro da decisão. Na mesma tela (passo 2.1 da Secretaria), a fila sai
+   * Abre o registro da decisão. Na mesma tela (passo 1.1 da Secretaria), a fila sai
    * e o foco vai para o título do que se decide; vindo de outra tela, a troca de
    * página já leva o foco ao título (F2, C-N2).
    */
