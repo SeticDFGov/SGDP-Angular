@@ -74,7 +74,7 @@
         <p class="flex-1 text-gray-800 leading-relaxed">
           <strong class="text-indigo-900">O que fazer no passo {{ passoAtual.numero }}:</strong> {{ passoAtual.oQueFazer }}
         </p>
-        <span class="text-xs text-gray-600">Base legal: {{ passoAtual.baseLegal }}</span>
+        <span *ngIf="passoAtual.baseLegal" class="text-xs text-gray-600">Base legal: {{ passoAtual.baseLegal }}</span>
         <span *ngIf="status(passoAtual) as s"
               class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
               [ngClass]="classeEstado(s.estado)">

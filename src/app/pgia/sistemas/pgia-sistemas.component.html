@@ -271,7 +271,7 @@
     <div *ngIf="secao === 'cadastro' && !modoEdicao && !responsavelVigente" class="bg-white rounded-lg shadow p-6 mb-5">
       <div class="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm leading-relaxed rounded-r-md">
         Antes de cadastrar sistemas, conclua a etapa 1 da trilha: designe e comunique o
-        Responsável de IA do órgão (art. 10). O registro do inventário fica assinado por ele.
+        Responsável de IA titular do órgão (art. 10). O registro do inventário fica assinado por ele.
       </div>
     </div>
 
@@ -739,7 +739,7 @@
         </a>
         <span id="s-salvar-dica" class="text-xs text-gray-500 italic">
           <ng-container *ngIf="faltaNoQuestionario">{{ faltaNoQuestionario }}</ng-container>
-          <ng-container *ngIf="!faltaNoQuestionario && responsavelVigente">O registro fica assinado por {{ responsavelVigente.AgenteNome }}, Responsável de IA da {{ orgao.Sigla }}.</ng-container>
+          <ng-container *ngIf="!faltaNoQuestionario && responsavelVigente">O registro fica assinado por {{ responsavelVigente.AgenteNome }}, Responsável de IA titular da {{ orgao.Sigla }}.</ng-container>
         </span>
       </div>
     </div>

@@ -381,7 +381,8 @@
               <th class="px-3 py-2">Papel PGIA</th>
               <th class="px-3 py-2">Entra no PGIA?</th>
               <th class="px-3 py-2">Órgão / unidade</th>
-              <th class="px-3 py-2"></th>
+              <th class="px-3 py-2">Funções vigentes</th>
+              <th class="px-3 py-2"><span class="sr-only">Ações</span></th>
             </tr>
           </thead>
           <tbody>
@@ -414,6 +415,21 @@
                   <span *ngIf="!p.OrgaoSigla && p.UnidadeNome" class="text-gray-500">{{ p.UnidadeNome }}</span>
                   <span *ngIf="!p.OrgaoSigla && !p.UnidadeNome" class="text-gray-500">sem vínculo</span>
                 </td>
+                <td class="px-3 py-2">
+                  <!-- Designações vigentes da pessoa (titular ou suplente), com a marca do ato pendente em texto -->
+                  <ul *ngIf="p.Funcoes?.length; else semFuncao" class="space-y-1">
+                    <li *ngFor="let f of p.Funcoes">
+                      <span>{{ rotuloFuncao(f) }}</span>
+                      <span *ngIf="f.AtoPendente" class="block text-xs font-semibold text-yellow-700">Ato a completar (importado da planilha da SGDI)</span>
+                      <button type="button" [id]="idBotaoFuncao(f)" (click)="abrirAtoFuncao(p, f)"
+                              [attr.aria-expanded]="atoEmEdicao?.funcao === f"
+                              class="block mt-1 text-xs text-blue-700 border border-blue-600 rounded px-2 py-0.5 hover:bg-blue-50">
+                        {{ f.AtoPendente ? 'Completar o ato' : 'Corrigir o ato' }}<span class="sr-only">: {{ rotuloFuncao(f) }}, {{ p.Nome }}</span>
+                      </button>
+                    </li>
+                  </ul>
+                  <ng-template #semFuncao><span class="text-gray-500">-</span></ng-template>
+                </td>
                 <td class="px-3 py-2 text-right whitespace-nowrap">
                   <button (click)="abrirAcesso(p)"
                           class="text-sm text-blue-700 border border-blue-600 rounded px-3 py-1 hover:bg-blue-50">
@@ -428,7 +444,7 @@
 
               <!-- Papel PGIA e órgão -->
               <tr *ngIf="pessoaEmAcesso?.UserId === p.UserId" class="border-b border-gray-200 bg-gray-50">
-                <td colspan="6" class="px-3 py-3">
+                <td colspan="7" class="px-3 py-3">
                   <h3 class="text-sm font-semibold text-gray-900 mb-3">Acesso de {{ p.Nome }}</h3>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -465,9 +481,24 @@
                 </td>
               </tr>
 
+              <!-- Ato de uma designação da pessoa: completar (importada da planilha) ou corrigir -->
+              <tr *ngIf="atoAbertoPara(p)" class="border-b border-gray-200 bg-gray-50">
+                <td colspan="7" class="px-3 py-3">
+                  <p *ngIf="atoEmEdicao?.carregando" class="text-sm text-gray-500" role="status">Carregando a designação...</p>
+                  <div *ngIf="atoEmEdicao?.erro as erroAto" class="border-l-4 border-yellow-500 bg-yellow-50 p-3 text-sm leading-relaxed rounded-r-md">
+                    <p id="sgdi-ato-erro" tabindex="-1">{{ erroAto }}</p>
+                    <button type="button" (click)="fecharAtoFuncao()" class="mt-2 text-blue-700 font-semibold underline">Fechar</button>
+                  </div>
+                  <app-pgia-designacao-form *ngIf="atoEmEdicao?.designacao as d"
+                    [tipo]="tipoAtoEmEdicao" [orgaoId]="d.OrgaoId" modo="ato" [designacao]="d" idBase="sgdi-ato"
+                    (salvo)="aoSalvarAtoFuncao($event)" (cancelar)="fecharAtoFuncao()">
+                  </app-pgia-designacao-form>
+                </td>
+              </tr>
+
               <!-- Matrícula, cargo e vínculo -->
               <tr *ngIf="pessoaEmCadastro?.UserId === p.UserId" class="border-b border-gray-200 bg-gray-50">
-                <td colspan="6" class="px-3 py-3">
+                <td colspan="7" class="px-3 py-3">
                   <h3 class="text-sm font-semibold text-gray-900 mb-3">Completar dados de {{ p.Nome }}</h3>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
@@ -504,7 +535,7 @@
             </ng-container>
 
             <tr *ngIf="pessoas.length === 0">
-              <td colspan="6" class="px-3 py-4 text-center text-gray-500">Nenhuma pessoa encontrada com esses filtros.</td>
+              <td colspan="7" class="px-3 py-4 text-center text-gray-500">Nenhuma pessoa encontrada com esses filtros.</td>
             </tr>
           </tbody>
         </table>

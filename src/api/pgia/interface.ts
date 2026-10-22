@@ -57,6 +57,8 @@ export interface PgiaDesignacaoForm {
   // Cópia do ato em anexo. O documento tem de ser do MESMO órgão da
   // designação: documento central é recusado pelo servidor.
   DocumentoId?: number | null;
+  // "Titular" ou "Suplente". Ausente vale "Titular" no servidor.
+  Posicao?: PgiaPosicaoDesignacao;
 }
 
 export interface PgiaResponsavelIaForm extends PgiaDesignacaoForm {
@@ -64,29 +66,72 @@ export interface PgiaResponsavelIaForm extends PgiaDesignacaoForm {
   CapacitacaoAdequada: boolean | null;
 }
 
+/**
+ * PUT .../{designacao}/{designacaoId}: completa o ato de uma designação importada
+ * da planilha da SGDI (tira a marca `AtoPendente`) ou corrige o ato de qualquer
+ * designação do órgão. Exige todos os campos; pessoa e posição não mudam.
+ * `DocumentoId` nulo TIRA a cópia do ato.
+ */
+export interface PgiaDesignacaoAtualizarForm {
+  AtoTipo: string;
+  AtoNumero: string;
+  AtoData: string;
+  ProcessoSeiComunicacao: string;
+  DataComunicacaoSgdi: string;
+  InicioVigencia: string;
+  DocumentoId: number | null;
+}
+
+export interface PgiaResponsavelIaAtualizarForm extends PgiaDesignacaoAtualizarForm {
+  AcumulaFuncaoTic: boolean;
+  CapacitacaoAdequada: boolean | null;
+}
+
+export type PgiaPosicaoDesignacao = 'Titular' | 'Suplente';
+export const POSICOES_DESIGNACAO: readonly PgiaPosicaoDesignacao[] = ['Titular', 'Suplente'];
+
+/** Chave da designação (rota da API, seção da tela e campo `Designacao` das funções da pessoa). */
+export type PgiaTipoDesignacao = 'responsavel_ia' | 'encarregado_dados' | 'curador_dados';
+
+export const NOMES_DESIGNACAO: Readonly<Record<PgiaTipoDesignacao, string>> = {
+  responsavel_ia: 'Responsável de IA',
+  encarregado_dados: 'Encarregado de Dados',
+  curador_dados: 'Curador de Dados de Negócio'
+};
+
 export interface PgiaDesignacao {
   Id: number;
   OrgaoId: number;
   AgenteId: string;
   AgenteNome: string;
   AgenteEmail: string;
-  AtoTipo: string;
-  AtoNumero: string;
-  AtoData: string;
-  ProcessoSeiComunicacao: string;
-  DataComunicacaoSgdi: string;
+  // Os campos do ato podem vir nulos só com `AtoPendente` (designação importada
+  // da planilha da SGDI, ato a completar).
+  AtoTipo: string | null;
+  AtoNumero: string | null;
+  AtoData: string | null;
+  ProcessoSeiComunicacao: string | null;
+  DataComunicacaoSgdi: string | null;
   AcumulaFuncaoTic: boolean | null;
   CapacitacaoAdequada: boolean | null;
-  InicioVigencia: string;
+  InicioVigencia: string | null;
   FimVigencia: string | null;
   Ativo: boolean;
   DocumentoId?: number | null;
+  // Opcionais: a resposta antiga não os tem (sem `Posicao`, vale "Titular").
+  Posicao?: PgiaPosicaoDesignacao;
+  AtoPendente?: boolean;
 }
 
 export interface PgiaMeuOrgao {
   Orgao: PgiaOrgao | null;
+  // Os dois de sempre são o TITULAR vigente; os outros são novos (opcionais).
   ResponsavelIaVigente: PgiaDesignacao | null;
   EncarregadoDadosVigente: PgiaDesignacao | null;
+  ResponsavelIaSuplenteVigente?: PgiaDesignacao | null;
+  EncarregadoDadosSuplenteVigente?: PgiaDesignacao | null;
+  CuradorDadosVigente?: PgiaDesignacao | null;
+  CuradorDadosSuplenteVigente?: PgiaDesignacao | null;
 }
 
 export interface PgiaPrazo {
@@ -413,6 +458,20 @@ export interface PgiaPessoaAcesso {
   // também dá acesso por si. Opcionais: respostas antigas os omitem.
   AcessoModulo?: boolean;
   AcessoModuloKeycloak?: boolean;
+  // Designações vigentes da pessoa (Responsável de IA, Encarregado de Dados e
+  // Curador de Dados de Negócio, titular antes do suplente). Opcional: a resposta
+  // antiga não o tem; vazia quando a pessoa não tem designação vigente.
+  Funcoes?: PgiaFuncaoPessoa[];
+}
+
+export interface PgiaFuncaoPessoa {
+  Designacao: PgiaTipoDesignacao;
+  DesignacaoNome: string;
+  DesignacaoId: number;
+  Posicao: PgiaPosicaoDesignacao;
+  AtoPendente: boolean;
+  OrgaoId: number;
+  OrgaoSigla: string | null;
 }
 
 /** Resposta do PUT .../pessoa/{userId}/acesso-modulo. */
