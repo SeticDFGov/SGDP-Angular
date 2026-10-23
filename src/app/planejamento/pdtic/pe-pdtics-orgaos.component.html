@@ -3,9 +3,8 @@
   <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-base font-semibold text-gray-900 mb-1">PDTICs dos órgãos</h2>
     <p class="text-sm text-gray-700 leading-relaxed">
-      Escolha o órgão e abra o passo a passo dele. Lá você lê o PDTIC como o órgão vê, e cada passo tem o bloco
-      "Comentários deste passo" para a SGDI escrever. A equipe do PDTIC responde e marca como resolvido; enquanto o comentário
-      estiver aberto, o passo pede atenção no passo a passo do órgão (art. 9º, IX, do Decreto nº 48.899/2026).
+      Abra o passo a passo do órgão para ler o PDTIC e comentar os passos. Comentário aberto mantém o passo em atenção (art. 9º, IX,
+      do Decreto nº 48.899/2026).
     </p>
   </div>
 
@@ -19,8 +18,8 @@
 
   <div *ngIf="podeVer === false && !erroPapel" class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-5 text-sm leading-relaxed">
     <span class="material-icons text-amber-600" aria-hidden="true">lock</span>
-    <p>A lista com os PDTICs de todos os órgãos é da SGDI, do administrador do módulo e da Secretaria do CGTIC. O PDTIC do seu
-      órgão fica no seu passo a passo.</p>
+    <p>A lista de todos os PDTICs é da SGDI, do administrador do módulo e da Secretaria do CGTIC. O PDTIC do seu órgão está no seu
+      passo a passo.</p>
   </div>
 
   <div *ngIf="podeVer" class="bg-white rounded-lg shadow p-6">

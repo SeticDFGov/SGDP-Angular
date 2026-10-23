@@ -3,18 +3,15 @@
   <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-xl font-bold text-gray-900">Notificações e inadimplências</h2>
     <p class="text-sm text-gray-700 leading-relaxed mt-1">
-      O órgão que não comunica à SGDI o PDTIC aprovado pelo comitê interno (art. 7º, V, do Decreto nº 48.899/2026) tem a inadimplência
-      registrada no painel e comunicada ao órgão de controle interno (art. 7º, § 3º, do Decreto nº 48.899/2026). Antes, a SGDI segue os
-      passos do art. 11 do Decreto nº 48.899/2026:
+      A inadimplência fica marcada no painel e é comunicada ao órgão de controle interno (art. 7º, § 3º, do Decreto nº 48.899/2026).
+      Os registros seguem o art. 11 do Decreto nº 48.899/2026:
     </p>
     <ol class="mt-2 text-sm text-gray-700 list-decimal ml-5 space-y-1 leading-relaxed">
-      <li>Notifica o titular do órgão, com o prazo descumprido e a comunicação pendente.</li>
-      <li>Espera 5 dias úteis para o órgão regularizar ou apresentar justificativa. O sistema conta os dias úteis, sem fins de semana e
-        feriados.</li>
-      <li>Sem regularização nem justificativa aceita, registra a inadimplência com o motivo (descumprimento de prazo, omissão reiterada ou
-        recusa injustificada de comunicação) e a nota de motivação que vai para o controle interno (art. 11, § 1º, do Decreto nº 48.899/2026).</li>
-      <li>Quando o órgão regulariza, registra o saneamento: a marca sai do painel, e a data fica guardada (art. 11, § 2º, do Decreto nº
-        48.899/2026).</li>
+      <li>Notificação: vai ao titular do órgão, com o prazo descumprido e a comunicação pendente. O sistema conta os 5 dias úteis, sem
+        fins de semana nem feriados.</li>
+      <li>Inadimplência: leva o motivo (descumprimento de prazo, omissão reiterada ou recusa injustificada) e a nota de motivação que vai
+        ao controle interno (art. 11, § 1º, do Decreto nº 48.899/2026).</li>
+      <li>Saneamento: a marca sai do painel e a data fica guardada (art. 11, § 2º, do Decreto nº 48.899/2026).</li>
     </ol>
   </div>
 
@@ -67,9 +64,9 @@
           <span class="material-icons text-base" aria-hidden="true">forward_to_inbox</span> Registrar uma notificação
         </button>
       </div>
-      <p class="text-xs text-gray-500 italic mt-2">Os filtros valem na hora e ficam no endereço da página. As notificações em aberto vêm primeiro.</p>
-      <p *ngIf="!podeRegistrar" class="text-xs text-gray-500 italic mt-1">Quem registra as notificações e as inadimplências é a SGDI e o
-        administrador do módulo. Aqui você só lê.</p>
+      <p class="text-xs text-gray-500 italic mt-2">Os filtros valem na hora. As notificações em aberto vêm primeiro.</p>
+      <p *ngIf="!podeRegistrar" class="text-xs text-gray-500 italic mt-1">Só a equipe da SGDI e o administrador do módulo registram
+        notificações e inadimplências. Aqui você só lê.</p>
     </div>
 
     <p *ngIf="carregando && itens.length === 0" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando as notificações...</p>
@@ -161,8 +158,7 @@
 
           <!-- Registrar a notificação -->
           <ng-container *ngIf="janela === 'notificar'">
-            <p>O sistema conta 5 dias úteis a partir da data da notificação. Depois desse prazo, sem regularização nem justificativa aceita, a
-              inadimplência pode ser registrada.</p>
+            <p>Os 5 dias úteis contam a partir da data da notificação.</p>
             <div>
               <label [for]="ids.orgao" class="block text-sm font-semibold text-gray-800">
                 Órgão notificado<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
@@ -184,8 +180,8 @@
               <label [for]="ids.obrigacao" class="block text-sm font-semibold text-gray-800">
                 Comunicação pendente<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
               </label>
-              <p id="pe-inad-obrigacao-ajuda" class="text-xs text-gray-500 italic mt-0.5">O que o órgão deixou de comunicar à SGDI, com a citação.
-                A notificação indica a comunicação pendente e o prazo descumprido (art. 11, I, do Decreto nº 48.899/2026).</p>
+              <p id="pe-inad-obrigacao-ajuda" class="text-xs text-gray-500 italic mt-0.5">O que o órgão deixou de comunicar à SGDI, com a citação
+                (art. 11, I, do Decreto nº 48.899/2026).</p>
               <textarea [id]="ids.obrigacao" name="pe-inad-obrigacao" rows="3" [(ngModel)]="form.obrigacao" (ngModelChange)="mudou('obrigacao')"
                         [maxlength]="limites.obrigacao" aria-required="true" [attr.aria-invalid]="erro('obrigacao') ? true : null"
                         [attr.aria-describedby]="descritores('obrigacao', 'pe-inad-obrigacao-ajuda')"
@@ -243,8 +239,7 @@
 
           <!-- Aceitar a justificativa -->
           <ng-container *ngIf="janela === 'justificar'">
-            <p>Com a justificativa aceita, a notificação se encerra e o órgão não fica inadimplente por ela (art. 11, III, do Decreto nº
-              48.899/2026).</p>
+            <p>A notificação se encerra e o órgão não fica inadimplente por ela (art. 11, III, do Decreto nº 48.899/2026).</p>
             <div>
               <label [for]="ids.justificativa" class="block text-sm font-semibold text-gray-800">
                 Justificativa apresentada pelo órgão<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
@@ -262,14 +257,14 @@
           <!-- Registrar a inadimplência -->
           <ng-container *ngIf="janela === 'registrar'">
             <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-              A inadimplência fica marcada no painel, na conformidade e na página do órgão até o saneamento, e é comunicada ao órgão de controle
-              interno com a nota de motivação (art. 7º, § 3º, do Decreto nº 48.899/2026).
+              A marca fica no painel, na conformidade e na página do órgão até o saneamento, e a SGDI comunica o controle interno com a nota
+              de motivação (art. 7º, § 3º, do Decreto nº 48.899/2026).
             </p>
             <fieldset [id]="ids.motivo" tabindex="-1" [attr.aria-describedby]="descritores('motivo')">
               <legend class="block text-sm font-semibold text-gray-800">
                 Motivo<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
               </legend>
-              <p class="text-xs text-gray-500 italic mt-0.5">A indicação expressa do motivo que o art. 11, III, do Decreto nº 48.899/2026 pede.</p>
+              <p class="text-xs text-gray-500 italic mt-0.5">Motivo exigido pelo art. 11, III, do Decreto nº 48.899/2026.</p>
               <div class="mt-2 space-y-2">
                 <label *ngFor="let m of motivos; trackBy: porValor" class="flex items-start gap-2 text-sm text-gray-800">
                   <input type="radio" class="w-4 h-4 mt-0.5" name="pe-inad-motivo" [value]="m.valor" [(ngModel)]="form.motivo" (ngModelChange)="mudou('motivo')" />
@@ -304,16 +299,14 @@
                      [attr.aria-invalid]="erro('controle') ? true : null" [attr.aria-describedby]="descritores('controle', 'pe-inad-controle-ajuda')"
                      class="mt-1 w-full md:w-auto px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                      [ngClass]="erro('controle') ? 'border-red-500' : 'border-gray-300'" />
-              <p id="pe-inad-controle-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional: a data em que a SGDI comunicou o órgão de controle
-                interno, se já comunicou.</p>
+              <p id="pe-inad-controle-ajuda" class="text-xs text-gray-500 italic mt-1">Opcional: preencha se a SGDI já comunicou o controle interno.</p>
               <p *ngIf="erro('controle') as e" [id]="ids.controle + '-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
             </div>
           </ng-container>
 
           <!-- Registrar o saneamento -->
           <ng-container *ngIf="janela === 'sanear'">
-            <p>O órgão regularizou a comunicação pendente. Com o saneamento, a marca sai do painel e a data fica guardada: o decreto dá 2 dias
-              úteis para isso depois da regularização (art. 11, § 2º, do Decreto nº 48.899/2026).</p>
+            <p>O decreto dá 2 dias úteis para registrar o saneamento depois da regularização (art. 11, § 2º, do Decreto nº 48.899/2026).</p>
             <div>
               <label [for]="ids.saneado" class="block text-sm font-semibold text-gray-800">
                 Data do saneamento<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>

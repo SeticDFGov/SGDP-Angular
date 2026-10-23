@@ -228,7 +228,7 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
   get rotuloNivel(): string | null {
     const t = this.estado?.trilhaOrgao;
     if (!t) return null;
-    return t.NivelPadrao ? `${t.NivelNome} (o padrão, até o administrador do módulo definir o nível do órgão)` : t.NivelNome;
+    return t.NivelPadrao ? `${t.NivelNome} (o padrão, até o administrador definir o nível do órgão)` : t.NivelNome;
   }
 
   // ── F3 · Níveis no modo livre ─────────────────────────────────────────────
@@ -279,10 +279,10 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     const e = this.estado;
     if (e?.orgaoVisto !== null) {
       return this.podeRegistrarExterno
-        ? 'Quem começa o PDTIC no sistema é a equipe do PDTIC, no passo a passo do órgão. Como admin do SGDP, você pode registrar aqui um PDTIC já aprovado fora do sistema.'
-        : 'Quem começa o PDTIC é a equipe do PDTIC, no passo a passo do órgão. Aqui você só lê.';
+        ? 'A equipe do PDTIC começa o PDTIC, no passo a passo do órgão. Como administrador do SGDP, você pode registrar aqui um PDTIC já aprovado fora do sistema.'
+        : 'A equipe do PDTIC começa o PDTIC, no passo a passo do órgão. Aqui você só lê.';
     }
-    return 'Quem começa o PDTIC é a equipe do PDTIC. O seu papel de consulta só lê.';
+    return 'A equipe do PDTIC começa o PDTIC. O papel de consulta só lê.';
   }
 
   rotuloSituacao(situacao: string): string {
@@ -297,7 +297,10 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     const p = this.estado?.pdtic;
     if (!p) return '-';
     const texto = textoVigencia(p);
-    return texto === '-' ? 'Ainda não informada (passo 1.1)' : texto;
+    if (texto !== '-') return texto;
+    // A vigência se informa no passo da abrangência (o primeiro passo em todos os níveis); o número vem do passo a passo à vista
+    const passo = this.estado?.passos.find(x => x.doOrgao?.Chave === 'preparacao.abrangencia');
+    return passo ? `Ainda não informada (passo ${passo.numero})` : 'Ainda não informada';
   }
 
   // ── F1 · Versões encerradas, aprovação, PDF, aguardando e revisão ─────────
@@ -369,8 +372,8 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     const doServidor = this.estado?.situacao?.andamento?.ProximoPassoMotivo?.trim();
     if (doServidor) return doServidor;
     const anterior = this.estado?.pdtic?.Revisao?.AnteriorVersao;
-    return `A revisão recomeça no diagnóstico: os passos vêm preenchidos com os dados da versão ${anterior ?? 'anterior'}. `
-      + 'Confira cada passo a partir deste e ajuste o que mudou; depois, siga até o envio ao CGTIC.';
+    return `A revisão recomeça no diagnóstico, com os passos preenchidos com os dados da versão ${anterior ?? 'anterior'}. `
+      + 'Confira cada passo a partir deste, ajuste o que mudou e siga até o envio ao CGTIC.';
   }
 
   /** Andamento dos passos (o mesmo objeto enquanto a situação não muda: vai num *ngIf). */
@@ -409,7 +412,7 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
       next: pdtic => {
         this.abrindo = false;
         // O toast fica numa região lida pelo leitor de tela: um aviso só
-        this.notificacoes.success(`PDTIC ${pdtic.Versao} aberto. Siga o passo a passo, a partir do primeiro passo.`);
+        this.notificacoes.success(`PDTIC ${pdtic.Versao} aberto. Comece pelo primeiro passo.`);
         // O botão "Começar o PDTIC" some: o foco vai ao título do bloco do PDTIC (F1, C11)
         this.focoPendente = 'pe-inicio-pdtic-titulo';
       },
@@ -639,7 +642,7 @@ export class PeInicioComponent implements OnInit, AfterViewChecked {
     return !!passo && this.ehObrigatorio(passo);
   }
 
-  /** A revisão se abre pelo passo da avaliação do comitê (6.3), quando ele está na trilha. */
+  /** A revisão se abre pelo passo da avaliação do comitê (a etapa 6), quando ele está na trilha. */
   get revisaoPelaAvaliacao(): LinkPasso | null {
     const p = this.estado?.pdtic;
     if (!p || !this.estadoService.ehEquipeDoOrgao || !pdticVigente(p.Situacao) || this.temRevisaoAberta) return null;

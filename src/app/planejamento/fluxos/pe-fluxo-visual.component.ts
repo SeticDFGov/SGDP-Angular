@@ -335,7 +335,7 @@ export class PeFluxoVisualComponent implements OnChanges, AfterViewInit, AfterVi
         if (lido.status === 403) return;
         this.estado = 'erro';
         this.erro = lido.status === 400
-          ? (lido.mensagem ?? 'O servidor não conseguiu ler este fluxo.')
+          ? (lido.mensagem ?? 'Não foi possível ler este fluxo.')
           : 'Não foi possível atualizar o desenho agora. Confira a conexão e tente de novo, ou use o modo em lista.';
       }
     });

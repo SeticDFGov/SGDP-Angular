@@ -79,6 +79,17 @@ interface FormEdicao {
   mensagemServidor?: string | null;
 }
 
+/**
+ * O "o que fazer" do passo é opcional (revisão dos textos de 2026-10-20: fica vazio
+ * quando o título já diz tudo). Vazio vai ao servidor como este valor: ponto único
+ * para trocar por null se o servidor passar a preferir.
+ */
+export const O_QUE_FAZER_VAZIO: string | null = '';
+
+function oQueFazerParaEnvio(texto: string): string | null {
+  return texto.trim() || O_QUE_FAZER_VAZIO;
+}
+
 /** Tamanhos que a tela aceita (o servidor confere de novo). */
 export const LIMITES_MODELO = {
   titulo: 300,
@@ -475,7 +486,7 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
   }
 
   textoSaida(): string {
-    return 'Há mudanças de situação que ainda não foram salvas. Se sair agora, elas se perdem.';
+    return 'Há mudanças de situação não salvas. Se sair agora, elas se perdem.';
   }
 
   // ── Ordem ─────────────────────────────────────────────────────────────────
@@ -542,7 +553,7 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
       next: () => {
         this.apagando = null;
         this.pendentes.delete(k);
-        this.notificacoes.success(`${ROTULO_TIPO[tipo].charAt(0).toUpperCase() + ROTULO_TIPO[tipo].slice(1)} "${nome}" foi apagad${tipo === 'passo' || tipo === 'campo' ? 'o' : 'a'}. Os dados dos órgãos ficam guardados.`);
+        this.notificacoes.success(`${ROTULO_TIPO[tipo].charAt(0).toUpperCase() + ROTULO_TIPO[tipo].slice(1)} "${nome}" foi apagad${tipo === 'passo' || tipo === 'campo' ? 'o' : 'a'}.`);
         this.carregar(() => this.focoPendente = alvoFoco);
       },
       error: erro => {
@@ -572,7 +583,7 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
   editarPasso(passo: PePassoModelo, etapa: PeEtapaModelo): void {
     this.edicao = {
       ...this.formVazio('passo', false), etapa, passo, somenteLeitura: passo.Excluido,
-      titulo: passo.Titulo, oQueFazer: passo.OQueFazer, baseLegal: passo.BaseLegal ?? '',
+      titulo: passo.Titulo, oQueFazer: passo.OQueFazer ?? '', baseLegal: passo.BaseLegal ?? '',
       referenciaGuia: passo.ReferenciaGuia ?? '', aceitaNaoSeAplica: passo.AceitaNaoSeAplica
     };
   }
@@ -676,7 +687,6 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
     if (e.tipo === 'etapa' || e.tipo === 'passo' || e.tipo === 'secao') {
       if (!e.titulo.trim()) erros.push('Escreva o título.');
     }
-    if (e.tipo === 'passo' && !e.oQueFazer.trim()) erros.push('Diga o que o órgão faz neste passo.');
     if (e.tipo === 'secao' && e.tipoSecao === 'tabela' && !/^[A-Z]{1,3}$/.test(e.prefixoCodigo.trim())) {
       erros.push('Numa tabela, o prefixo do código é obrigatório: de 1 a 3 letras maiúsculas (ex.: N, para N01, N02...).');
     }
@@ -711,12 +721,11 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
 
   private errosConfigCache: { chave: string; valor: Record<string, string> } = { chave: '{}', valor: {} };
 
-  campoInvalido(nome: 'titulo' | 'oQueFazer' | 'rotulo' | 'prefixo'): boolean {
+  campoInvalido(nome: 'titulo' | 'rotulo' | 'prefixo'): boolean {
     const e = this.edicao;
     if (!e || !e.tentou) return false;
     switch (nome) {
       case 'titulo': return !e.titulo.trim();
-      case 'oQueFazer': return !e.oQueFazer.trim();
       case 'rotulo': return !e.rotulo.trim();
       case 'prefixo': return e.tipoSecao === 'tabela' && !/^[A-Z]{1,3}$/.test(e.prefixoCodigo.trim());
     }
@@ -756,20 +765,20 @@ export class PeModeloEstruturaComponent implements OnInit, AfterViewChecked {
       case 'passo': {
         if (e.novo) {
           pedido = this.modeloService.criarPasso({
-            EtapaId: e.etapa!.Id, Titulo: e.titulo.trim(), OQueFazer: e.oQueFazer.trim(), BaseLegal: texto(e.baseLegal)
+            EtapaId: e.etapa!.Id, Titulo: e.titulo.trim(), OQueFazer: oQueFazerParaEnvio(e.oQueFazer), BaseLegal: texto(e.baseLegal)
           });
           depois = r => this.depoisDeCriar('passo', r as PePassoModelo,
             'Passo criado. Ele nasce opcional no último nível da lista e desligado nos demais: ligue nos níveis que vão usá-lo e crie as seções dele.');
         } else {
           const passo = e.passo!;
           pedido = this.modeloService.atualizarPasso(passo.Id, {
-            Titulo: e.titulo.trim(), OQueFazer: e.oQueFazer.trim(), BaseLegal: texto(e.baseLegal),
+            Titulo: e.titulo.trim(), OQueFazer: oQueFazerParaEnvio(e.oQueFazer), BaseLegal: texto(e.baseLegal),
             ReferenciaGuia: texto(e.referenciaGuia), AceitaNaoSeAplica: e.aceitaNaoSeAplica
           });
           depois = r => {
             const resp = (r ?? {}) as Partial<PePassoModelo>;
             passo.Titulo = resp.Titulo ?? e.titulo.trim();
-            passo.OQueFazer = resp.OQueFazer ?? e.oQueFazer.trim();
+            passo.OQueFazer = resp.OQueFazer !== undefined ? resp.OQueFazer : oQueFazerParaEnvio(e.oQueFazer);
             passo.BaseLegal = resp.BaseLegal !== undefined ? resp.BaseLegal : texto(e.baseLegal);
             passo.ReferenciaGuia = resp.ReferenciaGuia !== undefined ? resp.ReferenciaGuia : texto(e.referenciaGuia);
             passo.AceitaNaoSeAplica = resp.AceitaNaoSeAplica ?? e.aceitaNaoSeAplica;

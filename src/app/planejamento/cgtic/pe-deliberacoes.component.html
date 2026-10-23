@@ -5,19 +5,17 @@
     <ng-container *ngIf="modo === 'fila'">
       <h2 class="text-base font-semibold text-gray-900 mb-1">O que chegou para o comitê</h2>
       <p class="text-sm text-gray-700 leading-relaxed">O CGTIC aprova, avalia e revisa o PETIC-DF e aprova o PDTIC de cada órgão
-        (art. 5º). Aqui fica o que foi enviado e espera a decisão do comitê, do mais antigo para o mais novo: os PDTICs dos órgãos,
-        cada um com o PDF enviado, e as versões do PETIC-DF.</p>
+        (art. 5º).</p>
     </ng-container>
     <ng-container *ngIf="modo === 'decisao'">
-      <h2 class="text-base font-semibold text-gray-900 mb-1">Registre a deliberação do comitê</h2>
+      <h2 class="text-base font-semibold text-gray-900 mb-1">Registro da deliberação</h2>
       <p class="text-sm text-gray-700 leading-relaxed">A Secretaria Executiva do CGTIC registra a decisão tomada em reunião
-        (arts. 9º e 10): aprovado, com o ato e a data, ou devolvido, com o que precisa ser ajustado. A decisão registrada não muda
-        depois.</p>
+        (arts. 9º e 10).</p>
     </ng-container>
     <ng-container *ngIf="modo === 'historico'">
       <h2 class="text-base font-semibold text-gray-900 mb-1">Histórico das deliberações</h2>
-      <p class="text-sm text-gray-700 leading-relaxed">Todas as deliberações do comitê sobre o PETIC-DF e os PDTICs, com o ato, a data
-        e o que foi pedido nas devoluções (art. 10). As que esperam decisão aparecem primeiro.</p>
+      <p class="text-sm text-gray-700 leading-relaxed">Deliberações do comitê sobre o PETIC-DF e os PDTICs, com o ato, a data e o
+        que foi pedido nas devoluções (art. 10). As que esperam decisão vêm primeiro.</p>
     </ng-container>
   </div>
 
@@ -28,8 +26,8 @@
     O PETIC-DF vigente fica em "Referenciais do DF", na visão geral.
   </div>
   <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
-    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
-    <p class="mt-1">Sem ele, as deliberações não abrem. Tente de novo em alguns instantes.</p>
+    <p class="font-semibold">Não foi possível conferir o seu papel.</p>
+    <p class="mt-1">Sem ele, as deliberações não abrem.</p>
     <button type="button" (click)="tentarPapelDeNovo()"
             class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
       <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
@@ -49,7 +47,7 @@
       </div>
 
       <p *ngIf="escolhidaSumiu" role="alert" class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-        A deliberação pedida não está mais esperando decisão: ela já foi registrada. Veja no histórico.
+        Esta deliberação já foi registrada. Veja no histórico.
       </p>
 
       <!-- Filtro pelo que foi enviado (PDTICs e PETIC-DF chegam na mesma fila) -->
@@ -129,8 +127,8 @@
         <!-- Recebe o foco ao abrir pela fila (F2, C-N2); o espaço acima deixa o contorno do foco longe da linha de cima -->
         <h2 id="pe-dec-titulo" tabindex="-1" class="text-xl font-bold text-gray-900 mt-2">{{ objeto(d) }}</h2>
         <p class="text-sm text-gray-700 mt-1">Enviado em {{ enviado(d) }}.</p>
-        <p *ngIf="!ehPetic(d)" class="text-sm text-gray-700 mt-1">O comitê delibera sobre o PDF enviado pelo órgão, que fica guardado e
-          não muda. O passo a passo do órgão mostra os dados, só para ler.</p>
+        <p *ngIf="!ehPetic(d)" class="text-sm text-gray-700 mt-1">O comitê delibera sobre o PDF enviado, que não muda. O passo a
+          passo do órgão mostra os dados, só para ler.</p>
         <div class="flex flex-wrap gap-3 mt-3">
           <a *ngIf="ehPetic(d)" routerLink="/planejamento/referenciais/petic" [queryParams]="{ versao: d.ObjetoId }"
              class="inline-flex items-center gap-1 text-sm font-semibold text-purple-700 hover:underline">
@@ -156,7 +154,7 @@
       </div>
 
       <div *ngIf="!podeDecidir" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700">
-        Quem registra a decisão é a Secretaria do CGTIC. Você pode ler o que foi enviado e baixar a planilha.
+        Quem registra a decisão é a Secretaria do CGTIC. Você lê o que foi enviado e baixa a planilha.
       </div>
 
       <form *ngIf="podeDecidir" (ngSubmit)="decidir()" class="bg-white rounded-lg shadow p-6 space-y-5">
@@ -172,7 +170,7 @@
 
         <fieldset id="pe-dec-decisao" tabindex="-1" [attr.aria-describedby]="descritores('decisao')">
           <legend class="block text-sm font-semibold text-gray-800">
-            O que o comitê decidiu?<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
+            Resultado<span class="text-red-600" aria-hidden="true"> *</span><span class="sr-only"> (obrigatório)</span>
           </legend>
           <div class="mt-2 space-y-2">
             <label class="flex items-start gap-2 text-sm text-gray-800">

@@ -121,7 +121,7 @@ export class PeValidacaoPassoComponent implements OnChanges, AfterViewChecked {
     if (this.gravando || !this.podeEditar || !this.validacao) return;
     this.confirmacao.perguntar({
       titulo: `Desfazer a validação do passo ${this.numero}?`,
-      texto: 'O passo deixa de estar validado pela equipe. Os dados do passo não mudam, e a equipe pode validar de novo depois.',
+      texto: 'Os dados do passo não mudam. A equipe pode validar de novo depois.',
       sim: 'Desfazer a validação'
     }).then(sim => {
       if (!sim || this.gravando) return;

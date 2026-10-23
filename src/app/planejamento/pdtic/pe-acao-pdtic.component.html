@@ -1,20 +1,20 @@
 <section class="bg-white rounded-lg shadow p-6" [attr.aria-labelledby]="idBase + '-titulo'">
   <h2 [id]="idBase + '-titulo'" class="text-base font-semibold text-gray-900">{{ encerrar ? 'Encerrar o PDTIC' : 'Revisão do PDTIC' }}</h2>
   <p *ngIf="modo === 'encerrar-equipe'" class="text-sm text-gray-700 leading-relaxed mt-1">
-    A autoridade máxima aprovou o relatório de resultados. Com isso, o órgão encerra o ciclo do PDTIC {{ pdtic.Versao }}: ele fica só
-    para consulta, com tudo o que foi registrado.
+    A autoridade máxima aprovou os resultados. Encerre o PDTIC {{ pdtic.Versao }}: ele fica só para consulta, com tudo o que foi
+    registrado.
   </p>
   <p *ngIf="modo === 'encerrar-admin'" class="text-sm text-gray-700 leading-relaxed mt-1">
-    A vigência do PDTIC {{ pdtic.Versao }} terminou em {{ fimVigencia }}. Como administrador, você pode encerrá-lo, com o motivo: ele
-    fica só para consulta.
+    A vigência do PDTIC {{ pdtic.Versao }} terminou em {{ fimVigencia }}. Você pode encerrá-lo, com o motivo: ele fica só para
+    consulta.
   </p>
   <p *ngIf="modo === 'revisao-avaliacao'" class="text-sm text-gray-700 leading-relaxed mt-1">
-    O comitê decidiu revisar o PDTIC. A revisão abre a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e o passo a passo
-    dela recomeça no diagnóstico (etapa 2).
+    O comitê decidiu revisar. A revisão abre a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e recomeça no
+    diagnóstico (etapa 2).
   </p>
   <p *ngIf="modo === 'revisao-justificativa'" class="text-sm text-gray-700 leading-relaxed mt-1">
-    Quando o PDTIC precisar mudar, abra a revisão: o sistema cria a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e o
-    passo a passo dela recomeça no diagnóstico (etapa 2). A avaliação do comitê não é obrigatória para o órgão; por isso, diga o porquê.
+    Para mudar o PDTIC, abra a revisão: o sistema cria a versão {{ versaoNova }}, em elaboração, com os dados de hoje, e ela
+    recomeça no diagnóstico (etapa 2). Como a avaliação do comitê é opcional para o órgão, diga o porquê.
   </p>
   <button type="button" (click)="abrir()"
           class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-white text-sm font-semibold"
@@ -36,8 +36,7 @@
 
       <div class="px-6 py-4 max-h-[70vh] overflow-y-auto text-sm text-gray-700 leading-relaxed">
         <ng-container *ngIf="encerrar; else textoRevisao">
-          <p>O PDTIC encerrado não muda mais: nenhum passo se edita e o ciclo termina. Os dados, o documento e as planilhas continuam
-            disponíveis para consulta.</p>
+          <p>O PDTIC encerrado não muda mais. Os dados, o documento e as planilhas continuam disponíveis para consulta.</p>
         </ng-container>
         <ng-template #textoRevisao>
           <p>O sistema cria a versão {{ versaoNova }}, em elaboração, a partir da {{ pdtic.Versao }}.</p>

@@ -378,8 +378,8 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
 
   get ajudaDicionario(): string {
     return this.doOrgao
-      ? 'Com um nome do dicionário, a raia acompanha o nome que o órgão escreveu no passo do dicionário de nomes: trocou lá, muda em todos os fluxos.'
-      : 'Com um nome do dicionário, cada órgão vê o nome que escreveu no dicionário de nomes dele. Aqui aparece o nome padrão do guia.';
+      ? 'Com um nome do dicionário, a raia segue o que o órgão escreveu em "Dicionário de nomes": trocou lá, muda em todos os fluxos.'
+      : 'Com um nome do dicionário, cada órgão vê o que escreveu em "Dicionário de nomes". Aqui aparece o nome padrão do guia.';
   }
 
   // ── Rótulos (consultas baratas: os mapas são refeitos a cada mudança) ─────
@@ -1199,8 +1199,8 @@ export class PeFluxoEditorComponent implements OnInit, OnChanges, AfterViewCheck
     // O modo em lista mostra a prévia em SVG: pede o desenho do que está na tela, se ainda não tem
     if (!this.emModoVisual) this.agendarDesenho(true);
     this.acessibilidade.anunciar(modo === 'visual'
-      ? 'Modo de edição visual: arraste os blocos no desenho. As mudanças que ainda não foram salvas continuam aqui.'
-      : 'Modo de edição em lista: raias e passos em listas. As mudanças que ainda não foram salvas continuam aqui.');
+      ? 'Modo visual: arraste os blocos no desenho. As mudanças não salvas continuam aqui.'
+      : 'Modo em lista: raias e passos em listas. As mudanças não salvas continuam aqui.');
   }
 
   // ── Item selecionado no desenho (modo visual) ─────────────────────────────

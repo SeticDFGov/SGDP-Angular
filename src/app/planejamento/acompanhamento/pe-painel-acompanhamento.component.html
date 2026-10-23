@@ -3,8 +3,7 @@
     <div class="min-w-0">
       <h2 id="pe-painel-titulo" tabindex="-1" class="text-base font-semibold text-gray-900">Painel de acompanhamento do PDTIC</h2>
       <p class="text-sm text-gray-600 leading-relaxed mt-0.5">
-        O andamento das metas e das ações e a situação dos riscos, pelo que a equipe registra em cada ciclo de monitoramento. É o painel de
-        acompanhamento do Guia de PDTIC (Anexo XIII).
+        Metas, ações e riscos, com o que a equipe registra em cada ciclo de monitoramento (Anexo XIII do Guia de PDTIC).
       </p>
       <p *ngIf="painel" class="text-sm text-gray-800 mt-1">
         <ng-container *ngIf="painel.Ciclo as c; else semCiclo">Dados do ciclo <strong>{{ c.Rotulo }}</strong>.</ng-container>
@@ -35,10 +34,9 @@
     <!-- Metas e ações -->
     <h3 class="text-sm font-semibold text-gray-900 mt-5">Metas e ações</h3>
     <p class="text-xs text-gray-600 leading-relaxed mt-0.5">
-      O percentual da ação é a execução física no último ciclo com dado; o da meta, a média das ações ligadas a ela. Execução física:
-      em dia, atrasada (não concluída com a conclusão prevista vencida, ou não iniciada com o início previsto vencido), concluída, cancelada
-      ou sem registro (nenhum ciclo tem a situação dela). Execução orçamentária: o percentual, ou "Não se aplica" quando a ação não tem
-      investimento nem custeio.
+      O percentual da ação é a execução física no último ciclo com dado; o da meta é a média das ações ligadas a ela. A ação está atrasada
+      quando não foi concluída e a conclusão prevista venceu, ou quando não foi iniciada e o início previsto venceu. "Sem registro" é a ação
+      sem situação em todos os ciclos. A execução orçamentária mostra "Não se aplica" quando a ação não tem investimento nem custeio.
     </p>
     <p *ngIf="pa.Metas.length === 0 && acoesSemMeta.length === 0" class="mt-3 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
       O PDTIC ainda não tem metas cadastradas.
@@ -138,8 +136,8 @@
     <!-- Riscos: as contagens em tabela -->
     <h3 class="text-sm font-semibold text-gray-900 mt-6">Riscos</h3>
     <p class="text-xs text-gray-600 leading-relaxed mt-0.5">
-      A situação de cada risco é a da última ocorrência registrada nos ciclos: aberto, fechado ou excluído. "Sem ocorrência" conta os
-      riscos do plano que ainda não ocorreram. O nível vem do plano de riscos: alto, médio ou baixo.
+      A situação de cada risco é a da última ocorrência registrada nos ciclos (aberto, fechado ou excluído); "Sem ocorrência" são os
+      riscos do plano que ainda não ocorreram. O nível vem do plano de riscos.
       {{ totalRiscos === 1 ? '1 risco no plano.' : totalRiscos + ' riscos no plano.' }}
     </p>
 
@@ -204,7 +202,6 @@
         </tbody>
       </table>
     </div>
-    <p class="text-xs text-gray-500 italic mt-2">Legenda das cores do nível: vermelho é alto, amarelo é médio e verde é baixo. A cor só acompanha
-      o nome, que vem sempre escrito.</p>
+    <p class="text-xs text-gray-500 italic mt-2">Cores do nível: vermelho é alto, amarelo é médio e verde é baixo.</p>
   </ng-container>
 </section>

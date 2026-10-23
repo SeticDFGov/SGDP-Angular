@@ -32,7 +32,7 @@ interface FiltroAtivo {
 }
 
 /**
- * Conformidade dos órgãos (E8; passo 4.2 do administrador e 1.2 da SGDI; a
+ * Conformidade dos órgãos (E8; passo 4.1 do administrador e 1.1 da SGDI, segunda tela; a
  * Secretaria do CGTIC e o admin do SGDP também veem): uma linha por órgão, uma
  * coluna por item de TIC (a marca com texto e ícone, nunca só a cor; o detalhe na
  * dica da célula e na linha "Detalhes", que abre e fecha), o percentual, o grupo,
@@ -205,7 +205,7 @@ export class PeConformidadeComponent implements OnInit {
       error: erro => {
         this.carregando = false;
         // 403: o interceptor já tirou a pessoa do módulo
-        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a conformidade dos órgãos. Tente de novo em alguns instantes.');
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a conformidade. Tente de novo.');
         if (mensagem !== null) this.erro = mensagem;
       }
     });

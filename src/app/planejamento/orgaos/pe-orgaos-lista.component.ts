@@ -20,7 +20,7 @@ import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { BASE_PE, rotaPaginaOrgao } from '../trilha/pe-trilhas';
 
 /**
- * A página de cada órgão, pela lista (E8; passo 4.5 do administrador e 2.1 da
+ * A página de cada órgão, pela lista (E8; passo 4.3 do administrador e 2.1 da
  * SGDI; a Secretaria do CGTIC e o admin do SGDP também veem): os órgãos com o
  * nível, o PDTIC (versão e situação), a conformidade e a notificação ou
  * inadimplência em aberto, cada um com "Abrir a página" e "Ver a trilha" (a trilha
@@ -109,7 +109,7 @@ export class PeOrgaosListaComponent implements OnInit {
       error: erro => {
         this.carregando = false;
         // 403: o interceptor já tirou a pessoa do módulo
-        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a lista dos órgãos. Tente de novo em alguns instantes.');
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a lista dos órgãos. Tente de novo.');
         if (mensagem !== null) this.erro = mensagem;
       }
     });

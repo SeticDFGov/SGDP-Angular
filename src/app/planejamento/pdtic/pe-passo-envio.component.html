@@ -1,8 +1,7 @@
 <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-envio-titulo">
   <h2 id="pe-envio-titulo" tabindex="-1" class="text-base font-semibold text-gray-900">Envio ao CGTIC</h2>
   <p class="text-sm text-gray-700 leading-relaxed mt-1">
-    Com a aprovação do SGTIC registrada, o órgão envia o PDTIC ao comitê de governança de TIC do DF (CGTIC), que aprova ou devolve
-    para ajustes (art. 5º). O envio pelo sistema vale como a comunicação do PDTIC aprovado à SGDI (art. 7º, V, do Decreto nº 48.899/2026).
+    Envie o PDTIC ao CGTIC (art. 5º), que aprova ou devolve para ajustes. O envio vale como a comunicação à SGDI.
   </p>
 
   <!-- Em elaboração ou devolvido: o que falta e o envio -->
@@ -10,10 +9,9 @@
     <div *ngIf="devolvido" class="mt-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
       <span class="material-icons text-red-600" aria-hidden="true">undo</span>
       <p class="leading-relaxed">
-        O CGTIC devolveu o PDTIC para ajustes. Depois de ajustar o que foi pedido, registre de novo a aprovação do SGTIC, acima, com a
-        data da nova decisão: a versão ajustada volta ao comitê interno antes de ir ao CGTIC. Depois, envie de novo por aqui.
-        <ng-container *ngIf="passoDeliberacao as d">O que o comitê pediu está no
-          <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>.</ng-container>
+        O CGTIC devolveu o PDTIC para ajustes. Ajuste o que ele pediu<ng-container *ngIf="passoDeliberacao as d"> (está no
+          <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>)</ng-container>:
+        a versão ajustada volta ao SGTIC antes de ir ao CGTIC.
       </p>
     </div>
 
@@ -41,14 +39,14 @@
         <div *ngIf="itens.length === 0 && previa.PodeEnviar"
              class="mt-4 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
           <span class="material-icons text-green-600" aria-hidden="true">task_alt</span>
-          <p class="leading-relaxed">Tudo pronto para enviar: nenhum passo impede o envio.
+          <p class="leading-relaxed">Tudo pronto para enviar.
             <ng-container *ngIf="passoDocumento as d">Antes, confira a prévia do documento no
               <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>:
               o PDF enviado sai dela.</ng-container>
           </p>
         </div>
         <p *ngIf="itens.length === 0 && !previa.PodeEnviar" class="mt-4 text-sm text-gray-700">
-          O servidor ainda não libera o envio. Confira a aprovação do SGTIC acima e use "Conferir de novo".
+          O envio ainda não está liberado. Confira a aprovação do SGTIC e use "Conferir de novo".
         </p>
       </ng-container>
 
@@ -64,11 +62,11 @@
         </button>
       </div>
       <p *ngIf="!podeEnviar" id="pe-envio-ajuda" class="text-xs text-gray-500 italic mt-2">
-        O botão "Enviar ao CGTIC" fica disponível quando nada falta. Resolva cada passo da lista e use "Conferir de novo".
+        O botão fica disponível quando nada falta. Resolva a lista e use "Conferir de novo".
       </p>
     </ng-container>
     <ng-template #quemEnvia>
-      <p class="mt-4 text-sm text-gray-700">Quem envia o PDTIC ao CGTIC é a equipe do PDTIC.</p>
+      <p class="mt-4 text-sm text-gray-700">Quem envia é a equipe do PDTIC.</p>
     </ng-template>
   </ng-container>
 
@@ -78,7 +76,7 @@
          class="mt-4 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
       <span class="material-icons text-green-600" aria-hidden="true">mark_email_read</span>
       <div class="leading-relaxed min-w-0">
-        <p><strong>Enviado ao CGTIC em {{ quando(pdtic.EnviadoEm) }}.</strong> O envio valeu como a comunicação do PDTIC à SGDI.</p>
+        <p><strong>Enviado ao CGTIC em {{ quando(pdtic.EnviadoEm) }}.</strong> O envio valeu como a comunicação à SGDI.</p>
         <p *ngIf="passoDeliberacao as d" class="mt-1">A decisão do comitê aparece no
           <a [routerLink]="d.rota" [queryParams]="{ passo: d.numero }" data-sem-dica class="font-semibold underline">passo {{ d.numero }}</a>.</p>
         <button *ngIf="pdf as f" type="button" (click)="baixarPdf()" [attr.aria-disabled]="baixando || null"
@@ -91,7 +89,7 @@
     <ng-template #semEnvio>
       <p class="mt-4 text-sm text-gray-700 leading-relaxed">
         {{ pdtic.RegistradoExternamente
-          ? 'Este PDTIC foi aprovado fora do sistema e registrado já aprovado: não houve envio pelo sistema.'
+          ? 'PDTIC aprovado fora do sistema: não houve envio pelo sistema.'
           : 'Não há registro de envio desta versão pelo sistema.' }}
       </p>
     </ng-template>
@@ -108,10 +106,10 @@
     <div id="pe-envio-janela-texto" class="px-6 py-4 max-h-[70vh] overflow-y-auto text-sm text-gray-700 leading-relaxed">
       <p>Ao enviar:</p>
       <ul class="list-disc ml-5 mt-1 space-y-1">
-        <li>o sistema gera o PDF do PDTIC e guarda essa versão do documento como a enviada;</li>
+        <li>o sistema gera o PDF do PDTIC e o guarda como a versão enviada;</li>
         <li>o PDTIC fica em aprovação: nenhum passo da elaboração muda até o comitê decidir;</li>
-        <li>o envio vale como a comunicação do PDTIC à SGDI;</li>
-        <li>a Secretaria do CGTIC registra a decisão do comitê: aprovado, ou devolvido com o que ajustar.</li>
+        <li>o envio vale como a comunicação à SGDI;</li>
+        <li>a Secretaria do CGTIC registra a decisão: aprovado ou devolvido para ajustes.</li>
       </ul>
     </div>
     <div class="px-6 py-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">

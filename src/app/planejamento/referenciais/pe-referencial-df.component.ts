@@ -27,7 +27,7 @@ const REFERENCIAIS: Record<ReferencialDf, ConfigReferencial> = {
  *   48.900/2026 vêm do sistema, com o fundamento que abre a dica do artigo, e não
  *   mudam; o administrador do módulo acrescenta outros (de uma resolução do CGTIC,
  *   por exemplo).
- * - Diretrizes do ciclo (passo 2.3): as diretrizes e prioridades do próximo ciclo
+ * - Diretrizes do ciclo (o mesmo passo 2.1, segunda tela): as diretrizes e prioridades do próximo ciclo
  *   de planejamento que a SGDI propõe ao comitê (art. 9º, VIII, do Decreto nº
  *   48.899/2026).
  *

@@ -119,7 +119,7 @@ export class PeFormaPassoComponent implements OnChanges, AfterViewChecked {
       return;
     }
     this.confirmacao.perguntarDescarte(
-      'Há mudanças que ainda não foram salvas neste passo. Se trocar a forma agora, elas se perdem.',
+      'Há mudanças não salvas neste passo. Se trocar a forma, elas se perdem.',
       'Trocar sem salvar', 'Trocar a forma sem salvar?'
     ).then(sim => {
       if (sim) trocar();

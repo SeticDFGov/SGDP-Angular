@@ -20,7 +20,7 @@
   </div>
 
   <p *ngIf="registros.length === 0" class="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
-    Nenhum registro ainda.<ng-container *ngIf="dados.PodeEditar"> Use o botão "Incluir {{ rotuloItem }}".</ng-container>
+    {{ dados.PodeEditar ? 'Use o botão "Incluir ' + rotuloItem + '" para começar.' : 'Nada foi incluído ainda.' }}
   </p>
 
   <!-- Região com rolagem lateral: alcançável e rolável pelo teclado (tabindex), com o nome da tabela -->
@@ -94,7 +94,7 @@
 
     <div class="px-6 py-5">
       <p *ngIf="!p.registro && dados.Secao.PrefixoCodigo" class="text-xs text-gray-600 mb-4">
-        O código é dado pelo sistema ao incluir: {{ dados.Secao.PrefixoCodigo }} e o número seguinte da tabela.
+        O sistema dá o código: {{ dados.Secao.PrefixoCodigo }} e o número seguinte.
       </p>
       <p *ngIf="p.registro?.Sistema" class="mb-4 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-gray-800">
         Este registro veio do decreto: não se edita nem se apaga.

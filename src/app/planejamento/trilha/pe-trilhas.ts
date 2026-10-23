@@ -35,7 +35,7 @@ export interface PassoTrilhaPe {
   /** Ação no imperativo. */
   titulo: string;
   rota: string;
-  /** Uma ou duas frases: o que a pessoa faz nesta tela. */
+  /** Só o que o título não diz, em uma ou duas frases; vazio quando o título basta (a moldura esconde o bloco). */
   oQueFazer: string;
   /** Citação da norma; ausente quando o passo não tem base legal própria. */
   baseLegal?: string;
@@ -48,8 +48,20 @@ export interface PassoTrilhaPe {
    * passo, e a página de cada órgão, `orgaos/{id}`, continua nele).
    */
   subrotas?: boolean;
+  /**
+   * Passo com mais de uma tela (revisão de 2026-10-20: passos do mesmo assunto foram
+   * juntados). A primeira é a da `rota`; a moldura liga todas na caixa do passo, e o
+   * endereço de qualquer uma acende o passo.
+   */
+  telas?: TelaDoPassoPe[];
   /** Passo da trilha de um órgão, como o back-end resolveu (seções, campos, tipo e numeração). */
   doOrgao?: PePassoTrilha;
+}
+
+export interface TelaDoPassoPe {
+  rota: string;
+  /** Nome curto da tela (o link na caixa do passo). */
+  titulo: string;
 }
 
 export interface EtapaTrilhaPe {
@@ -160,108 +172,99 @@ export const PERFIS_CENTRAIS_PE: PerfilCentralPe[] = ['admin', 'sgdi', 'cgtic'];
 
 const tela = (caminho: string) => `${BASE_PE}/${caminho}`;
 
-// ── Administrador do módulo (pe_admin) ──────────────────────────────────────
-
-// ── Acompanhamento dos órgãos (E8): passos do administrador e da SGDI ─────────
+// ── Passos que o administrador e a SGDI dividem ─────────────────────────────
+// Revisão de 2026-10-20: passos sobre o mesmo assunto foram juntados (o painel com a
+// conformidade; a página do órgão com a lista dos PDTICs para comentar). Cada tela
+// que era destino de um passo continua no passo, em `telas`.
 
 const PAINEL: PassoTrilhaPe = {
-  titulo: 'Veja o painel dos órgãos',
+  titulo: 'Acompanhe o painel e a conformidade',
   rota: tela('painel'),
-  oQueFazer: 'Veja quantos órgãos estão em cada situação do PDTIC, por nível e por etapa da elaboração, os gráficos das necessidades, '
-    + 'das ações e dos riscos, e os alertas: vigência vencida, revisão vencida, ciclo atrasado, inadimplência e deliberação aguardando.',
-  baseLegal: 'art. 9º, IV, do Decreto nº 48.899/2026'
-};
-
-const CONFORMIDADE: PassoTrilhaPe = {
-  titulo: 'Confira a conformidade dos órgãos',
-  rota: tela('conformidade'),
-  oQueFazer: 'Veja, órgão por órgão, os itens de TIC que o PDTIC cumpre: aprovado pelo CGTIC, comunicado à SGDI, vigente, com os nove '
-    + 'conteúdos e com a revisão e o acompanhamento em dia. Os órgãos ficam em alta, média ou baixa conformidade.',
+  telas: [
+    { rota: tela('painel'), titulo: 'Painel dos órgãos' },
+    { rota: tela('conformidade'), titulo: 'Conformidade' }
+  ],
+  oQueFazer: 'Cada número e cada alerta do painel abre a conformidade já filtrada, com os itens que cada órgão cumpre.',
   baseLegal: 'art. 9º, IV, do Decreto nº 48.899/2026'
 };
 
 const ARVORE_PETIC: PassoTrilhaPe = {
   titulo: 'Veja a árvore do PETIC-DF',
   rota: tela('arvore-petic'),
-  oQueFazer: 'Veja, para cada objetivo do PETIC-DF vigente, os indicadores dele e as necessidades e metas que cada órgão ligou ao objetivo.',
+  oQueFazer: 'Para cada objetivo do PETIC-DF vigente, as necessidades e as metas que os órgãos ligaram a ele.',
   baseLegal: 'art. 12, § 1º'
+};
+
+const ORGAOS: PassoTrilhaPe = {
+  titulo: 'Analise o PDTIC de cada órgão',
+  rota: tela('orgaos'),
+  telas: [
+    { rota: tela('orgaos'), titulo: 'Página de cada órgão' },
+    { rota: tela('comentarios'), titulo: 'PDTICs dos órgãos' }
+  ],
+  oQueFazer: 'A página do órgão reúne PDTIC, andamento, conformidade e documentos. Para comentar um passo, abra o passo a passo do órgão: '
+    + 'a equipe do PDTIC responde.',
+  baseLegal: 'art. 9º, IV e IX, do Decreto nº 48.899/2026',
+  subrotas: true
 };
 
 const INADIMPLENCIA: PassoTrilhaPe = {
   titulo: 'Registre notificações e inadimplências',
   rota: tela('inadimplencia'),
-  oQueFazer: 'Registre a notificação do órgão que não comunicou o PDTIC aprovado. Passados 5 dias úteis sem regularização nem justificativa '
-    + 'aceita, registre a inadimplência com o motivo e a nota de motivação. Quando o órgão regularizar, registre o saneamento.',
+  oQueFazer: 'Notifique o órgão que não comunicou o PDTIC aprovado. Sem regularização nem justificativa aceita em 5 dias úteis, '
+    + 'registre a inadimplência; quando ele regularizar, o saneamento.',
   baseLegal: 'art. 11 do Decreto nº 48.899/2026',
   status: 'inadimplencias'
-};
-
-const PAGINA_ORGAO: PassoTrilhaPe = {
-  titulo: 'Abra a página do órgão',
-  rota: tela('orgaos'),
-  oQueFazer: 'Escolha o órgão e veja tudo dele num lugar só: situação e versão do PDTIC, andamento do passo a passo, nível, conformidade, '
-    + 'aprovações, deliberações, documentos, ciclos e inadimplências.',
-  baseLegal: 'art. 9º, IV, do Decreto nº 48.899/2026',
-  subrotas: true
-};
-
-const COMENTARIOS: PassoTrilhaPe = {
-  titulo: 'Comente os passos do órgão',
-  rota: tela('comentarios'),
-  oQueFazer: 'Escolha o órgão, abra o passo a passo dele e comente um passo do PDTIC. A equipe do PDTIC responde e marca o comentário como resolvido.',
-  baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
 };
 
 const CONSOLIDADO: PassoTrilhaPe = {
   titulo: 'Baixe as planilhas consolidadas',
   rota: tela('consolidado'),
-  oQueFazer: 'Baixe cada seção do PDTIC com os dados de todos os órgãos. É a base do portfólio estratégico de TIC do GDF.',
+  oQueFazer: 'Uma planilha por seção do PDTIC, com todos os órgãos: a base do portfólio estratégico de TIC do GDF.',
   baseLegal: 'art. 9º, V, do Decreto nº 48.899/2026'
 };
+
+// ── Administrador do módulo (pe_admin) ──────────────────────────────────────
 
 const TRILHA_ADMIN: TrilhaPe = {
   perfil: 'admin',
   nome: 'Administrador do módulo',
-  descricao: 'Você prepara o modelo que os órgãos seguem, cadastra os referenciais (princípios e PETIC-DF), dá acesso às pessoas '
-    + 'e acompanha os órgãos. A SGDI coordena o monitoramento dos PDTICs e dá metodologia e modelos aos órgãos '
-    + '(art. 9º, IV e IX, do Decreto nº 48.899/2026).',
+  descricao: 'Você prepara o modelo que os órgãos seguem, cadastra os referenciais, dá acesso às pessoas e acompanha os órgãos. '
+    + 'A SGDI coordena o monitoramento dos PDTICs e dá metodologia e modelos aos órgãos (art. 9º, IV e IX, do Decreto nº 48.899/2026).',
   etapas: [
     {
       rotulo: 'Modelo',
       titulo: 'Prepare o modelo',
-      resumo: 'Defina o que cada nível de maturidade pede e como o PDTIC é montado.',
+      resumo: 'O que cada nível pede e como o PDTIC é montado.',
       icone: 'tune',
       passos: [
         {
           titulo: 'Defina os níveis de maturidade',
           rota: tela('modelo/niveis'),
-          oQueFazer: 'Crie, renomeie, descreva e ordene os níveis (Básico, Intermediário e Avançado) e escolha como os órgãos usam os níveis: '
-            + 'no modo livre, cada órgão começa pelo mínimo do decreto e o nível sai do que o PDTIC tem; no definido, você escolhe o nível de cada órgão.',
+          oQueFazer: 'Escolha também o modo: no livre, o nível sai do que o PDTIC tem; no definido, você escolhe o nível de cada órgão.',
           baseLegal: 'art. 9º, X, do Decreto nº 48.899/2026'
         },
         {
-          titulo: 'Monte etapas, passos, seções e campos',
+          titulo: 'Monte a estrutura do PDTIC',
           rota: tela('modelo/estrutura'),
-          oQueFazer: 'Diga o que cada nível pede: ligue, desligue, renomeie e crie os passos, as seções e os campos que o órgão preenche. Os nove conteúdos mínimos do PDTIC ficam travados: não desligam em nenhum nível.',
-          baseLegal: 'art. 12, § 2º'
-        },
-        {
-          titulo: 'Defina os critérios de priorização',
-          rota: tela('modelo/criterios'),
-          oQueFazer: 'Escolha os critérios que ordenam as necessidades de TIC dos órgãos, a escala de cada um e como a prioridade é calculada. O padrão é a matriz GUT: gravidade, urgência e tendência, com notas de 1 a 5.',
+          telas: [
+            { rota: tela('modelo/estrutura'), titulo: 'Etapas, passos, seções e campos' },
+            { rota: tela('modelo/criterios'), titulo: 'Critérios de priorização' }
+          ],
+          oQueFazer: 'Ligue, desligue e crie passos, seções e campos em cada nível; os nove conteúdos mínimos ficam travados. '
+            + 'Os critérios de priorização ordenam as necessidades (o padrão é a matriz GUT).',
+          baseLegal: 'art. 12, § 2º',
           guia: '3.1'
         },
         {
-          titulo: 'Ajuste o modelo do documento',
+          titulo: 'Ajuste o documento e os fluxos-modelo',
           rota: tela('modelo/documento'),
-          oQueFazer: 'Edite os capítulos, os textos-padrão e os blocos de dados do documento do PDTIC. Cada órgão recebe uma cópia: o texto que ele não editou acompanha o modelo na hora.',
-          baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
-        },
-        {
-          titulo: 'Ajuste os fluxos-modelo',
-          rota: tela('modelo/fluxos'),
-          oQueFazer: 'Revise os fluxos do Guia de PDTIC que os órgãos copiam e adaptam: elaboração, diagnóstico, planejamento e acompanhamento. '
-            + 'Arraste os blocos no desenho (ou use o modo em lista) para mudar as raias, os passos, as decisões e os documentos: o desenho se arruma sozinho.',
+          telas: [
+            { rota: tela('modelo/documento'), titulo: 'Modelos dos documentos' },
+            { rota: tela('modelo/fluxos'), titulo: 'Fluxos-modelo' }
+          ],
+          oQueFazer: 'Cada órgão recebe uma cópia: o texto e o fluxo que ele não mudou acompanham o modelo. Nos fluxos, arraste os blocos '
+            + 'ou use o modo em lista.',
           baseLegal: 'art. 9º, IX, do Decreto nº 48.899/2026'
         }
       ]
@@ -269,49 +272,47 @@ const TRILHA_ADMIN: TrilhaPe = {
     {
       rotulo: 'Referenciais',
       titulo: 'Cadastre os referenciais',
-      resumo: 'Princípios da política, PETIC-DF e diretrizes do ciclo, que os órgãos seguem no PDTIC.',
+      resumo: 'Princípios, PETIC-DF e diretrizes do ciclo, que os órgãos seguem no PDTIC.',
       icone: 'menu_book',
       passos: [
         {
-          titulo: 'Confira os princípios do art. 4º',
+          titulo: 'Revise princípios e diretrizes do ciclo',
           rota: tela('referenciais/principios'),
-          oQueFazer: 'Confira os onze princípios da Política de Governança de TIC do DF. Eles são o primeiro nível e aparecem no PDTIC de cada órgão.',
-          baseLegal: 'art. 4º'
+          telas: [
+            { rota: tela('referenciais/principios'), titulo: 'Princípios da política' },
+            { rota: tela('referenciais/diretrizes'), titulo: 'Diretrizes do ciclo' }
+          ],
+          oQueFazer: 'Os onze princípios do art. 4º entram no PDTIC de cada órgão. Publique as diretrizes do próximo ciclo antes de os órgãos '
+            + 'começarem a elaborar.',
+          baseLegal: 'art. 4º; art. 9º, VIII, do Decreto nº 48.899/2026'
         },
         {
           titulo: 'Cadastre o PETIC-DF',
           rota: tela('referenciais/petic'),
-          oQueFazer: 'Registre num rascunho as diretrizes, os objetivos estratégicos, as prioridades, os indicadores e as iniciativas do Plano Estratégico de TIC do DF (PETIC-DF) e envie ao CGTIC, que aprova.',
+          oQueFazer: 'Registre num rascunho diretrizes, objetivos, prioridades, indicadores e iniciativas e envie ao CGTIC, que aprova.',
           baseLegal: 'art. 11, § 1º',
           status: 'petic'
-        },
-        {
-          titulo: 'Publique as diretrizes do ciclo',
-          rota: tela('referenciais/diretrizes'),
-          oQueFazer: 'Proponha as diretrizes e as prioridades do próximo ciclo de planejamento, antes de os órgãos começarem a elaborar os PDTICs.',
-          baseLegal: 'art. 9º, VIII, do Decreto nº 48.899/2026'
         }
       ]
     },
     {
       rotulo: 'Acessos',
       titulo: 'Dê acesso',
-      resumo: 'Responda aos pedidos, defina o papel de cada pessoa e acompanhe o nível de cada órgão.',
+      resumo: 'Pedidos de acesso, papéis e o nível de cada órgão.',
       icone: 'manage_accounts',
       passos: [
         {
           titulo: 'Responda aos pedidos e defina os papéis',
           rota: tela('pessoas'),
-          oQueFazer: 'Responda aos pedidos de acesso ao módulo e defina o papel de cada pessoa: administrador do módulo, equipe da SGDI, Secretaria do CGTIC, equipe do PDTIC ou Consulta do PDTIC.',
+          oQueFazer: 'Papéis: administrador do módulo, equipe da SGDI, Secretaria do CGTIC, equipe do PDTIC e Consulta do PDTIC.',
           status: 'pedidos-acesso'
         },
         {
           // F3: neutro quanto ao modo dos níveis (no livre, o nível é calculado; no definido, o administrador escolhe)
           titulo: 'Acompanhe o nível de cada órgão',
           rota: tela('orgaos/niveis'),
-          oQueFazer: 'Veja o nível de cada órgão e ajuste um passo, uma seção ou um campo para um órgão quando precisar. No modo livre, o nível '
-            + 'é calculado pelo que o PDTIC tem; no definido, você escolhe o nível de cada órgão, com a justificativa. O histórico dos níveis '
-            + 'ajuda no Relatório de Maturidade.',
+          oQueFazer: 'No modo livre, o nível sai do que o PDTIC tem; no definido, você o escolhe, com justificativa. Aqui também se ajusta '
+            + 'um passo, uma seção ou um campo para um órgão.',
           baseLegal: 'art. 9º, X, do Decreto nº 48.899/2026'
         }
       ]
@@ -319,16 +320,9 @@ const TRILHA_ADMIN: TrilhaPe = {
     {
       rotulo: 'Acompanhamento',
       titulo: 'Acompanhe os órgãos',
-      resumo: 'Painel, conformidade, árvore do PETIC-DF, notificações e inadimplências, a página de cada órgão e os comentários nos passos.',
+      resumo: 'Painel, conformidade, árvore do PETIC-DF, PDTIC de cada órgão, inadimplências e planilhas consolidadas.',
       icone: 'insights',
-      passos: [PAINEL, CONFORMIDADE, ARVORE_PETIC, INADIMPLENCIA, PAGINA_ORGAO, COMENTARIOS]
-    },
-    {
-      rotulo: 'Consolidação',
-      titulo: 'Consolide',
-      resumo: 'Planilhas com os dados de todos os órgãos.',
-      icone: 'summarize',
-      passos: [CONSOLIDADO]
+      passos: [PAINEL, ARVORE_PETIC, ORGAOS, INADIMPLENCIA, CONSOLIDADO]
     }
   ]
 };
@@ -343,41 +337,27 @@ const TRILHA_SGDI: TrilhaPe = {
   etapas: [
     {
       rotulo: 'Acompanhamento',
-      titulo: 'Acompanhe',
-      resumo: 'Painel e conformidade dos órgãos, a árvore do PETIC-DF e as deliberações do CGTIC.',
+      titulo: 'Acompanhe os órgãos',
+      resumo: 'Painel, conformidade, árvore do PETIC-DF, deliberações do CGTIC e planilhas consolidadas.',
       icone: 'insights',
       passos: [
         PAINEL,
-        CONFORMIDADE,
         ARVORE_PETIC,
         {
           titulo: 'Acompanhe as deliberações do CGTIC',
           rota: tela('cgtic/historico'),
-          oQueFazer: 'Veja o que foi enviado ao comitê de governança de TIC (CGTIC) e o que ele decidiu: os PDTICs dos órgãos e o PETIC-DF.',
+          oQueFazer: 'Os PDTICs dos órgãos e o PETIC-DF enviados ao comitê, com o ato de cada decisão.',
           baseLegal: 'art. 5º'
-        }
+        },
+        CONSOLIDADO
       ]
     },
     {
-      rotulo: 'Análise',
-      titulo: 'Analise os PDTICs',
-      resumo: 'Página de cada órgão e comentários nos passos do PDTIC.',
+      rotulo: 'Órgãos',
+      titulo: 'Analise e cobre os órgãos',
+      resumo: 'PDTIC de cada órgão, comentários nos passos, notificações e inadimplências.',
       icone: 'fact_check',
-      passos: [PAGINA_ORGAO, COMENTARIOS]
-    },
-    {
-      rotulo: 'Inadimplência',
-      titulo: 'Registre notificações e inadimplências',
-      resumo: 'Notificação, prazo de 5 dias úteis e registro da inadimplência.',
-      icone: 'report',
-      passos: [INADIMPLENCIA]
-    },
-    {
-      rotulo: 'Consolidação',
-      titulo: 'Consolide',
-      resumo: 'Planilhas com os dados de todos os órgãos.',
-      icone: 'summarize',
-      passos: [CONSOLIDADO]
+      passos: [ORGAOS, INADIMPLENCIA]
     }
   ]
 };
@@ -391,31 +371,21 @@ const TRILHA_CGTIC: TrilhaPe = {
     + 'que aprova o PDTIC de cada órgão (arts. 5º e 9º).',
   etapas: [
     {
-      rotulo: 'Recebidos',
-      titulo: 'Receba os PDTICs e o PETIC enviados',
-      resumo: 'Documentos enviados para a deliberação do comitê.',
-      icone: 'inbox',
-      passos: [
-        {
-          titulo: 'Confira o que chegou para o comitê',
-          rota: tela('cgtic/recebidos'),
-          oQueFazer: 'Veja os PDTICs dos órgãos e o PETIC-DF enviados para o comitê e leia o que foi enviado: o PDF de cada PDTIC e o PETIC-DF.',
-          baseLegal: 'art. 5º',
-          status: 'deliberacoes'
-        }
-      ]
-    },
-    {
       rotulo: 'Deliberação',
-      titulo: 'Registre a deliberação',
-      resumo: 'Decisão do CGTIC: aprovado ou devolvido, com a resolução ou a ata.',
+      titulo: 'Registre as deliberações',
+      resumo: 'PDTICs e PETIC-DF enviados ao comitê e a decisão de cada um.',
       icone: 'gavel',
       passos: [
         {
-          titulo: 'Registre a deliberação do comitê',
-          rota: tela('cgtic/deliberacao'),
-          oQueFazer: 'Registre a decisão tomada em reunião: aprovado, com o ato (resolução ou ata) e a data, ou devolvido, com o que precisa ser ajustado.',
-          baseLegal: 'art. 10',
+          titulo: 'Registre as decisões do comitê',
+          rota: tela('cgtic/recebidos'),
+          telas: [
+            { rota: tela('cgtic/recebidos'), titulo: 'O que chegou para o comitê' },
+            { rota: tela('cgtic/deliberacao'), titulo: 'Registro da deliberação' }
+          ],
+          oQueFazer: 'Leia o que chegou (o PDF de cada PDTIC e o PETIC-DF) e registre a decisão da reunião: aprovado, com o ato e a data, '
+            + 'ou devolvido, com o que ajustar.',
+          baseLegal: 'arts. 5º e 10',
           status: 'deliberacoes'
         }
       ]
@@ -429,7 +399,7 @@ const TRILHA_CGTIC: TrilhaPe = {
         {
           titulo: 'Consulte o histórico das deliberações',
           rota: tela('cgtic/historico'),
-          oQueFazer: 'Veja as decisões anteriores do comitê sobre cada PDTIC e sobre o PETIC-DF.',
+          oQueFazer: 'Inclui o que o comitê pediu em cada devolução.',
           baseLegal: 'art. 10'
         }
       ]
@@ -476,7 +446,7 @@ export function trilhaDoOrgao(resolvida: PeTrilhaOrgao): TrilhaPe {
         passos: etapa.Passos.map(passo => ({
           titulo: passo.Titulo,
           rota: rotaPassoOrgao(passo.Chave),
-          oQueFazer: passo.OQueFazer,
+          oQueFazer: (passo.OQueFazer ?? '').trim(),
           baseLegal: passo.BaseLegal ?? undefined,
           guia: passo.ReferenciaGuia ?? undefined,
           doOrgao: passo
@@ -531,20 +501,34 @@ export function passosNumerados(trilha: TrilhaPe): PassoNumeradoPe[] {
 /**
  * Passo da URL. Dois passos podem usar a mesma tela: o `?passo=N.M` que a trilha
  * põe na navegação desempata; sem ele, vale o primeiro. Sem passo com a rota
- * exata, o passo com `subrotas` cuja rota começa o caminho (a página de um órgão
- * fica no passo da lista dos órgãos).
+ * exata, o passo que tem a tela entre as `telas` dele e, por fim, o passo com
+ * `subrotas` cuja rota começa o caminho (a página de um órgão fica no passo da
+ * lista dos órgãos).
  */
 export function passoDaUrl(passos: PassoNumeradoPe[], url: string): PassoNumeradoPe | null {
   const [caminho, query] = url.split('#')[0].split('?');
   const pedido = new URLSearchParams(query ?? '').get('passo');
   let candidatos = passos.filter(p => p.rota === caminho);
+  if (!candidatos.length) candidatos = passos.filter(p => p.telas?.some(t => t.rota === caminho));
   if (!candidatos.length) candidatos = passos.filter(p => p.subrotas && caminho.startsWith(`${p.rota}/`));
   return candidatos.find(p => p.numero === pedido) ?? candidatos[0] ?? null;
 }
 
-/** "Guia de PDTIC: atividade 1.1", "atividades 2.8 a 2.11" ou o anexo como está. */
-export function rotuloGuia(guia: string | undefined): string {
-  if (!guia) return '';
-  if (!/^\d/.test(guia)) return `Guia de PDTIC: ${guia}`;
-  return / (a|e) /.test(guia) ? `Guia de PDTIC: atividades ${guia}` : `Guia de PDTIC: atividade ${guia}`;
+/**
+ * "Guia de PDTIC: atividade 1.1", "atividades 1.1 e 1.2", "atividades 2.8 a 2.11" ou o
+ * anexo como está. Aceita também a lista (o passo do órgão pode cobrir mais de uma
+ * atividade): ["1.1", "1.2"] vira "atividades 1.1 e 1.2".
+ */
+export function rotuloGuia(guia: string | readonly string[] | null | undefined): string {
+  const lista = Array.isArray(guia) ? guia.map(g => String(g ?? '').trim()).filter(Boolean) : null;
+  const texto = lista ? juntarComE(lista) : String(guia ?? '').trim();
+  if (!texto) return '';
+  if (!/^\d/.test(texto)) return `Guia de PDTIC: ${texto}`;
+  const varias = (lista?.length ?? 0) > 1 || /[,;]| a | e /.test(texto);
+  return `Guia de PDTIC: ${varias ? 'atividades' : 'atividade'} ${texto}`;
+}
+
+/** "1.1", "1.1 e 1.2", "1.1, 1.2 e 1.3". */
+function juntarComE(itens: string[]): string {
+  return itens.length <= 1 ? (itens[0] ?? '') : `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
 }

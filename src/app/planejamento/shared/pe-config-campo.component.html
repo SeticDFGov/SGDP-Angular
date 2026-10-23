@@ -12,8 +12,8 @@
         <option [ngValue]="null">Texto livre</option>
         <option *ngFor="let f of formatos" [ngValue]="f.valor">{{ f.rotulo }}</option>
       </select>
-      <p [id]="prefixoId + '-formato-ajuda'" class="text-xs text-gray-500 italic mt-1">Com formato, o campo confere o que o órgão digita
-        (e, no número do SEI, põe os pontos e as barras sozinho).</p>
+      <p [id]="prefixoId + '-formato-ajuda'" class="text-xs text-gray-500 italic mt-1">O campo confere o que o órgão digita e, no número do SEI, põe
+        os pontos e as barras sozinho.</p>
       <p *ngIf="erro('formato') as e" [id]="prefixoId + '-formato-erro'" class="text-xs text-red-600 mt-1">{{ e }}</p>
     </div>
   </div>

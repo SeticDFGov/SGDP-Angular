@@ -43,7 +43,7 @@ const MAX_ROTULO = 200;
 const MAX_AJUDA = 2000;
 
 /**
- * Critérios de priorização (passo 1.3 do administrador do módulo; atividades 3.1
+ * Critérios de priorização (passo 1.2 do administrador do módulo, segunda tela; atividades 3.1
  * e 3.2 do Guia de PDTIC): edita o campo calculado que ordena as necessidades de
  * TIC (quais campos entram, os pesos e o cálculo, produto ou soma ponderada) e os
  * campos de critério (nome, o que mede e a escala). O padrão é a matriz GUT
@@ -234,7 +234,7 @@ export class PeCriteriosComponent implements OnInit {
   }
 
   textoSaida(): string {
-    return 'Há mudanças nos critérios que ainda não foram salvas. Se sair agora, elas se perdem.';
+    return 'Há mudanças nos critérios não salvas. Se sair agora, elas se perdem.';
   }
 
   // ── Leitura ───────────────────────────────────────────────────────────────
@@ -356,7 +356,7 @@ export class PeCriteriosComponent implements OnInit {
         this.salvando = false;
         const falhas = resultados.filter(r => r.erro !== undefined);
         if (!falhas.length) {
-          this.notificacoes.success('Critérios salvos. A prioridade das necessidades passa a ser calculada assim para todos os órgãos.');
+          this.notificacoes.success('Critérios salvos. A nova regra já vale para todos os órgãos.');
         } else {
           const comMensagem = falhas.filter(f => f.erro);
           if (comMensagem.length) {
@@ -417,7 +417,7 @@ export class PeCriteriosComponent implements OnInit {
           const linha = this.criterios.find(c => c.campo.Id === criado?.Id);
           if (linha) linha.entra = true;
         });
-        this.notificacoes.success(`Critério "${rotulo}" criado. Ele entra no cálculo quando você salvar os critérios. Ele nasce desligado em todos os níveis: ligue nos níveis no editor do modelo.`);
+        this.notificacoes.success(`Critério "${rotulo}" criado, desligado em todos os níveis. Ligue nos níveis no editor do modelo; ele entra no cálculo quando você salvar os critérios.`);
       },
       error: erro => {
         this.criando = false;

@@ -16,7 +16,7 @@ import { PeTrilhaEstadoService } from '../trilha/pe-trilha-estado.service';
 import { BASE_PE, rotaPaginaOrgao } from '../trilha/pe-trilhas';
 
 /**
- * Árvore do PETIC-DF (E8; passo 4.3 do administrador e 1.3 da SGDI): os objetivos
+ * Árvore do PETIC-DF (E8; passo 4.2 do administrador e 1.2 da SGDI): os objetivos
  * estratégicos do PETIC-DF vigente, cada um com os indicadores do próprio PETIC e,
  * por órgão, as necessidades e as metas que o PDTIC ligou a ele (GET
  * petic/arvore). Como no mock: o objetivo abre e fecha (botão dentro do título,
@@ -153,7 +153,7 @@ export class PeArvorePeticComponent implements OnInit {
       error: erro => {
         this.carregando = false;
         // 403: o interceptor já tirou a pessoa do módulo
-        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a árvore do PETIC-DF. Tente de novo em alguns instantes.');
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar a árvore do PETIC-DF. Tente de novo.');
         if (mensagem !== null) this.erro = mensagem;
       }
     });

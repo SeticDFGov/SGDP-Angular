@@ -23,17 +23,6 @@ export const SECAO_RELATORIO_CICLO = 'relatorio_ciclo';
 /** Os riscos que ocorreram no ciclo (fora do nível Básico). */
 export const SECAO_RISCOS_OCORRIDOS = 'riscos_ocorridos';
 
-/**
- * O que a equipe registra em cada ciclo de monitoramento, pelas seções que o nível do
- * órgão tem: "a situação das ações, as medições e os riscos que ocorreram"; no nível
- * sem medições nem riscos (o Básico), só a situação das ações (F2).
- */
-export function oQueSeRegistraNoCiclo(secoes: ReadonlySet<string>): string {
-  const partes = ['a situação das ações'];
-  if (secoes.has(SECAO_MEDICOES)) partes.push('as medições');
-  if (secoes.has(SECAO_RISCOS_OCORRIDOS)) partes.push('os riscos que ocorreram');
-  return partes.length > 1 ? `${partes.slice(0, -1).join(', ')} e ${partes[partes.length - 1]}` : partes[0];
-}
 /** A análise dos resultados da avaliação intermediária (6.2): o relatório da avaliação fica neste passo e no da avaliação do comitê. */
 export const SECAO_ANALISE_INTERMEDIARIA = 'analise_intermediaria';
 /** Os resultados intermediários das metas (6.1) e a avaliação do comitê (6.3), por avaliação. */

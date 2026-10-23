@@ -295,9 +295,9 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
       case 'em_deliberacao': return 'Esta versão está com o CGTIC: não muda enquanto o comitê não decidir.';
       case 'aprovado': return this.podeEditar
         ? 'Esta é a versão vigente e não muda. Para atualizar o PETIC-DF, crie um rascunho a partir dela.'
-        : 'Esta é a versão vigente. Você pode consultar e baixar a planilha.';
+        : 'Esta é a versão vigente. Você só consulta e baixa a planilha.';
       case 'substituido': return 'Esta versão foi substituída por uma mais nova: fica só para consulta.';
-      default: return 'Este rascunho está sendo preparado pelo administrador do módulo. Você pode consultar e baixar a planilha.';
+      default: return 'Este rascunho está sendo preparado pelo administrador do módulo. Você só consulta e baixa a planilha.';
     }
   }
 
@@ -411,7 +411,7 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
         this.salvandoJanela = false;
         this.janela = null;
         if (j.modo === 'novo') {
-          this.notificacoes.success(`Rascunho da versão ${versao.Versao} criado. Preencha as seções e envie ao CGTIC.`);
+          this.notificacoes.success(`Rascunho da versão ${versao.Versao} criado.`);
           this.estadoService.atualizarStatus(true);
           this.carregar(() => this.navegar({ versao: versao.Id }));
         } else {
@@ -521,7 +521,7 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
   private confirmarEnvio(v: PePetic): void {
     this.confirmacao.perguntar({
       titulo: `Enviar a versão ${v.Versao} do PETIC-DF ao CGTIC?`,
-      texto: 'Depois de enviada, a versão não muda até o comitê decidir. A Secretaria do CGTIC registra a decisão.',
+      texto: 'Depois de enviada, a versão não muda até o comitê decidir.',
       sim: 'Enviar ao CGTIC'
     }).then(sim => {
       if (sim) this.confirmarEnvioSim(v);
@@ -535,7 +535,7 @@ export class PePeticComponent implements OnInit, AfterViewChecked {
         this.enviando = false;
         this.pendencias = null;
         // Um aviso só (o toast já é lido pelo leitor de tela; F1, B05)
-        this.notificacoes.success(`Versão ${versao?.Versao ?? v.Versao} enviada ao CGTIC. A Secretaria do comitê registra a decisão.`);
+        this.notificacoes.success(`Versão ${versao?.Versao ?? v.Versao} enviada ao CGTIC.`);
         this.estadoService.atualizarStatus(true);
         // A lista vem de novo para a deliberação criada aparecer inteira; a versão enviada segue aberta,
         // com o foco no título dela (o botão de enviar sai da tela)

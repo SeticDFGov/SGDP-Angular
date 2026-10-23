@@ -22,7 +22,7 @@ const SITUACOES: PeSituacaoPdtic[] = [
 ];
 
 /**
- * Os PDTICs dos órgãos (passo "Comente os passos do órgão" da equipe da SGDI; o
+ * Os PDTICs dos órgãos (segunda tela do passo "Analise o PDTIC de cada órgão"; o
  * administrador do módulo, a Secretaria do CGTIC e o admin do SGDP também veem):
  * a lista dos PDTICs atuais de todos os órgãos (GET pdtic, paginado), com a
  * situação e o nível, e o botão que abre a trilha do órgão (só para ler) para

@@ -3,9 +3,8 @@
   <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-xl font-bold text-gray-900">Conformidade dos órgãos</h2>
     <p class="text-sm text-gray-700 leading-relaxed mt-1">
-      Cada órgão é medido pelos itens de TIC abaixo, sobre o PDTIC vigente (sem PDTIC vigente, sobre o atual). O percentual conta os
-      itens atendidos entre os que se aplicam ao órgão: um item que ainda não se aplica (o acompanhamento, antes da publicação) sai da
-      conta. A SGDI verifica a conformidade dos PDTICs (art. 9º, IV, do Decreto nº 48.899/2026).
+      Os itens são medidos sobre o PDTIC vigente (sem PDTIC vigente, sobre o atual). O percentual conta os itens atendidos entre os que
+      se aplicam ao órgão: o item que ainda não se aplica (o acompanhamento, antes da publicação) fica fora da conta.
     </p>
   </div>
 
@@ -29,7 +28,7 @@
     <!-- Resumo dos grupos (também filtra) -->
     <section class="bg-white rounded-lg shadow p-6" aria-labelledby="pe-conf-resumo">
       <h3 id="pe-conf-resumo" class="text-base font-semibold text-gray-900">Resumo dos grupos</h3>
-      <p class="text-xs text-gray-600 mt-0.5">Escolha um grupo para ver só os órgãos dele. O número conta os órgãos que passam nos outros filtros.</p>
+      <p class="text-xs text-gray-600 mt-0.5">Escolha um grupo para filtrar a lista. O número conta os órgãos que passam nos outros filtros.</p>
       <ul class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
         <li *ngFor="let g of grupos; trackBy: porValor">
           <button type="button" (click)="alternarGrupo(g)" [attr.aria-pressed]="filtro.grupo === g.valor"
@@ -81,8 +80,8 @@
           </button>
         </div>
       </div>
-      <p class="text-xs text-gray-500 italic mt-2">A busca vale ao apertar Enter ou ao sair do campo; o nível, na hora. A planilha traz os
-        mesmos órgãos da lista, com os filtros aplicados (sem filtro, todos), e "Sim", "Não" ou "Não se aplica" em cada item.</p>
+      <p class="text-xs text-gray-500 italic mt-2">A busca vale com Enter ou ao sair do campo; os outros filtros, na hora. A planilha traz os
+        órgãos da lista, com os filtros aplicados.</p>
 
       <!-- O que está filtrando, com o "×" de cada filtro -->
       <div *ngIf="comFiltros" class="flex flex-wrap items-center gap-2 mt-3 text-sm">
@@ -118,8 +117,7 @@
 
       <ng-container *ngIf="linhas.length > 0">
         <p class="text-sm text-gray-600 mt-1" aria-live="polite">{{ linhas.length === 1 ? '1 órgão.' : linhas.length + ' órgãos.' }}</p>
-        <p class="text-xs text-gray-500 italic mt-1">Cada item diz "Sim", "Não" ou "Não se aplica", com o ícone. Passe o mouse na célula para ler
-          o detalhe, ou abra "Detalhes" na linha do órgão.</p>
+        <p class="text-xs text-gray-500 italic mt-1">Passe o mouse na célula para ler o detalhe, ou abra "Detalhes" na linha do órgão.</p>
 
         <!-- O que cada item pede: a frase do servidor ou, sem ela, a do front -->
         <details class="mt-3 text-sm">

@@ -5,16 +5,14 @@
   <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-base font-semibold text-gray-900 mb-1">Planilhas consolidadas</h2>
     <p class="text-sm text-gray-700 leading-relaxed">
-      Cada planilha junta uma seção do PDTIC de todos os órgãos, com o PDTIC atual de cada um. As primeiras colunas dizem de quem
-      é a linha: órgão, sigla, <ng-container>{{ modoLivre ? 'nível alcançado' : 'nível de maturidade' }}</ng-container>, versão e
-      situação do PDTIC. Depois vêm os campos da seção, de todos os níveis (a célula fica vazia quando o campo não vale para o órgão).
-      É a base do portfólio estratégico de TIC do GDF (art. 9º, V, do Decreto nº 48.899/2026).
+      Cada linha é o PDTIC atual de um órgão. As primeiras colunas identificam a linha: órgão, sigla,
+      <ng-container>{{ modoLivre ? 'nível alcançado' : 'nível de maturidade' }}</ng-container>, versão e situação do PDTIC. Depois vêm
+      os campos da seção, de todos os níveis, com a célula vazia quando o campo não vale para o órgão.
     </p>
   </div>
 
   <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
-    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
-    <p class="mt-1">Tente de novo em alguns instantes.</p>
+    <p class="font-semibold">Não foi possível conferir o seu papel.</p>
     <button type="button" (click)="tentarPapelDeNovo()"
             class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
       <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
@@ -24,8 +22,8 @@
   <!-- Papel de órgão: aviso, sem consulta -->
   <div *ngIf="podeVer === false && !erroPapel" class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-5 text-sm leading-relaxed">
     <span class="material-icons text-amber-600" aria-hidden="true">lock</span>
-    <p>As planilhas consolidadas, com os dados de todos os órgãos, são da SGDI, do administrador do módulo e da Secretaria do
-      CGTIC. As planilhas do PDTIC do seu órgão ficam em cada passo do PDTIC e na visão geral.</p>
+    <p>As planilhas consolidadas, com todos os órgãos, são da SGDI, do administrador do módulo e da Secretaria do CGTIC. As do
+      seu órgão ficam em cada passo do PDTIC e na visão geral.</p>
   </div>
 
   <ng-container *ngIf="podeVer">

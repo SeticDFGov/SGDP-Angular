@@ -17,15 +17,15 @@
   <div *ngIf="aberto" class="rounded-lg border border-purple-200 bg-white p-3 space-y-2" (keydown.escape)="aoEsc($event)">
     <p [id]="idRotulo" class="text-sm font-semibold text-gray-900">Texto de "{{ tituloCapitulo }}"</p>
     <p [id]="idAjuda" class="text-xs text-gray-500 italic">
-      O texto se salva sozinho enquanto você escreve. Os marcadores entre chaves, como {{ exemploMarcador }}, viram os dados do
-      órgão na prévia e no PDF. Para inserir um, use o botão "Inserir marcador" da barra. Esc ou "Pronto" fecham o editor.
+      O texto se salva sozinho. Os marcadores entre chaves, como {{ exemploMarcador }}, viram dados do órgão na prévia e no PDF:
+      insira um com "Inserir marcador", na barra. Esc ou "Pronto" fecha o editor.
     </p>
     <app-pe-editor-texto-rico [valor]="valorInicial" [idBase]="idBase + '-texto'" [idRotulo]="idRotulo" [rotulo]="'texto de ' + tituloCapitulo"
                               [descritores]="idAjuda" [marcadores]="marcadores" [focarAoCarregar]="true"
                               (valorChange)="aoMudarTexto($event)"></app-pe-editor-texto-rico>
     <p *ngIf="rascunhoVazio" class="flex items-start gap-1 text-xs text-amber-900">
       <span class="material-icons text-sm text-amber-600" aria-hidden="true">info</span>
-      <span>O texto ficou vazio: no PDF, este bloco sai em branco. Para voltar ao texto do modelo, use o botão "Voltar ao texto do modelo".</span>
+      <span>O texto ficou vazio: no PDF, este bloco sai em branco. "Voltar ao texto do modelo" o recupera.</span>
     </p>
     <div class="flex flex-wrap items-center gap-2">
       <p *ngIf="situacaoSalvar !== 'erro'" class="flex-1 inline-flex items-center gap-1 text-xs text-gray-600">
@@ -68,7 +68,7 @@
     <p class="font-semibold inline-flex items-center gap-1">
       <span class="material-icons text-sm" aria-hidden="true">update</span> O modelo deste texto mudou depois que o órgão o editou.
     </p>
-    <p class="mt-0.5">{{ podeEditar ? 'Compare e escolha: usar o texto novo do modelo ou manter o texto do órgão.' : 'O órgão ainda não escolheu entre o texto novo do modelo e o dele.' }}</p>
+    <p class="mt-0.5">{{ podeEditar ? 'Compare e escolha entre o texto novo do modelo e o do órgão.' : 'O órgão ainda não escolheu entre o texto novo do modelo e o dele.' }}</p>
     <div class="flex flex-wrap gap-2 mt-2">
       <button type="button" (click)="comparando = !comparando" [attr.aria-expanded]="comparando"
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-blue-200 bg-white text-xs font-semibold text-blue-800 hover:bg-gray-50">
@@ -190,8 +190,7 @@
                             [idBase]="idBase + '-fluxo'" alturaMaxima="36rem"></app-pe-fluxo-desenho>
       <div *ngIf="!f.Svg" class="rounded border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
         <span class="material-icons text-gray-500" aria-hidden="true">account_tree</span>
-        <p>O desenho do fluxo "{{ f.Nome }}" não veio do servidor. Confira o fluxo no passo dos fluxos: com algum problema nele, o desenho
-          não sai.</p>
+        <p>O desenho do fluxo "{{ f.Nome }}" não saiu. Confira o fluxo no passo em que ele é adaptado: com algum problema, o desenho não é gerado.</p>
       </div>
       <figcaption class="mt-1 text-xs text-gray-600 text-center">{{ f.Nome }}</figcaption>
     </figure>
@@ -250,7 +249,7 @@
 <p *ngIf="!tipoConhecido" class="text-xs text-gray-500 italic">Este bloco sai só no PDF.</p>
 
 <ng-template #semDados>
-  <p class="text-sm text-gray-600 italic">Os dados deste bloco não vieram do servidor.</p>
+  <p class="text-sm text-gray-600 italic">Não foi possível carregar os dados deste bloco.</p>
 </ng-template>
 
 <!-- Os dados se editam no passo deles (documento e planilha nunca divergem) -->

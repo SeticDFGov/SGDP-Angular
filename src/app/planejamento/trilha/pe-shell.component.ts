@@ -344,6 +344,11 @@ export class PeShellComponent implements OnInit {
     return rotuloGuia(passo.guia);
   }
 
+  /** A caixa do passo tem o que mostrar: o que fazer, as telas, a base legal, o guia ou a situação. */
+  temCaixaDoPasso(passo: PassoNumeradoPe): boolean {
+    return !!passo.oQueFazer || !!passo.telas?.length || !!passo.baseLegal || !!passo.guia || !!this.status(passo);
+  }
+
   private lerUrl(url: string): void {
     this.rotaAtual = url.split('#')[0].split('?')[0];
     this.passoAtual = passoDaUrl(this.estado?.passos ?? [], url);

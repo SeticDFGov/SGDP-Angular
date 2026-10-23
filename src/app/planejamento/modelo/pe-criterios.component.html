@@ -5,13 +5,13 @@
 
   <div *ngIf="pode === false && !erroPapel" class="bg-white rounded-lg shadow p-6">
     <h2 class="text-base font-semibold text-gray-900 mb-1">Critérios de priorização</h2>
-    <p class="text-sm text-gray-700 leading-relaxed">Esta tela é do administrador do módulo: é ele quem define os critérios que
-      ordenam as necessidades de TIC dos órgãos. Se você precisa mudar um critério, fale com ele.</p>
+    <p class="text-sm text-gray-700 leading-relaxed">Só o administrador do módulo define os critérios que ordenam as necessidades de
+      TIC dos órgãos. Para mudar um critério, fale com ele.</p>
   </div>
 
   <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
     <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
-    <p class="mt-1">Sem ele, os critérios não abrem. Tente de novo em alguns instantes.</p>
+    <p class="mt-1">Sem ele, os critérios não abrem.</p>
     <button type="button" (click)="tentarDeNovo()"
             class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
       <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
@@ -23,19 +23,19 @@
     <!-- Apresentação -->
     <div class="bg-white rounded-lg shadow p-6">
       <h2 class="text-base font-semibold text-gray-900 mb-1">Critérios de priorização</h2>
-      <p class="text-sm text-gray-700 leading-relaxed">No planejamento, cada órgão dá notas às necessidades de TIC levantadas no
-        diagnóstico, e o sistema calcula a prioridade de cada uma. As mais prioritárias entram no plano; as outras vão para o anexo
-        do documento, para o próximo ciclo (atividades 3.1 e 3.2 do Guia de PDTIC).</p>
-      <p class="text-sm text-gray-700 leading-relaxed mt-2">O padrão é a <strong>matriz GUT</strong>, com notas de 1 a 5,
+      <p class="text-sm text-gray-700 leading-relaxed">O órgão dá notas às necessidades de TIC e o sistema calcula a
+        prioridade de cada uma. As mais prioritárias entram no plano; as outras vão para o anexo do documento, para o próximo ciclo
+        (Guia de PDTIC, atividades 3.1 e 3.2).</p>
+      <p class="text-sm text-gray-700 leading-relaxed mt-2">Na <strong>matriz GUT</strong> (o padrão), as notas de 1 a 5 são
         multiplicadas:</p>
       <ul class="mt-1 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
         <li><strong>Gravidade</strong>: o tamanho do problema se a necessidade não for atendida.</li>
         <li><strong>Urgência</strong>: a pressa para atender.</li>
         <li><strong>Tendência</strong>: o quanto o problema piora, ou a oportunidade se perde, com o tempo.</li>
       </ul>
-      <p class="text-xs text-gray-500 italic mt-2">Você pode trocar os nomes, a escala, incluir critérios (por exemplo, o
-        alinhamento ao PETIC-DF ou o custo) e usar a soma ponderada no lugar do produto. A mudança vale na hora para todos os
-        órgãos e fica no histórico.</p>
+      <p class="text-xs text-gray-500 italic mt-2">Dá para trocar os nomes e a escala, incluir critérios (como o alinhamento
+        ao PETIC-DF ou o custo) e usar a soma ponderada no lugar do produto. A mudança salva vale na hora para todos os órgãos e
+        fica no histórico.</p>
     </div>
 
     <p *ngIf="carregando && !modelo" role="status" class="bg-white rounded-lg shadow p-6 text-sm text-gray-600">Carregando os critérios...</p>
@@ -47,8 +47,8 @@
     <!-- Sem campo de prioridade no modelo -->
     <div *ngIf="modelo && alvos.length === 0" class="bg-white rounded-lg shadow p-6 text-sm text-gray-700 leading-relaxed">
       <p class="font-semibold text-gray-900">O modelo ainda não tem um campo de prioridade calculada.</p>
-      <p class="mt-1">A prioridade é um campo do tipo "calculado pelo sistema", com o produto ou a soma ponderada de outros campos da
-        mesma seção. Crie esse campo na seção das necessidades de TIC, no editor do modelo, e volte aqui para ajustar os critérios.</p>
+      <p class="mt-1">Na seção das necessidades de TIC, crie no editor do modelo um campo "calculado pelo sistema", com o produto ou a soma
+        ponderada de outros campos da mesma seção. Depois, volte aqui.</p>
       <a routerLink="/planejamento/modelo/estrutura" class="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-purple-700 hover:underline">
         <span class="material-icons text-base" aria-hidden="true">account_tree</span> Abrir o editor do modelo
       </a>
@@ -111,7 +111,7 @@
           <div class="flex flex-col md:flex-row items-start gap-3 mb-4">
             <div class="flex-1">
               <h2 class="text-base font-semibold text-gray-900">Critérios</h2>
-              <p class="text-sm text-gray-600 mt-0.5">Os campos de número (ou de lista com valores numéricos) da mesma seção podem ser
+              <p class="text-sm text-gray-600 mt-0.5">Campos de número (ou de lista com valores numéricos) da mesma seção podem ser
                 critérios. Marque os que entram no cálculo.</p>
             </div>
             <button type="button" (click)="abrirNovo()" [disabled]="novoAberto"
@@ -186,8 +186,8 @@
           <!-- Critério novo -->
           <div *ngIf="novoAberto" class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
             <h3 class="text-sm font-semibold text-gray-900">Novo critério</h3>
-            <p class="text-xs text-gray-600 mt-0.5">O critério é um campo de número na seção "{{ a.secao.Titulo }}". Ele nasce desligado
-              em todos os níveis: depois de criar, ligue nos níveis no editor do modelo.</p>
+            <p class="text-xs text-gray-600 mt-0.5">Campo de número na seção "{{ a.secao.Titulo }}", desligado em todos os
+              níveis. Depois de criar, ligue nos níveis no editor do modelo.</p>
             <div *ngIf="errosNovo.length > 0" role="alert" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
               <ul class="list-disc ml-5"><li *ngFor="let erro of errosNovo">{{ erro }}</li></ul>
             </div>

@@ -5,23 +5,18 @@
     <h2 class="text-base font-semibold text-gray-900 mb-1">PETIC-DF</h2>
     <p class="text-sm text-gray-700 leading-relaxed">
       O Plano Estratégico de TIC do Distrito Federal (PETIC-DF) é o planejamento estratégico de TIC comum a todos os órgãos
-      (art. 11). Ele traz diretrizes, objetivos estratégicos, prioridades, indicadores e iniciativas (art. 11, § 1º). Quem aprova
-      e revisa é o comitê de governança de TIC, o CGTIC (art. 11, § 3º). Os órgãos ligam o PDTIC aos objetivos e aos eixos da
-      versão vigente.
+      (art. 11), com diretrizes, objetivos estratégicos, prioridades, indicadores e iniciativas (art. 11, § 1º). O CGTIC aprova e
+      revisa (art. 11, § 3º). Os órgãos ligam o PDTIC aos objetivos e aos eixos da versão vigente.
     </p>
-    <ul *ngIf="podeEditar" class="mt-2 text-sm text-gray-700 space-y-1 leading-relaxed list-disc ml-5">
-      <li>Trabalhe sempre num rascunho. Ele nasce da versão vigente, com os registros e os códigos, ou vazio.</li>
-      <li>Preencha cada seção: escolha a seção na lista e inclua os registros.</li>
-      <li>Envie ao CGTIC. Aprovada, a versão passa a valer e a anterior fica no histórico. Devolvida, ela volta a rascunho, com o
-        que precisa ser ajustado.</li>
-    </ul>
-    <p *ngIf="!podeEditar" class="text-sm text-gray-700 leading-relaxed mt-2">Aqui você consulta a versão vigente e as anteriores, e
-      baixa as planilhas. Quem cadastra o PETIC-DF é o administrador do módulo.</p>
+    <p *ngIf="podeEditar" class="text-sm text-gray-700 leading-relaxed mt-2">Edite sempre num rascunho. Aprovada, a versão passa a
+      valer e a anterior vai para o histórico; devolvida, volta a rascunho.</p>
+    <p *ngIf="!podeEditar" class="text-sm text-gray-700 leading-relaxed mt-2">Consulte a versão vigente e as anteriores e baixe as
+      planilhas. Quem cadastra o PETIC-DF é o administrador do módulo.</p>
   </div>
 
   <div *ngIf="erroPapel" role="alert" class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-5 text-sm leading-relaxed">
-    <p class="font-semibold">Não foi possível conferir o seu papel na Governança Estratégica.</p>
-    <p class="mt-1">Por enquanto, esta tela fica só para ler. Tente de novo em alguns instantes.</p>
+    <p class="font-semibold">Não foi possível conferir o seu papel.</p>
+    <p class="mt-1">Por enquanto, esta tela fica só para ler.</p>
     <button type="button" (click)="tentarPapelDeNovo()"
             class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
       <span class="material-icons text-base" aria-hidden="true">refresh</span> Tentar de novo
@@ -110,7 +105,7 @@
           <div class="leading-relaxed">
             <p><strong>O CGTIC devolveu esta versão</strong> em {{ decididaEm(v) }}<ng-container *ngIf="ato(v) as a"> ({{ a }})</ng-container>.</p>
             <p *ngIf="v.Deliberacao?.Observacao as o" class="mt-1 whitespace-pre-line">O que ajustar: {{ o }}</p>
-            <p class="mt-1">Ajuste o que for preciso e envie de novo.</p>
+            <p class="mt-1">Ajuste e envie de novo.</p>
           </div>
         </div>
         <div *ngIf="v.Situacao === 'aprovado'" class="mt-4 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
@@ -165,7 +160,7 @@
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-300 bg-white text-sm font-semibold text-red-700 hover:bg-red-50">
               <span class="material-icons text-base" aria-hidden="true">refresh</span> {{ conferindo ? 'Conferindo...' : 'Conferir de novo' }}
             </button>
-            <p class="text-xs text-red-900">Cada item leva à seção. Depois de preencher, confira de novo ou envie.</p>
+            <p class="text-xs text-red-900">Cada item leva à seção.</p>
           </div>
         </div>
       </div>

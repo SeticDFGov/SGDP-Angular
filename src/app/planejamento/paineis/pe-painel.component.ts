@@ -243,7 +243,7 @@ export class PePainelComponent implements OnInit {
         this.carregando = false;
         this.pedido = null;
         // 403: o interceptor já tirou a pessoa do módulo
-        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar o painel. Tente de novo em alguns instantes.');
+        const mensagem = mensagemErroPe(erro, 'Não foi possível carregar o painel. Tente de novo.');
         if (mensagem !== null) this.erro = mensagem;
       }
     });
@@ -353,14 +353,14 @@ export class PePainelComponent implements OnInit {
     this.graficos = [
       {
         chave: 'situacao', titulo: 'Órgãos por situação do PDTIC', rotuloCategoria: 'Situação do PDTIC', unidade: ORGAOS,
-        legenda: 'Cada barra é uma situação do PDTIC atual de cada órgão; o número é a quantidade de órgãos.',
+        legenda: 'A situação do PDTIC atual de cada órgão.',
         series: SERIE_ORGAOS,
         barras: p.PorSituacao.map(s => ({ chave: s.Chave, rotulo: s.Rotulo || s.Chave, valores: [s.Quantidade] })),
         vazio: 'Nenhum órgão para contar.'
       },
       {
         chave: 'etapa', titulo: 'PDTICs em elaboração, por etapa', rotuloCategoria: 'Etapa do passo a passo', unidade: { singular: 'PDTIC', plural: 'PDTICs' },
-        legenda: 'Em que etapa do passo a passo está cada PDTIC em elaboração: a etapa do próximo passo recomendado.',
+        legenda: 'A etapa do próximo passo recomendado de cada PDTIC em elaboração.',
         series: SERIE_PDTICS,
         // A etapa 0 é a dos PDTICs sem próximo passo (o servidor manda "Sem próximo passo" no título)
         barras: p.EmElaboracaoPorEtapa.map(e => ({
@@ -372,15 +372,15 @@ export class PePainelComponent implements OnInit {
       this.modoLivre
         ? {
           chave: 'nivel', titulo: 'Órgãos por nível alcançado', rotuloCategoria: 'Nível alcançado', unidade: ORGAOS,
-          legenda: 'O nível alcançado sai do que o PDTIC de cada órgão tem; "Sem nível alcançado" conta os órgãos sem PDTIC, sem nível '
-            + 'ou com o PDTIC aprovado fora do sistema. O número é a quantidade de órgãos.',
+          legenda: 'O nível alcançado sai do que o PDTIC de cada órgão tem. "Sem nível alcançado" conta os órgãos sem PDTIC, sem nível '
+            + 'ou com o PDTIC aprovado fora do sistema.',
           series: SERIE_ORGAOS,
           barras: p.PorNivel.map(n => ({ chave: `nivel-${n.NivelId}`, rotulo: n.Nome, valores: [n.Quantidade] })),
           vazio: 'Nenhum órgão para contar.'
         }
         : {
           chave: 'nivel', titulo: 'Órgãos por nível de maturidade', rotuloCategoria: 'Nível', unidade: ORGAOS,
-          legenda: 'O nível de maturidade diz os passos e os campos que o órgão preenche; o número é a quantidade de órgãos.',
+          legenda: 'O nível de maturidade de cada órgão.',
           series: SERIE_ORGAOS,
           barras: p.PorNivel.map(n => ({ chave: `nivel-${n.NivelId}`, rotulo: n.Nome, valores: [n.Quantidade] })),
           vazio: 'Nenhum órgão para contar.'
@@ -388,7 +388,7 @@ export class PePainelComponent implements OnInit {
       {
         chave: 'objetivos', titulo: 'Necessidades e metas por objetivo do PETIC-DF', rotuloCategoria: 'Objetivo estratégico',
         unidade: { singular: 'item', plural: 'itens' },
-        legenda: 'Quantas necessidades e quantas metas dos PDTICs estão ligadas a cada objetivo estratégico do PETIC-DF vigente.',
+        legenda: 'As necessidades e as metas dos PDTICs ligadas a cada objetivo estratégico do PETIC-DF vigente.',
         series: SERIES_OBJETIVOS,
         barras: p.PorObjetivoPetic.map(o => ({
           chave: `objetivo-${o.RegistroId}`,
@@ -399,14 +399,14 @@ export class PePainelComponent implements OnInit {
       },
       {
         chave: 'temas', titulo: 'Ações por tema', rotuloCategoria: 'Tema', unidade: { singular: 'ação', plural: 'ações' },
-        legenda: 'As ações dos planos de ação dos PDTICs, pelo tema (art. 12, § 2º, V, VI e IX).',
+        legenda: 'As ações dos PDTICs, pelo tema (art. 12, § 2º, V, VI e IX).',
         series: SERIE_ACOES,
         barras: p.AcoesPorTema.map(t => ({ chave: `tema-${t.Valor}`, rotulo: t.Rotulo || t.Valor, valores: [t.Quantidade] })),
         vazio: 'Ainda não há ações com tema nos PDTICs.'
       },
       {
         chave: 'riscos', titulo: 'Riscos por nível', rotuloCategoria: 'Nível do risco', unidade: { singular: 'risco', plural: 'riscos' },
-        legenda: 'Os riscos dos planos de riscos dos PDTICs, pelo nível. A cor só acompanha o nome do nível.',
+        legenda: 'Os riscos dos PDTICs, pelo nível.',
         series: SERIE_RISCOS,
         barras: p.RiscosPorNivel.map(r => ({
           chave: `risco-${r.Nivel}`, rotulo: r.Rotulo || r.Nivel, valores: [r.Quantidade], tom: TOM_RISCO[r.Nivel] ?? 'cinza'
@@ -415,8 +415,8 @@ export class PePainelComponent implements OnInit {
       },
       {
         chave: 'execucao', titulo: 'Execução das ações no último ciclo', rotuloCategoria: 'Situação da ação', unidade: { singular: 'ação', plural: 'ações' },
-        legenda: 'A situação de cada ação no último ciclo de monitoramento com dado de cada órgão. "Sem registro" é a ação que ainda não '
-          + 'teve a situação informada. A cor só acompanha o nome.',
+        legenda: 'A situação de cada ação no último ciclo de monitoramento com dado de cada órgão. "Sem registro": a ação ainda não '
+          + 'teve situação informada.',
         series: SERIE_ACOES,
         barras: p.ExecucaoUltimoCiclo.map(x => ({
           chave: `execucao-${x.Situacao}`, rotulo: x.Rotulo || x.Situacao, valores: [x.Quantidade], tom: TOM_EXECUCAO[x.Situacao] ?? 'cinza'

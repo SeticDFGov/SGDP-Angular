@@ -9,12 +9,10 @@
         <p *ngIf="!modoLivre" class="text-sm text-gray-600">{{ orgao.Nome }} · nível {{ orgao.NivelNome }}<ng-container *ngIf="orgao.NivelPadrao"> (o padrão)</ng-container></p>
         <p *ngIf="modoLivre" class="text-sm text-gray-600">{{ orgao.Nome }} · modo livre<ng-container *ngIf="orgao.NivelAlcancadoNome"> · nível
           alcançado: {{ orgao.NivelAlcancadoNome }}</ng-container></p>
-        <p *ngIf="!modoLivre" class="text-sm text-gray-700 leading-relaxed mt-2">O ajuste muda a situação de um passo, de uma seção ou de
-          um campo só para este órgão, por cima do nível. Por exemplo: pedir a análise SWOT a um órgão do nível Básico, ou dispensar um
-          campo que não faz sentido para ele. Cada ajuste precisa de justificativa.</p>
-        <p *ngIf="modoLivre" class="text-sm text-gray-700 leading-relaxed mt-2">O ajuste muda a situação de um passo, de uma seção ou de
-          um campo só para este órgão, por cima do modo livre. Por exemplo: tornar obrigatória a análise SWOT para o órgão, ou dispensar
-          um campo que não faz sentido para ele. Cada ajuste precisa de justificativa.</p>
+        <p *ngIf="!modoLivre" class="text-sm text-gray-700 leading-relaxed mt-2">Cada ajuste vale só para este órgão e precisa de justificativa. Exemplos: pedir a análise SWOT a um
+          órgão do nível Básico, ou dispensar um campo que não faz sentido para ele.</p>
+        <p *ngIf="modoLivre" class="text-sm text-gray-700 leading-relaxed mt-2">Cada ajuste vale só para este órgão e precisa de justificativa. Exemplos: tornar obrigatória a
+          análise SWOT para o órgão, ou dispensar um campo que não faz sentido para ele.</p>
         <p class="text-xs text-gray-500 italic mt-1">Os conteúdos mínimos do PDTIC (art. 12, § 2º) não desligam, nem com ajuste. Nada
           se apaga: o que o ajuste esconder fica guardado e volta se o ajuste sair.</p>
       </div>

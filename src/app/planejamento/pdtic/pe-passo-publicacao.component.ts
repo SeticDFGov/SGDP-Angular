@@ -17,7 +17,7 @@ interface ErroPublicacao {
 }
 
 /**
- * Publicação do PDTIC (passo do tipo `publicacao`, o 3.13 no Avançado). A seção
+ * Publicação do PDTIC (passo do tipo `publicacao`, o 3.12 no Avançado). A seção
  * da publicação (data, endereço da íntegra na internet, DODF) é a do passo, que a
  * tela do passo mostra acima; este bloco registra a publicação:
  *
@@ -104,7 +104,7 @@ export class PePassoPublicacaoComponent implements AfterViewChecked {
   abrirJanela(): void {
     if (!this.podePublicar || this.publicando) return;
     if (this.mudancaPendente) {
-      this.notificacoes.warning('Salve (ou desfaça) a seção da publicação antes de registrar: há mudança que ainda não foi salva.');
+      this.notificacoes.warning('Salve ou desfaça a mudança na seção da publicação antes de registrar.');
       return;
     }
     this.janela = true;

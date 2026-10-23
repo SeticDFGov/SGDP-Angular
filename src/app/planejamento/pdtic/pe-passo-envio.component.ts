@@ -26,7 +26,7 @@ interface ItemPendencia {
 }
 
 /**
- * Envio do PDTIC ao CGTIC (passo do tipo `envio`, o 3.11 no Avançado: "Registre
+ * Envio do PDTIC ao CGTIC (passo do tipo `envio`, o 3.10 no Avançado: "Registre
  * a aprovação do SGTIC e envie à SGDI"). A aprovação do SGTIC é a seção do passo,
  * que a tela do passo mostra acima; este bloco cuida do envio:
  *
@@ -140,12 +140,12 @@ export class PePassoEnvioComponent implements OnChanges, AfterViewChecked, OnDes
     return quandoPdtic(valor);
   }
 
-  /** O passo da deliberação do CGTIC (3.12 no Avançado). */
+  /** O passo da deliberação do CGTIC (3.11 no Avançado). */
   get passoDeliberacao(): LinkPasso | null {
     return this.linksDaTrilha().deliberacao;
   }
 
-  /** O passo do documento (3.10), para conferir a prévia antes de enviar. */
+  /** O passo do documento (3.9), para conferir a prévia antes de enviar. */
   get passoDocumento(): LinkPasso | null {
     return this.linksDaTrilha().documento;
   }
@@ -209,7 +209,7 @@ export class PePassoEnvioComponent implements OnChanges, AfterViewChecked, OnDes
   abrirJanela(): void {
     if (!this.podeEnviar || this.enviando) return;
     if (this.mudancaPendente) {
-      this.notificacoes.warning('Salve (ou desfaça) a aprovação do SGTIC antes de enviar: há mudança que ainda não foi salva.');
+      this.notificacoes.warning('Salve ou desfaça a mudança na aprovação do SGTIC antes de enviar.');
       return;
     }
     this.janela = true;
@@ -227,7 +227,7 @@ export class PePassoEnvioComponent implements OnChanges, AfterViewChecked, OnDes
         this.enviando = false;
         this.janela = false;
         this.aplicarPrevia(null);
-        this.notificacoes.success(`PDTIC ${pdtic?.Versao ?? this.pdtic.Versao} enviado ao CGTIC. O PDF enviado ficou guardado, e o PDTIC fica em aprovação até o comitê decidir.`);
+        this.notificacoes.success(`PDTIC ${pdtic?.Versao ?? this.pdtic.Versao} enviado ao CGTIC. Ele fica em aprovação até o comitê decidir.`);
         this.focoPendente = 'pe-envio-titulo';
         if (pdtic?.Deliberacao) {
           this.enviou.emit(pdtic);

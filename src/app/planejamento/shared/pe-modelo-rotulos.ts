@@ -82,8 +82,8 @@ export const TIPOS_CAMPO: OpcaoRotulo<PeTipoCampo>[] = [
   { valor: 'percentual', rotulo: 'Percentual' },
   { valor: 'data', rotulo: 'Data' },
   { valor: 'sim_nao', rotulo: 'Sim ou não' },
-  { valor: 'lista', rotulo: 'Lista: escolhe uma opção' },
-  { valor: 'lista_multipla', rotulo: 'Lista: escolhe uma ou mais opções' },
+  { valor: 'lista', rotulo: 'Lista: uma opção' },
+  { valor: 'lista_multipla', rotulo: 'Lista: uma ou mais opções' },
   { valor: 'ligacao_secao', rotulo: 'Ligação com registros de outra seção' },
   { valor: 'ligacao_catalogo', rotulo: 'Ligação com um catálogo' },
   { valor: 'arquivo', rotulo: 'Arquivo anexado' },
@@ -172,7 +172,7 @@ export function citacaoTravado(inciso: string | null | undefined): string {
 
 /** Por que o campo tema das ações (travado por si) não desliga, com a citação que vira dica. */
 export const EXPLICACAO_CAMPO_TRAVADO =
-  'Travado: é por ele que as ações mostram os conteúdos mínimos de segurança da informação, de transformação digital e de '
+  'Travado: é por ele que as ações mostram os conteúdos mínimos de segurança da informação, transformação digital e '
   + 'governança de dados (art. 12, § 2º, V, VI e IX). Não desliga em nenhum nível.';
 
 /** Por que uma opção travada (um dos três temas do decreto) não sai da lista. */
@@ -451,7 +451,7 @@ const CAMPOS_HISTORICO: Record<string, string> = {
   titulo: 'Título',
   oquefazer: 'O que fazer',
   baselegal: 'Base legal',
-  referenciaguia: 'Referência do guia',
+  referenciaguia: 'Atividade do guia',
   aceitanaoseaplica: 'Aceita "não se aplica"',
   niveis: 'Situação',
   situacaogeral: 'Situação',

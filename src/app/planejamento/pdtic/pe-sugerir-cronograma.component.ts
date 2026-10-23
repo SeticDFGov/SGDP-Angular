@@ -48,7 +48,7 @@ export class PeSugerirCronogramaComponent {
       error: erro => {
         this.sugerindo = false;
         // 403: o interceptor já tirou a pessoa do módulo
-        const mensagem = mensagemErroPe(erro, 'Não foi possível sugerir o cronograma. Tente de novo em alguns instantes.');
+        const mensagem = mensagemErroPe(erro, 'Não foi possível sugerir o cronograma. Tente de novo.');
         if (mensagem === null) return;
         if ((erro as { status?: number } | null)?.status === 409) {
           this.notificacoes.warning(mensagem);
