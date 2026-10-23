@@ -64,7 +64,8 @@ export const pgia_routes: Routes = [
         'dados': 'Dados do órgão',
         'pessoas': 'Pessoas do órgão',
         'responsavel-ia': 'Responsável de IA',
-        'encarregado-dados': 'Encarregado de Dados'
+        'encarregado-dados': 'Encarregado de Dados',
+        'curador-dados': 'Curador de Dados de Negócio'
       }),
       ...secoes('sistemas', PgiaSistemasComponent, {
         'lista': 'Sistemas de IA do órgão',

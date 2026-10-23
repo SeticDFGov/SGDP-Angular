@@ -6,7 +6,7 @@ import { PgiaSistemaService } from '../services/pgia-sistema.service';
 import { PgiaGovernancaService } from '../services/pgia-governanca.service';
 import { PgiaOperacaoService } from '../services/pgia-operacao.service';
 import { PedidosAcessoService } from '../../core/acessos/pedidos-acesso.service';
-import { PgiaPrazo } from '../../../api/pgia/interface';
+import { PgiaDesignacao, PgiaPrazo } from '../../../api/pgia/interface';
 import { semCarregamento } from '../../core/carregamento/sem-carregamento';
 import { ChaveStatus, PerfilTrilha } from './pgia-trilhas';
 
@@ -61,6 +61,19 @@ function prazoDe(prazos: PgiaPrazo[], chave: ChaveStatus): PgiaPrazo | undefined
   return trecho ? prazos.find(p => p.Obrigacao.includes(trecho)) : undefined;
 }
 
+/**
+ * Situação de uma designação pelo titular vigente (o principal) e o suplente.
+ * Ato importado da planilha da SGDI ainda a completar pede atenção.
+ */
+function statusDesignacao(titular: PgiaDesignacao | null | undefined,
+                          suplente: PgiaDesignacao | null | undefined): StatusPasso | undefined {
+  if (!titular) return undefined;
+  const partes = [`Titular: ${titular.AgenteNome}`, suplente ? `Suplente: ${suplente.AgenteNome}` : 'sem suplente'];
+  const pendente = !!titular.AtoPendente || !!suplente?.AtoPendente;
+  if (pendente) partes.push('ato a completar');
+  return { estado: pendente ? 'atencao' : 'feito', texto: partes.join(' · ') };
+}
+
 function fila(quantidade: number | null, singular: string, plural: string, vazia: string): StatusPasso | undefined {
   if (quantidade === null) return undefined;
   return quantidade > 0
@@ -108,12 +121,16 @@ export class PgiaTrilhaStatusService {
         }).pipe(map(({ prazos, sistemas }) => {
           const status: Partial<Record<ChaveStatus, StatusPasso>> = {};
 
-          status.responsavel = meu?.ResponsavelIaVigente
-            ? { estado: 'feito', texto: `Designado: ${meu.ResponsavelIaVigente.AgenteNome}` }
-            : statusDoPrazo(prazoDe(prazos, 'responsavel')) ?? { estado: 'pendente', texto: 'Ainda não designado' };
-          status.encarregado = meu?.EncarregadoDadosVigente
-            ? { estado: 'feito', texto: `Designado: ${meu.EncarregadoDadosVigente.AgenteNome}` }
-            : statusDoPrazo(prazoDe(prazos, 'encarregado')) ?? { estado: 'pendente', texto: 'Ainda não designado' };
+          status.responsavel = statusDesignacao(meu?.ResponsavelIaVigente, meu?.ResponsavelIaSuplenteVigente)
+            ?? statusDoPrazo(prazoDe(prazos, 'responsavel')) ?? { estado: 'pendente', texto: 'Ainda não designado' };
+          status.encarregado = statusDesignacao(meu?.EncarregadoDadosVigente, meu?.EncarregadoDadosSuplenteVigente)
+            ?? statusDoPrazo(prazoDe(prazos, 'encarregado')) ?? { estado: 'pendente', texto: 'Ainda não designado' };
+          // O Curador de Dados de Negócio não tem prazo no decreto. Resposta antiga sem o
+          // campo (undefined): o passo fica sem situação.
+          if (meu && meu.CuradorDadosVigente !== undefined) {
+            status.curador = statusDesignacao(meu.CuradorDadosVigente, meu.CuradorDadosSuplenteVigente)
+              ?? { estado: 'pendente', texto: 'Ainda não designado' };
+          }
 
           // Inventário: o prazo diz se a remessa inicial foi cumprida; a contagem ajuda a ler
           const prazoInventario = statusDoPrazo(prazoDe(prazos, 'inventario'));

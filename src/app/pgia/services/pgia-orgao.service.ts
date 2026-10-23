@@ -6,14 +6,24 @@ import { AuthService } from '../../auth/services/auth';
 import {
   PgiaAgenteInfoForm,
   PgiaDesignacao,
+  PgiaDesignacaoAtualizarForm,
   PgiaDesignacaoForm,
   PgiaMeuOrgao,
   PgiaOrgao,
   PgiaOrgaoDadosForm,
   PgiaPessoa,
   PgiaPrazo,
-  PgiaResponsavelIaForm
+  PgiaResponsavelIaAtualizarForm,
+  PgiaResponsavelIaForm,
+  PgiaTipoDesignacao
 } from '../../../api/pgia/interface';
+
+/** Trecho da rota de cada designação em api/pgia/orgao/{orgaoId}/... */
+const ROTA_DESIGNACAO: Readonly<Record<PgiaTipoDesignacao, string>> = {
+  responsavel_ia: 'responsavel-ia',
+  encarregado_dados: 'encarregado-dados',
+  curador_dados: 'curador-dados'
+};
 
 @Injectable({
   providedIn: 'root'
@@ -63,6 +73,35 @@ export class PgiaOrgaoService {
 
   designarEncarregadoDados(orgaoId: number, form: PgiaDesignacaoForm): Observable<PgiaDesignacao> {
     return this.http.post<PgiaDesignacao>(`${this.apiUrl}/${orgaoId}/encarregado-dados`, form, { headers: this.getHeaders() });
+  }
+
+  listarCuradoresDados(orgaoId: number): Observable<PgiaDesignacao[]> {
+    return this.listarDesignacoes(orgaoId, 'curador_dados');
+  }
+
+  designarCuradorDados(orgaoId: number, form: PgiaDesignacaoForm): Observable<PgiaDesignacao> {
+    return this.designar(orgaoId, 'curador_dados', form);
+  }
+
+  /** Histórico (vigentes e encerradas) de qualquer das três designações. */
+  listarDesignacoes(orgaoId: number, tipo: PgiaTipoDesignacao): Observable<PgiaDesignacao[]> {
+    return this.http.get<PgiaDesignacao[]>(`${this.apiUrl}/${orgaoId}/${ROTA_DESIGNACAO[tipo]}`, { headers: this.getHeaders() });
+  }
+
+  /** Designa (ou troca) o titular ou o suplente; a vigente da mesma posição vai para o histórico. */
+  designar(orgaoId: number, tipo: PgiaTipoDesignacao,
+           form: PgiaDesignacaoForm | PgiaResponsavelIaForm): Observable<PgiaDesignacao> {
+    return this.http.post<PgiaDesignacao>(`${this.apiUrl}/${orgaoId}/${ROTA_DESIGNACAO[tipo]}`, form, { headers: this.getHeaders() });
+  }
+
+  /**
+   * Completa o ato de uma designação importada da planilha da SGDI (tira a marca
+   * `AtoPendente`) ou corrige o ato de qualquer designação do órgão.
+   */
+  atualizarAto(orgaoId: number, tipo: PgiaTipoDesignacao, designacaoId: number,
+               form: PgiaDesignacaoAtualizarForm | PgiaResponsavelIaAtualizarForm): Observable<PgiaDesignacao> {
+    return this.http.put<PgiaDesignacao>(`${this.apiUrl}/${orgaoId}/${ROTA_DESIGNACAO[tipo]}/${designacaoId}`, form,
+      { headers: this.getHeaders() });
   }
 
   listarPrazos(orgaoId: number, contexto?: HttpContext): Observable<PgiaPrazo[]> {

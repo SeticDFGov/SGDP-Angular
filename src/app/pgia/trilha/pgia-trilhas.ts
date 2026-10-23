@@ -13,7 +13,7 @@ export type PerfilTrilha = 'orgao' | 'sgdi' | 'cgtic' | 'auditoria' | 'agente';
 
 /** Status calculado a partir dos dados (ver PgiaTrilhaStatusService). */
 export type ChaveStatus =
-  | 'responsavel' | 'encarregado' | 'inventario' | 'aia' | 'capacitacao' | 'legados'
+  | 'responsavel' | 'encarregado' | 'curador' | 'inventario' | 'aia' | 'capacitacao' | 'legados'
   | 'fila-sgdi' | 'apuracao' | 'guia' | 'anual' | 'casos-cgtic' | 'auditorias' | 'pedidos-acesso';
 
 export interface PassoTrilha {
@@ -22,8 +22,8 @@ export interface PassoTrilha {
   rota: string;
   /** Uma ou duas frases: o que a pessoa faz nesta tela. */
   oQueFazer: string;
-  /** Citação do decreto ("arts. 10 e 35, I"). */
-  baseLegal: string;
+  /** Citação do decreto ("arts. 10 e 35, I"). Sem ela, o passo não tem base legal clara no decreto. */
+  baseLegal?: string;
   /** Chave do status calculado; sem ela o passo é contínuo (sem prazo). */
   status?: ChaveStatus;
 }
@@ -105,16 +105,22 @@ function trilhaOrgao(admin: boolean): TrilhaPgia {
           {
             titulo: 'Designe o Responsável de IA',
             rota: '/pgia/orgao/responsavel-ia',
-            oQueFazer: 'Indique quem lidera o uso responsável de IA no órgão e anexe a portaria. Comunique a designação à SGDI pelo SEI.',
+            oQueFazer: 'Indique o titular e o suplente que lideram o uso responsável de IA no órgão e anexe a portaria. Comunique a designação à SGDI pelo SEI.',
             baseLegal: 'arts. 10 e 35, I',
             status: 'responsavel'
           },
           {
             titulo: 'Designe o Encarregado de Dados (DPO)',
             rota: '/pgia/orgao/encarregado-dados',
-            oQueFazer: 'Indique quem cuida da proteção de dados pessoais nos sistemas de IA, junto com o Responsável de IA.',
+            oQueFazer: 'Indique o titular e o suplente que cuidam da proteção de dados pessoais nos sistemas de IA, junto com o Responsável de IA.',
             baseLegal: 'arts. 11 e 35, I',
             status: 'encarregado'
+          },
+          {
+            titulo: 'Designe o Curador de Dados de Negócio',
+            rota: '/pgia/orgao/curador-dados',
+            oQueFazer: 'Indique o titular e o suplente do Curador de Dados de Negócio do órgão, com o ato da designação.',
+            status: 'curador'
           }
         ]
       },

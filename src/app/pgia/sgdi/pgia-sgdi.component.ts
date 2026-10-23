@@ -18,6 +18,7 @@ import { PedidosAcessoFilaComponent } from '../../core/acessos/pedidos-acesso-fi
 import { PgiaAnexoComponent } from '../shared/pgia-anexo.component';
 import { PgiaDocumentoService } from '../services/pgia-documento.service';
 import { mensagemDoErro } from '../shared/mensagem-erro';
+import { PgiaDesignacaoFormComponent } from '../orgao/pgia-designacao-form.component';
 import { OPCOES_PAPEL_PGIA, rotuloCurtoPapelPgia } from '../../core/acessos/papeis-pgia';
 import {
   PgiaDocumento,
@@ -51,6 +52,10 @@ import {
   PgiaOrgaoCreateForm,
   PgiaOrgaoDadosForm,
   PgiaPessoaAcesso,
+  PgiaFuncaoPessoa,
+  PgiaDesignacao,
+  PgiaTipoDesignacao,
+  NOMES_DESIGNACAO,
   PgiaPessoaPreCadastroForm,
   PgiaPessoaVinculoForm,
   PgiaPlataforma,
@@ -65,7 +70,7 @@ import {
   selector: 'app-pgia-sgdi',
   standalone: true,
   imports: [CommonModule, FormsModule, PgiaChecklistAbertoComponent, CitaDecretoDirective, PgiaAnexoComponent,
-    PedidosAcessoFilaComponent],
+    PedidosAcessoFilaComponent, PgiaDesignacaoFormComponent],
   templateUrl: './pgia-sgdi.component.html'
 })
 export class PgiaSgdiComponent implements OnInit {
@@ -147,6 +152,15 @@ export class PgiaSgdiComponent implements OnInit {
   preCadastroSubmetido = false;
   salvandoPreCadastro = false;
   orgaoPreCadastroId: number | null = null;
+
+  /** Designação da pessoa com o formulário do ato aberto ("Completar o ato" ou "Corrigir o ato"). */
+  atoEmEdicao: {
+    pessoa: PgiaPessoaAcesso;
+    funcao: PgiaFuncaoPessoa;
+    designacao: PgiaDesignacao | null;
+    carregando: boolean;
+    erro: string | null;
+  } | null = null;
 
   /** Pessoa com o formulário de matrícula/cargo/vínculo aberto. */
   pessoaEmCadastro: PgiaPessoaAcesso | null = null;
@@ -476,6 +490,7 @@ export class PgiaSgdiComponent implements OnInit {
     this.erroPessoas = false;
     this.pessoaEmAcesso = null;
     this.pessoaEmCadastro = null;
+    this.atoEmEdicao = null;
     this.governancaService.listarPessoas(this.filtroPessoas, this.filtroOrgaoId).subscribe({
       next: (lista) => {
         this.pessoas = lista;
@@ -566,6 +581,7 @@ export class PgiaSgdiComponent implements OnInit {
     }
     this.pessoaEmAcesso = pessoa;
     this.pessoaEmCadastro = null;
+    this.atoEmEdicao = null;
     this.vinculoForm = { PapelPgia: pessoa.PapelPgia, UnidadeId: pessoa.UnidadeId };
     this.orgaoVinculoId = pessoa.OrgaoId;
   }
@@ -647,6 +663,75 @@ export class PgiaSgdiComponent implements OnInit {
     return rotuloCurtoPapelPgia(papel);
   }
 
+  // ── Funções vigentes da pessoa e o ato da designação ──────────────────────
+
+  /** "Responsável de IA, titular · SES". */
+  rotuloFuncao(f: PgiaFuncaoPessoa): string {
+    const nome = f.DesignacaoNome || NOMES_DESIGNACAO[f.Designacao] || f.Designacao;
+    return `${nome}, ${f.Posicao.toLowerCase()}${f.OrgaoSigla ? ' · ' + f.OrgaoSigla : ''}`;
+  }
+
+  idBotaoFuncao(f: PgiaFuncaoPessoa): string {
+    return `pa-funcao-${f.Designacao}-${f.DesignacaoId}`;
+  }
+
+  atoAbertoPara(pessoa: PgiaPessoaAcesso): boolean {
+    return !!this.atoEmEdicao && this.atoEmEdicao.pessoa.UserId === pessoa.UserId;
+  }
+
+  get tipoAtoEmEdicao(): PgiaTipoDesignacao {
+    return this.atoEmEdicao?.funcao.Designacao ?? 'responsavel_ia';
+  }
+
+  /**
+   * A SGDI completa o ato de qualquer órgão (PUT do contrato). O formulário abre
+   * com o que já veio preenchido, lido do histórico da designação.
+   */
+  abrirAtoFuncao(pessoa: PgiaPessoaAcesso, funcao: PgiaFuncaoPessoa): void {
+    if (this.atoEmEdicao?.funcao === funcao) {
+      this.fecharAtoFuncao();
+      return;
+    }
+    this.pessoaEmAcesso = null;
+    this.pessoaEmCadastro = null;
+    const atual = { pessoa, funcao, designacao: null as PgiaDesignacao | null, carregando: true, erro: null as string | null };
+    this.atoEmEdicao = atual;
+    this.orgaoService.listarDesignacoes(funcao.OrgaoId, funcao.Designacao).subscribe({
+      next: lista => {
+        if (this.atoEmEdicao !== atual) return;
+        atual.carregando = false;
+        atual.designacao = lista.find(d => d.Id === funcao.DesignacaoId) ?? null;
+        if (!atual.designacao) atual.erro = 'Não encontramos esta designação. Busque as pessoas de novo.';
+        this.focarDepois(atual.designacao ? 'sgdi-ato-titulo' : 'sgdi-ato-erro');
+      },
+      error: err => {
+        if (this.atoEmEdicao !== atual) return;
+        atual.carregando = false;
+        atual.erro = mensagemDoErro(err, 'Não foi possível carregar esta designação.');
+        this.focarDepois('sgdi-ato-erro');
+      }
+    });
+  }
+
+  fecharAtoFuncao(): void {
+    const funcao = this.atoEmEdicao?.funcao;
+    this.atoEmEdicao = null;
+    if (funcao) this.focarDepois(this.idBotaoFuncao(funcao));
+  }
+
+  aoSalvarAtoFuncao(designacao: PgiaDesignacao): void {
+    const em = this.atoEmEdicao;
+    if (!em) return;
+    em.funcao.AtoPendente = !!designacao.AtoPendente;
+    this.notificationService.success(`Ato da designação de ${designacao.AgenteNome} salvo (${this.rotuloFuncao(em.funcao)}).`);
+    this.fecharAtoFuncao();
+  }
+
+  /** Foco depois da renderização (o elemento ainda vai aparecer). */
+  private focarDepois(id: string): void {
+    setTimeout(() => document.getElementById(id)?.focus());
+  }
+
   abrirCadastroPessoa(pessoa: PgiaPessoaAcesso): void {
     if (this.pessoaEmCadastro?.UserId === pessoa.UserId) {
       this.pessoaEmCadastro = null;
@@ -654,6 +739,7 @@ export class PgiaSgdiComponent implements OnInit {
     }
     this.pessoaEmCadastro = pessoa;
     this.pessoaEmAcesso = null;
+    this.atoEmEdicao = null;
     // Pré-preenche com o que a pessoa já tem, para não zerar ao salvar (F3).
     this.infoForm = {
       Matricula: pessoa.Matricula ?? null,

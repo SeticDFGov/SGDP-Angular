@@ -57,7 +57,7 @@
           <div class="flex-1 min-w-0">
             <p class="font-medium text-gray-900">{{ p.titulo }}</p>
             <p class="text-xs text-gray-500 leading-relaxed">{{ p.oQueFazer }}</p>
-            <p class="text-xs text-gray-500 mt-0.5">Base legal: {{ p.baseLegal }}</p>
+            <p *ngIf="p.baseLegal" class="text-xs text-gray-500 mt-0.5">Base legal: {{ p.baseLegal }}</p>
           </div>
           <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap self-start md:self-center"
                 [ngClass]="classeEstado(status(p)?.estado)">
