@@ -36,7 +36,7 @@ jobs:
         msgramServiceToken: ${{ secrets.MSGRAM_SERVICE_TOKEN }}
         productName: SGDP
         workflowName: Build and push image
-        sonarProjectKey: SeticDFGov_sgdp-new-front
+        sonarProjectKey: SeticDFGov_SGDP-Angular
         sonartoken: ${{ secrets.SONAR_TOKEN }}
         collectSonarqubeMetrics: true
         collectGithubMetrics: true
