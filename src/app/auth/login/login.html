@@ -10,6 +10,48 @@
     <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
       <div class="p-8 text-center">
 
+        @if (oidcAtivo) {
+          <div>
+          <div class="mb-8 flex justify-center">
+             <img src="../assets/MarcaGDF2026_Horizontal_S-Conceito_BRANCO.png" alt="Logo GDF" class="h-24 w-auto object-contain">
+          </div>
+
+          <h3 class="mb-6 text-2xl font-bold text-gray-800">Entrar</h3>
+
+          <p class="mb-6 text-sm text-gray-500">Use o mesmo e-mail e a mesma senha da rede do GDF.</p>
+
+          @if (mensagem) {
+            <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg animate-fade-in-down">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm text-red-700">
+                    {{ mensagem }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          }
+
+          <button
+            type="button"
+            (click)="entrarComKeycloak()"
+            [disabled]="carregando"
+            [class.opacity-50]="carregando"
+            [class.cursor-not-allowed]="carregando"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-xl transition duration-200 mb-6 flex justify-center items-center">
+            @if (carregando) {
+              Abrindo a tela de login...
+            } @else {
+              Entrar com a conta do GDF
+            }
+          </button>
+          </div>
+        } @else {
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
 
           <div class="mb-8 flex justify-center">
@@ -119,6 +161,7 @@
             }
           </button>
         </form>
+        }
 
         @if (modoLocalDisponivel) {
           <p class="text-center text-sm text-gray-500">

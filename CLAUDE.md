@@ -27,6 +27,14 @@ Front do SGDP, sistema em **produção** da SUBGD/GDF. Angular 20 **standalone**
 - Rotas com dado dinâmico: `data: { prerender: false }` (padrão de `demandas/:id/entregaveis`). `angular.json` tem `prerender: false` e `app.routes.server.ts` usa `RenderMode.Prerender` em `**`.
 - Textos das telas PGIA: **idênticos aos do `mock_formulario_pgia.html`** (linguagem simples: frases curtas, voz ativa, siglas explicadas na primeira ocorrência). Adaptações só onde a arquitetura difere do mock (ex.: pessoas vêm do login Keycloak, não de cadastro livre) — registrar a adaptação no resumo da fase.
 
+## Login OIDC pelo Keycloak (branch `feat/auth-oidc-keycloak`, 2026-11-03)
+
+- Com `environment.oidc` preenchido (produção: `https://subgd-api.df.gov.br/keycloak/realms/SISTEMA_GEDE`, client `client-subgd`), a tela `/auth` mostra só o botão "Entrar com a conta do GDF", que leva à tela de login do Keycloak (Authorization Code + PKCE S256, com state e nonce conferidos). A volta é `/auth/callback` (`auth/callback/callback.component.ts`, só no navegador): troca o código pelo token direto no Keycloak, carrega o `/me` e segue para o destino guardado na ida (só rota interna) ou `/inicio`; em erro, volta a `/auth?erro=`. **A senha não passa mais pela API.**
+- O fluxo fica em `auth/services/oidc.ts`, **sem biblioteca** (regra 4): `fetch` e `crypto.subtle`, e é carregado **sob demanda** pelo `AuthService` (import dinâmico), fora do bundle inicial (Initial total 517,29 kB contra 515,78 kB da main). As chamadas ao Keycloak não passam pelos interceptors.
+- `AuthService`: `localStorage` ganhou `idToken` e `authModo` (`oidc` ou `api`); `refreshToken()` renova direto no Keycloak quando a sessão é OIDC (o interceptor do 401 não mudou); `logout()` da sessão OIDC chama o `end_session` do Keycloak e volta a `/auth`.
+- Sem `environment.oidc` (desenvolvimento), continua o formulário antigo (`POST api/Auth/token`) e o modo local. Os dois somem quando o login antigo for desligado.
+- Pré-requisitos: Keycloak servido em `/keycloak` com `KC_HOSTNAME` público (`k8s-manifests`, mesma branch) e o client com o fluxo padrão, PKCE e as URLs de volta (`keycloak/configurar-client-oidc.sh` no `k8s-manifests`).
+
 ## Estrutura PGIA
 
 ```

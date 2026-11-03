@@ -39,6 +39,8 @@ export interface KeycloakTokenResponse {
   refresh_token: string;
   refresh_expires_in: number;
   scope: string;
+  /** Só no login OIDC (escopo openid): usado no logout do Keycloak */
+  id_token?: string;
 }
 
 export interface UserRequest {
