@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
-import { AuthRequest, AuthResponse, KeycloakTokenResponse, UserProfile } from '../../../api/auth/interface';
+import { AuthResponse, KeycloakTokenResponse, UserProfile } from '../../../api/auth/interface';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { jwtDecode } from 'jwt-decode';
@@ -8,6 +8,13 @@ import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { map, catchError, switchMap } from 'rxjs/operators';
 import { ModuloId, Modulos } from '../../core/modulos/modulos';
+import type { OidcConfig } from './oidc';
+import { from } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+// Login OIDC (environment.oidc); o código do fluxo vem sob demanda (fora do bundle inicial)
+const OIDC: OidcConfig | null = (environment as { oidc?: OidcConfig | null }).oidc ?? null;
+const carregarOidc = () => import('./oidc');
 
 export type ResourceType = 'projeto' | 'etapa' | 'entregavel';
 
@@ -38,7 +45,50 @@ export class AuthService {
   private userSubject = new BehaviorSubject<UserProfile | null>(null);
   public user$ = this.userSubject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router, @Inject(PLATFORM_ID) private platformId: Object) { }
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) { }
+
+  /**
+   * Login direto no Keycloak (environment.oidc preenchido): o /auth leva à tela de login do
+   * Keycloak. O login com senha pela API (POST api/Auth/token) saiu do front; o refresh pela API
+   * fica só para as sessões abertas antes da troca (authModo ausente ou 'api').
+   */
+  get loginOidcAtivo(): boolean {
+    return !!OIDC && isPlatformBrowser(this.platformId);
+  }
+
+  /** Vai para a tela de login do Keycloak; volta em /auth/callback */
+  entrarComKeycloak(destino?: string): Promise<void> {
+    return carregarOidc().then(m => m.iniciarLogin(OIDC!, destino));
+  }
+
+  /**
+   * Volta do Keycloak (/auth/callback): troca o código pelo token, guarda a sessão e carrega o
+   * /me, como o login antigo. Devolve a rota de destino guardada na ida.
+   */
+  concluirLoginOidc(query: URLSearchParams): Observable<string | null> {
+    return from(carregarOidc().then(m => m.concluirLogin(OIDC!, query))).pipe(
+      switchMap(({ tokens, destino }) => {
+        this.guardarTokens(tokens, 'oidc');
+        return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
+          headers: new HttpHeaders({ Authorization: `Bearer ${tokens.access_token}` })
+        }).pipe(map(meResponse => {
+          this.guardarUsuario(meResponse);
+          return destino;
+        }));
+      })
+    );
+  }
+
+  private guardarTokens(tokens: KeycloakTokenResponse, modo: 'oidc' | 'api'): void {
+    localStorage.setItem('token', tokens.access_token);
+    localStorage.setItem('refreshToken', tokens.refresh_token);
+    if (tokens.id_token) localStorage.setItem('idToken', tokens.id_token);
+    localStorage.setItem('authModo', modo);
+  }
 
   /**
    * Resposta do GET /api/Auth/me → UserProfile, guardado no localStorage e
@@ -62,32 +112,17 @@ export class AuthService {
     return user;
   }
 
-  login(credencials: AuthRequest): Observable<AuthResponse> {
-    return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/Auth/token`, {
-      Email: credencials.Email,
-      Senha: credencials.Senha
-    }).pipe(
-      switchMap(keycloakResponse => {
-        localStorage.setItem('token', keycloakResponse.access_token);
-        localStorage.setItem('refreshToken', keycloakResponse.refresh_token);
-
-        return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
-          headers: new HttpHeaders({ Authorization: `Bearer ${keycloakResponse.access_token}` })
-        }).pipe(
-          map(meResponse => {
-            const user = this.guardarUsuario(meResponse);
-            return { token: keycloakResponse.access_token, user } as AuthResponse;
-          })
-        );
-      })
-    );
-  }
-
   logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+    const saiDoKeycloak = isPlatformBrowser(this.platformId)
+      && localStorage.getItem('authModo') === 'oidc' && this.loginOidcAtivo;
+    const idToken = isPlatformBrowser(this.platformId) ? localStorage.getItem('idToken') : null;
+    ['token', 'refreshToken', 'idToken', 'authModo', 'user'].forEach(chave => localStorage.removeItem(chave));
     this.userSubject.next(null);
+    if (saiDoKeycloak) {
+      // Encerra a sessão no Keycloak também (senão o próximo login entra direto) e volta a /auth
+      carregarOidc().then(m => window.location.assign(m.urlLogout(OIDC!, idToken)));
+      return;
+    }
     this.router.navigate(['/auth']);
   }
 
@@ -95,12 +130,15 @@ export class AuthService {
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) return throwError(() => new Error('Refresh token não encontrado'));
 
-    return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/Auth/refresh`, {
-      RefreshToken: refreshToken
-    }).pipe(
+    // Sessão do login OIDC renova direto no Keycloak; a do login antigo, pela API
+    const renovacao: Observable<KeycloakTokenResponse> =
+      localStorage.getItem('authModo') === 'oidc' && this.loginOidcAtivo
+        ? from(carregarOidc().then(m => m.renovar(OIDC!, refreshToken)))
+        : this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/Auth/refresh`, { RefreshToken: refreshToken });
+
+    return renovacao.pipe(
       switchMap(response => {
-        localStorage.setItem('token', response.access_token);
-        localStorage.setItem('refreshToken', response.refresh_token);
+        this.guardarTokens(response, localStorage.getItem('authModo') === 'oidc' ? 'oidc' : 'api');
         return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
           headers: new HttpHeaders({ Authorization: `Bearer ${response.access_token}` })
         }).pipe(
@@ -287,8 +325,7 @@ export class AuthService {
   }): Observable<AuthResponse> {
     return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/authlocal/token`, dados).pipe(
       switchMap(tokenResponse => {
-        localStorage.setItem('token', tokenResponse.access_token);
-        localStorage.setItem('refreshToken', tokenResponse.refresh_token);
+        this.guardarTokens(tokenResponse, 'api');
 
         return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
           headers: new HttpHeaders({ Authorization: `Bearer ${tokenResponse.access_token}` })
