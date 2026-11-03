@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
-import { AuthRequest, AuthResponse, KeycloakTokenResponse, UserProfile } from '../../../api/auth/interface';
+import { AuthResponse, KeycloakTokenResponse, UserProfile } from '../../../api/auth/interface';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { SERVICE_API_URL } from '../../../api/consts';
 import { jwtDecode } from 'jwt-decode';
@@ -51,7 +51,11 @@ export class AuthService {
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
-  /** Login direto no Keycloak (environment.oidc preenchido): a tela de login só redireciona */
+  /**
+   * Login direto no Keycloak (environment.oidc preenchido): o /auth leva à tela de login do
+   * Keycloak. O login com senha pela API (POST api/Auth/token) saiu do front; o refresh pela API
+   * fica só para as sessões abertas antes da troca (authModo ausente ou 'api').
+   */
   get loginOidcAtivo(): boolean {
     return !!OIDC && isPlatformBrowser(this.platformId);
   }
@@ -106,26 +110,6 @@ export class AuthService {
     localStorage.setItem('user', JSON.stringify(user));
     this.userSubject.next(user);
     return user;
-  }
-
-  login(credencials: AuthRequest): Observable<AuthResponse> {
-    return this.http.post<KeycloakTokenResponse>(`${SERVICE_API_URL}/api/Auth/token`, {
-      Email: credencials.Email,
-      Senha: credencials.Senha
-    }).pipe(
-      switchMap(keycloakResponse => {
-        this.guardarTokens(keycloakResponse, 'api');
-
-        return this.http.get<any>(`${SERVICE_API_URL}/api/Auth/me`, {
-          headers: new HttpHeaders({ Authorization: `Bearer ${keycloakResponse.access_token}` })
-        }).pipe(
-          map(meResponse => {
-            const user = this.guardarUsuario(meResponse);
-            return { token: keycloakResponse.access_token, user } as AuthResponse;
-          })
-        );
-      })
-    );
   }
 
   logout() {
